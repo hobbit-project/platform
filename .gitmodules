@@ -1,0 +1,9 @@
+[submodule "platform-controller"]
+	path = platform-controller
+	url = ifigit@git.informatik.uni-leipzig.de:hobbit/platform-controller.git
+[submodule "platform-storage"]
+	path = platform-storage
+	url = ifigit@git.informatik.uni-leipzig.de:hobbit/platform-storage.git
+[submodule "hobbit-gui"]
+	path = hobbit-gui
+	url = ifigit@git.informatik.uni-leipzig.de:rkorf/hobbit-gui.git

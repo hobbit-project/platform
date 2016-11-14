@@ -1,0 +1,54 @@
+{
+	"challenges": [
+		{
+			"id": "1",
+			"name": "challenge1",
+			"description": "description for challenge 1",
+			"published": true,
+			"closed": false,
+			"organizer": "organizer1",
+      "publishDate": "2017-11-02",
+			"executionDate": "2018-01-01",
+			"tasks": [
+				{
+					"id": "1",
+					"name": "task1",
+					"description": "blabla",
+					"benchmark": {
+						"id": "b1",
+						"name": "benchmark1"
+					}
+				},
+				{
+					"id": "2",
+					"name": "task2",
+					"description": "blablaq",
+					"benchmark": {
+						"id": "b2",
+						"name": "benchmark2"
+					}
+				}
+			]
+		},
+		{
+			"id": "2",
+			"name": "challenge2",
+			"description": "description for challenge 2",
+			"published": false,
+			"closed": false,
+			"organizer": "organizer1",
+			"executionDate": "2018-02-02",
+			"tasks": []
+		},
+		{
+			"id": "3",
+			"name": "challenge3",
+			"description": "description for challenge 3",
+			"published": true,
+			"closed": true,
+			"organizer": "organizer2",
+			"executionDate": "2018-03-03",
+			"tasks": []
+		}
+	]
+}

@@ -1,0 +1,44 @@
+<nav class="navbar navbar-default app-navbar">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#" id="logo"><img alt="HOBBIT" src="assets/images/Hobbit_Logo_2015_rgb.png"></a>
+    </div>
+
+    <!-- Collect the nav links, forms, and other content for toggling -->
+   <div class="collapse navbar-collapse bs-navbar-collapse" bs-navbar>
+     <ul class="nav navbar-nav">
+       <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">Upload <b class="caret"></b></a>
+		    <ul class="dropdown-menu">
+			    <li sg-app-menuitem role="benchmark-provider" [x-routerLink]="['/upload/benchmarks']" label="Upload Benchmark"></li>
+			    <li sg-app-menuitem role="system-provider" [x-routerLink]="['/upload/systems']" label="Upload System"></li>
+		    </ul>
+       </li>
+       <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">Benchmarks <b class="caret"></b></a>
+		    <ul class="dropdown-menu">
+			    <li><a [routerLink]="['/benchmarks/submit']">Submit Benchmark</a></li>
+          <li role="separator" class="divider"></li>
+			    <li><a [routerLink]="['/benchmarks/validate']">Benchmark Status</a></li>
+          <li role="separator" class="divider"></li>
+			    <li><a [routerLink]="['/benchmarks/display']">Display Benchmark Results</a></li>
+		    </ul>
+       </li>
+       <li><a [routerLink]="['/challenges']">Challenges</a>
+       <li><a [routerLink]="['/experiments']">Experiments</a>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+       <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">{{userInfo?.name}} <b class="caret"></b></a>
+		    <ul class="dropdown-menu">
+			    <li><a href='#' (click)="logout()">Logout</a></li>
+		    </ul>
+       </li>
+      </ul>
+    </div>
+  </div>
+</nav>

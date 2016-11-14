@@ -1,0 +1,6 @@
+config/db/virtuoso-temp.db
+config/db/virtuoso.db
+config/db/virtuoso.lck
+config/db/virtuoso.log
+config/db/virtuoso.pxa
+config/db/virtuoso.trx

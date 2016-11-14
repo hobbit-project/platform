@@ -1,0 +1,35 @@
+{
+	"id": "b1",
+	"name": "Benchmark 1",
+	"systemIds": [
+		"s1",
+		"s2",
+		"s3"
+	],
+	"configurationParams": [
+		{
+			"name": "i1",
+			"datatype": "xsd:integer"
+		},
+		{
+			"name": "s1",
+			"datatype": "xsd:string"
+		},
+		{
+			"name": "b1",
+			"datatype": "xsd:boolean"
+		},
+		{
+			"name": "dec1",
+			"datatype": "xsd:decimal"
+		},
+		{
+			"name": "dbl1",
+			"datatype": "xsd:double"
+		},
+		{
+			"name": "flt1",
+			"datatype": "xsd:float"
+		}
+	]
+}

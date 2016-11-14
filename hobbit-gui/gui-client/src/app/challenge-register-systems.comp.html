@@ -1,0 +1,40 @@
+<sg-app-page-header>
+  <div class="col-md-8">
+    <h1>Register Your Systems for Challenge {{challenge?.name}}</h1>
+  </div>
+  <div class="col-md-4">
+    <div class="pull-right">
+      <button type="button" class="btn btn-default" (click)="cancel()">Done</button>
+    </div>
+  </div>
+</sg-app-page-header>
+
+<div class="container">
+  <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
+  <sg-show-error [error]="error"></sg-show-error>
+
+  <div *ngIf="loaded">
+    <div class="row">
+      <div class="col-md-8">
+        <p-dataTable *ngIf="!!challenge.tasks" [value]="challenge.tasks">
+          <p-column field="name" header="Task" [sortable]="true">
+            <template let-col let-task="rowData" pTemplate type="body">
+              <h3><a [routerLink]="['/challenges',challenge.id,'edit',task.id]">{{task.name}}</a></h3>
+              <p>Benchmark: {{task.benchmark?.name}}</p>
+              <p>{{task.description}}</p>
+            </template>
+          </p-column>
+          <p-column header="Systems" [sortable]="false">
+            <template let-col let-task="rowData" pTemplate type="body">
+              <p-dataTable [value]="systems" [(selection)]="selectedSystems[task.id]" (selectionChange)="onSelectionChange(task.id, $event)">
+                <p-column [style]="{'width':'38px'}" selectionMode="multiple"></p-column>
+                <p-column field="name" header="System Name"></p-column>
+                <p-column field="description" header="System Description"></p-column>
+              </p-dataTable>
+            </template>
+          </p-column>
+        </p-dataTable>
+      </div>
+    </div>
+  </div>
+</div>

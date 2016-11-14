@@ -1,0 +1,8 @@
+/platform-storage-service/platform-storage-service/nbproject/private/
+/platform-storage-service/platform-storage-service/build/
+/platform-storage-service/platform-storage-service/dist/
+/storage-service/target/
+*.classpath
+*.project
+*.settings
+dependency-reduced-pom.xml

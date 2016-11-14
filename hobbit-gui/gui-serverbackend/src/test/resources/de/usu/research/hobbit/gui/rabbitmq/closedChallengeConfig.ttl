@@ -1,0 +1,123 @@
+﻿@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix hobbit: <http://w3id.org/hobbit/vocab#> .
+@prefix exp: <http://w3id.org/hobbit/experiments#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix sys: <http://w3id.org/system#> .
+@prefix bench: <http://w3id.org/bench#> .
+
+# --- Benchmark ---
+
+bench:lance a	hobbit:Benchmark;
+rdfs:label "Lance Benchmark"@en;
+rdfs:comment	"LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."@en;
+hobbit:version "V1.1";
+hobbit:hasParameter bench:lanceDataFormat .
+
+bench:lanceDataFormat  a	hobbit:ConfigurableParameter, hobbit:Parameter;
+	rdfs:label	"Lance dataset format"@en;
+	rdfs:comment	"......."@en;
+            rdfs:range bench:DataFormat;
+	hobbit:hasDefaultValue bench:Turtle .
+
+bench:DataFormat  a owl:Class;
+	owl:oneOf (bench:RDF_XML bench:N3 bench:Turtle) .
+	
+# --- System ---
+
+sys:limesV1 a  hobbit:SystemInstance ; 
+	rdfs:label	"Limes"@en;
+	rdfs:comment	"Limes is an Instance Matching System..."@en;
+	hobbit:imageName "LimesImageName" ;
+	hobbit:implementsApi bench:lanceApi ;
+	hobbit:instanceOf sys:limes ;
+	sys:threshold "0.7"^^xsd:float .
+
+sys:limes a hobbit:System ;
+hobbit:hasParameter sys:threshold .
+		
+sys:threshold a hobbit:FeatureParameter;
+	rdfs:label	"Limes Parameter"@en;
+	rdfs:comment	"Threshold parameter for Limes system."@en;
+            rdfs:range	xsd:float .
+
+# --- Experiment ---
+
+exp:LinkingExp10 a hobbit:Experiment ;
+	hobbit:involvesSystemInstance sys:limesV1;
+	hobbit:involvesBenchmark bench:lance;
+	hobbit:wasCarriedOut hobbit:hasHardware ;
+	hobbit:startTime "2016-11-31T22:57:00"^^xsd:dateTime ;
+	hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+	hobbit:hobbitPlatformVersion "V1.3" ;
+	hobbit:isPartOf hobbit:OAEILinkingChallenge ;
+	bench:lanceDataFormat bench:RDF_XML;
+	bench:precision "0.5"^^xsd:float ;
+	bench:recall "0.5"^^xsd:float ;
+	bench:fmeasure "0.5"^^xsd:float .
+
+# --- Hardware ---
+
+hobbit:hasHardware a hobbit:Hardware ;
+hobbit:hasModel "...." ;
+		hobbit:hasProcessors "...." ;
+		hobbit:hasMemory "...." ;
+		hobbit:hasDisks "..." ;
+		hobbit:hasNetworkAdapters "...." ;
+		hobbit:hasOS "Linux .." ;
+		hobbit:hasFileSystem "..." ;
+		hobbit:hasCPUTypeCount ""^^xsd:int ;
+		hobbit:hasRAM "..." .
+
+# --- Challenge ---
+
+
+<http://example.org/MyChallenge> a	hobbit:Challenge;
+	rdfs:label "My example Challenge"@en;
+	rdfs:comment	"This is an example for a challenge."@en;
+	hobbit:executionDate "2016-12-24"^^xsd:Date;
+	hobbit:publicationDate "2016-12-26"^^xsd:Date;
+	hobbit:organizer "Michael Roeder"@en;
+    hobbit:closed "true"^^xsd:boolean .
+
+# --- Challenge Task 1 ---
+
+<http://example.org/MyChallengeTask1> a hobbit:ChallengeTask;
+	rdfs:label "Example task 1"@en;
+	rdfs:comment	"Task 1 of my example challenge."@en;
+	hobbit:isTaskOf <http://example.org/MyChallenge>;
+	hobbit:involvesBenchmark bench:BenchmarkX;
+	hobbit:involvesSystemInstance <http://example.org/SystemA>;
+	hobbit:involvesSystemInstance <http://example.org/SystemB> .
+
+bench:BenchmarkX a	hobbit:Benchmark .
+
+# --- Challenge Task 2 ---
+
+<http://example.org/MyChallengeTask2> a hobbit:ChallengeTask;
+	rdfs:label "Example task 2"@en;
+	rdfs:comment	"The second task of my example challenge."@en;
+	hobbit:isTaskOf <http://example.org/MyChallenge>;
+	hobbit:involvesBenchmark bench:BenchmarkY;
+	bench:dataSize "1000"^^xsd:positiveInteger;
+	bench:frequency "9"^^xsd:positiveInteger;
+	hobbit:involvesSystemInstance <http://example.org/SystemC> .
+
+bench:BenchmarkY a	hobbit:Benchmark;
+	hobbit:hasParameter bench:dataSize;
+	hobbit:hasParameter bench:frequency .
+
+bench:dataSize a hobbit:ConfigurableParameter .
+
+bench:frequency a hobbit:ConfigurableParameter .
+	
+# --- Challenge 2---
+
+<http://example.org/MyChallenge2> a	hobbit:Challenge;
+	rdfs:label "My second Challenge"@en;
+	rdfs:comment	"This is a second example for a challenge."@en;
+	hobbit:executionDate "2016-12-24"^^xsd:Date;
+	hobbit:publicationDate "2016-12-26"^^xsd:Date;
+	hobbit:organizer "Michael Roeder"@en .

@@ -1,0 +1,85 @@
+<web-app version="3.0"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <!-- Servlet declaration can be omitted in which case
+       it would be automatically added by Jersey -->
+  <servlet>
+    <servlet-name>de.usu.research.hobbit.gui.rest.Application</servlet-name>
+  </servlet>
+
+  <!-- Servlet mapping can be omitted in case the Application subclass
+       is annotated with @ApplicationPath annotation; in such case
+       the mapping would be automatically added by Jersey -->
+  <servlet-mapping>
+    <servlet-name>de.usu.research.hobbit.gui.rest.Application</servlet-name>
+    <url-pattern>/rest/*</url-pattern>
+  </servlet-mapping>
+
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>webapi</web-resource-name>
+      <url-pattern>/rest/internal/keycloak-config</url-pattern>      
+    </web-resource-collection>
+    <!-- no constraints -->
+  </security-constraint>
+  
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>webapi</web-resource-name>
+      <url-pattern>/rest/*</url-pattern>      
+      <http-method>GET</http-method>
+      <http-method>POST</http-method>
+      <http-method>PUT</http-method>
+      <http-method>DELETE</http-method>
+    </web-resource-collection>
+    <auth-constraint>
+      <role-name>benchmark-provider</role-name>
+      <role-name>system-provider</role-name>
+      <role-name>challenge-organiser</role-name>
+      <role-name>guest</role-name>
+    </auth-constraint>
+    <user-data-constraint>
+      <!--transport-guarantee>CONFIDENTIAL</transport-guarantee-->
+      <transport-guarantee>NONE</transport-guarantee>
+    </user-data-constraint>
+  </security-constraint>
+
+  <login-config>
+    <auth-method>BASIC</auth-method>
+    <realm-name>this is ignored currently</realm-name>
+  </login-config>
+
+  <security-role>
+    <role-name>benchmark-provider</role-name>
+  </security-role>
+  <security-role>
+    <role-name>system-provider</role-name>
+  </security-role>
+  <security-role>
+    <role-name>guest</role-name>
+  </security-role>
+  <security-role>
+    <role-name>challenge-organiser</role-name>
+  </security-role>
+
+
+  <filter>
+    <filter-name>cors</filter-name>
+    <filter-class>de.usu.research.hobbit.gui.util.CorsFilter</filter-class>
+  </filter>
+  <filter>
+    <filter-name>mqconn</filter-name>
+    <filter-class>de.usu.research.hobbit.gui.util.ConnectionShutdownFilter</filter-class>
+  </filter>
+
+  <filter-mapping>
+    <filter-name>cors</filter-name>
+    <url-pattern>/rest/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>mqconn</filter-name>
+    <url-pattern>/rest/*</url-pattern>
+  </filter-mapping>
+</web-app>

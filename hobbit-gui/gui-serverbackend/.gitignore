@@ -1,0 +1,7 @@
+/target/
+/.classpath
+/.README.md.html
+/bin/
+/.settings/
+.project
+/gui-serverbackend.iml

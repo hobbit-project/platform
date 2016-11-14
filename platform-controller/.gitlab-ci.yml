@@ -1,0 +1,19 @@
+image: maven:latest
+#services:
+#- docker:dind
+#- rabbitmq
+#- redis
+
+stages:
+- build
+#- test
+
+build:
+  stage: build
+  script:
+    - mvn install -Dmaven.test.skip=true
+
+#test:
+#  stage: test
+#  script:
+#    - DOCKER_HOST=tcp://docker:2376 HOBBIT_RABBIT_HOST=rabbitmq HOBBIT_REDIS_HOST=redis mvn test

@@ -1,0 +1,11 @@
+*.class
+*.cache
+.classpath
+.project
+target
+bin
+.settings
+*.log
+.idea
+dependency-reduced-pom.xml
+db

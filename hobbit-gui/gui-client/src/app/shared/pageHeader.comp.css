@@ -1,0 +1,17 @@
+.pgheader {
+	padding: 5px 0;
+	margin: 0 0 15px 0;
+	border-bottom: 1px solid #ddd;
+	background-color: #f0f0f0;
+}
+
+.pgheader >>> h1 {
+	font-size: 22px;
+	margin: 9px 0 7px;
+	font-weight: 400;
+}
+
+.pgheader >>> h1 small {
+	font-size: 22px;
+	font-weight: 300;
+}

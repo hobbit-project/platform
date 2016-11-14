@@ -1,0 +1,33 @@
+<sg-app-page-header>
+    <div class="col-md-10">
+       <h1>Benchmark Submitted</h1>
+    </div>
+</sg-app-page-header>
+
+<div class="container">
+  <div *ngIf="!submitted" class="row">
+    <div class="col-md-8">
+      <h2>Submitting...</h2>
+    </div>
+  </div>
+  <div *ngIf="submitted" class="row">
+    <div class="col-md-8">
+      <h2>Benchmark</h2>
+      {{model.benchmark}} - {{model.benchmarkName}}
+
+      <h2>System</h2>
+      {{model.system}} - {{model.systemName}}
+
+      <h2>Configuration Parameters</h2>
+      <dl class="dl-horizontal">
+        <template ngFor let-param [ngForOf]="model.configurationParams">
+          <dt>{{param.name}}</dt>
+          <dd>{{param.value}}</dd>
+        </template>
+      </dl>
+
+      <br>
+      <p>Submitted successfully HOBBIT ID: <a [routerLink]="['/submissions', model.submission.id]">{{model.submission.id}}</a> at <i>{{model.submission.timestamp}}</i></p>
+    </div>
+  </div>
+</div>

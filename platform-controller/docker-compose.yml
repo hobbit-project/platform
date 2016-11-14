@@ -1,0 +1,124 @@
+version: '2'
+services:
+  platform-controller:
+    build: .
+    restart: always
+    links:
+      - rabbit:rabbit
+      - redis:redis
+#      - docker:docker
+      - logstash:logstash
+    networks:
+      - hobbit-core
+    environment:
+#      - DOCKER_HOST=tcp://docker:2375
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - HOBBIT_RABBIT_HOST=rabbit
+      - HOBBIT_REDIS_HOST=redis
+    depends_on:
+#      - docker
+      - rabbit
+      - redis
+      - logstash
+      - storage-service
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+#  docker:
+#    image: docker:dind
+#    privileged: true
+#    restart: always
+#    networks:
+#      - hobbit-core
+
+  # message bus
+  rabbit:
+    image: rabbitmq:management
+    restart: always
+    container_name: rabbit
+    networks:
+      - hobbit
+      - hobbit-core
+    ports:
+      - "8081:15672"
+      - "5672:5672"
+
+  # DB for controller
+  redis:
+    image: redis
+    restart: always
+    networks:
+      - hobbit-core
+      
+  # Triple store
+  virtuoso:
+    image: openlink/virtuoso_opensource:vos
+    restart: always
+    container_name: vos
+    hostname: vos
+    volumes:
+      - ./db:/opt/virtuoso-opensource/var/lib/virtuoso/db
+    networks:
+      - hobbit-core
+    ports:
+      - "8890:8890"
+      
+  storage-service:
+    image: hobbit/storage_service
+    networks:
+      - hobbit-core
+    environment:
+      - SPARQL_ENDPOINT_URL=http://vos:8890/sparql
+      - HOBBIT_RABBIT_HOST=rabbit
+    depends_on:
+       - virtuoso
+
+  # ELK logging stack
+  elasticsearch:
+    image: elasticsearch
+    container_name: elasticsearch
+    hostname: elasticsearch
+    command: elasticsearch -Des.network.host=0.0.0.0
+    restart: always
+    networks:
+      - hobbit-core
+  logstash:
+    image: logstash
+    command: logstash -f /etc/logstash/conf.d/logstash.conf
+    restart: always
+    container_name: logstash
+    hostname: logstash
+    depends_on:
+      - elasticsearch
+    networks:
+      - hobbit
+      - hobbit-core
+    ports:
+      - "12201:12201"
+      - "12201:12201/udp"
+    volumes:
+      - ./logstash:/etc/logstash/conf.d
+  kibana:
+    image: kibana
+    restart: always
+    ports:
+      - "5601:5601"
+    networks:
+      - hobbit-core
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+      - logstash
+
+networks:
+  hobbit:
+    external:
+      name: hobbit
+  hobbit-core:
+    external:
+      name: hobbit-core

@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE Configure PUBLIC "-//Jetty//Configure//EN" "http://www.eclipse.org/jetty/configure_9_3.dtd">
+<Configure class="org.eclipse.jetty.webapp.WebAppContext">
+  <Get name="securityHandler">
+    <Set name="authenticator">
+      <New class="org.keycloak.adapters.jetty.KeycloakJettyAuthenticator">
+        <Set name="adapterConfig">
+          <New class="org.keycloak.representations.adapters.config.AdapterConfig">
+            <Set name="realm">Hobbit</Set>
+            <Set name="resource">Hobbit-REST</Set>
+            <Set name="authServerUrl"><Env name="KEYCLOAK_AUTH_URL" default="http://192.168.56.105:8181/auth"/></Set>
+            <Set name="sslRequired">external</Set>
+            <Set name="bearerOnly">true</Set>
+          </New>
+        </Set>
+      </New>
+    </Set>
+  </Get>
+</Configure>
