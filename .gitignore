@@ -8,3 +8,4 @@ config/db/virtuoso.trx
 .project
 .settings
 .gitlab-ci.yml
+dependency-reduced-pom.xml
