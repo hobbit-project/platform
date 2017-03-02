@@ -1,2 +1,10 @@
 target/*
 dependency-reduced-pom.xml
+*.class
+*.cache
+.classpath
+.project
+.settings
+*.log
+.idea
+.gitlab-ci.yml
