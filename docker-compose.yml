@@ -33,6 +33,17 @@ services:
       - HOBBIT_RABBIT_HOST=rabbit
       - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
       
+  # Keycloak user management (used by the GUI)
+  keycloak:
+    image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak
+    restart: always
+    ports:
+      - "8181:8080"
+    networks:
+      - hobbit
+    volumes:
+      - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
+      
   # HOBBIT Analysis component
   analysis:
     build: ./analysis-component
