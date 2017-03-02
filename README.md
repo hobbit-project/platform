@@ -1,13 +1,12 @@
-HOBBIT platform
----------
+# HOBBIT platform
 
-# Requirements
+## Requirements
 
 - Maven for building java projects
 - Node.js and NPM for building GUI
 - Docker and docker-compose for building and running all projects
 
-# Preparing
+## Preparing
 
 These steps have to be done only once before starting the platform the first time.
 
@@ -23,7 +22,7 @@ These steps have to be done only once before starting the platform the first tim
 6. Configure Keycloak
 7. Add your personal Gitlab token
 
-## Configure Virtuoso
+### Configure Virtuoso
 
 * Write down two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
 * Open `config/db/storage-init.sh` and put the passwords into the following two lines
@@ -45,35 +44,55 @@ These steps have to be done only once before starting the platform the first tim
       - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
       - SPARQL_ENDPOINT_PASSWORD=Password
 ```
-* Start the Virtuoso of the platform by running `docker-compose up virtuoso`
+* Start the Virtuoso of the platform by running 
+```bash
+docker-compose up virtuoso
+```
 * Execute the `run_storage_init.sh` script
 
-## Configure Keycloak
+### Configure Keycloak
 
-To be able to use the graphical user interface the Keycloak user management is needed.
+To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser. Unfortunately, even in a local setup this address can differ depending on the Docker installation you might have. For Linux users, the address is in most cases `localhost:8181` while for MS Windows users it depends on the VM that might be used to execute the Docker engine, e.g., `192.168.99.100:8181`.
 
-* Pull the preconfigured keycloak image and start it 
-```bash
-docker push git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak
-docker run 
+* Determine this address and put it into the `KEYCLOAK_AUTH_URL` line of the GUI:
+```yml
+  # HOBBIT GUI
+  gui:
+    ...
+    environment:
+      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
 ```
 
-The Hobbit-gui application uses following roles:
+If the address of the GUI will be *different* from `http:localhost:8080` (e.g., because of the reason explained above) you have to configure this address in Keycloak
+* Start Keycloak by running
+```bash
+docker-compose up keycloak
+```
+* Open the address of Keycloak in the browser and click on `Administration Console`. Login using the username `admin` and the password `H16obbit`.
+* Make sure that the realm `Hobbit` is selected in the left upper corner below the Keycloak logo
+* Click on `Clients` in the left menu and click on the `Hobbit-GUI` client.
+* Add the address of the GUI to the list `Valid Redirect URIs`, e.g., `http://192.168.99.100:8080/*`
+
+To manage users, groups and/or roles:
+* login to the Keycloak Administration Console (e.g., http://localhost:8181/auth/admin user: admin, default password: 'H16obbit')
+* select the realm `Hobbit`
+
+For new users do not forget to check/assign the role mappings (tab 'Role Mappings'). The Hobbit-gui application uses following roles:
 * `system-provider`, i.e., registered users
 * `guest`
 * `challenge-organiser` are registered users with the right to create challenges
 
-The preconfigured Keycloak image has following users (default password for all these users is `hobbit`):
+The preconfigured Keycloak image has the following users (default password for all these users is `hobbit`):
 * user `testuser` with the roles `system-provider`, `guest`
 * user `system-provider` has role `system-provider`, `guest`
 * user `guest` has role `guest`
 * user `challenge-organiser` has role `challenge-organiser`
 
-## Add Gitlab token
+### Add Gitlab token
 
 For getting access 
 
-# Running
+## Running
 
 The local version uses plain text logging and connects the platform to your local docker host. There's also no restart policy defined.
 
