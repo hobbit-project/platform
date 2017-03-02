@@ -4,7 +4,8 @@
 1. [Preparing](https://github.com/hobbit-project/platform#preparing)
    1. [Configure Virtuoso](https://github.com/hobbit-project/platform#configure-virtuoso)
    1. [Configure Keycloak](https://github.com/hobbit-project/platform#configure-keycloak)
-   1. [Add Gitlab token](https://github.com/hobbit-project/platform#add-gitlab-token)
+      1. [Details of the user management](https://github.com/hobbit-project/platform#details-of-the-user-management)
+   1. [Using Benchmarks from the HOBBIT Git](https://github.com/hobbit-project/platform#using-benchmarks-from-the-hobbit-git)
 1. [Running](https://github.com/hobbit-project/platform#running)
 
 ## Requirements
