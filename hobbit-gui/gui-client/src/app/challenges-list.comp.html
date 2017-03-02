@@ -13,14 +13,15 @@
   <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
 
   <div *ngIf="loaded">
-    <p-dataTable *ngIf="!!challenges" [value]="challenges" selectionMode="single" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)">
+    <p-dataTable *ngIf="!!challenges" [value]="challenges" selectionMode="single" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)" resizableColumns="true">
       <p-column field="name" header="Name" [sortable]="true" [style]="{'width':'20%'}"></p-column>
       <p-column field="description" header="Description" [sortable]="false" [style]="{'width':'36%'}"></p-column>
       <p-column field="organizer" header="Organizer" [sortable]="true" [style]="{'width':'10%'}"></p-column>
       <p-column field="publishDate" header="Publish Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
-      <p-column field="published" header="Published" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">
+      <p-column field="executionDate" header="Execution Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
+      <p-column *ngIf="editPermission" field="visible" header="Visible" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">
         <template let-col let-challenge="rowData" pTemplate type="body">
-          <sg-checkbox [value]="challenge.published"></sg-checkbox>
+          <sg-checkbox [value]="challenge.visible"></sg-checkbox>
         </template>
       </p-column>
       <p-column field="closed" header="Closed" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">

@@ -34,7 +34,6 @@
       <http-method>DELETE</http-method>
     </web-resource-collection>
     <auth-constraint>
-      <role-name>benchmark-provider</role-name>
       <role-name>system-provider</role-name>
       <role-name>challenge-organiser</role-name>
       <role-name>guest</role-name>
@@ -50,9 +49,6 @@
     <realm-name>this is ignored currently</realm-name>
   </login-config>
 
-  <security-role>
-    <role-name>benchmark-provider</role-name>
-  </security-role>
   <security-role>
     <role-name>system-provider</role-name>
   </security-role>

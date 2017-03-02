@@ -4,11 +4,11 @@
 			"id": "1",
 			"name": "challenge1",
 			"description": "description for challenge 1",
-			"published": true,
+			"visible": true,
 			"closed": false,
 			"organizer": "organizer1",
-      "publishDate": "2017-11-02",
-			"executionDate": "2018-01-01",
+            "publishDate": "2017-11-02T00:00:00+01:00",
+			"executionDate": "2018-01-01T00:00:00+01:00",
 			"tasks": [
 				{
 					"id": "1",
@@ -27,6 +27,15 @@
 						"id": "b2",
 						"name": "benchmark2"
 					}
+				},
+				{
+					"id": "OAEILinkingChallenge",
+					"name": "OAEILinkingChallenge",
+					"description": "OAEI Linking Challenge",
+					"benchmark": {
+						"id": "lance",
+						"name": "Lance Benchmark"
+					}			
 				}
 			]
 		},
@@ -34,20 +43,21 @@
 			"id": "2",
 			"name": "challenge2",
 			"description": "description for challenge 2",
-			"published": false,
+			"visible": false,
 			"closed": false,
 			"organizer": "organizer1",
-			"executionDate": "2018-02-02",
+			"publishDate": "2018-01-02T00:00:00+01:00",
+			"executionDate": "2018-02-02T00:00:00+01:00",
 			"tasks": []
 		},
 		{
 			"id": "3",
 			"name": "challenge3",
 			"description": "description for challenge 3",
-			"published": true,
+			"visible": true,
 			"closed": true,
 			"organizer": "organizer2",
-			"executionDate": "2018-03-03",
+			"executionDate": "2018-03-03T00:00:00+01:00",
 			"tasks": []
 		}
 	]

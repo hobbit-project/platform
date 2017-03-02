@@ -2,13 +2,13 @@ package de.usu.research.hobbit.gui.rabbitmq;
 
 import org.apache.jena.rdf.model.Model;
 
-import de.usu.research.hobbit.gui.rest.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 
 public class ChallengeBeanTest extends AbstractRdfHelperTest {
 
     public ChallengeBeanTest() {
-        super("de/usu/research/hobbit/gui/rabbitmq/closedChallengeConfig.ttl",
-                "de/usu/research/hobbit/gui/rabbitmq/closedChallengeConfig.ttl");
+        super("de/usu/research/hobbit/gui/rabbitmq/challenge.ttl",
+                "de/usu/research/hobbit/gui/rabbitmq/challengeBeanContent.ttl");
     }
 
     @Override

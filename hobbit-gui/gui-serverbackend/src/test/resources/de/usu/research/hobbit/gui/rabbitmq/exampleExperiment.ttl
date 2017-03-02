@@ -1,0 +1,92 @@
+@prefix rdf:	<http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ns1:	<http://w3id.org/hobbit/vocab#> .
+<http://w3id.org/hobbit/experiments#1487680214721>	rdf:type	ns1:Experiment .
+@prefix ns2:	<http://w3id.org/hobbit/platform-benchmark/vocab#> .
+<http://w3id.org/hobbit/experiments#1487680214721>	ns1:involvesBenchmark	ns2:PlatformBenchmark ;
+	ns1:involvesSystemInstance	ns2:PlatformBenchmarkSystem .
+@prefix xsd:	<http://www.w3.org/2001/XMLSchema#> .
+<http://w3id.org/hobbit/experiments#1487680214721>	ns1:startTime	"2017-02-21T12:30:19.708Z"^^xsd:dateTime ;
+	ns2:errorCount	0 ;
+	ns2:numberOfQueries	"1000"^^xsd:unsignedInt ;
+	ns2:numberOfDataGenerators	"2"^^xsd:unsignedInt ;
+	ns2:msPerQuery	17079.675999999999476 ;
+	ns2:responsesPerSecond	41.689248342852380347 ;
+	ns2:numberOfTaskGenerators	"1"^^xsd:unsignedInt ;
+	ns2:seed	31 ;
+	ns2:queryRuntimeStdDev	3234.3673228351790385 ;
+	ns2:runtime	24000 .
+ns2:errorCount	rdf:type	ns1:KPI .
+@prefix rdfs:	<http://www.w3.org/2000/01/rdf-schema#> .
+ns2:errorCount	rdfs:label	"Error count"@en ;
+	rdfs:range	xsd:int ;
+	rdfs:comment	"The number of errors identified by either missing expected responses or missing result sets or both."@en .
+ns2:PlatformBenchmark	rdf:type	ns1:Benchmark ;
+	rdfs:label	"HOBBIT Platform Benchmark"@en ;
+	rdfs:comment	"This benchmark emulates the traffic created by benchmarking a SPARQL store to determine the maximal throughput of the platform."@en ;
+	ns1:hasAPI	ns2:PlatformBenchmarkApi ;
+	ns1:hasParameter	ns2:numberOfDataGenerators ,
+		ns2:numberOfTaskGenerators ,
+		ns2:numberOfQueries ,
+		ns2:seed ;
+	ns1:imageName	"git.project-hobbit.eu:4567/gitadmin/platform-benchmark" ;
+	ns1:measuresKPI	ns2:runtime ,
+		ns2:queryRuntimeStdDev ,
+		ns2:errorCount ,
+		ns2:responsesPerSecond ,
+		ns2:msPerQuery ;
+	ns1:version	"0.0.1"@en .
+ns2:numberOfQueries	rdf:type	ns1:FeatureParameter ,
+		ns1:Parameter ,
+		ns1:ConfigurableParameter ;
+	rdfs:label	"Number of queries"@en ;
+	rdfs:domain	ns1:Challenge ,
+		ns1:Experiment ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"The number of SPARQL queries that are sent."@en ;
+	ns1:defaultValue	"1000"^^xsd:unsignedInt .
+ns2:numberOfDataGenerators	rdf:type	ns1:ConfigurableParameter ,
+		ns1:FeatureParameter ,
+		ns1:Parameter ;
+	rdfs:label	"Number of data generators"@en ;
+	rdfs:domain	ns1:Challenge ,
+		ns1:Experiment ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"The number of data generators that will be created."@en ;
+	ns1:defaultValue	"2"^^xsd:unsignedInt .
+ns2:numberOfTaskGenerators	rdf:type	ns1:FeatureParameter ,
+		ns1:Parameter ,
+		ns1:ConfigurableParameter ;
+	rdfs:label	"Number of task generators"@en ;
+	rdfs:domain	ns1:Challenge ,
+		ns1:Experiment ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"The number of task generators that will be created."@en ;
+	ns1:defaultValue	"1"^^xsd:unsignedInt .
+ns2:seed	rdf:type	ns1:ConfigurableParameter ,
+		ns1:Parameter ;
+	rdfs:label	"Seed"@en ;
+	rdfs:domain	ns1:Challenge ,
+		ns1:Experiment ;
+	rdfs:range	xsd:integer ;
+	rdfs:comment	"The seed of the random number generators used by this bechmark."@en ;
+	ns1:defaultValue	31 .
+ns2:responsesPerSecond	rdf:type	ns1:KPI ;
+	rdfs:label	"Queries per second"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Average number of processed queries (=result sets) that are received by the evaluation storage per second."@en .
+ns2:msPerQuery	rdf:type	ns1:KPI ;
+	rdfs:label	"Average query runtime (in ms)"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"The average time from the moment a query is sent to the benchmarked system until its response is received."@en .
+ns2:queryRuntimeStdDev	rdf:type	ns1:KPI ;
+	rdfs:label	"Query runtime standard deviation"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"The standard deviation of the time between the moment a query is sent to the benchmarked system and the point in time at which its response is received."@en .
+ns2:runtime	rdf:type	ns1:KPI ;
+	rdfs:label	"Runtime"@en ;
+	rdfs:range	xsd:integer ;
+	rdfs:comment	"The overall runtime, i.e., the time from the first query sent to the last response received."@en .
+ns2:PlatformBenchmarkSystem	rdf:type	ns1:SystemInstance ;
+	rdfs:label	"HOBBIT Platform Benchmark System"@en ;
+	rdfs:comment	"The system needed to run the platform benchmark."@en ;
+	ns1:implementsAPI	ns2:PlatformBenchmarkApi .

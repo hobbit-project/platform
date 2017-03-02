@@ -41,11 +41,11 @@ public class SecureExampleResourceResource {
   }
 
   @GET
-  @RolesAllowed({"challenge-organiser", "benchmark-provider"})
+  @RolesAllowed({"challenge-organiser", "system-provider"})
   @Produces(MediaType.TEXT_PLAIN)
   @Path("someRolesAllowed")
   public String someRolesAllowed() {
-    return "someRolesAllowed: @RolesAllowed({\"challenge-organiser\", \"benchmark-provider\"})";
+    return "someRolesAllowed: @RolesAllowed({\"challenge-organiser\", \"system-provider\"})";
   }
 
   @GET

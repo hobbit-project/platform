@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import java.util.List;
 
@@ -6,21 +6,20 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-@XmlRootElement
-public class ConfigurationParamBean {
-	public String id;
-	public String name;
-	public String description;
-	public Datatype datatype;
-	public String range;
-	public String defaultValue;
-	public List<SelectOptionBean> options;
-	
-	public boolean isFeature = false;
+import de.usu.research.hobbit.gui.rest.Datatype;
 
-	public boolean required;
-	public Integer min;
-	public Integer max;
+@XmlRootElement
+public class ConfigurationParamBean extends NamedEntityBean {
+	private Datatype datatype;
+	private String range;
+	private String defaultValue;
+	private List<SelectOptionBean> options;
+	
+	private boolean isFeature = false;
+
+	private boolean required;
+	private Integer min;
+	private Integer max;
 	
 	public ConfigurationParamBean() {		
 	}
@@ -34,14 +33,6 @@ public class ConfigurationParamBean {
 		this.datatype = datatype;
 		this.required = required;
 		this.defaultValue = defaultValue;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	public Datatype getDatatype() {
@@ -92,22 +83,6 @@ public class ConfigurationParamBean {
 		this.options = options;
 	}
 	
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-	
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
-	
 	@Override
 	public String toString() {
 		return ToStringBuilder.reflectionToString(this);
@@ -121,5 +96,11 @@ public class ConfigurationParamBean {
 		this.range = range;
 	}
 
+    public boolean isFeature() {
+        return isFeature;
+    }
 
+    public void setFeature(boolean isFeature) {
+        this.isFeature = isFeature;
+    }
 }

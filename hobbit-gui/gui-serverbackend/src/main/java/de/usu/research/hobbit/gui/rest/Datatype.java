@@ -20,7 +20,8 @@ public enum Datatype {
   @XmlEnumValue(value = "xsd:integer")INTEGER,
   @XmlEnumValue(value = "xsd:unsignedInt")UNSIGNED_INT,
   @XmlEnumValue(value = "xsd:double")DOUBLE,
-  @XmlEnumValue(value = "xsd:float")FLOAT;
+  @XmlEnumValue(value = "xsd:float")FLOAT,
+  @XmlEnumValue(value = "xsd:dateTime")DATE_TIME;
 
   private static AtomicReference<Map<String, Datatype>> refMap = new AtomicReference<>();
   private static AtomicReference<Map<Datatype, String>> refMap2 = new AtomicReference<>();

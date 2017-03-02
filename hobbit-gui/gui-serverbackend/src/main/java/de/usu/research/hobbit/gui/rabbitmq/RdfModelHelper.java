@@ -1,6 +1,11 @@
 package de.usu.research.hobbit.gui.rabbitmq;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,17 +22,23 @@ import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
 import org.hobbit.core.Constants;
+import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rest.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.ChallengeBean;
-import de.usu.research.hobbit.gui.rest.ChallengeTaskBean;
-import de.usu.research.hobbit.gui.rest.ConfigurationParamBean;
-import de.usu.research.hobbit.gui.rest.ConfigurationParamValueBean;
 import de.usu.research.hobbit.gui.rest.Datatype;
-import de.usu.research.hobbit.gui.rest.SelectOptionBean;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.TaskRegistrationBean;
 
 /**
  * Implements simple methods to create beans for the front end based on given
@@ -66,6 +77,24 @@ public class RdfModelHelper {
         return createBenchmarkBean(model, benchmarkResource);
     }
 
+    public static BenchmarkBean createBenchmarkBean(Model model, Resource benchmarkResource) {
+    	BenchmarkBean bean = new BenchmarkBean();
+    	return createBenchmarkBean(model, benchmarkResource, bean);
+    }
+    
+    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource) {
+    	ConfiguredBenchmarkBean bean = new ConfiguredBenchmarkBean();
+    	
+    	createBenchmarkBean(model, benchmarkResource, bean);
+
+    	// TODO fill ConfigurationParamValues
+//        Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
+//        createParamValueBeans(model, benchmarkResource, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), configuredParams);
+//        bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
+    	
+    	return bean;
+    }
+    
     /**
      * Creates a {@link BenchmarkBean} from the given RDF model by collecting
      * all benchmark-relevant information found for the given benchmark
@@ -77,20 +106,22 @@ public class RdfModelHelper {
      *            the {@link Resource} representing the benchmark
      * @return a {@link BenchmarkBean} containing the found information
      */
-    public static BenchmarkBean createBenchmarkBean(Model model, Resource benchmarkResource) {
-        String label = getLabel(model, benchmarkResource);
+    public static <T extends BenchmarkBean> T createBenchmarkBean(Model model, Resource benchmarkResource, T bean) {
+        String label = RdfHelper.getLabel(model, benchmarkResource);
         if (label == null) {
             label = benchmarkResource.getURI();
-            LOGGER.warn("Benchmark {} model does not have a label.", label);
+            LOGGER.info("Benchmark {} model does not have a label.", label);
         }
-        String description = getDescription(model, benchmarkResource);
+        String description = RdfHelper.getDescription(model, benchmarkResource);
         if (description == null) {
-            LOGGER.warn("Benchmark {} model does not have a description.", benchmarkResource.getURI());
+            LOGGER.info("Benchmark {} model does not have a description.", benchmarkResource.getURI());
         }
 
-        BenchmarkBean benchmarkBean = new BenchmarkBean(benchmarkResource.getURI(), label, description);
-        parseBenchmarkParameters(model, benchmarkResource, benchmarkBean);
-        return benchmarkBean;
+        bean.setId(benchmarkResource.getURI());
+        bean.setName(label);
+        bean.setDescription(description);
+        parseBenchmarkParameters(model, benchmarkResource, bean);
+        return bean;
     }
 
     /**
@@ -109,8 +140,8 @@ public class RdfModelHelper {
         NodeIterator nodeIterator = model.listObjectsOfProperty(benchmark, HOBBIT.hasParameter);
         RDFNode node;
         if (nodeIterator.hasNext()) {
-            benchmarkBean.configurationParams = new ArrayList<>();
-            benchmarkBean.configurationParamNames = new ArrayList<>();
+            benchmarkBean.setConfigurationParams(new ArrayList<>());
+            benchmarkBean.setConfigurationParamNames(new ArrayList<>());
         }
         while (nodeIterator.hasNext()) {
             node = nodeIterator.next();
@@ -136,18 +167,18 @@ public class RdfModelHelper {
         // If this parameter can be configured
         if (model.contains(parameter, RDF.type, HOBBIT.ConfigurableParameter)) {
             ConfigurationParamBean configParam = new ConfigurationParamBean();
-            configParam.id = parameter.getURI();
-            configParam.name = getLabel(model, parameter);
-            if (configParam.name == null) {
-                configParam.name = parameter.getURI();
-                LOGGER.warn("The benchmark paremeter {} does not have a label.", parameter.getURI());
+            configParam.setId(parameter.getURI());
+            configParam.setName(RdfHelper.getLabel(model, parameter));
+            if (configParam.getName() == null) {
+                configParam.setName(parameter.getURI());
+                LOGGER.warn("The benchmark parameter {} does not have a label.", parameter.getURI());
             }
-            configParam.description = getDescription(model, parameter);
-            if (configParam.description == null) {
-                LOGGER.warn("The benchmark paremeter {} does not have a description.", parameter.getURI());
+            configParam.setDescription(RdfHelper.getDescription(model, parameter));
+            if (configParam.getDescription() == null) {
+                LOGGER.warn("The benchmark parameter {} does not have a description.", parameter.getURI());
             }
-            configParam.defaultValue = getStringValue(model, parameter, HOBBIT.defaultValue);
-            configParam.isFeature = model.contains(parameter, RDF.type, HOBBIT.FeatureParameter);
+            configParam.setDefaultValue(RdfHelper.getStringValue(model, parameter, HOBBIT.defaultValue));
+            configParam.setFeature(model.contains(parameter, RDF.type, HOBBIT.FeatureParameter));
 
             NodeIterator nodeIterator = model.listObjectsOfProperty(parameter, RDFS.range);
             RDFNode node;
@@ -155,26 +186,26 @@ public class RdfModelHelper {
                 node = nodeIterator.next();
                 if (node.isResource()) {
                     Resource typeResource = node.asResource();
-                    configParam.range = typeResource.getURI();
+                    configParam.setRange(typeResource.getURI());
                     // If this is an XSD resource
                     if (XSD.getURI().equals(typeResource.getNameSpace())) {
-                        configParam.datatype = parseXsdType(typeResource);
+                        configParam.setDatatype(parseXsdType(typeResource));
                     } else if (model.contains(typeResource, RDF.type, RDFS.Class)
                             || model.contains(typeResource, RDF.type, OWL.Class)) {
                         // Maybe this parameter has a set of predefined enum
                         // values
-                        configParam.options = listOptions(model, typeResource);
+                        configParam.setOptions(listOptions(model, typeResource));
                     }
                 }
             }
             // If the datatype couldn't be found and there is no list of options
-            if ((configParam.datatype == null) && (configParam.options == null)) {
-                configParam.datatype = Datatype.STRING;
+            if ((configParam.getDatatype() == null) && (configParam.getOptions() == null)) {
+                configParam.setDatatype(Datatype.STRING);
                 LOGGER.warn("Couldn't find datatype of parameter {}. Using String as default.", parameter.getURI());
 
             }
-            benchmarkBean.configurationParamNames.add(configParam.name);
-            benchmarkBean.configurationParams.add(configParam);
+            benchmarkBean.getConfigurationParamNames().add(configParam.getName());
+            benchmarkBean.getConfigurationParams().add(configParam);
         }
     }
 
@@ -191,41 +222,14 @@ public class RdfModelHelper {
      *         found
      */
     public static List<SelectOptionBean> listOptions(Model model, Resource typeResource) {
-        NodeIterator nodeIterator = model.listObjectsOfProperty(typeResource, OWL.oneOf);
-        RDFNode node;
+        ResIterator iterator = model.listSubjectsWithProperty(RDF.type, typeResource);
         Resource option;
         String optionLabel;
         List<SelectOptionBean> options = new ArrayList<>();
-        if (nodeIterator.hasNext()) {
-            node = nodeIterator.next();
-            if (node.isURIResource()) {
-                option = node.asResource();
-                optionLabel = getLabel(model, option);
-                options.add(new SelectOptionBean(optionLabel != null ? optionLabel : option.getURI(), option.getURI()));
-            } else if (node.isAnon()) {
-                // if this is an array of resources
-                RDFNode arrayNode = node;
-                NodeIterator tempIter;
-                while (!RDF.nil.equals(arrayNode)) {
-                    // get the value of this array cell
-                    tempIter = model.listObjectsOfProperty(arrayNode.asResource(), RDF.first);
-                    if (tempIter.hasNext()) {
-                        option = tempIter.next().asResource();
-                        optionLabel = getLabel(model, option);
-                        options.add(new SelectOptionBean(optionLabel != null ? optionLabel : option.getURI(),
-                                option.getURI()));
-                    }
-                    // move to the next array cell
-                    tempIter = model.listObjectsOfProperty(arrayNode.asResource(), RDF.rest);
-                    if (tempIter.hasNext()) {
-                        arrayNode = tempIter.next();
-                    } else {
-                        arrayNode = RDF.nil;
-                    }
-                }
-            } else {
-                LOGGER.error("Unhandled option RDFNode {}. It will be ignored.", node.toString());
-            }
+        while (iterator.hasNext()) {
+            option = iterator.next();
+            optionLabel = RdfHelper.getLabel(model, option);
+            options.add(new SelectOptionBean(optionLabel != null ? optionLabel : option.getURI(), option.getURI()));
         }
         if (options.size() > 0) {
             return options;
@@ -252,7 +256,7 @@ public class RdfModelHelper {
             return Datatype.DECIMAL;
         } else if (XSD.xint.equals(typeResource)) {
             return Datatype.INTEGER;
-        } else if (XSD.unsignedInt.equals(typeResource)) {
+        } else if (XSD.unsignedInt.equals(typeResource) || XSD.positiveInteger.equals(typeResource)) {
             return Datatype.UNSIGNED_INT;
         } else if (XSD.xdouble.equals(typeResource)) {
             return Datatype.DOUBLE;
@@ -262,111 +266,6 @@ public class RdfModelHelper {
             LOGGER.warn("Got an unsupported parameter type: {}. It will be handled as String.", typeResource.getURI());
             return Datatype.STRING;
         }
-    }
-
-    /**
-     * Returns the label of the given {@link Resource} if it is present in the
-     * given {@link Model}.
-     *
-     * @param model
-     *            the model that should contain the label
-     * @param resource
-     *            the resource for which the label is requested
-     * @return the label of the resource or <code>null</code> if such a label
-     *         does not exist
-     */
-    public static String getLabel(Model model, Resource resource) {
-        return getStringValue(model, resource, RDFS.label);
-    }
-
-    /**
-     * Returns the description, i.e., the value of rdfs:comment, of the given
-     * {@link Resource} if it is present in the given {@link Model}.
-     *
-     * @param model
-     *            the model that should contain the label
-     * @param resource
-     *            the resource for which the label is requested
-     * @return the description of the resource or <code>null</code> if such a
-     *         label does not exist
-     */
-    public static String getDescription(Model model, Resource resource) {
-        return getStringValue(model, resource, RDFS.comment);
-    }
-
-    /**
-     * Returns the object as String of the first triple that has the given
-     * subject and predicate and that can be found in the given model.
-     *
-     * @param model
-     *            the model that should contain the triple
-     * @param subject
-     *            the subject of the triple
-     * @param predicate
-     *            the predicate of the triple
-     * @return object of the triple as String or <code>null</code> if such a
-     *         triple couldn't be found
-     */
-    public static String getStringValue(Model model, Resource subject, Property predicate) {
-        NodeIterator nodeIterator = model.listObjectsOfProperty(subject, predicate);
-        if (nodeIterator.hasNext()) {
-            RDFNode node = nodeIterator.next();
-            if (node.isLiteral()) {
-                return node.asLiteral().getString();
-            } else {
-                return node.toString();
-            }
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * Returns the first triple literal that has the given subject and predicate
-     * and that can be found in the given model.
-     *
-     * @param model
-     *            the model that should contain the triple
-     * @param subject
-     *            the subject of the triple
-     * @param predicate
-     *            the predicate of the triple
-     * @return literal of the triple or <code>null</code> if such a literal
-     *         couldn't be found
-     */
-    public static Literal getLiteral(Model model, Resource subject, Property predicate) {
-        NodeIterator nodeIterator = model.listObjectsOfProperty(subject, predicate);
-        while (nodeIterator.hasNext()) {
-            RDFNode node = nodeIterator.next();
-            if (node.isLiteral()) {
-                return node.asLiteral();
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns the object as {@link Resource} of the first triple that has the
-     * given subject and predicate and that can be found in the given model.
-     *
-     * @param model
-     *            the model that should contain the triple
-     * @param subject
-     *            the subject of the triple
-     * @param predicate
-     *            the predicate of the triple
-     * @return object of the triple as {@link Resource} or <code>null</code> if
-     *         such a triple couldn't be found
-     */
-    public static Resource getObjectResource(Model model, Resource subject, Property predicate) {
-        NodeIterator nodeIterator = model.listObjectsOfProperty(subject, predicate);
-        while (nodeIterator.hasNext()) {
-            RDFNode node = nodeIterator.next();
-            if (node.isResource()) {
-                return node.asResource();
-            }
-        }
-        return null;
     }
 
     public static List<ChallengeBean> listChallenges(Model model) {
@@ -393,20 +292,48 @@ public class RdfModelHelper {
             return null;
         }
         ChallengeBean challenge = new ChallengeBean();
-        challenge.id = getChallengeId(challengeResource.getURI());
-        challenge.name = getLabel(model, challengeResource);
-        challenge.description = getDescription(model, challengeResource);
-        challenge.organizer = getStringValue(model, challengeResource, HOBBIT.organizer);
-        Literal literal = getLiteral(model, challengeResource, HOBBIT.closed);
+        challenge.setId(challengeResource.getURI());
+        challenge.setName(RdfHelper.getLabel(model, challengeResource));
+        challenge.setDescription(RdfHelper.getDescription(model, challengeResource));
+        challenge.setOrganizer(RdfHelper.getStringValue(model, challengeResource, HOBBIT.organizer));
+        Literal literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.closed);
         if (literal != null) {
-            challenge.closed = literal.getBoolean();
+            challenge.setClosed(literal.getBoolean());
         }
-        // TODO challenge.visible ?
-        // TODO challenge.executionDate ?
-        // TODO add publicationDate
-        challenge.tasks = listChallengeTasks(model, challengeResource);
+
+        literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.visible);
+        if (literal != null) {
+            challenge.setVisible(literal.getBoolean());
+        }
+
+        // Internally, we are only using UTC
+        ZoneOffset offset = ZoneOffset.UTC;
+        Calendar cal = getTolerantDateTimeValue(model, challengeResource, HOBBIT.executionDate);
+        if (cal != null) {
+            LocalDate localDate = LocalDate.of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH));
+            LocalTime localTime = LocalTime.of(0, 0, 0);
+            challenge.setExecutionDate(OffsetDateTime.of(localDate, localTime, offset));
+        }
+        cal = getTolerantDateTimeValue(model, challengeResource, HOBBIT.publicationDate);
+        if (cal != null) {
+            LocalDate localDate = LocalDate.of(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1,
+                    cal.get(Calendar.DAY_OF_MONTH));
+            LocalTime localTime = LocalTime.of(0, 0, 0);
+            challenge.setPublishDate(OffsetDateTime.of(localDate, localTime, offset));
+        }
+        challenge.setTasks(listChallengeTasks(model, challengeResource));
 
         return challenge;
+    }
+
+    private static Calendar getTolerantDateTimeValue(Model model, Resource resource, Property property) {
+        Calendar cal = RdfHelper.getDateTimeValue(model, resource, property);
+        if (cal == null) {
+            // try to read date instead
+            cal = RdfHelper.getDateValue(model, resource, property);
+        }
+        return cal;
     }
 
     public static List<ChallengeTaskBean> listChallengeTasks(Model model, Resource challengeResource) {
@@ -433,18 +360,59 @@ public class RdfModelHelper {
             return null;
         }
         ChallengeTaskBean task = new ChallengeTaskBean();
-        task.name = getLabel(model, taskResource);
-        task.description = getDescription(model, taskResource);
-        Resource benchmarkResource = getObjectResource(model, taskResource, HOBBIT.involvesBenchmark);
+        task.setName(RdfHelper.getLabel(model, taskResource));
+        task.setDescription(RdfHelper.getDescription(model, taskResource));
+        Resource benchmarkResource = RdfHelper.getObjectResource(model, taskResource, HOBBIT.involvesBenchmark);
         if (benchmarkResource != null) {
-            task.benchmark = createBenchmarkBean(model, benchmarkResource);
+            task.setBenchmark(createBenchmarkBean(model, benchmarkResource));
+            task.getBenchmark().setSystems(listSystemBeans(model, taskResource));
         }
-        task.configurationParams = createParamValueBeans(model, taskResource);
-        task.id = getChallengeId(taskResource.getURI());
+        task.setConfigurationParams(createParamValueBeans(model, taskResource, benchmarkResource));
+        task.setId(taskResource.getURI());
         return task;
     }
 
-    public static List<ConfigurationParamValueBean> createParamValueBeans(Model model, Resource taskResource) {
+    public static List<SystemBean> listSystemBeans(Model model, Resource involvingResource) {
+        List<SystemBean> systems = new ArrayList<>();
+        if (model == null) {
+            return systems;
+        }
+        // iterate over all systems
+        NodeIterator systemIterator = model.listObjectsOfProperty(involvingResource, HOBBIT.involvesSystemInstance);
+        RDFNode node;
+        while (systemIterator.hasNext()) {
+            node = systemIterator.next();
+            if (node.isResource()) {
+                systems.add(getSystemBean(model, node.asResource()));
+            }
+        }
+
+        return systems;
+    }
+
+    public static SystemBean getSystemBean(Model model, Resource systemResource) {
+        if (model == null) {
+            return null;
+        }
+        return new SystemBean(systemResource.getURI(), RdfHelper.getLabel(model, systemResource),
+                RdfHelper.getDescription(model, systemResource));
+    }
+
+    /**
+     * Extracts configuration parameters of the given challenge task from the
+     * given model.
+     * 
+     * @param model
+     *            the model containing the triples
+     * @param taskResource
+     *            the challenge task resource
+     * @param benchResource
+     *            the benchmark resource which might have hobbit:hasParameter
+     *            triples. It is ignored if it is set to <code>null</code>
+     * @return a list of configuration parameters
+     */
+    public static List<ConfigurationParamValueBean> createParamValueBeans(Model model, Resource taskResource,
+            Resource benchResource) {
         if ((model == null) || (taskResource == null)) {
             return new ArrayList<>(0);
         }
@@ -453,6 +421,10 @@ public class RdfModelHelper {
                 model.listResourcesWithProperty(RDF.type, HOBBIT.ConfigurableParameter), parameters);
         createParamValueBeans(model, taskResource, model.listResourcesWithProperty(RDF.type, HOBBIT.Parameter),
                 parameters);
+        if (benchResource != null) {
+            createParamValueBeans(model, taskResource, model.listObjectsOfProperty(benchResource, HOBBIT.hasParameter),
+                    parameters);
+        }
         return new ArrayList<>(parameters.values());
     }
 
@@ -467,12 +439,60 @@ public class RdfModelHelper {
             paraProp = model.getProperty(parameterUri);
             if (model.contains(taskResource, paraProp) && !parameters.containsKey(parameterUri)) {
                 ConfigurationParamValueBean paramBean = new ConfigurationParamValueBean();
-                paramBean.id = parameterUri;
-                paramBean.value = getStringValue(model, taskResource, paraProp);
+                paramBean.setId(parameterUri);
+                paramBean.setValue(RdfHelper.getStringValue(model, taskResource, paraProp));
+
+                paramBean.setName(RdfHelper.getLabel(model, paraProp));
+                if (paramBean.getName() == null) {
+                    paramBean.setName(parameter.getURI());
+                    LOGGER.info("The benchmark parameter {} does not have a label.", parameter.getURI());
+                }
+                paramBean.setDescription(RdfHelper.getDescription(model, paraProp));
+                if (paramBean.getDescription() == null) {
+                    LOGGER.info("The benchmark parameter {} does not have a description.", parameter.getURI());
+                }
+                NodeIterator nodeIterator = model.listObjectsOfProperty(parameter, RDFS.range);
+                RDFNode node;
+                if (nodeIterator.hasNext()) {
+                    node = nodeIterator.next();
+                    if (node.isResource()) {
+                        Resource typeResource = node.asResource();
+                        paramBean.setRange(typeResource.getURI());
+                        // If this is an XSD resource
+                        if (XSD.getURI().equals(typeResource.getNameSpace())) {
+                            paramBean.setDatatype(parseXsdType(typeResource));
+                        }
+                    }
+                }
+
+                parameters.put(parameterUri, paramBean);
             }
         }
     }
 
+    private static void createParamValueBeans(Model model, Resource taskResource, NodeIterator parameterIterator,
+            Map<String, ConfigurationParamValueBean> parameters) {
+        RDFNode node;
+        Resource parameter;
+        Property paraProp;
+        String parameterUri;
+        while (parameterIterator.hasNext()) {
+            node = parameterIterator.next();
+            if (node.isResource()) {
+                parameter = node.asResource();
+                parameterUri = parameter.getURI();
+                paraProp = model.getProperty(parameterUri);
+                if (model.contains(taskResource, paraProp) && !parameters.containsKey(parameterUri)) {
+                    ConfigurationParamValueBean paramBean = new ConfigurationParamValueBean();
+                    paramBean.setId(parameterUri);
+                    paramBean.setValue(RdfHelper.getStringValue(model, taskResource, paraProp));
+                    parameters.put(parameterUri, paramBean);
+                }
+            }
+        }
+    }
+
+    @Deprecated
     public static String getChallengeId(String uri) {
         if (uri.startsWith(Constants.CHALLENGE_URI_NS)) {
             uri = uri.substring(Constants.CHALLENGE_URI_NS.length());
@@ -480,7 +500,88 @@ public class RdfModelHelper {
         return uri;
     }
 
+    @Deprecated
     public static String getChallengeUri(String id) {
         return Constants.CHALLENGE_URI_NS + id;
+        // return id;
+    }
+
+    public static List<ExperimentBean> createExperimentBeans(Model model) {
+        List<ExperimentBean> result = new ArrayList<>();
+        if (model != null) {
+            ResIterator expIterator = model.listResourcesWithProperty(RDF.type, HOBBIT.Experiment);
+            while (expIterator.hasNext()) {
+                result.add(createExperimentBean(model, expIterator.next()));
+            }
+        }
+        return result;
+    }
+
+    public static ExperimentBean createExperimentBean(Model model, Resource experiment) {
+        if (model == null) {
+            return null;
+        }
+        ExperimentBean bean = new ExperimentBean();
+        bean.setId(experiment.getURI().substring(Constants.EXPERIMENT_URI_NS.length()));
+        Resource benchmarkResource = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesBenchmark);
+        if (benchmarkResource != null) {
+            bean.setBenchmark(createConfiguredBenchmarkBean(model, benchmarkResource));
+        }
+        Resource systemResource = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesSystemInstance);
+        if (systemResource != null) {
+            bean.setSystem(getSystemBean(model, systemResource));
+        }
+        Resource challengeTask = RdfHelper.getObjectResource(model, experiment, HOBBIT.isPartOf);
+        if (challengeTask != null) {
+            bean.setChallengeTask(getChallengeTask(model, challengeTask));
+        }
+        Map<String, ConfigurationParamValueBean> kpis = new HashMap<String, ConfigurationParamValueBean>();
+        createParamValueBeans(model, experiment, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpis);
+        bean.setKpis(new ArrayList<>(kpis.values()));
+
+        bean.setError(getErrorMessage(RdfHelper.getObjectResource(model, experiment, HOBBIT.terminatedWithError)));
+
+        return bean;
+    }
+
+    public static List<TaskRegistrationBean> listRegisteredSystems(Model model) {
+        List<TaskRegistrationBean> registrations = new ArrayList<>();
+        if (model == null) {
+            return registrations;
+        }
+        List<ChallengeBean> challenges = listChallenges(model);
+        for (ChallengeBean challenge : challenges) {
+            for (ChallengeTaskBean task : challenge.getTasks()) {
+                for (SystemBean system : task.getBenchmark().getSystems()) {
+                    registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                }
+            }
+        }
+        return registrations;
+    }
+
+    public static String getErrorMessage(Resource errorResource) {
+        if (errorResource == null) {
+            return null;
+        }
+        if (HobbitErrors.BenchmarkCrashed.equals(errorResource)) {
+            return "The benchmark terminated with an error.";
+        } else if (HobbitErrors.BenchmarkImageMissing.equals(errorResource)) {
+            return "The benchmark image couldn't be loaded.";
+        } else if (HobbitErrors.BenchmarkCreationError.equals(errorResource)) {
+            return "The benchmark couldn't be created.";
+        } else if (HobbitErrors.ExperimentTookTooMuchTime.equals(errorResource)) {
+            return "The experiment took too much time.";
+        } else if (HobbitErrors.SystemCrashed.equals(errorResource)) {
+            return "The benchmarked system terminated with an error.";
+        } else if (HobbitErrors.SystemImageMissing.equals(errorResource)) {
+            return "The benchmarked system image couldn't be loaded.";
+        } else if (HobbitErrors.SystemCreationError.equals(errorResource)) {
+            return "The benchmarked system couldn't be created.";
+        } else if (HobbitErrors.UnexpectedError.equals(errorResource)) {
+            return "An unexpected error occured.";
+        } else {
+            return "An unknown error occured.";
+        }
     }
 }

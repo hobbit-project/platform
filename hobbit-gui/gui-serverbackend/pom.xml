@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>de.usu.research.hobbit</groupId>
+  <groupId>org.hobbit</groupId>
   <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.0.0</version>
   <packaging>war</packaging>
   <name>gui-serverbackend</name>
 
@@ -15,7 +15,7 @@
     <java.version>1.8</java.version>
     <jersey.version>2.24</jersey.version>
     <jetty.version>9.3.13.v20161014</jetty.version>
-    <keycloak.version>2.3.0.Final</keycloak.version>
+    <keycloak.version>2.4.0.Final</keycloak.version>
     <slf4j.version>1.7.15</slf4j.version>
     <junit.version>4.11</junit.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -66,7 +66,7 @@
     <dependency>
       <groupId>org.hobbit</groupId>
       <artifactId>core</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
@@ -186,6 +186,34 @@
               <version>${keycloak.version}</version>
             </dependency>
           </dependencies>
+        </plugin>
+        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+        <plugin>
+        	<groupId>org.eclipse.m2e</groupId>
+        	<artifactId>lifecycle-mapping</artifactId>
+        	<version>1.0.0</version>
+        	<configuration>
+        		<lifecycleMappingMetadata>
+        			<pluginExecutions>
+        				<pluginExecution>
+        					<pluginExecutionFilter>
+        						<groupId>org.codehaus.mojo</groupId>
+        						<artifactId>
+        							keytool-maven-plugin
+        						</artifactId>
+        						<versionRange>[1.5,)</versionRange>
+        						<goals>
+        							<goal>clean</goal>
+        							<goal>generateKeyPair</goal>
+        						</goals>
+        					</pluginExecutionFilter>
+        					<action>
+        						<ignore></ignore>
+        					</action>
+        				</pluginExecution>
+        			</pluginExecutions>
+        		</lifecycleMappingMetadata>
+        	</configuration>
         </plugin>
       </plugins>
     </pluginManagement>

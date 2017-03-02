@@ -45,7 +45,7 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
   }
 
   private createControlModel(i: number, param: ConfigurationParameter): DynamicFormControlModel {
-    let config = { id: `param_${i}`, label: param.name, required: param.required, value: param.defaultValue };
+    let config = { id: `param_${i}`, label: param.name, required: param.required, value: param.defaultValue};
     if (this.configurationParams && this.configurationParams[i]) {
       config.value = this.configurationParams[i].value;
     }
@@ -56,11 +56,13 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
     } else if (param.options) {
       let input = new DynamicSelectModel(config);
       input.disabled = this.readonly;
+      input['description'] = param.description;
       let options = param.options.map(x => { return new DynamicFormOption(x); });
       input.options = options;
       return input;
     } else {
       let input = new DynamicInputModel(config);
+      input['description'] = param.description;
       input.readOnly = this.readonly;
       if (this.isNumber(param)) {
         input.inputType = DYNAMIC_FORM_CONTROL_INPUT_TYPE_NUMBER;
@@ -96,7 +98,7 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
          let value: string = input['value'];
 
          let param = this.benchmark.configurationParams[input.id.substr(6)];
-         let paramValue = new ConfigurationParameterValue(param.id, param.name, param.datatype, value, param.range);
+         let paramValue = new ConfigurationParameterValue(param.id, param.name, param.datatype, value, param.description, param.range);
          configurationParams.push(paramValue);
        }
     }

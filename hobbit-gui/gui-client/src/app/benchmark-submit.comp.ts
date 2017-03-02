@@ -36,7 +36,8 @@ export class BenchmarkSubmitComponent implements OnInit {
     this.configFormGroup = event;
   }
 
-  onChangeBenchmark() {
+  onChangeBenchmark(event) {
+    this.model.benchmark = event;
     this.selectedBenchmarkLight = this.benchmarks.find(b => { return b.id === this.model.benchmark; });
     this.selectedBenchmark = undefined;
     this.configFormGroup = new FormGroup({});
@@ -46,6 +47,15 @@ export class BenchmarkSubmitComponent implements OnInit {
       }, err => {
         console.error(err);
       });
+    }
+  }
+
+  onChangeSystem(event) {
+    this.model.system = event;
+    if (this.selectedBenchmark && this.selectedBenchmark.systems) {
+      this.selectedSystem = this.selectedBenchmark.systems.find(x => { return x.id === this.model.system; });
+    } else {
+      this.selectedSystem = undefined;
     }
   }
 

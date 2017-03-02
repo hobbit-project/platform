@@ -1,9 +1,15 @@
 package de.usu.research.hobbit.gui.rabbitmq;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.TimeZone;
+
+import org.apache.jena.datatypes.DatatypeFormatException;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
-import org.apache.jena.rdf.model.AnonId;
+import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
@@ -13,14 +19,14 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rest.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.ChallengeBean;
-import de.usu.research.hobbit.gui.rest.ChallengeTaskBean;
-import de.usu.research.hobbit.gui.rest.ConfigurationParamBean;
-import de.usu.research.hobbit.gui.rest.ConfigurationParamValueBean;
 import de.usu.research.hobbit.gui.rest.Datatype;
-import de.usu.research.hobbit.gui.rest.SelectOptionBean;
-import de.usu.research.hobbit.gui.rest.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 
 /**
  * Implements simple methods to create RDFmodel based on given front end beans.
@@ -31,6 +37,8 @@ import de.usu.research.hobbit.gui.rest.SystemBean;
 public class RdfModelCreationHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RdfModelCreationHelper.class);
+
+    public static final TimeZone DEFAULT_TIME_ZONE = TimeZone.getTimeZone("GMT");
 
     /**
      * Creates a new RDF model with some predefined prefixes.
@@ -58,27 +66,29 @@ public class RdfModelCreationHelper {
      * @return the {@link Resource} representing the newly created challenge
      */
     public static Resource addChallenge(ChallengeBean challenge, Model model) {
-        String challengeUri = RdfModelHelper.getChallengeUri(challenge.id);
+        String challengeUri = challenge.getId();
         Resource challengeResource = model.getResource(challengeUri);
         model.add(challengeResource, RDF.type, HOBBIT.Challenge);
-        if (challenge.name != null) {
-            model.add(challengeResource, RDFS.label, challenge.name, "en");
+        if (challenge.getName() != null) {
+            model.add(challengeResource, RDFS.label, challenge.getName(), "en");
         }
-        if (challenge.description != null) {
-            model.add(challengeResource, RDFS.comment, challenge.description, "en");
+        if (challenge.getDescription() != null) {
+            model.add(challengeResource, RDFS.comment, challenge.getDescription(), "en");
         }
-        if (challenge.organizer != null) {
-            model.add(challengeResource, HOBBIT.organizer, challenge.organizer, "en");
+        if (challenge.getOrganizer() != null) {
+            model.add(challengeResource, HOBBIT.organizer, challenge.getOrganizer(), "en");
         }
-        if (challenge.executionDate != null) {
-            LOGGER.error("Not implemented until now. Clarify the format of the date!");
-            // TODO add date to model
+        if (challenge.getExecutionDate() != null) {
+            model.addLiteral(challengeResource, HOBBIT.executionDate, getDateLiteral(model, challenge.getExecutionDate()));
         }
-        // TODO visible has no matching RDF property
-        model.addLiteral(challengeResource, HOBBIT.closed, challenge.closed);
-        if (challenge.tasks != null) {
+        if (challenge.getPublishDate() != null) {
+            model.addLiteral(challengeResource, HOBBIT.publicationDate, getDateLiteral(model, challenge.getPublishDate()));
+        }
+        model.addLiteral(challengeResource, HOBBIT.visible, challenge.isVisible());
+        model.addLiteral(challengeResource, HOBBIT.closed, challenge.isClosed());
+        if (challenge.getTasks() != null) {
             Resource taskResource;
-            for (ChallengeTaskBean task : challenge.tasks) {
+            for (ChallengeTaskBean task : challenge.getTasks()) {
                 taskResource = addChallengeTask(task, model);
                 model.add(taskResource, HOBBIT.isTaskOf, challengeResource);
             }
@@ -99,29 +109,30 @@ public class RdfModelCreationHelper {
      *         task
      */
     public static Resource addChallengeTask(ChallengeTaskBean task, Model model) {
-        String taskUri = RdfModelHelper.getChallengeUri(task.id);
+        String taskUri = task.getId();
         Resource taskResource = model.getResource(taskUri);
         model.add(taskResource, RDF.type, HOBBIT.ChallengeTask);
-        if (task.name != null) {
-            model.add(taskResource, RDFS.label, task.name, "en");
+        if (task.getName() != null) {
+            model.add(taskResource, RDFS.label, task.getName(), "en");
         }
-        if (task.description != null) {
-            model.add(taskResource, RDFS.comment, task.description, "en");
+        if (task.getDescription() != null) {
+            model.add(taskResource, RDFS.comment, task.getDescription(), "en");
         }
-        if (task.benchmark != null) {
-            Resource benchmarkResource = addBenchmark(task.benchmark, model);
+        Resource benchmarkResource = null;
+        if (task.getBenchmark() != null) {
+            benchmarkResource = addBenchmark(task.getBenchmark(), model);
             model.add(taskResource, HOBBIT.involvesBenchmark, benchmarkResource);
-            if (task.benchmark.systems != null) {
+            if (task.getBenchmark().getSystems() != null) {
                 Resource systemResource;
-                for (SystemBean system : task.benchmark.systems) {
+                for (SystemBean system : task.getBenchmark().getSystems()) {
                     systemResource = addSystem(system, model);
                     model.add(taskResource, HOBBIT.involvesSystemInstance, systemResource);
                 }
             }
         }
-        if (task.configurationParams != null) {
-            for (ConfigurationParamValueBean parameter : task.configurationParams) {
-                addParameterValue(parameter, taskResource, model);
+        if (task.getConfigurationParams() != null) {
+            for (ConfigurationParamValueBean parameter : task.getConfigurationParams()) {
+                addParameterValue(parameter, taskResource, benchmarkResource, model);
             }
         }
         return taskResource;
@@ -129,8 +140,8 @@ public class RdfModelCreationHelper {
 
     /**
      * Adds the given benchmark to the given model and returns the created
-     * {@link Resource} of the benchmark. Note that the list of systems
-     * ({@link BenchmarkBean#systems}) is not added to the model.
+     * {@link Resource} of the benchmark. Note that the list of systems (
+     * {@link BenchmarkBean#systems}) is not added to the model.
      * 
      * @param benchmark
      *            the bean containing the information about the benchmark that
@@ -140,17 +151,17 @@ public class RdfModelCreationHelper {
      * @return the {@link Resource} representing the newly created benchmark
      */
     public static Resource addBenchmark(BenchmarkBean benchmark, Model model) {
-        Resource benchmarkResource = model.getResource(benchmark.id);
+        Resource benchmarkResource = model.getResource(benchmark.getId());
         model.add(benchmarkResource, RDF.type, HOBBIT.Benchmark);
-        if (benchmark.name != null) {
-            model.add(benchmarkResource, RDFS.label, benchmark.name, "en");
+        if ((benchmark.getName() != null) && (!benchmark.getName().equals(benchmark.getId()))) {
+            model.add(benchmarkResource, RDFS.label, benchmark.getName(), "en");
         }
-        if (benchmark.description != null) {
-            model.add(benchmarkResource, RDFS.comment, benchmark.description, "en");
+        if ((benchmark.getDescription() != null) && (!benchmark.getDescription().equals(benchmark.getId()))) {
+            model.add(benchmarkResource, RDFS.comment, benchmark.getDescription(), "en");
         }
-        if (benchmark.configurationParams != null) {
+        if (benchmark.getConfigurationParams() != null) {
             Resource paramResource;
-            for (ConfigurationParamBean parameter : benchmark.configurationParams) {
+            for (ConfigurationParamBean parameter : benchmark.getConfigurationParams()) {
                 paramResource = addParameter(parameter, model);
                 model.add(benchmarkResource, HOBBIT.hasParameter, paramResource);
             }
@@ -170,62 +181,96 @@ public class RdfModelCreationHelper {
      * @return the {@link Resource} representing the newly created parameter
      */
     public static Resource addParameter(ConfigurationParamBean parameter, Model model) {
-        Resource paramResource = model.getResource(parameter.id);
+        Resource paramResource = model.getResource(parameter.getId());
         model.add(paramResource, RDF.type, HOBBIT.ConfigurableParameter);
         model.add(paramResource, RDF.type, HOBBIT.Parameter);
-        if (parameter.isFeature) {
+        if (parameter.isFeature()) {
             model.add(paramResource, RDF.type, HOBBIT.FeatureParameter);
         }
-        if (parameter.name != null) {
-            model.add(paramResource, RDFS.label, parameter.name, "en");
+        if ((parameter.getName() != null) && (!parameter.getName().equals(parameter.getId()))) {
+            model.add(paramResource, RDFS.label, parameter.getName(), "en");
         }
-        if (parameter.description != null) {
-            model.add(paramResource, RDFS.comment, parameter.description, "en");
+        if ((parameter.getDescription() != null) && (!parameter.getDescription().equals(parameter.getId()))) {
+            model.add(paramResource, RDFS.comment, parameter.getDescription(), "en");
         }
-        if (parameter.datatype != null) {
-            XSDDatatype datatype = datatypeToXsd(parameter.datatype);
+        if (parameter.getDatatype() != null) {
+            XSDDatatype datatype = datatypeToXsd(parameter.getDatatype());
             if (datatype != null) {
                 model.add(paramResource, RDFS.range, model.getResource(datatype.getURI()));
-                if (parameter.defaultValue != null) {
-                    model.add(paramResource, HOBBIT.defaultValue, parameter.defaultValue, datatype);
+                if (parameter.getDefaultValue() != null) {
+                    model.add(paramResource, HOBBIT.defaultValue, parameter.getDefaultValue(), datatype);
                 }
             }
-        } else if (parameter.options != null) {
-            Resource parameterType = model.getResource(parameter.range);
+        } else if (parameter.getOptions() != null) {
+            Resource parameterType = model.getResource(parameter.getRange());
             model.add(paramResource, RDFS.range, parameterType);
             model.add(parameterType, RDF.type, RDFS.Class);
             model.add(parameterType, RDF.type, OWL.Class);
-            Resource optionRes, linkedListCell = null, oldCell = null;
-            for (SelectOptionBean option : parameter.options) {
-                oldCell = linkedListCell;
-                linkedListCell = model.createResource(new AnonId());
-                if (oldCell == null) {
-                    model.add(parameterType, OWL.oneOf, linkedListCell);
-                } else {
-                    model.add(oldCell, RDF.rest, linkedListCell);
-                }
-                optionRes = model.createResource(option.value);
-                model.add(linkedListCell, RDF.first, optionRes);
-                if (!option.value.equals(option.label)) {
-                    model.add(optionRes, RDFS.label, option.label, "en");
+            Resource optionRes;
+            for (SelectOptionBean option : parameter.getOptions()) {
+                optionRes = model.createResource(option.getValue());
+                model.add(optionRes, RDF.type, parameterType);
+                if (!option.getValue().equals(option.getLabel())) {
+                    model.add(optionRes, RDFS.label, option.getLabel(), "en");
                 }
             }
-            model.add(linkedListCell, RDF.rest, RDF.nil);
-            if (parameter.defaultValue != null) {
-                model.add(paramResource, HOBBIT.defaultValue, model.getResource(parameter.defaultValue));
+            if (parameter.getDefaultValue() != null) {
+                model.add(paramResource, HOBBIT.defaultValue, model.getResource(parameter.getDefaultValue()));
             }
         }
         return paramResource;
     }
 
-    private static void addParameterValue(ConfigurationParamValueBean parameter, Resource taskResource, Model model) {
-        // TODO Auto-generated method stub
+    private static void addParameterValue(ConfigurationParamValueBean parameter, Resource taskResource,
+            Resource benchmarkResource, Model model) {
 
+        Property parameterProperty = model.getProperty(parameter.getId());
+        model.add(parameterProperty, RDF.type, HOBBIT.ConfigurableParameter);
+        model.add(parameterProperty, RDF.type, HOBBIT.Parameter);
+
+        Resource typeResource = null;
+        if (parameter.getDatatype() != null) {
+            XSDDatatype type = datatypeToXsd(parameter.getDatatype());
+            typeResource = model.getResource(type.getURI());
+            try {
+                model.add(taskResource, parameterProperty, model.createTypedLiteral(type.parse(parameter.getValue()), type));
+            } catch (DatatypeFormatException e) {
+                LOGGER.error(
+                        "Couldn't create typed literal for " + parameter.toString() + ". Adding literal without type.",
+                        e);
+                model.add(taskResource, parameterProperty, parameter.getValue());
+            }
+        } else {
+            Resource valueResource = model.getResource(parameter.getValue());
+            model.add(taskResource, parameterProperty, valueResource);
+            if (parameter.getRange() != null) {
+                typeResource = model.getResource(parameter.getRange());
+            }
+        }
+
+        if (typeResource != null) {
+            model.add(parameterProperty, RDFS.range, typeResource);
+        }
+        if ((parameter.getName() != null) && (!parameter.getName().equals(parameter.getId()))) {
+            model.add(parameterProperty, RDFS.label, parameter.getName(), "en");
+        }
+        if ((parameter.getDescription() != null) && (!parameter.getDescription().equals(parameter.getId()))) {
+            model.add(parameterProperty, RDFS.comment, parameter.getDescription(), "en");
+        }
+        if (benchmarkResource != null) {
+            model.add(benchmarkResource, HOBBIT.hasParameter, parameterProperty);
+        }
     }
 
     public static Resource addSystem(SystemBean system, Model model) {
-        // TODO Auto-generated method stub
-        return null;
+        Resource systemResource = model.getResource(system.getId());
+        if (system.getName() != null) {
+            model.add(systemResource, RDFS.label, system.getName(), "en");
+        }
+        if (system.getDescription() != null) {
+            model.add(systemResource, RDFS.comment, system.getDescription(), "en");
+        }
+        return systemResource;
     }
 
     public static XSDDatatype datatypeToXsd(Datatype datatype) {
@@ -247,5 +292,17 @@ public class RdfModelCreationHelper {
         default:
             return null;
         }
+    }
+
+    public static Literal getDateLiteral(Model model, OffsetDateTime date) {
+        // Calendar cal = Calendar.getInstance(DEFAULT_TIME_ZONE);
+        // cal.set(date.getYear(), date.getMonth().getValue() - 1,
+        // date.getDayOfMonth(), date.getHour(), date.getMinute(),
+        // date.getSecond());
+        // cal.set(Calendar.MILLISECOND, 0);
+        // return model.createTypedLiteral(new XSDDateTime(cal),
+        // XSDDatatype.XSDdateTime);
+        String str = date.format(DateTimeFormatter.ISO_DATE_TIME);
+        return model.createTypedLiteral(XSDDatatype.XSDdateTime.parseValidated(str), XSDDatatype.XSDdateTime);
     }
 }

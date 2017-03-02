@@ -1,39 +1,23 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
+import de.usu.research.hobbit.gui.rest.Datatype;
+
 @XmlRootElement
-public class ConfigurationParamValueBean {
-	public String id;
-	public String name;
-	public Datatype datatype;
-	public String value;
-	public String range;
+public class ConfigurationParamValueBean extends NamedEntityBean {
+	private Datatype datatype;
+	private String value;
+	private String range;
 	
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public Datatype getDatatype() {
 		return datatype;
 	}
 
 	public void setDatatype(Datatype datatype) {
 		this.datatype = datatype;
-	}
-	
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
 	}
 	
 	@Override

@@ -52,6 +52,9 @@ export class ChallengeTaskEditComponent implements OnInit {
           this.task = this.challenge.tasks[this.taskIdx];
           if (this.task.benchmark && this.task.benchmark.id) {
             this.selectedBenchmarkId = this.task.benchmark.id;
+            if (this.benchmarks) {
+              this.onChangeBenchmark();
+            }
           }
           this.loaded = true;
         } else {
@@ -68,6 +71,14 @@ export class ChallengeTaskEditComponent implements OnInit {
       this.editPermission = isChallengeOrganiser(userInfo);
     });
     this.configFormGroup = new FormGroup({});
+  }
+
+  canEdit() {
+    return this.editPermission && this.challenge && !this.challenge.closed;
+  }
+
+  canSave() {
+    return this.selectedBenchmarkId !== undefined;
   }
 
   onChangeBenchmark() {

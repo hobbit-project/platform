@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Http, Headers, URLSearchParams, Response } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
 
-import { UserInfo, Challenge, ChallengeRegistration } from '../model';
+import { UserInfo, Challenge, ChallengeRegistration, Experiment } from '../model';
 
 @Injectable()
 export class BackendService {
@@ -23,7 +23,7 @@ export class BackendService {
   }
 
   getStatus() {
-    return this.http.get('BACKEND}/rest/status').map(res => res.text());
+    return this.http.get('BACKEND/rest/status').map(res => res.text());
   }
 
   submitBenchmark(model: any) {
@@ -62,6 +62,10 @@ export class BackendService {
     return this.http.delete(`BACKEND/rest/challenges/${encodeURIComponent(id)}`).map(res => res.json());
   }
 
+  closeChallenge(id: string) {
+    return this.http.put(`BACKEND/rest/challenges/operation/close/${encodeURIComponent(id)}`, {}).map(res => res.json());
+  }
+
   getSystemProviderSystems() {
     return this.http.get('BACKEND/rest/system-provider/systems').map(res => res.json());
   }
@@ -76,6 +80,21 @@ export class BackendService {
 
   updateChallengeTaskRegistrations(challengeId: string, taskId: string, registrations: ChallengeRegistration[]) {
     return this.http.put(`BACKEND/rest/system-provider/challenge-registrations/${encodeURIComponent(challengeId)}/${encodeURIComponent(taskId)}`, registrations);
+  }
+
+  queryExperiments(ids?: string, challengeTaskId?: string): Observable<Experiment[]> {
+    let params = new URLSearchParams();
+    if (ids) {
+      params.append('id', ids);
+    }
+    if (challengeTaskId) {
+        params.append('challenge-task-id', challengeTaskId);
+    }
+    return this.http.get('BACKEND/rest/experiments/query', {search: params}).map(res => res.json());
+  }
+
+  countExperiments(challengeId: string) {
+    return this.http.get(`BACKEND/rest/experiments/count-by-challenge/${encodeURIComponent(challengeId)}`).map(res => res.json());
   }
 
   getBackendUrl() {

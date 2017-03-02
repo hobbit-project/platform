@@ -1,0 +1,136 @@
+﻿@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix hobbit: <http://w3id.org/hobbit/vocab#> .
+@prefix exp: <http://w3id.org/hobbit/experiments#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix sys: <http://w3id.org/system#> .
+@prefix bench: <http://w3id.org/bench#> .
+
+# --- Challenge ---
+
+<http://example.org/MyChallenge> a	hobbit:Challenge;
+	rdfs:label "My example Challenge"@en;
+	rdfs:comment	"This is an example for a challenge."@en;
+#	hobbit:executionDate "2016-12-24"^^xsd:date;
+#	hobbit:publicationDate "2016-12-26"^^xsd:date;
+	hobbit:executionDate "2016-12-24T00:00:00Z"^^xsd:dateTime;
+	hobbit:publicationDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
+	hobbit:organizer "Michael Roeder"@en;
+    hobbit:visible "true"^^xsd:boolean;
+    hobbit:closed "true"^^xsd:boolean .
+
+# --- Challenge Task 1 ---
+
+<http://example.org/MyChallengeTask1> a hobbit:ChallengeTask;
+	rdfs:label "Example task 1"@en;
+	rdfs:comment	"Task 1 of my example challenge."@en;
+	hobbit:isTaskOf <http://example.org/MyChallenge>;
+	hobbit:involvesBenchmark bench:lance;
+	bench:lanceDataFormat bench:RDF_XML;
+	hobbit:involvesSystemInstance <http://example.org/System> .
+
+bench:lance a	hobbit:Benchmark;
+    rdfs:label "Lance Benchmark"@en;
+    rdfs:comment	"LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."@en;
+    hobbit:imageName	"LanceDockerImage";
+    hobbit:version "V1.1";
+    hobbit:measuresKPI bench:precision ;
+    hobbit:measuresKPI bench:recall ;
+    hobbit:measuresKPI bench:fmeasure ;
+    hobbit:hasAPI	bench:lanceApi;  	
+	hobbit:hasParameter bench:lanceDataFormat .
+
+bench:precision a hobbit:KPI;
+    rdfs:label "Precision"@en;
+	rdfs:comment	"Precision = TP / (TP + FP)"@en;
+	rdfs:range	xsd:float .
+
+bench:recall a hobbit:KPI;
+    rdfs:label "Recall"@en;
+	rdfs:comment	"Recall = TP / (TP + FN)"@en;
+	rdfs:range	xsd:float .
+
+bench:fmeasure a hobbit:KPI;
+    rdfs:label "F-measure"@en;
+	rdfs:comment	"F-measure is the harmonic mean of precision and recall."@en;
+	rdfs:range	xsd:float .
+		
+bench:lanceApi a hobbit:API .
+
+bench:lanceDataFormat  a	hobbit:ConfigurableParameter;
+	rdfs:label	"Lance dataset format"@en;
+	rdfs:comment	"......."@en;
+    rdfs:range bench:DataFormat;
+	hobbit:defaultValue bench:Turtle .
+
+bench:DataFormat  a owl:Class .
+bench:RDF_XML a bench:DataFormat .
+bench:N3  a bench:DataFormat .
+bench:Turtle a bench:DataFormat .
+
+sys:limesV1 a  hobbit:SystemInstance ; 
+	rdfs:label	"Limes"@en;
+	rdfs:comment	"Limes is an Instance Matching System..."@en;
+	hobbit:imageName "LimesImageName" ;
+	hobbit:implementsAPI bench:lanceApi ;
+	hobbit:instanceOf sys:limes ;
+	sys:threshold "0.7"^^xsd:float .
+
+sys:limes a hobbit:System ;
+    hobbit:hasParameter sys:threshold .
+		
+sys:threshold a hobbit:FeatureParameter;
+	rdfs:label	"Limes Parameter"@en;
+	rdfs:comment	"Threshold parameter for Limes system."@en;
+    rdfs:range	xsd:float .
+
+# --- Challenge Task 2 ---
+
+<http://example.org/MyChallengeTask2> a hobbit:ChallengeTask;
+	rdfs:label "Example task 2"@en;
+	rdfs:comment	"The second task of my example challenge."@en;
+	hobbit:isTaskOf <http://example.org/MyChallenge>;
+	hobbit:involvesBenchmark bench:BenchmarkY;
+	bench:dataSize "1000"^^xsd:positiveInteger;
+	bench:frequency "9"^^xsd:positiveInteger;
+	hobbit:involvesSystemInstance <http://example.org/SystemC> .
+
+bench:BenchmarkY a	hobbit:Benchmark;
+	hobbit:hasParameter bench:dataSize;
+	hobbit:hasParameter bench:frequency .
+
+bench:dataSize a hobbit:ConfigurableParameter;
+    rdfs:range  xsd:positiveInteger .
+
+bench:frequency a hobbit:ConfigurableParameter;
+    rdfs:range  xsd:positiveInteger .
+
+# --- Experiment ---
+
+#exp:LinkingExp10 a hobbit:Experiment ;
+#	hobbit:involvesSystemInstance sys:limesV1;
+#	hobbit:involvesBenchmark bench:lance;
+#	hobbit:wasCarriedOutOn <http://example.org/ExampleHardware> ;
+#	hobbit:startTime "2016-11-31T22:57:00"^^xsd:dateTime ;
+#	hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+#	hobbit:hobbitPlatformVersion "V1.3" ;
+#	hobbit:isPartOf <http://example.org/MyChallengeTask1> ;
+#	bench:lanceDataFormat bench:RDF_XML;
+#	bench:precision "0.5"^^xsd:float ;
+#	bench:recall "0.5"^^xsd:float ;
+#	bench:fmeasure "0.5"^^xsd:float .
+
+# --- Hardware ---
+
+#<http://example.org/ExampleHardware> a hobbit:Hardware ;
+#    hobbit:hasModel "...." ;
+#    hobbit:hasProcessors "...." ;
+#    hobbit:hasMemory "...." ;
+#    hobbit:hasDisks "..." ;
+#    hobbit:hasNetworkAdapters "...." ;
+#    hobbit:hasOS "Linux .." ;
+#    hobbit:hasFileSystem "..." ;
+#    hobbit:hasCPUTypeCount "1"^^xsd:int ;
+#    hobbit:hasRAM "..." .

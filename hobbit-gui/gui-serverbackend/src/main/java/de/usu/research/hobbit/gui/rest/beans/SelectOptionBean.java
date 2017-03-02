@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -6,8 +6,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class SelectOptionBean {
-	public String label;
-	public String value;
+	private String label;
+	private String value;
 	
 	public SelectOptionBean() {		
 	}

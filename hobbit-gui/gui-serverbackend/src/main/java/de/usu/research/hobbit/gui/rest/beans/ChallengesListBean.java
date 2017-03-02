@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class ChallengesListBean {
-	public List<ChallengeBean> challenges;
+	private List<ChallengeBean> challenges;
 	
 	public ChallengesListBean() {		
 	}

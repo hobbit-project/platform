@@ -108,6 +108,7 @@
             <div *ngIf="model.prefix" class="input-group-addon">{{model.prefix}}</div>
 
             <input class="form-control"
+                   [title]="model.description"
                    [attr.accept]="model.accept"
                    [attr.autoComplete]="model.autoComplete"
                    [attr.list]="model.listId"
@@ -165,6 +166,7 @@
 
 
         <select *ngSwitchCase="'SELECT'" class="form-control"
+                [title]="model.description"
                 [attr.tabindex]="model.tabIndex"
                 [formControlName]="model.id"
                 [name]="model.name"

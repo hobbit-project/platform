@@ -18,7 +18,7 @@
   </li>
   <li>
     <a href="rest/secure/example/someRolesAllowed">Resource allowed only for Role challenge-organiser and
-      benchmark-provider</a>
+      system-provider</a>
   </li>
   <li>
     <a href="rest/secure/example/roleNames">Resource allowed for all roles, authentication needed, return current roles</a>

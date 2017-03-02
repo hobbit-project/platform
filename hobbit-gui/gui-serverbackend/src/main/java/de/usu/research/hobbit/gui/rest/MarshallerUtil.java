@@ -21,6 +21,16 @@ import javax.xml.transform.stream.StreamSource;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.eclipse.persistence.oxm.json.JsonObjectBuilderResult;
 
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkListBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengesListBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentsListBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+
 public class MarshallerUtil {
 	public static final AtomicReference<JAXBContext> ref = new AtomicReference<>();
 
@@ -64,7 +74,8 @@ public class MarshallerUtil {
 		try {
 			jc = JAXBContext.newInstance(
 					new Class[] { BenchmarkBean.class, SystemBean.class, ConfigurationParamBean.class, BenchmarkListBean.class, 
-					    ChallengesListBean.class, ChallengeBean.class, ChallengeTaskBean.class }, jaxbProperties);
+					    ChallengesListBean.class, ChallengeBean.class, ChallengeTaskBean.class,
+					    ExperimentBean.class, ExperimentsListBean.class}, jaxbProperties);
 		} catch (JAXBException e) {
 			throw new RuntimeException(e);
 		}

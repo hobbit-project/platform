@@ -31,186 +31,194 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("internal")
 public class InternalResources {
-  private static final Logger LOGGER = LoggerFactory.getLogger(InternalResources.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(InternalResources.class);
 
-  private static volatile KeycloakConfigBean cachedBean;
-  private static Cache<String, UserInfoBean> userInfoCache = CacheBuilder.newBuilder().maximumSize(100)
-      .expireAfterWrite(1, TimeUnit.HOURS).build();
+	private static volatile KeycloakConfigBean cachedBean;
+	private static Cache<String, UserInfoBean> userInfoCache = CacheBuilder.newBuilder().maximumSize(100)
+			.expireAfterWrite(1, TimeUnit.HOURS).build();
 
-  @Path("keycloak-config")
-  @GET
-  @Produces(MediaType.APPLICATION_JSON)
-  public KeycloakConfigBean getKeycloakConfig(@Context ServletContext servletContext) throws Exception {
-    try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/jetty-web.xml")) {
-      KeycloakConfigBean bean = cachedBean;
-      if (bean == null) {
-        bean = cachedBean = findKeycloakConfig(is);
-        LOGGER.info("Keycloak configuration for webapp: " + bean);
-      }
-      if (bean == null)
-        throw new GUIBackendException("Keycloak configuration not found");
-      return bean;
-    } catch (GUIBackendException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new GUIBackendException("Error on retrieving Keycloak configuration: " + e, e);
-    }
-  }
+	@Path("keycloak-config")
+	@GET
+	@Produces(MediaType.APPLICATION_JSON)
+	public KeycloakConfigBean getKeycloakConfig(@Context ServletContext servletContext) throws Exception {
+		if (cachedBean != null) {
+			return cachedBean;
+		}
 
-  @GET
-  @Path("user-info")
-  @Produces(MediaType.APPLICATION_JSON)
-  public UserInfoBean userInfo(@Context SecurityContext sc) {
-    UserInfoBean bean = getUserInfoBean(sc);
-    LOGGER.info("User-info: " + bean);
-    return bean;
-  }
+		try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/jetty-web.xml")) {
+			KeycloakConfigBean bean = cachedBean;
+			if (bean == null) {
+				bean = cachedBean = findKeycloakConfig(is);
+				LOGGER.info("Keycloak configuration for webapp: " + bean);
+			}
+			if (bean == null)
+				throw new GUIBackendException("Keycloak configuration not found");
+			return bean;
+		} catch (GUIBackendException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new GUIBackendException("Error on retrieving Keycloak configuration: " + e, e);
+		}
+	}
 
-  public static UserInfoBean getUserInfoBean(SecurityContext sc) {
-    Principal userPrincipal = sc.getUserPrincipal();
-    String userPrincipalName = userPrincipal.getName();
+	@GET
+	@Path("user-info")
+	@Produces(MediaType.APPLICATION_JSON)
+	public UserInfoBean userInfo(@Context SecurityContext sc) {
+		UserInfoBean bean = getUserInfoBean(sc);
+		LOGGER.info("User-info: " + bean);
+		return bean;
+	}
 
-    try {
-      UserInfoBean result = userInfoCache.get(userPrincipalName, new Callable<UserInfoBean>() {
-        @Override
-        public UserInfoBean call() throws Exception {
-          UserInfoBean bean = new UserInfoBean();
-          String[] roleNames = Application.getRoleNames(sc);
-          bean.roles = Arrays.asList(roleNames);
+	public static UserInfoBean getUserInfoBean(SecurityContext sc) {
+		Principal userPrincipal = sc.getUserPrincipal();
+		String userPrincipalName = userPrincipal.getName();
 
-          // as Keycloak adapter is not on classpath, get information via
-          // reflection
-          // Security is a KeycloakSecurityContext
-          try {
-            Principal userPrincipal = sc.getUserPrincipal();
-            bean.userPrincipalName = userPrincipal.getName();
-            Method getKeycloakSecurityContext = userPrincipal.getClass().getMethod("getKeycloakSecurityContext");
-            Object ksc = getKeycloakSecurityContext.invoke(userPrincipal);
-            Method getToken = ksc.getClass().getMethod("getToken");
-            Object accessToken = getToken.invoke(ksc);
+		try {
+			UserInfoBean result = userInfoCache.get(userPrincipalName, new Callable<UserInfoBean>() {
+				@Override
+				public UserInfoBean call() throws Exception {
+					UserInfoBean bean = new UserInfoBean();
+					String[] roleNames = Application.getRoleNames(sc);
+					bean.setRoles(Arrays.asList(roleNames));
 
-            Method getPreferredUsername = accessToken.getClass().getMethod("getPreferredUsername");
-            Object preferredUsername = getPreferredUsername.invoke(accessToken);
-            bean.preferredUsername = (String) preferredUsername;
+					// as Keycloak adapter is not on classpath, get information
+					// via
+					// reflection
+					// Security is a KeycloakSecurityContext
+					try {
+						Principal userPrincipal = sc.getUserPrincipal();
+						bean.setUserPrincipalName(userPrincipal.getName());
+						Method getKeycloakSecurityContext = userPrincipal.getClass()
+								.getMethod("getKeycloakSecurityContext");
+						Object ksc = getKeycloakSecurityContext.invoke(userPrincipal);
+						Method getToken = ksc.getClass().getMethod("getToken");
+						Object accessToken = getToken.invoke(ksc);
 
-            Method getName = accessToken.getClass().getMethod("getName");
-            Object name = getName.invoke(accessToken);
-            bean.name = (String) name;
+						Method getPreferredUsername = accessToken.getClass().getMethod("getPreferredUsername");
+						Object preferredUsername = getPreferredUsername.invoke(accessToken);
+						bean.setPreferredUsername((String) preferredUsername);
 
-            Method getEmail = accessToken.getClass().getMethod("getEmail");
-            Object email = getEmail.invoke(accessToken);
-            bean.email = (String) email;
-          } catch (Exception e) {
-            LOGGER.warn("Name/email fetch failed with: " + e);
-            LOGGER.debug("stacktrace", e);
-          }
-          return bean;
-        }
-      });
-      return result;
-    } catch (ExecutionException e) {
-      LOGGER.warn("Exception: " + e);
-      throw new RuntimeException(e);
-    }
-  }
+						Method getName = accessToken.getClass().getMethod("getName");
+						Object name = getName.invoke(accessToken);
+						bean.setName((String) name);
 
-  static KeycloakConfigBean findKeycloakConfig(InputStream is)
-      throws ParserConfigurationException, SAXException, IOException {
-    DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-    DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-    Document doc = dBuilder.parse(is);
-    Node node = doc.getDocumentElement();
-    Element elem = walk(node);
-    if (elem == null) {
-      return null;
-    }
+						Method getEmail = accessToken.getClass().getMethod("getEmail");
+						Object email = getEmail.invoke(accessToken);
+						bean.setEmail((String) email);
+					} catch (Exception e) {
+						LOGGER.warn("Name/email fetch failed with: " + e);
+						LOGGER.debug("stacktrace", e);
+					}
+					return bean;
+				}
+			});
+			return result;
+		} catch (ExecutionException e) {
+			LOGGER.warn("Exception: " + e);
+			throw new RuntimeException(e);
+		}
+	}
 
-    KeycloakConfigBean bean = new KeycloakConfigBean();
-    Node child = elem.getFirstChild();
-    while (child != null) {
-      if (child instanceof Element && child.getNodeName().equals("Set")) {
-        String name = child.getAttributes().getNamedItem("name").getNodeValue();
-        String value = extractValue(child);
-        switch (name) {
-        case "realm":
-          bean.realm = value;
-          break;
-        case "authServerUrl":
-          bean.url = value;
-          break;
-        case "resource":
-          bean.clientId = value.replace("REST", "GUI");
-          break;
-        }
-      }
+	static KeycloakConfigBean findKeycloakConfig(InputStream is)
+			throws ParserConfigurationException, SAXException, IOException {
+		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+		Document doc = dBuilder.parse(is);
+		Node node = doc.getDocumentElement();
+		Element elem = walk(node);
+		if (elem == null) {
+			return null;
+		}
 
-      child = child.getNextSibling();
-    }
-    return bean;
-  }
+		KeycloakConfigBean bean = new KeycloakConfigBean();
+		Node child = elem.getFirstChild();
+		while (child != null) {
+			if (child instanceof Element && child.getNodeName().equals("Set")) {
+				String name = child.getAttributes().getNamedItem("name").getNodeValue();
+				String value = extractValue(child);
+				switch (name) {
+				case "realm":
+					bean.setRealm(value);
+					break;
+				case "authServerUrl":
+					bean.setUrl(value);
+					break;
+				case "resource":
+					bean.setClientId(value.replace("REST", "GUI"));
+					break;
+				}
+			}
 
-  private static String extractValue(Node child) {
-    Node node = child.getFirstChild();
-    StringBuilder sb = new StringBuilder();
-    while (node != null) {
-      if (node instanceof Element) {
-        Element elem = (Element) node;
-        String tag = elem.getNodeName();
-        switch (tag) {
-        case "Env": {
-          String name = elem.getAttribute("name");
-          String defValue = elem.getAttribute("default");
-          String value = System.getenv(name);
-          if (value == null) {
-            if (defValue != null)
-              sb.append(defValue);
-          } else {
-            sb.append(value);
-          }
-          break;
-        }
-        case "SystemProperty": {
-          String name = elem.getAttribute("name");
-          String defValue = elem.getAttribute("default");
-          String value = System.getProperty(name);
-          if (value == null) {
-            if (defValue != null)
-              sb.append(defValue);
-          } else {
-            sb.append(value);
-          }
-          break;
-        }
-        }
-      } else {
-        sb.append(node.getTextContent());
-      }
-      node = node.getNextSibling();
-    }
-    return sb.toString();
-  }
+			child = child.getNextSibling();
+		}
+		return bean;
+	}
 
-  private static Element walk(Node node) {
-    while (node != null) {
-      if (node instanceof Element) {
-        if (node.getNodeName().equals("New")) {
-          Node acls = node.getAttributes().getNamedItem("class");
-          if (acls != null
-              && acls.getNodeValue().equals("org.keycloak.representations.adapters.config.AdapterConfig")) {
-            return (Element) node;
-          }
-        }
-        Node child = node.getFirstChild();
-        Element elem = walk(child);
-        if (elem != null) {
-          return elem;
-        }
-      }
-      node = node.getNextSibling();
-    }
-    return null;
-  }
+	private static String extractValue(Node child) {
+		Node node = child.getFirstChild();
+		StringBuilder sb = new StringBuilder();
+		while (node != null) {
+			if (node instanceof Element) {
+				Element elem = (Element) node;
+				String tag = elem.getNodeName();
+				switch (tag) {
+				case "Env": {
+					String name = elem.getAttribute("name");
+					String defValue = elem.getAttribute("default");
+					String value = System.getenv(name);
+					if (value == null) {
+						if (defValue != null)
+							sb.append(defValue);
+					} else {
+						sb.append(value);
+					}
+					break;
+				}
+				case "SystemProperty": {
+					String name = elem.getAttribute("name");
+					String defValue = elem.getAttribute("default");
+					String value = System.getProperty(name);
+					if (value == null) {
+						if (defValue != null)
+							sb.append(defValue);
+					} else {
+						sb.append(value);
+					}
+					break;
+				}
+				}
+			} else {
+				sb.append(node.getTextContent());
+			}
+			node = node.getNextSibling();
+		}
+		return sb.toString();
+	}
+
+	private static Element walk(Node node) {
+		while (node != null) {
+			if (node instanceof Element) {
+				if (node.getNodeName().equals("New")) {
+					Node acls = node.getAttributes().getNamedItem("class");
+					if (acls != null && acls.getNodeValue()
+							.equals("org.keycloak.representations.adapters.config.AdapterConfig")) {
+						return (Element) node;
+					}
+				}
+				Node child = node.getFirstChild();
+				Element elem = walk(child);
+				if (elem != null) {
+					return elem;
+				}
+			}
+			node = node.getNextSibling();
+		}
+		return null;
+	}
 }

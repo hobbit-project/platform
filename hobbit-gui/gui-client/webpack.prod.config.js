@@ -49,11 +49,11 @@ var webpackConfig = {
     new webpack.optimize.OccurenceOrderPlugin(true),
     new webpack.optimize.CommonsChunkPlugin({ name: ['main', 'vendor', 'polyfills'], minChunks: Infinity }),
     new CopyWebpackPlugin([
-	  {from: './src/index.html', to: 'index.html'},
-	  {from: './src/assets', to: 'assets'},
-      {from: 'node_modules/primeui/themes/delta/theme.css', to: 'assets/primeui/themes/delta/theme.css'},
-      {from: 'node_modules/primeui/themes/delta/images/**/*', to: 'assets/primeui/themes/delta/images'},
-      {from: 'node_modules/primeui/primeui-ng-all.min.css', to: 'assets/primeui/primeui-ng-all.min.css'}]),
+	    {from: './src/index.html', to: 'index.html'},
+	    {from: './src/assets', to: 'assets'},
+      {from: 'node_modules/primeng/resources/themes/omega', to: 'assets/primeng/resources/themes/omega'},
+      {from: 'node_modules/primeng/resources/images', to: 'assets/primeng/resources/images'},
+      {from: 'node_modules/primeng/resources/primeng.min.css', to: 'assets/primeng/resources/primeng.min.css'}]),
     new DefinePlugin({'webpack': {'ENV': JSON.stringify(metadata.env), 'BACKEND_URL': '"."'}}),
     new DedupePlugin(),
     new UglifyJsPlugin({

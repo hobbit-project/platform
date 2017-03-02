@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class BenchmarkListBean {
-	public List<BenchmarkBean> benchmarks;
+	private List<BenchmarkBean> benchmarks;
 	
 	public BenchmarkListBean() {		
 	}

@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import java.util.List;
 
@@ -6,10 +6,10 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class SubmitModelBean {
-	public String benchmark;
-	public String system;
+	private String benchmark;
+	private String system;
 	
-	public List<ConfigurationParamValueBean> configurationParams;
+	private List<ConfigurationParamValueBean> configurationParams;
 	
 
 	public List<ConfigurationParamValueBean> getConfigurationParams() {

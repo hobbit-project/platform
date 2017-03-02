@@ -1,4 +1,4 @@
-package de.usu.research.hobbit.gui.rest;
+package de.usu.research.hobbit.gui.rest.beans;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,34 +8,19 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
-public class BenchmarkBean {
-	
-	/**
-	 * The benchmark id or in OWL speak URI
-	 */
-	public String id;
-	
-	/**
-	 * The benchmark name/ rdfs:label
-	 */
-	public String name;
-	
-	/**
-	 * The description of the benchmark / rdfs:comment
-	 */
-	public String description;
+public class BenchmarkBean extends NamedEntityBean {
 	
 	/**
 	 * The systems linked to the benchmark
 	 */
-	public List<SystemBean> systems;
+	private List<SystemBean> systems;
 	
 	/**
 	 * The configuration parameters for this benchmark
 	 */
-	public List<ConfigurationParamBean> configurationParams;
+	private List<ConfigurationParamBean> configurationParams;
 	
-	public List<String> configurationParamNames = new ArrayList<>();
+	private List<String> configurationParamNames = new ArrayList<>();
 	
 	public BenchmarkBean() {		
 	}
@@ -51,30 +36,6 @@ public class BenchmarkBean {
 		this.description = description;
 	}
 
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
-	
 	public List<SystemBean> getSystems() {
 		return systems;
 	}

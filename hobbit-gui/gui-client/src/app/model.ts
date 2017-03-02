@@ -11,15 +11,18 @@ export class ConfigurationParameter {
 
 export class ConfigurationParameterValue {
   constructor(public id: string, public name: string, public datatype: string,
-    public value: string, public range?: string) {}
+    public value: string, public description: string, public range?: string) {}
 }
 
 export class BenchmarkLight {
   constructor(public id: string, public name: string, public description: string) {}
 }
 
-export class System {
-  constructor(public id: string, public name: string) {}
+export class NamedEntity {
+  constructor(public id: string, public name: string, public description?: string) {}
+}
+
+export class System extends NamedEntity {
 }
 
 export class Benchmark {
@@ -33,7 +36,9 @@ export class ChallengeTask {
 
 export class Challenge {
   constructor(public id: string, public name: string, public description?: string,
-   public organizer?: string, public executionDate?: string, public published?: boolean, public closed?: boolean,
+   public organizer?: string,
+   public executionDate?: String, public publishDate?: String,
+   public visible?: boolean, public closed?: boolean,
    public tasks?: ChallengeTask[]) {}
 }
 
@@ -45,6 +50,15 @@ export class UserInfo {
 
 export class ChallengeRegistration {
   constructor(public challengeId: string, public taskId: string, public systemId: string) {}
+}
+
+export class Experiment {
+  constructor(public id: string, public kpis: ConfigurationParameterValue[], public benchmark: NamedEntity,
+    public system: NamedEntity, public challengeTask: NamedEntity, public error?: string) {}
+}
+
+export class ExperimentCount {
+  constructor(public challengeTask: NamedEntity, public count: Number) {}
 }
 
 export function hasRole(user: UserInfo, role: string): boolean {

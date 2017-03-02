@@ -14,10 +14,10 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.XSD;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ConfiguredExperiment;
 import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -32,11 +32,12 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConsumerCancelledException;
 import com.rabbitmq.client.ShutdownSignalException;
 
-import de.usu.research.hobbit.gui.rest.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.ConfigurationParamValueBean;
 import de.usu.research.hobbit.gui.rest.Datatype;
-import de.usu.research.hobbit.gui.rest.SubmitModelBean;
-import de.usu.research.hobbit.gui.rest.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 /**
  * Managing the connection to the HOBBIT RabbitMQ instance (partly based on
@@ -44,12 +45,17 @@ import de.usu.research.hobbit.gui.rest.SystemBean;
  * org.hobbit.controller.test.RequestBenchmarks)
  * 
  * @author Roman Korf
+ * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
 public class PlatformControllerClient implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(PlatformControllerClient.class);
 
     public static PlatformControllerClient create(Connection connection) {
+        if (connection == null) {
+            LOGGER.error("Got no RabbitMQ Connection object. Returning null.");
+            return null;
+        }
         PlatformControllerClient platformClient = null;
         try {
             RabbitRpcClient client = RabbitRpcClient.create(connection, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME);
@@ -62,6 +68,7 @@ public class PlatformControllerClient implements Closeable {
     }
 
     private RabbitRpcClient client;
+    private Gson gson = new Gson();
 
     protected PlatformControllerClient(RabbitRpcClient client) {
         this.client = client;
@@ -93,8 +100,8 @@ public class PlatformControllerClient implements Closeable {
      * @throws Exception
      *             If something goes wrong with the request
      */
-    public List<BenchmarkBean> requestBenchmarks() throws IOException, ShutdownSignalException,
-            ConsumerCancelledException, InterruptedException {
+    public List<BenchmarkBean> requestBenchmarks()
+            throws IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
         LOGGER.info("Sending request...");
         byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_AVAILABLE_BENCHMARKS });
         if (data == null) {
@@ -104,7 +111,6 @@ public class PlatformControllerClient implements Closeable {
         LOGGER.info("Parsing response...");
         // parse the response
         String jsonString = RabbitMQUtils.readString(data);
-        Gson gson = new Gson();
         Collection<BenchmarkMetaData> benchmarks = gson.fromJson(jsonString,
                 new TypeToken<Collection<BenchmarkMetaData>>() {
                 }.getType());
@@ -114,8 +120,8 @@ public class PlatformControllerClient implements Closeable {
         List<BenchmarkBean> benchmarkBeans = new ArrayList<BenchmarkBean>();
 
         for (BenchmarkMetaData benchmark : benchmarks) {
-            benchmarkBeans.add(new BenchmarkBean(benchmark.benchmarkUri, benchmark.benchmarkName,
-                    benchmark.benchmarkDescription));
+            benchmarkBeans.add(
+                    new BenchmarkBean(benchmark.benchmarkUri, benchmark.benchmarkName, benchmark.benchmarkDescription));
         }
 
         LOGGER.debug(Arrays.toString(benchmarkBeans.toArray()));
@@ -128,6 +134,12 @@ public class PlatformControllerClient implements Closeable {
      * Retrieves the benchmark details from the HOBBIT PlatformControler
      * 
      * @param benchmarkUri
+     *            the URI of the benchmark for which the details should be
+     *            retrieved
+     * @param user
+     *            information about the requesting user which will be used to
+     *            filter the systems that can be used with the requested
+     *            benchmark.
      * @return
      * @throws GUIBackendException
      * @throws IOException
@@ -136,8 +148,8 @@ public class PlatformControllerClient implements Closeable {
      * @throws ShutdownSignalException
      * @throws Exception
      */
-    public BenchmarkBean requestBenchmarkDetails(String benchmarkUri) throws GUIBackendException, IOException,
-            ShutdownSignalException, ConsumerCancelledException, InterruptedException {
+    public BenchmarkBean requestBenchmarkDetails(String benchmarkUri, UserInfoBean user) throws GUIBackendException,
+            IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
         LOGGER.info("Sending request...");
         // Map<String, String> env = System.getenv();
         if (benchmarkUri == null) {
@@ -146,21 +158,36 @@ public class PlatformControllerClient implements Closeable {
             throw new GUIBackendException(msg);
         }
         LOGGER.info("Sending request...");
-        byte[] data = client.request(RabbitMQUtils.writeByteArrays(
-                new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
-                new byte[][] { RabbitMQUtils.writeString(benchmarkUri) }, null));
+
+        byte[] data = null;
+        if (user != null) {
+            data = client
+                    .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
+                            new byte[][] { RabbitMQUtils.writeString(benchmarkUri),
+                                    RabbitMQUtils.writeString(user.getPreferredUsername()) },
+                            null));
+        } else {
+            data = client
+                    .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
+                            new byte[][] { RabbitMQUtils.writeString(benchmarkUri) }, null));
+        }
         if (data == null) {
             throw new IOException("Didn't got a response.");
         }
 
-        LOGGER.info("Parsing response...");
-        // parse the response
-        ByteBuffer buffer = ByteBuffer.wrap(data);
-        Model benchmarkModel = RabbitMQUtils.readModel(buffer);
-        String jsonString = RabbitMQUtils.readString(buffer);
-        Gson gson = new Gson();
-        Collection<SystemMetaData> systems = gson.fromJson(jsonString, new TypeToken<Collection<SystemMetaData>>() {
-        }.getType());
+        Model benchmarkModel = null;
+        Collection<SystemMetaData> systems = null;
+        try {
+            LOGGER.info("Parsing response...");
+            // parse the response
+            ByteBuffer buffer = ByteBuffer.wrap(data);
+            benchmarkModel = RabbitMQUtils.readModel(buffer);
+            String jsonString = RabbitMQUtils.readString(buffer);
+            systems = gson.fromJson(jsonString, new TypeToken<Collection<SystemMetaData>>() {
+            }.getType());
+        } catch (Exception e) {
+            throw new IOException("Error while parsing benchmark model.", e);
+        }
 
         BenchmarkBean benchmarkDetails = RdfModelHelper.createBenchmarkBean(benchmarkModel);
         if (benchmarkDetails == null) {
@@ -170,9 +197,11 @@ public class PlatformControllerClient implements Closeable {
         // Parse Benchmark System Details
         LOGGER.info("Adding systems for GUI...");
         benchmarkDetails.setSystems(new ArrayList<>());
-        for (SystemMetaData system : systems) {
-            benchmarkDetails.getSystems().add(
-                    new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+        if (systems != null) {
+            for (SystemMetaData system : systems) {
+                benchmarkDetails.getSystems()
+                        .add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+            }
         }
 
         LOGGER.info("Sending response to GUI...");
@@ -209,7 +238,8 @@ public class PlatformControllerClient implements Closeable {
 
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),
-                        RabbitMQUtils.writeModel(model) }, null);
+                        RabbitMQUtils.writeModel(model) },
+                null);
 
         LOGGER.info("Sending request...");
         data = client.request(data);
@@ -224,7 +254,7 @@ public class PlatformControllerClient implements Closeable {
         return id;
     }
 
-    private static Model addParameters(Model model, Resource benchmarkInstanceResource,
+    protected static Model addParameters(Model model, Resource benchmarkInstanceResource,
             List<ConfigurationParamValueBean> list) {
         for (ConfigurationParamValueBean paramValue : list) {
             String uri = paramValue.getId();
@@ -236,7 +266,12 @@ public class PlatformControllerClient implements Closeable {
                 model.add(benchmarkInstanceResource, model.createProperty(uri),
                         model.createTypedLiteral(value, expandedXsdId(datatype)));
             } else {
-                model.add(benchmarkInstanceResource, model.createProperty(uri), model.createResource(value));
+                if (range.startsWith(XSD.NS)) {
+                    model.add(benchmarkInstanceResource, model.createProperty(uri),
+                            model.createTypedLiteral(value, range));
+                } else {
+                    model.add(benchmarkInstanceResource, model.createProperty(uri), model.createResource(value));
+                }
             }
         }
 
@@ -246,42 +281,41 @@ public class PlatformControllerClient implements Closeable {
         return model;
     }
 
-    public String requestStatus() throws IOException, ShutdownSignalException, ConsumerCancelledException,
-            InterruptedException {
+    public ControllerStatus requestStatus()
+            throws IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
         LOGGER.info("Sending request...");
         byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
         if (data == null) {
-            throw new IOException("Didn't got a response.");
+            throw new IOException("Didn't get a response.");
         }
         // parse the response
         String response = RabbitMQUtils.readString(data);
-        Gson gson = new Gson();
+        System.out.println(response);
         ControllerStatus status = gson.fromJson(response, ControllerStatus.class);
-        // print results
-        StringBuilder builder = new StringBuilder();
-        builder.append("currentExperiment:\n\texperiment id: ");
-        builder.append(status.currentExperimentId);
-        builder.append("\n\tbenchmark URI: ");
-        builder.append(status.currentBenchmarkUri);
-        builder.append("\n\tbenchmark name: ");
-        builder.append(status.currentBenchmarkName);
-        builder.append("\n\tsystem Uri: ");
-        builder.append(status.currentSystemUri);
-        builder.append("\n\tstatus: ");
-        builder.append(status.currentStatus);
-        if (status.queue != null) {
-            builder.append("\n\nqueue:\n");
-            for (ConfiguredExperiment exp : status.queue) {
-                builder.append("\n\tbenchmark name: ");
-                builder.append(exp.benchmarkName);
-                builder.append("\n\tsystem name: ");
-                builder.append(exp.systemName);
-                builder.append("\n");
-            }
+        return status;
+    }
+
+    public void closeChallenge(String challengeUri) {
+        LOGGER.info("Sending request...");
+        byte[] res = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.CLOSE_CHALLENGE },
+                new byte[][] { RabbitMQUtils.writeString(challengeUri) }, null));
+
+        String result = RabbitMQUtils.readString(res);
+        LOGGER.info("Challenge " + challengeUri + " closed " + result);
+    }
+
+    public List<SystemBean> requestSystemsOfUser(String user) {
+        byte[] response = client
+                .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_SYSTEMS_OF_USER },
+                        new byte[][] { RabbitMQUtils.writeString(user) }, null));
+        Collection<SystemMetaData> systems = gson.fromJson(RabbitMQUtils.readString(response),
+                new TypeToken<Collection<SystemMetaData>>() {
+                }.getType());
+        List<SystemBean> systemBeans = new ArrayList<>();
+        for (SystemMetaData system : systems) {
+            systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
         }
-        String statusStr = builder.toString();
-        LOGGER.info(statusStr);
-        return statusStr;
+        return systemBeans;
     }
 
     public static void main(String[] argv) throws Exception {
@@ -296,17 +330,29 @@ public class PlatformControllerClient implements Closeable {
                             for (int i = 0; i < 3; i++) {
                                 long start = System.currentTimeMillis();
 
-                                PlatformControllerClient client = PlatformControllerClient.create(connection
-                                        .getConnection());
+                                PlatformControllerClient client = PlatformControllerClient
+                                        .create(connection.getConnection());
 
                                 try {
                                     // LOGGER.info("Status");
                                     // connectionMgr.requestStatus();
 
-                                    LOGGER.info("Request Benchmarks");
-                                    List<BenchmarkBean> benchmarks = client.requestBenchmarks();
-                                    LOGGER.info("Request BenchmarkDetails");
-                                    client.requestBenchmarkDetails(benchmarks.get(0).id);
+                                    // LOGGER.info("Request Benchmarks");
+                                    // List<BenchmarkBean> benchmarks =
+                                    // client.requestBenchmarks();
+                                    // LOGGER.info("Request BenchmarkDetails");
+                                    // client.requestBenchmarkDetails(benchmarks.get(0).id);
+                                    LOGGER.info("Request Systems for user DefaultHobbitUser");
+                                    List<SystemBean> systems = client.requestSystemsOfUser("DefaultHobbitUser");
+                                    for (SystemBean system : systems) {
+                                        LOGGER.info("Found: {}, {}", system.getId(), system.getName());
+                                    }
+                                    LOGGER.info("Request Systems for user GerbilBenchmark");
+                                    systems = client.requestSystemsOfUser("GerbilBenchmark");
+                                    LOGGER.info("Found: {} systems", systems.size());
+                                    for (SystemBean system : systems) {
+                                        LOGGER.info("Found: {}, {}", system.getId(), system.getName());
+                                    }
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -329,8 +375,12 @@ public class PlatformControllerClient implements Closeable {
     }
 
     private static String expandedXsdId(String id) {
-        String prefix = id.substring(0, id.indexOf(":"));
-        return id.replace(prefix + ":", "http://www.w3.org/2001/XMLSchema#");
+        if (!id.startsWith("http:")) {
+            String prefix = id.substring(0, id.indexOf(":"));
+            return id.replace(prefix + ":", XSD.NS);
+        } else {
+            return id;
+        }
     }
 
 }

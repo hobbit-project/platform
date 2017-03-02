@@ -6,6 +6,8 @@ import java.io.InputStream;
 import static org.junit.Assert.*;
 import org.junit.Test;
 
+import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
+
 public class InternalResourceTest {
 
   @Test
@@ -13,11 +15,11 @@ public class InternalResourceTest {
       try (InputStream is = new FileInputStream("src/main/webapp/WEB-INF/jetty-web.xml")) {
         KeycloakConfigBean bean = InternalResources.findKeycloakConfig(is);
         assertNotNull(bean);
-        assertNotNull(bean.clientId);
-        assertNotNull(bean.url);
-        assertTrue(bean.url.length() > 0);
-        assertNotNull(bean.realm);
-        assertEquals("Hobbit", bean.realm);
+        assertNotNull(bean.getClientId());
+        assertNotNull(bean.getUrl());
+        assertTrue(bean.getUrl().length() > 0);
+        assertNotNull(bean.getRealm());
+        assertEquals("Hobbit", bean.getRealm());
       }
   }
 

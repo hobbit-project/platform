@@ -1,0 +1,26 @@
+<div>
+  <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
+
+  <div *ngIf="loaded">
+    <div class="row">
+      <div class="col-md-12">
+        <p-dataTable [value]="rows" resizableColumns="true">
+          <p-column header="Parameter" [sortable]="true">
+            <template let-row="rowData" pTemplate type="body">
+              <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
+            </template>
+          </p-column>
+          <p-column *ngFor="let ex of experiments; let i = index">
+            <template pTemplate="header"><span title="Experiment ID">{{ex.id}}</span></template>
+            <template pTemplate="body" let-row="rowData">
+              <span *ngIf="row.kpiSample.name !== 'Error'" [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+              <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]" class="alert alert-danger" role="alert" [title]="row.values[i]">
+                {{row.values[i]}}
+              </div>
+            </template>
+          </p-column>
+        </p-dataTable>
+      </div>
+    </div>
+  </div>
+</div>

@@ -46,7 +46,6 @@ export class ChallengeShowRegistrationsComponent implements OnInit {
   }
 
   private updateRegisteredSystems() {
-    let map = {};
     for (let reg of this.registrations) {
       if (!this.registeredSystems[reg.taskId]) {
         this.registeredSystems[reg.taskId] = [];

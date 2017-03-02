@@ -27,7 +27,7 @@
       </dl>
 
       <br>
-      <p>Submitted successfully HOBBIT ID: <a [routerLink]="['/submissions', model.submission.id]">{{model.submission.id}}</a> at <i>{{model.submission.timestamp}}</i></p>
+      <p>Submitted successfully HOBBIT ID: <a [routerLink]="['/experiments/details']" [queryParams]="{ id: model.submission.id }">{{model.submission.id}}</a> at <i>{{model.submission.timestamp}}</i></p>
     </div>
   </div>
 </div>

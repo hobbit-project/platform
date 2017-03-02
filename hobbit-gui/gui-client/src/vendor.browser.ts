@@ -9,8 +9,8 @@ import '@angular/forms';
 // RxJS
 import 'rxjs';
 
-// PrimeNG
-import 'script!primeui/primeui-ng-all.min.js';
+require('expose?jQuery!jquery');
+
 import 'primeng/primeng';
 
 import 'bootstrap-loader';
