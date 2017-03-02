@@ -8,6 +8,8 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
       - HOBBIT_RABBIT_HOST=rabbit
       - HOBBIT_REDIS_HOST=redis
+      - DEPLOY_ENV=testing
+#      - GITLAB_TOKEN=
     depends_on:
       - rabbit
       - redis
@@ -29,6 +31,17 @@ services:
       - virtuoso
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
+      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      
+  # HOBBIT Analysis component
+  analysis:
+    build: ./analysis-component
+    networks:
+      - hobbit-core
+    depends_on:
+      - rabbit
+    environment:
+      - HOBBIT_RABBIT_HOST=rabbit
 
   # message bus
   rabbit:
@@ -39,6 +52,8 @@ services:
       - hobbit-core
     ports:
       - "8081:15672"
+      # Forwarding the port for testing
+      - "5672:5672"
 
   # DB for controller
   redis:
@@ -66,6 +81,8 @@ services:
     environment:
       - SPARQL_ENDPOINT_URL=http://vos:8890/sparql
       - HOBBIT_RABBIT_HOST=rabbit
+      - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
+      - SPARQL_ENDPOINT_PASSWORD=Password
     depends_on:
        - virtuoso
 
