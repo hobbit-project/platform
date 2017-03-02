@@ -57,9 +57,30 @@ public interface ImageManager {
      */
     public Model getBenchmarkModel(String benchmarkUri);
 
+    /**
+     * Retrieves the RDF model of the system with the given URI
+     * 
+     * @param systemUri
+     *            the URI of the chosen system
+     * @return the RDF model of the chosen system
+     */
     public Model getSystemModel(String systemUri);
 
+    /**
+     * Retrieves the Docker image name of the benchmark with the given URI
+     * 
+     * @param benchmarkUri
+     *            the URI of the chosen benchmark
+     * @return the Docker image name of the chosen benchmark
+     */
     public String getBenchmarkImageName(String benchmarkUri);
 
+    /**
+     * Retrieves the Docker image name of the system with the given URI
+     * 
+     * @param systemUri
+     *            the URI of the chosen system
+     * @return the Docker image name of the chosen system
+     */
     public String getSystemImageName(String systemUri);
 }

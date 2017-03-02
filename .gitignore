@@ -4,3 +4,4 @@ config/db/virtuoso.lck
 config/db/virtuoso.log
 config/db/virtuoso.pxa
 config/db/virtuoso.trx
+.gitlab-ci.yml

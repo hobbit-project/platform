@@ -8,10 +8,15 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
+import org.hobbit.core.Constants;
+import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -352,9 +357,35 @@ public class ExperimentStatus implements Closeable {
         }
         Resource experiment = resultModel.getResource(experimentUri);
         resultModel.add(experiment, RDF.type, HOBBIT.Experiment);
+        resultModel.add(experiment, HOBBIT.hobbitPlatformVersion, PlatformController.PLATFORM_VERSION, "en");
         Calendar startDate = Calendar.getInstance();
         startDate.setTimeInMillis(startTimeStamp);
         resultModel.add(experiment, HOBBIT.startTime, resultModel.createTypedLiteral(startDate));
+        if (config.benchmarkUri != null) {
+            resultModel.add(experiment, HOBBIT.involvesBenchmark, resultModel.getResource(config.benchmarkUri));
+        }
+        if (config.serializedBenchParams != null) {
+            try {
+                Model benchmarkParamModel = RabbitMQUtils.readModel(config.serializedBenchParams);
+                StmtIterator iterator = benchmarkParamModel.listStatements(
+                        benchmarkParamModel.getResource(Constants.NEW_EXPERIMENT_URI), null, (RDFNode) null);
+                Statement statement;
+                while (iterator.hasNext()) {
+                    statement = iterator.next();
+                    resultModel.add(experiment, statement.getPredicate(), statement.getObject());
+                }
+            } catch (Exception e) {
+                LOGGER.info(
+                        "Got an exception while trying to parse the serialized benchmark parameters. Won't be able to add them to the result model.",
+                        e);
+            }
+        }
+        if (config.systemUri != null) {
+            resultModel.add(experiment, HOBBIT.involvesSystemInstance, resultModel.getResource(config.systemUri));
+        }
+        if (config.challengeTaskUri != null) {
+            resultModel.add(experiment, HOBBIT.isPartOf, resultModel.getResource(config.challengeTaskUri));
+        }
     }
 
     @Override

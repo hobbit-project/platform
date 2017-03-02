@@ -70,7 +70,7 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
             challenge = decodeExperimentFromString(challengeStr);
         }
 
-        if (challenge != null && experiment != null && challenge.ExecutionDate.before(experiment.ExecutionDate)) {
+        if (challenge != null && experiment != null && challenge.executionDate.before(experiment.executionDate)) {
             return challenge;
         }
 
@@ -94,8 +94,8 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         // add to experiment data store
         redisSyncCommands.hset(typeKey, idKey, experimentJson);
         long timestamp = 0;
-        if (experiment.ExecutionDate != null) {
-            timestamp = experiment.ExecutionDate.getTime();
+        if (experiment.executionDate != null) {
+            timestamp = experiment.executionDate.getTimeInMillis();
         }
         // append it to queue
         redisSyncCommands.zadd(queueKey, (double) timestamp, idKey);

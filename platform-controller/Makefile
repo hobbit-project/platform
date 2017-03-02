@@ -5,7 +5,7 @@ install:
 
 #build: install
 build:
-	mvn package -U -Dmaven.test.skip=true
+	mvn clean package -U -Dmaven.test.skip=true
 
 run:
 	DOCKER_HOST=tcp://localhost:2375 \
@@ -17,8 +17,12 @@ run:
 
 test:
 	HOBBIT_RABBIT_HOST=localhost \
-	mvn test -Dtest=ImageManagerImplTest
-	#GitlabControllerImplTest
+	mvn test -Dtest=ContainerManagerImplTest
+
+test-all:
+	HOBBIT_RABBIT_HOST=localhost \
+	HOBBIT_REDIS_HOST=localhost \
+	mvn test
 
 deps: redis rabbit
 

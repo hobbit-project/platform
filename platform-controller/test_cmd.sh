@@ -1,1 +1,1 @@
-docker run -it --rm --network="hobbit-core" -v `pwd`:/usr/src/app -e "HOBBIT_RABBIT_HOST=rabbit" -e "BENCHMARK=http://example.org/GerbilBenchmark" -e "SYSTEM=http://example.org/DummySystem" -e "BENCHMARK_PARAM_FILE=src/test/resources/exampleExperiment.ttl" maven bash
+docker run -it --rm --network="hobbit-core" -v `pwd`:/usr/src/app -e "HOBBIT_RABBIT_HOST=rabbit" -e "BENCHMARK=http://example.org/GerbilBenchmark" -e "SYSTEM=http://example.org/DummySystemInstance1" -e "BENCHMARK_PARAM_FILE=src/test/resources/exampleExperiment.ttl" -e "USERNAME=testuser" maven bash

@@ -9,3 +9,4 @@ bin
 .idea
 dependency-reduced-pom.xml
 db
+.gitlab-ci.yml

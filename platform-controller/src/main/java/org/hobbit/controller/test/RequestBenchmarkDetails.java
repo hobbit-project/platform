@@ -26,6 +26,7 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestBenchmarkDetails.class);
 
     public static final String BENCHMARK_URI_KEY = "BENCHMARK";
+    public static final String USER_NAME_KEY = "USERNAME";
 
     private static final long REQUEST_TIMEOUT = 60000;
     
@@ -60,12 +61,13 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
             LOGGER.error("Couldn't get value of " + BENCHMARK_URI_KEY + ". Aborting.");
             throw new Exception("Couldn't get value of " + BENCHMARK_URI_KEY + ". Aborting.");
         }
+	String userName =  env.getOrDefault(USER_NAME_KEY, null);
         LOGGER.info("Sending request...");
         BasicProperties props = new BasicProperties.Builder().deliveryMode(2)
                 .replyTo(Constants.CONTROLLER_2_FRONT_END_QUEUE_NAME).build();
         frontEnd2Controller.basicPublish("", Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, props,
                 RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
-                        new byte[][] { RabbitMQUtils.writeString(benchmarkUri) }, null));
+                        new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(userName) }, null));
         LOGGER.info("Waiting for response...");
         QueueingConsumer.Delivery delivery = consumer.nextDelivery(REQUEST_TIMEOUT);
         if (delivery == null) {

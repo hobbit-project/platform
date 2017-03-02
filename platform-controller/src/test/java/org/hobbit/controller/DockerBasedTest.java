@@ -4,24 +4,21 @@ import java.util.List;
 
 import org.junit.Before;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.model.Image;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.core.DockerClientConfig;
-import com.github.dockerjava.core.command.PullImageResultCallback;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.messages.Image;
 
 /**
  * Created by Timofey Ermilov on 02/09/16.
  */
 public class DockerBasedTest {
     protected DockerClient dockerClient;
-    protected static final String busyboxImageName = "busybox";
+    protected static final String busyboxImageName = "busybox:latest";
     protected static final String[] sleepCommand = {"sleep", "10000"};
 
     protected boolean findImageWithTag(final String id, final List<Image> images) {
         for (Image image : images) {
-            for (String tag : image.getRepoTags()) {
+            for (String tag : image.repoTags()) {
                 if (tag.contains(id)) {
                     return true;
                 }
@@ -31,14 +28,13 @@ public class DockerBasedTest {
     }
 
     @Before
-    public void initClient() {
-        DockerClientConfig cfg = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
-        dockerClient = DockerClientBuilder.getInstance(cfg).build();
+    public void initClient() throws Exception {
+        dockerClient = DefaultDockerClient.fromEnv().build();
 
         // check if busybox is present
-        List<Image> images = dockerClient.listImagesCmd().withShowAll(true).exec();
+        List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.allImages());
         if (!findImageWithTag(busyboxImageName, images)) {
-            dockerClient.pullImageCmd(busyboxImageName).withTag("latest").exec(new PullImageResultCallback()).awaitSuccess();
+            dockerClient.pull(busyboxImageName);
         }
     }
 }

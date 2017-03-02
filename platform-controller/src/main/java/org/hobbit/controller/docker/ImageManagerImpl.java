@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -42,6 +43,10 @@ public class ImageManagerImpl implements ImageManager {
         gitlab = new GitlabControllerImpl();
     }
 
+    public void runWhenGitlabIsReady(Runnable r) {
+        gitlab.runAfterFirstFetch(r);
+    }
+
     private Model stringToModel(String modelString) {
         // convert string to model
         Model m = ModelFactory.createDefaultModel();
@@ -71,28 +76,33 @@ public class ImageManagerImpl implements ImageManager {
         return result;
     }
 
-    public SystemMetaData modelToSystemMetaData(String modelString) throws Exception {
+    public List<SystemMetaData> modelToSystemMetaData(String modelString) throws Exception {
         // execute default method on new model
         return modelToSystemMetaData(stringToModel(modelString));
     }
 
-    public SystemMetaData modelToSystemMetaData(Model model) throws Exception {
-        SystemMetaData result = new SystemMetaData();
+    public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+        List<SystemMetaData> results = new ArrayList<>();
 
-        // find benchmark subject
-        Resource system = getResource(model, HOBBIT.SystemInstance);
-        // set URI
-        result.systemUri = system.getURI();
-        // find name
-        result.systemName = getName(model, system);
-        // find description
-        result.systemDescription = getDescription(model, system);
-        // find image name
-        result.system_image_name = getImage(model, system);
-        // find APIs
-        result.implementedApis = getAPIs(model, system, false);
+        // find all system subjects
+        List<Resource> systems = getResources(model, HOBBIT.SystemInstance);
+        for (Resource system : systems) {
+            SystemMetaData result = new SystemMetaData();
+            // set URI
+            result.systemUri = system.getURI();
+            // find name
+            result.systemName = getName(model, system);
+            // find description
+            result.systemDescription = getDescription(model, system);
+            // find image name
+            result.system_image_name = getImage(model, system);
+            // find APIs
+            result.implementedApis = getAPIs(model, system, false);
+            // append to results
+            results.add(result);
+        }
 
-        return result;
+        return results;
     }
 
     @Override
@@ -101,11 +111,13 @@ public class ImageManagerImpl implements ImageManager {
 
         List<Project> projects = gitlab.getAllProjects();
         for (Project p : projects) {
-            try {
-                BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                results.add(meta);
-            } catch (Exception e) {
-                LOGGER.error("Error parsing benchmark metadata:", e);
+            if (p.benchmarkMetadata != null) {
+                try {
+                    BenchmarkMetaData bench = modelToBenchmarkMetaData(p.benchmarkMetadata);
+                    results.add(bench);
+                } catch (Exception e) {
+                    LOGGER.error("Error parsing benchmark metadata of project \"" + p.name + "\".", e);
+                }
             }
         }
 
@@ -117,11 +129,13 @@ public class ImageManagerImpl implements ImageManager {
 
         List<Project> projects = gitlab.getAllProjects();
         for (Project p : projects) {
-            try {
-                SystemMetaData meta = modelToSystemMetaData(p.systemMetadata);
-                results.add(meta);
-            } catch (Exception e) {
-                LOGGER.error("Error parsing system metadata:", e);
+            if (p.systemMetadata != null) {
+                try {
+                    List<SystemMetaData> meta = modelToSystemMetaData(p.systemMetadata);
+                    results.addAll(meta);
+                } catch (Exception e) {
+                    LOGGER.error("Error parsing system metadata of project \"" + p.name + "\".", e);
+                }
             }
         }
 
@@ -131,21 +145,8 @@ public class ImageManagerImpl implements ImageManager {
     @Override
     public List<SystemMetaData> getSystemsForBenchmark(String benchmarkUri) {
         List<SystemMetaData> results = new ArrayList<>();
-        List<SystemMetaData> systems = new ArrayList<>();
-        List<BenchmarkMetaData> benchmarks = new ArrayList<>();
-
-        // first get all systems and benchmarks
-        List<Project> projects = gitlab.getAllProjects();
-        for (Project p : projects) {
-            try {
-                BenchmarkMetaData bench = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                SystemMetaData meta = modelToSystemMetaData(p.systemMetadata);
-                systems.add(meta);
-                benchmarks.add(bench);
-            } catch (Exception e) {
-                LOGGER.error("Error parsing benchmark metadata:", e);
-            }
-        }
+        List<SystemMetaData> systems = getSystems();
+        List<BenchmarkMetaData> benchmarks = getBenchmarks();
 
         // then first find input benchmark
         BenchmarkMetaData benchmark = null;
@@ -158,6 +159,7 @@ public class ImageManagerImpl implements ImageManager {
 
         // if no benchmark found - return empty results
         if (benchmark == null) {
+            LOGGER.error("Input benchmark not found, returning empty results.");
             return results;
         }
 
@@ -182,13 +184,15 @@ public class ImageManagerImpl implements ImageManager {
     public Model getBenchmarkModel(String benchmarkUri) {
         List<Project> projects = gitlab.getAllProjects();
         for (Project p : projects) {
-            try {
-                BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                if (meta.benchmarkUri.equals(benchmarkUri)) {
-                    return stringToModel(p.benchmarkMetadata);
+            if (p.benchmarkMetadata != null) {
+                try {
+                    BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
+                    if (meta.benchmarkUri.equals(benchmarkUri)) {
+                        return stringToModel(p.benchmarkMetadata);
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Error parsing benchmark metadata:", e);
                 }
-            } catch (Exception e) {
-                LOGGER.error("Error parsing benchmark metadata:", e);
             }
         }
 
@@ -199,13 +203,17 @@ public class ImageManagerImpl implements ImageManager {
     public Model getSystemModel(String systemUri) {
         List<Project> projects = gitlab.getAllProjects();
         for (Project p : projects) {
-            try {
-                SystemMetaData meta = modelToSystemMetaData(p.systemMetadata);
-                if (meta.systemUri.equals(systemUri)) {
-                    return stringToModel(p.systemMetadata);
+            if (p.systemMetadata != null) {
+                try {
+                    List<SystemMetaData> metas = modelToSystemMetaData(p.systemMetadata);
+                    for (SystemMetaData meta : metas) {
+                        if (meta.systemUri.equals(systemUri)) {
+                            return stringToModel(p.systemMetadata);
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("Error parsing system metadata:", e);
                 }
-            } catch (Exception e) {
-                LOGGER.error("Error parsing benchmark metadata:", e);
             }
         }
 
@@ -223,9 +231,7 @@ public class ImageManagerImpl implements ImageManager {
     }
 
     protected Resource getResource(Model model, Resource resourceType) throws Exception {
-        if (model == null) {
-            throw new Exception("No model given");
-        }
+        Objects.requireNonNull(model, "The given RDF model is null");
 
         // find benchmark subject
         Resource benchmark = null;
@@ -235,11 +241,32 @@ public class ImageManagerImpl implements ImageManager {
         }
 
         // check if benchmark was actually found
-        if (benchmark == null) {
-            throw new Exception("Benchmark not found!");
-        }
+        Objects.requireNonNull(model, "Benchmark not found!");
 
         return benchmark;
+    }
+
+    protected List<Resource> getResources(Model model, Resource resourceType) throws Exception {
+        Objects.requireNonNull(model, "The given RDF model is null");
+
+        List<Resource> results = new ArrayList<>();
+
+        // find benchmark subject
+        Resource res = null;
+        ResIterator subjects = model.listSubjectsWithProperty(RDF.type, resourceType);
+        while (subjects.hasNext()) {
+            res = subjects.next();
+            if (res != null) {
+                results.add(res);
+            }
+        }
+
+        // check if benchmark was actually found
+        if (results.size() == 0) {
+            throw new Exception("No resources found!");
+        }
+
+        return results;
     }
 
     protected String getBenchmarkUri(Model model) {
@@ -302,10 +329,12 @@ public class ImageManagerImpl implements ImageManager {
         return gitlab.getAllProjects().stream()
                 // get all projects with required user
                 .filter(p -> p.user.equals(userName))
+                // ... which have system information
+                .filter(p -> p.systemMetadata != null)
                 // map them to SystemMetaData
-                .map(p -> {
+                .flatMap(p -> {
                     try {
-                        return modelToSystemMetaData(p.systemMetadata);
+                        return modelToSystemMetaData(p.systemMetadata).stream();
                     } catch (Exception e) {
                         LOGGER.error("Error parsing system metadata:", e);
                         return null;

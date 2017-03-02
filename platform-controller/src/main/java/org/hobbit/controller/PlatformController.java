@@ -2,21 +2,35 @@ package org.hobbit.controller;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
-import org.hobbit.controller.data.ExperimentStatus;
+import org.apache.jena.vocabulary.RDF;
+import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.data.ExperimentStatus.States;
-import org.hobbit.controller.docker.*;
+import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.docker.ContainerManagerImpl;
+import org.hobbit.controller.docker.ContainerStateObserver;
+import org.hobbit.controller.docker.ContainerStateObserverImpl;
+import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.ImageManagerImpl;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -29,19 +43,22 @@ import org.hobbit.core.data.ConfiguredExperiment;
 import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.StartCommandData;
 import org.hobbit.core.data.StopCommandData;
+import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
-import org.hobbit.vocab.HobbitErrors;
+import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.dockerjava.api.model.Container;
 import com.google.gson.Gson;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
+import com.spotify.docker.client.messages.Container;
 
 /**
  * This class implements the functionality of the central platform controller.
@@ -49,9 +66,17 @@ import com.rabbitmq.client.MessageProperties;
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
-public class PlatformController extends AbstractCommandReceivingComponent implements ContainerTerminationCallback {
+public class PlatformController extends AbstractCommandReceivingComponent
+        implements ContainerTerminationCallback, ExperimentAnalyzer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlatformController.class);
+
+    /**
+     * The current version of the platform.
+     * 
+     * TODO Find a way to load the version automatically from the pom file.
+     */
+    public static final String PLATFORM_VERSION = "1.0.0";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -59,7 +84,9 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    private static final long DEFAULT_MAX_EXECUTION_TIME = 30 * 60 * 1000;
+    public static final long DEFAULT_MAX_EXECUTION_TIME = 30 * 60 * 1000;
+    // every 60 mins
+    public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
 
     /**
      * RabbitMQ channel between front end and platform controller.
@@ -69,6 +96,10 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
      * The handler for requests coming from the front end.
      */
     protected DefaultConsumer frontEndApiHandler;
+    /**
+     * RabbitMQ channel between front end and platform controller.
+     */
+    protected Channel controller2Analysis;
     /**
      * A manager for Docker containers.
      */
@@ -104,9 +135,14 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
      */
     private long lastIdTime = 0;
 
-    private StorageServiceClient storage;
+    protected StorageServiceClient storage;
 
-    private ExperimentManager expManager;
+    protected ExperimentManager expManager;
+
+    /**
+     * Timer used to trigger publishing of challenges
+     */
+    private Timer challengePublishTimer;
 
     @Override
     public void init() throws Exception {
@@ -145,6 +181,9 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
         frontEnd2Controller.basicConsume(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, true, frontEndApiHandler);
 
+        controller2Analysis = connection.createChannel();
+        controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
+
         queue = new ExperimentQueueImpl();
 
         storage = StorageServiceClient.create(connection);
@@ -152,6 +191,16 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
         expManager = new ExperimentManager(this);
+
+        // schedule challenges re-publishing
+        challengePublishTimer = new Timer();
+        PlatformController controller = this;
+        challengePublishTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                republishChallenges(storage, queue, controller);
+            }
+        }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
         LOGGER.info("Platform controller initialized.");
     }
@@ -325,8 +374,8 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
         try {
             List<Container> containers = containerManager.getContainers();
             for (Container c : containers) {
-                containerManager.stopContainer(c.getId());
-                containerManager.removeContainer(c.getId());
+                containerManager.stopContainer(c.id());
+                containerManager.removeContainer(c.id());
             }
         } catch (Exception e) {
             LOGGER.error("Couldn't stop running containers.", e);
@@ -343,10 +392,23 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
             } catch (Exception e) {
             }
         }
+        if (controller2Analysis != null) {
+            try {
+                controller2Analysis.close();
+            } catch (Exception e) {
+            }
+        }
+
         // Close experiment manager
         IOUtils.closeQuietly(expManager);
         // Closing the super class is the last statement!
         super.close();
+    }
+
+    @Override
+    public void analyzeExperiment(String uri) throws IOException {
+        controller2Analysis.basicPublish("", Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME,
+                MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(uri));
     }
 
     /**
@@ -405,9 +467,14 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
     }
 
     protected void handleFrontEndCmd(byte bytes[], String replyTo, BasicProperties replyProperties) {
+        if (bytes.length == 0) {
+            return;
+        }
         byte response[] = null;
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
         try {
-            switch (bytes[0]) {
+            // The first byte is the command
+            switch (buffer.get()) {
             case FrontEndApiCommands.LIST_CURRENT_STATUS: {
                 ControllerStatus status = getStatus();
                 response = RabbitMQUtils.writeString(gson.toJson(status));
@@ -419,41 +486,55 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
             }
             case FrontEndApiCommands.GET_BENCHMARK_DETAILS: {
                 // get benchmarkUri
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                // skip the command Id
-                buffer.get();
                 String benchmarkUri = RabbitMQUtils.readString(buffer);
                 LOGGER.info("Loading details for benchmark \"{}\"", benchmarkUri);
                 Model benchmarkModel = imageManager.getBenchmarkModel(benchmarkUri);
+                // If the model could be found
                 if (benchmarkModel != null) {
-                    response = RabbitMQUtils
-                            .writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmarkModel), RabbitMQUtils
-                                    .writeString(gson.toJson(imageManager.getSystemsForBenchmark(benchmarkModel))) });
+                    List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
+                    // If there is a username based on that the systems should
+                    // be filtered
+                    if (buffer.hasRemaining()) {
+                        String userName = RabbitMQUtils.readString(buffer);
+                        LOGGER.info("Fitlering systems for user \"{}\"", userName);
+                        Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
+                                imageManager.getSystemsOfUser(userName));
+                        List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
+                        for (SystemMetaData s : systems4Benchmark) {
+                            if (userSystems.contains(s)) {
+                                filteredSystems.add(s);
+                            }
+                        }
+                        systems4Benchmark = filteredSystems;
+                    }
+                    response = RabbitMQUtils.writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmarkModel),
+                            RabbitMQUtils.writeString(gson.toJson(systems4Benchmark)) });
+                } else {
+                    LOGGER.error("Couldn't find model of benchmark \"{}\".", benchmarkUri);
                 }
                 break;
             }
             case FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION: {
-                ByteBuffer buffer = ByteBuffer.wrap(bytes);
-                // We can skip the first byte
-                buffer.get();
                 // get the benchmark URI
                 String benchmarkUri = RabbitMQUtils.readString(buffer);
                 String systemUri = RabbitMQUtils.readString(buffer);
                 String serializedBenchParams = RabbitMQUtils.readString(buffer);
-                String experimentId = generateExperimentId();
-                LOGGER.info("Adding experiment " + experimentId + " with benchmark " + benchmarkUri + " and system "
-                        + systemUri + " to the queue.");
-                queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri));
+                String experimentId = addExperimentToQueue(benchmarkUri, systemUri, serializedBenchParams, null, null,
+                        null);
                 response = RabbitMQUtils.writeString(experimentId);
                 break;
             }
             case FrontEndApiCommands.GET_SYSTEMS_OF_USER: {
-                String userName = RabbitMQUtils.readString(bytes);
-                response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsForBenchmark(userName)));
+                // get the user name
+                String userName = RabbitMQUtils.readString(buffer);
+                LOGGER.info("Loading systems of user \"{}\"", userName);
+                response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsOfUser(userName)));
                 break;
             }
             case FrontEndApiCommands.CLOSE_CHALLENGE: {
-                // TODO
+                // get the challenge URI
+                String challengeUri = RabbitMQUtils.readString(buffer);
+                closeChallenge(challengeUri);
                 break;
             }
             default: {
@@ -478,6 +559,219 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
         LOGGER.info("Finished handling of front end request.");
     }
 
+    private Model getChallengeFromUri(String challengeUri) {
+        // get experiments from the challenge
+        String query = SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        if (query == null) {
+            LOGGER.error("Couldn't get challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
+                    challengeUri);
+            return null;
+        }
+        return storage.sendConstructQuery(query);
+    }
+
+    private List<ExperimentConfiguration> getChallengeTasksFromUri(String challengeUri) {
+        Model model = getChallengeFromUri(challengeUri);
+        if (model == null) {
+            LOGGER.error("Couldn't get model for challenge {} . Aborting.", challengeUri);
+            return null;
+        }
+        Resource challengeResource = model.getResource(challengeUri);
+        Calendar executionDate = RdfHelper.getDateValue(model, challengeResource, HOBBIT.executionDate);
+        ResIterator taskIterator = model.listSubjectsWithProperty(HOBBIT.isTaskOf, challengeResource);
+        List<ExperimentConfiguration> experiments = new ArrayList<>();
+        while (taskIterator.hasNext()) {
+            Resource challengeTask = taskIterator.next();
+            String challengeTaskUri = challengeTask.getURI();
+            // get benchmark information
+            String benchmarkUri = RdfHelper.getStringValue(model, challengeTask, HOBBIT.involvesBenchmark);
+            String experimentId, systemUri, serializedBenchParams;
+            // iterate participating system instances
+            NodeIterator systemInstanceIterator = model.listObjectsOfProperty(challengeTask,
+                    HOBBIT.involvesSystemInstance);
+            RDFNode sysInstance;
+            while (systemInstanceIterator.hasNext()) {
+                sysInstance = systemInstanceIterator.next();
+                if (sysInstance.isURIResource()) {
+                    systemUri = sysInstance.asResource().getURI();
+                    experimentId = generateExperimentId();
+                    serializedBenchParams = RabbitMQUtils
+                            .writeModel2String(createExpModelForChallengeTask(model, challengeTaskUri, systemUri));
+                    experiments.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams,
+                            systemUri, challengeUri, challengeTaskUri, executionDate));
+                } else {
+                    LOGGER.error("Couldn't get the benchmark for challenge task \"{}\". This task will be ignored.",
+                            challengeTaskUri);
+                }
+            }
+        }
+        return experiments;
+    }
+
+    /**
+     * Closes the challenge with the given URI by adding the "closed" triple to
+     * its graph and inserting the configured experiments into the queue.
+     *
+     * @param challengeUri
+     *            the URI of the challenge that should be closed
+     */
+    private void closeChallenge(String challengeUri) {
+        // send SPARQL query to close the challenge
+        String query = SparqlQueries.getCloseChallengeQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        if (query == null) {
+            LOGGER.error(
+                    "Couldn't close the challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
+                    challengeUri);
+            return;
+        }
+        if (!storage.sendUpdateQuery(query)) {
+            LOGGER.error("Couldn't close the challenge {} because the SPARQL query didn't had any effect. Aborting.",
+                    challengeUri);
+            return;
+        }
+        // get experiments from the challenge
+        List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
+        if (experiments == null) {
+            LOGGER.error("Couldn't get experiments for challenge {} . Aborting.", challengeUri);
+            return;
+        }
+        // add to queue
+        for (ExperimentConfiguration ex : experiments) {
+            LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
+                    + ex.systemUri + " to the queue.");
+            queue.add(ex);
+        }
+    }
+
+    /*
+     * The method is static for an easier JUnit test implementation
+     */
+    protected synchronized static void republishChallenges(StorageServiceClient storage, ExperimentQueue queue,
+            ExperimentAnalyzer analyzer) {
+        LOGGER.info("Checking for challenges to publish...");
+        // Get list of all UNPUBLISHED, closed challenges, their tasks and
+        // publication dates
+        Model challengesModel = storage.sendConstructQuery(
+                SparqlQueries.getChallengePublishInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        Resource challenge;
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        // go through the challenges
+        while (challengeIterator.hasNext()) {
+            challenge = challengeIterator.next();
+            Calendar publishDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.publicationDate);
+            if (publishDate == null) {
+                publishDate = RdfHelper.getDateValue(challengesModel, challenge, HOBBIT.publicationDate);
+            }
+            // If the challenge results should be published
+            if ((publishDate != null) && (now.after(publishDate))) {
+                List<Resource> taskResources = RdfHelper.getSubjectResources(challengesModel, HOBBIT.isTaskOf,
+                        challenge);
+                Set<String> tasks = new HashSet<>();
+                for (Resource taskResource : taskResources) {
+                    tasks.add(taskResource.getURI());
+                }
+                /*
+                 * Check that all experiments that belong to the challenge have
+                 * been finished. Note that we don't have to check the
+                 * experiment that is running at the moment, since it is part of
+                 * the queue.
+                 */
+                int count = 0;
+                for (ExperimentConfiguration config : queue.listAll()) {
+                    if (tasks.contains(config.challengeTaskUri)) {
+                        ++count;
+                    }
+                }
+                // if there are no challenge experiments in the queue
+                if (count == 0) {
+                    LOGGER.info("publishing challenge {}", challenge.getURI());
+                    // get the challenge model
+                    Model challengeModel = storage.sendConstructQuery(SparqlQueries
+                            .getChallengeGraphQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+                    // insert the challenge into the public graph
+                    if (!storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
+                        LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge.getURI());
+                        return;
+                    }
+                    // copy the results to the public result graph
+                    List<Resource> experiments = new ArrayList<>();
+                    for (String taskUri : tasks) {
+                        Model taskExperimentModel = storage.sendConstructQuery(SparqlQueries
+                                .getExperimentOfTaskQuery(null, taskUri, Constants.PRIVATE_RESULT_GRAPH_URI));
+                        experiments.addAll(RdfHelper.getSubjectResources(taskExperimentModel, HOBBIT.isPartOf,
+                                taskExperimentModel.getResource(taskUri)));
+                        try {
+                            analyzer.analyzeExperiment(taskUri);
+                        } catch (IOException e) {
+                            LOGGER.error("Could not send task \"{}\" to AnalyseQueue.", taskUri);
+                        }
+                        if (!storage.sendInsertQuery(taskExperimentModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
+                            LOGGER.error("Couldn't copy experiment results for challenge task \"{}\". Aborting.",
+                                    taskUri);
+                            return;
+                        }
+                    }
+                    // Remove challenge from challenge graph
+                    storage.sendUpdateQuery(SparqlQueries.deleteChallengeGraphQuery(challenge.getURI(),
+                            Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+                    // Remove experiments
+                    for (Resource experiment : experiments) {
+                        storage.sendUpdateQuery(SparqlQueries.deleteExperimentGraphQuery(experiment.getURI(),
+                                Constants.PRIVATE_RESULT_GRAPH_URI));
+                    }
+                    // Clean up the remaining graph
+                    String queries[] = SparqlQueries
+                            .cleanUpChallengeGraphQueries(Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+                    for (int i = 0; i < queries.length; ++i) {
+                        storage.sendUpdateQuery(queries[i]);
+                    }
+                    queries = SparqlQueries.cleanUpPrivateGraphQueries(Constants.PRIVATE_RESULT_GRAPH_URI);
+                    for (int i = 0; i < queries.length; ++i) {
+                        storage.sendUpdateQuery(queries[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    private Model createExpModelForChallengeTask(Model model, String challengeTaskUri, String systemUri) {
+        String query = SparqlQueries.getCreateExperimentFromTaskQuery(Constants.NEW_EXPERIMENT_URI, challengeTaskUri,
+                systemUri, null);
+        if (query == null) {
+            LOGGER.error("Couldn't load SPARQL query to create an RDF model for a new experiment. Returning null.");
+            return null;
+        }
+        QueryExecution qe = QueryExecutionFactory.create(query, model);
+        return qe.execConstruct();
+    }
+
+    /**
+     * Adds a new experiment with the given benchmark, system and benchmark
+     * parameter to the queue.
+     * 
+     * @param benchmarkUri
+     *            the URI of the benchmark
+     * @param systemUri
+     *            the URI of the system
+     * @param serializedBenchParams
+     *            the serialized benchmark parameters
+     * @param executionDate
+     *            the date at which this experiment should be executed as part
+     *            of a challenge. Should be set to <code>null</code> if it is
+     *            not part of a challenge.
+     * @return the Id of the created experiment
+     */
+    protected String addExperimentToQueue(String benchmarkUri, String systemUri, String serializedBenchParams,
+            String challengUri, String challengTaskUri, Calendar executionDate) {
+        String experimentId = generateExperimentId();
+        LOGGER.info("Adding experiment " + experimentId + " with benchmark " + benchmarkUri + " and system " + systemUri
+                + " to the queue.");
+        queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, challengUri,
+                challengTaskUri, executionDate));
+        return experimentId;
+    }
+
     /**
      * Creates a status object summarizing the current status of this
      * controller.
@@ -487,15 +781,24 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
     private ControllerStatus getStatus() {
         ControllerStatus status = new ControllerStatus();
         expManager.addStatusInfo(status);
-        List<ExperimentConfiguration> experiments = queue.listAll();
-        ExperimentConfiguration experiment;
-        status.queue = new ConfiguredExperiment[experiments.size()];
-        for (int i = 0; i < status.queue.length; ++i) {
-            experiment = experiments.get(i);
-            status.queue[i] = new ConfiguredExperiment();
-            status.queue[i].benchmarkName = experiment.benchmarkName;
-            status.queue[i].systemName = experiment.systemUri;
+        if (status.currentSystemUri != null) {
+            Model model = imageManager.getSystemModel(status.currentSystemUri);
+            if (model != null) {
+                status.currentSystemName = RdfHelper.getLabel(model, model.getResource(status.currentSystemUri));
+            }
         }
+        List<ExperimentConfiguration> experiments = queue.listAll();
+        List<ConfiguredExperiment> tempQueue = new ArrayList<ConfiguredExperiment>(experiments.size());
+        ConfiguredExperiment queuedExp;
+        for (ExperimentConfiguration experiment : experiments) {
+            if (!experiment.id.equals(status.currentExperimentId)) {
+                queuedExp = new ConfiguredExperiment();
+                queuedExp.benchmarkUri = experiment.benchmarkUri;
+                queuedExp.systemUri = experiment.systemUri;
+                tempQueue.add(queuedExp);
+            }
+        }
+        status.queue = tempQueue.toArray(new ConfiguredExperiment[tempQueue.size()]);
         return status;
     }
 
@@ -522,422 +825,20 @@ public class PlatformController extends AbstractCommandReceivingComponent implem
      *            the id of the experiment
      * @return the experiment URI
      */
-    public static String generateBenchmarkUri(String id) {
+    public static String generateExperimentUri(String id) {
         return Constants.EXPERIMENT_URI_NS + id;
     }
 
-    /**
-     * This class encapsulates (and synchronizes) all methods that are applied
-     * on a running experiment.
-     * 
-     * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
-     *
-     */
-    protected static class ExperimentManager implements Closeable {
-        /**
-         * Time interval with which the experiment manager checks for a new
-         * experiment to start.
-         */
-        public static final long CHECK_FOR_NEW_EXPERIMENT = 10000;
+    public ImageManager imageManager() {
+        return imageManager;
+    }
 
-        /**
-         * The controller this manager belongs to.
-         */
-        private PlatformController controller;
+    public StorageServiceClient storage() {
+        return storage;
+    }
 
-        /**
-         * Mutex used to synchronize the access to the {@link #experimentStatus}
-         * instance.
-         */
-        private Semaphore experimentMutex = new Semaphore(1);
-        /**
-         * Status of the current experiment. <code>null</code> if no benchmark
-         * is running.
-         */
-        private ExperimentStatus experimentStatus = null;
-        /**
-         * Timer used to trigger the creation of the next benchmark.
-         */
-        private Timer expStartTimer;
-
-        public ExperimentManager(PlatformController controller) {
-            this.controller = controller;
-
-            expStartTimer = new Timer();
-            expStartTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
-                        // trigger the creation of the next benchmark
-                        createNextExperiment();
-                    } catch (Throwable e) {
-                        LOGGER.error("The experiment starting timer got an unexpected exception.", e);
-                    }
-                }
-            }, CHECK_FOR_NEW_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
-        }
-
-        /**
-         * Creates the next experiment if there is no experiment running and
-         * there is an experiment waiting in the queue.
-         */
-        public void createNextExperiment() {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-                return;
-            }
-            try {
-                // if there is no benchmark running (and the queue has been
-                // initialized)
-                if ((experimentStatus == null) && (controller.queue != null)) {
-                    ExperimentConfiguration config = controller.queue.getNextExperiment();
-                    LOGGER.debug("Trying to start the next benchmark.");
-                    if (config == null) {
-                        LOGGER.debug("There is no experiment to start.");
-                    } else {
-                        LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
-                                + " and system " + config.systemUri + " to the queue.");
-                        experimentStatus = new ExperimentStatus(config, generateBenchmarkUri(config.id), controller,
-                                DEFAULT_MAX_EXECUTION_TIME);
-                        String benchImageName = controller.imageManager.getBenchmarkImageName(config.benchmarkUri);
-                        if (benchImageName == null) {
-                            experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
-                            throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
-                        } else {
-                            String sysImageName = controller.imageManager.getSystemImageName(config.systemUri);
-                            if (sysImageName == null) {
-                                experimentStatus.addError(HobbitErrors.SystemImageMissing);
-                                throw new Exception("Couldn't find image name for system " + config.systemUri);
-                            } else {
-                                LOGGER.info("Creating benchmark controller " + benchImageName);
-                                String containerId = controller.containerManager.startContainer(benchImageName,
-                                        Constants.CONTAINER_TYPE_BENCHMARK, null,
-                                        new String[] {
-                                                Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName,
-                                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                                Constants.HOBBIT_EXPERIMENT_URI_KEY + "="
-                                                        + experimentStatus.experimentUri,
-                                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "="
-                                                        + config.serializedBenchParams,
-                                                Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                                        null);
-                                if (containerId == null) {
-                                    experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
-                                    throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
-                                } else {
-                                    experimentStatus.setBenchmarkContainer(containerId);
-
-                                    LOGGER.info("Creating system " + sysImageName);
-                                    containerId = controller.containerManager.startContainer(sysImageName,
-                                            Constants.CONTAINER_TYPE_BENCHMARK,
-                                            experimentStatus.getBenchmarkContainer(),
-                                            new String[] {
-                                                    Constants.RABBIT_MQ_HOST_NAME_KEY + "="
-                                                            + controller.rabbitMQHostName,
-                                                    Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id },
-                                            null);
-                                    if (containerId == null) {
-                                        LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
-                                        forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
-                                        throw new Exception("Couldn't start the system " + config.systemUri);
-                                    } else {
-                                        experimentStatus.setSystemContainer(containerId);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                LOGGER.error("Exception while trying to start a new benchmark. Removing it from the queue.", e);
-                // Add an error if there is a model but no error was added
-                if (experimentStatus != null) {
-                    experimentStatus.addErrorIfNonPresent(HobbitErrors.UnexpectedError);
-                }
-                handleExperimentTermination_unsecured();
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        /**
-         * Sets the result model of the current running experiment.
-         * 
-         * @param model
-         *            the result model
-         */
-        public void setResultModel(Model model) {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-                return;
-            }
-            try {
-                if (experimentStatus != null) {
-                    experimentStatus.setOrMergeResultModel(model);
-                } else {
-                    LOGGER.error("Got a result model while there is no experiment running.");
-                }
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        /**
-         * This method handles the storing of the experiment results in the
-         * database, the removing of the experiment from the queue and its
-         * closing in a synchronized way.
-         */
-        public synchronized void handleExperimentTermination() {
-            try {
-                experimentMutex.acquire();
-                handleExperimentTermination_unsecured();
-                experimentMutex.release();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            }
-        }
-
-        private synchronized void handleExperimentTermination_unsecured() {
-            if (experimentStatus != null) {
-                LOGGER.info("Benchmark terminated. Experiment " + experimentStatus.config.id
-                        + " has been finished. Removing it from the queue and setting the config to null.");
-                // Close the experiment to stop its internal timer
-                IOUtils.closeQuietly(experimentStatus);
-                // TODO add information about the hardware
-                // Store the result model in DB (TODO choose the correct
-                // graph)
-                Model resultModel = experimentStatus.getResultModel();
-                if (resultModel == null) {
-                    experimentStatus.addError(HobbitErrors.UnexpectedError);
-                    resultModel = experimentStatus.getResultModel();
-                }
-                if (!controller.storage.sendInsertQuery(resultModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
-                    if (resultModel != null) {
-                        StringWriter writer = new StringWriter();
-                        resultModel.write(writer, "TTL");
-                        LOGGER.error("Error while storing the result model of the experiment. Logging it: ",
-                                writer.toString().replace(String.format("%n"), "|"));
-                    }
-                }
-                // We have to discard the config from the queue
-                controller.queue.remove(experimentStatus.config);
-                // Remove the experiment status object
-                experimentStatus = null;
-            }
-        }
-
-        /**
-         * Forces the benchmark controller and its child containers to
-         * terminate. If the given error is not <code>null</code> it is added to
-         * the result model of the experiment.
-         * 
-         * @param error
-         *            error that is added to the result model of the experiment
-         */
-        private void forceBenchmarkTerminate_unsecured(Resource error) {
-            if (experimentStatus != null) {
-                String parent = experimentStatus.getBenchmarkContainer();
-                controller.containerManager.stopParentAndChildren(parent);
-                // if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
-                // controller.containerManager.removeParentAndChildren(parent);
-                // }
-                if (error != null) {
-                    experimentStatus.addError(error);
-                }
-            }
-        }
-
-        /**
-         * Handles the termination of the container with the given container Id
-         * and the given exit code.
-         * 
-         * @param containerId
-         *            Id of the terminated container
-         * @param exitCode
-         *            exit code of the termination
-         */
-        public void notifyTermination(String containerId, int exitCode) {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-                return;
-            }
-            try {
-                if (experimentStatus != null) {
-                    // If this container is the benchmark controller of the
-                    // current
-                    // experiment
-                    if (containerId.equals(experimentStatus.getBenchmarkContainer())) {
-                        experimentStatus.setState(States.STOPPED);
-                        controller.containerManager.stopParentAndChildren(containerId);
-                        if (exitCode != 0) {
-                            LOGGER.warn("The benchmark container " + experimentStatus.getBenchmarkContainer()
-                                    + " terminated with an exit code != 0.");
-                            experimentStatus.addErrorIfNonPresent(HobbitErrors.BenchmarkCrashed);
-                        }
-                        handleExperimentTermination_unsecured();
-                        // If this is the system container and benchmark and
-                        // system are not running
-                    } else if (containerId.equals(experimentStatus.getSystemContainer())
-                            && (experimentStatus.getState() == States.INIT)) {
-                        LOGGER.info("The system has been stopped before the benchmark has been started. Aborting.");
-                        // Cancel the experiment
-                        forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCrashed);
-                    } else {
-                        LOGGER.info("Sending broadcast message...");
-                        // send a message using sendToCmdQueue(command,
-                        // data) comprising a command that indicates that a
-                        // container terminated and the container name
-                        String containerName = controller.containerManager.getContainerName(containerId);
-                        if (containerName != null) {
-                            try {
-                                controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
-                                        Commands.DOCKER_CONTAINER_TERMINATED,
-                                        RabbitMQUtils.writeByteArrays(null,
-                                                new byte[][] { RabbitMQUtils.writeString(containerName) },
-                                                new byte[] { (byte) exitCode }),
-                                        null);
-                            } catch (IOException e) {
-                                LOGGER.error(
-                                        "Couldn't send the " + Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS
-                                                + " message for container " + containerName + " to the command queue.",
-                                        e);
-                            }
-                        } else {
-                            LOGGER.info("Unknown container " + containerId + " stopped with exitCode=" + exitCode);
-                        }
-                    }
-                }
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        /**
-         * Handles the messages that either the system or the benchmark
-         * controller are ready.
-         * 
-         * @param systemReportedReady
-         *            <code>true</code> if the message was sent by the system,
-         *            <code>false</code> if the benchmark controller is ready
-         */
-        public void systemOrBenchmarkReady(boolean systemReportedReady) {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-                return;
-            }
-            try {
-                // If there is an experiment waiting with the state INIT and if
-                // both - system and benchmark are ready
-                if ((experimentStatus != null) && (experimentStatus.setReadyAndCheck(systemReportedReady)
-                        && (experimentStatus.getState() == States.INIT))) {
-                    try {
-                        startBenchmark_unsecured();
-                    } catch (IOException e) {
-                        // Let's retry this
-                        try {
-                            startBenchmark_unsecured();
-                        } catch (IOException e2) {
-                            LOGGER.error(
-                                    "Couldn't sent start signal to the benchmark controller. Terminating experiment.",
-                                    e2);
-                            // We have to terminate the experiment
-                            forceBenchmarkTerminate_unsecured(HobbitErrors.UnexpectedError);
-                        }
-                    }
-                }
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        /**
-         * Sends the start message to the benchmark controller.
-         * 
-         * @throws IOException
-         *             if there is a communication problem or if the name of the
-         *             system container can not be retrieved from the docker
-         *             daemon
-         */
-        private void startBenchmark_unsecured() throws IOException {
-            String containerName = controller.containerManager.getContainerName(experimentStatus.getSystemContainer());
-            if (containerName == null) {
-                throw new IOException(
-                        "Couldn't derive container name of the system container for sending start message to the benchmark.");
-            }
-            try {
-                // send the start signal (we are only reading the config object
-                // and do not need to wait for the mutex)
-                controller.sendToCmdQueue(experimentStatus.config.id, Commands.START_BENCHMARK_SIGNAL,
-                        RabbitMQUtils.writeString(containerName), null);
-                experimentStatus.setState(States.STARTED);
-            } catch (IOException e) {
-                LOGGER.error("Couldn't send " + Commands.START_BENCHMARK_SIGNAL + " signal for experiment "
-                        + experimentStatus.config.id, e);
-                throw e;
-            }
-        }
-
-        /**
-         * Adds the status of the current experiment to the given status object.
-         * 
-         * @param status
-         *            the status object to which the data should be added
-         */
-        public void addStatusInfo(ControllerStatus status) {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning empty status.", e);
-                return;
-            }
-            try {
-                if (experimentStatus != null) {
-                    status.currentBenchmarkName = experimentStatus.config.benchmarkName;
-                    status.currentBenchmarkUri = experimentStatus.config.benchmarkUri;
-                    status.currentSystemUri = experimentStatus.config.systemUri;
-                    status.currentExperimentId = experimentStatus.config.id;
-                    status.currentStatus = experimentStatus.getState().description;
-                }
-            } catch (Exception e) {
-                LOGGER.error("Exception while trying to generate controller status object.", e);
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        /**
-         * Changes the state of the internal experiment to
-         * {@link States#EVALUATION}.
-         */
-        public void taskGenFinished() {
-            try {
-                experimentMutex.acquire();
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted while waiting for the experiment mutex. Returning empty status.", e);
-                return;
-            }
-            try {
-                if (experimentStatus != null) {
-                    experimentStatus.setState(States.EVALUATION);
-                }
-            } finally {
-                experimentMutex.release();
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            expStartTimer.cancel();
-        }
-
+    public String rabbitMQHostName() {
+        return rabbitMQHostName;
     }
 
     ///// There are some methods that shouldn't be used by the controller and

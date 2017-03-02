@@ -1,7 +1,7 @@
 package org.hobbit.controller.docker;
 
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.model.Container;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
 
 import java.util.List;
 
@@ -122,7 +122,7 @@ public interface ContainerManager {
      * 
      * @param containerId
      */
-    public InspectContainerResponse getContainerInfo(String containerId);
+    public ContainerInfo getContainerInfo(String containerId);
 
     /**
      * Get a list of containers

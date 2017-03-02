@@ -1,6 +1,8 @@
 package org.hobbit.controller.docker;
 
-import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.spotify.docker.client.messages.ContainerInfo;
+
+import org.hobbit.core.Constants;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -18,29 +20,29 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void startContainer() throws Exception {
-        String containerId = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, "0",
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0",
                 sleepCommand);
         assertNotNull(containerId);
         containers.add(containerId);
 
-        InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
-        assertEquals(containerInfo.getId(), containerId);
-        assertTrue(containerInfo.getState().getRunning());
-        assertEquals(containerInfo.getConfig().getLabels().get(ContainerManagerImpl.LABEL_TYPE),
-                ContainerManagerImpl.TYPE_SYSTEM);
-        assertEquals(containerInfo.getConfig().getLabels().get(ContainerManagerImpl.LABEL_PARENT), "0");
-        assertTrue(Arrays.equals(containerInfo.getConfig().getCmd(), sleepCommand));
+        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
+        assertEquals(containerInfo.id(), containerId);
+        assertTrue(containerInfo.state().running());
+        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_TYPE),
+                Constants.CONTAINER_TYPE_SYSTEM);
+        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_PARENT), "0");
+        assertTrue(Arrays.equals(containerInfo.config().cmd().toArray(), sleepCommand));
     }
 
     @Test
     public void startContainerWithoutCommand() throws Exception {
-        String containerId = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, "0");
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0");
         assertNotNull(containerId);
         containers.add(containerId);
         // make sure it was executed with default sleepCommand
-        InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
+        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
         String[] defaultCommand = { "sh" };
-        assertTrue(Arrays.equals(containerInfo.getConfig().getCmd(), defaultCommand));
+        assertTrue(Arrays.equals(containerInfo.config().cmd().toArray(), defaultCommand));
     }
 
     @Test
@@ -50,13 +52,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(containerId);
         containers.add(containerId);
         // check that it's actually running
-        InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
-        assertTrue(containerInfo.getState().getRunning());
+        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
+        assertTrue(containerInfo.state().running());
         // stop it immediately
         manager.stopContainer(containerId);
         // check that it's actually stopped
-        containerInfo = dockerClient.inspectContainerCmd(containerId).exec();
-        assertFalse(containerInfo.getState().getRunning());
+        containerInfo = dockerClient.inspectContainer(containerId);
+        assertFalse(containerInfo.state().running());
     }
 
     @Test
@@ -71,8 +73,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         manager.removeContainer(testContainer);
         try {
             // try to get info on removed container
-            InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(testContainer).exec();
-            containerInfo.getState().getRunning();
+            ContainerInfo containerInfo = dockerClient.inspectContainer(testContainer);
+            containerInfo.state().running();
             // we expected an exception
             fail();
         } catch (Exception e) {
@@ -87,37 +89,36 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // - child1
         // - subParent:
         // - subchild
-        String topParent = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, "0",
-                sleepCommand);
+        String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0", sleepCommand);
         assertNotNull(topParent);
         containers.add(topParent);
-        String child1 = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, topParent,
+        String child1 = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(child1);
         containers.add(child1);
-        String subParent = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, topParent,
+        String subParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(subParent);
         containers.add(subParent);
-        String subchild = manager.startContainer(busyboxImageName, ContainerManagerImpl.TYPE_SYSTEM, subParent,
+        String subchild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, subParent,
                 sleepCommand);
         assertNotNull(subchild);
         containers.add(subchild);
 
         // make sure they are running
-        assertTrue(dockerClient.inspectContainerCmd(topParent).exec().getState().getRunning());
-        assertTrue(dockerClient.inspectContainerCmd(child1).exec().getState().getRunning());
-        assertTrue(dockerClient.inspectContainerCmd(subParent).exec().getState().getRunning());
-        assertTrue(dockerClient.inspectContainerCmd(subchild).exec().getState().getRunning());
+        assertTrue(dockerClient.inspectContainer(topParent).state().running());
+        assertTrue(dockerClient.inspectContainer(child1).state().running());
+        assertTrue(dockerClient.inspectContainer(subParent).state().running());
+        assertTrue(dockerClient.inspectContainer(subchild).state().running());
 
         // trigger stop parent function
         manager.stopParentAndChildren(topParent);
 
         // make sure all the containers are stopped
-        assertFalse(dockerClient.inspectContainerCmd(topParent).exec().getState().getRunning());
-        assertFalse(dockerClient.inspectContainerCmd(child1).exec().getState().getRunning());
-        assertFalse(dockerClient.inspectContainerCmd(subParent).exec().getState().getRunning());
-        assertFalse(dockerClient.inspectContainerCmd(subchild).exec().getState().getRunning());
+        assertFalse(dockerClient.inspectContainer(topParent).state().running());
+        assertFalse(dockerClient.inspectContainer(child1).state().running());
+        assertFalse(dockerClient.inspectContainer(subParent).state().running());
+        assertFalse(dockerClient.inspectContainer(subchild).state().running());
 
         // trigger removal
         manager.removeParentAndChildren(topParent);
@@ -132,8 +133,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private Exception getContainer(String id) {
         try {
             // try to get info on removed container
-            InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(id).exec();
-            containerInfo.getState().getRunning();
+            ContainerInfo containerInfo = dockerClient.inspectContainer(id);
+            containerInfo.state().running();
             // we expected an exception
             return null;
         } catch (Exception e) {
@@ -151,10 +152,10 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         manager.stopContainer(testContainer);
 
         // compare info
-        InspectContainerResponse infoFromMananger = manager.getContainerInfo(testContainer);
-        InspectContainerResponse containerInfo = dockerClient.inspectContainerCmd(testContainer).exec();
-        assertEquals(infoFromMananger.getId(), containerInfo.getId());
-        assertEquals(infoFromMananger.getState().getExitCode(), containerInfo.getState().getExitCode());
+        ContainerInfo infoFromMananger = manager.getContainerInfo(testContainer);
+        ContainerInfo containerInfo = dockerClient.inspectContainer(testContainer);
+        assertEquals(infoFromMananger.id(), containerInfo.id());
+        assertEquals(infoFromMananger.state().exitCode(), containerInfo.state().exitCode());
     }
 
     @Test

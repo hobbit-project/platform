@@ -87,12 +87,12 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
         if (status.queue != null) {
             for (ConfiguredExperiment exp : status.queue) {
                 builder.append(NEWLINE);
-                builder.append("\tbenchmark name: ");
+                builder.append("\tbenchmark URI: ");
                 builder.append(NEWLINE);
-                builder.append(exp.benchmarkName);
-                builder.append("\tsystem name: ");
+                builder.append(exp.benchmarkUri);
+                builder.append("\tsystem URI: ");
                 builder.append(NEWLINE);
-                builder.append(exp.systemName);
+                builder.append(exp.systemUri);
                 builder.append(NEWLINE);
             }
         }

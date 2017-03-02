@@ -1,13 +1,22 @@
 package org.hobbit.controller.docker;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.jena.rdf.model.Model;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 /**
  * Created by Timofey Ermilov on 22/09/16.
@@ -16,14 +25,12 @@ public class ImageManagerImplTest {
     private ImageManagerImpl imageManager;
 
     @Before
-    public void initObserver() throws InterruptedException {
+    public void initObserver() {
         imageManager = new ImageManagerImpl();
-        // wait for gitlab projects fetch
-        Thread.sleep(3000);
     }
 
-    @Test
-    public void modelToBenchmarkMetaDataTest() throws Exception {
+//    @Test
+//    public void modelToBenchmarkMetaDataTest() throws Exception {
         // Model m = imageManager.getBenchmarkModel("test");
         // BenchmarkMetaData data = imageManager.modelToBenchmarkMetaData(m);
         // assertEquals(data.benchmarkName, "GERBIL Benchmark");
@@ -31,31 +38,78 @@ public class ImageManagerImplTest {
         // benchmark based on GERBIL");
         // assertEquals(data.benchmarkUri,
         // "http://example.org/GerbilBenchmark");
-    }
+//    }
 
     @Test
-    public void getBenchmarks() {
-        List<BenchmarkMetaData> bs = imageManager.getBenchmarks();
-        Assert.assertTrue(bs.size() > 0);
-        BenchmarkMetaData gerbilBench = null;
-        for (BenchmarkMetaData b : bs) {
-            if (b.benchmarkUri.equals("http://example.org/GerbilBenchmark")) {
-                gerbilBench = b;
+    public void getBenchmarks() throws Exception {
+        // use future to make test wait for async stuff (sigh, java)
+        CompletableFuture<String> future = new CompletableFuture<>();
+
+        // execute tests when gitlab is ready
+        imageManager.runWhenGitlabIsReady(() -> {
+            // System.out.println("Gitlab is ready! Running tests...");
+            // get all benchmarks
+            List<BenchmarkMetaData> bs = imageManager.getBenchmarks();
+            Assert.assertTrue(bs.size() > 0);
+
+            // get all systems
+            List<SystemMetaData> sys = imageManager.getSystems();
+            Assert.assertTrue(sys.size() > 0);
+
+            // fin gerbil benchmark
+            BenchmarkMetaData gerbilBench = null;
+            for (BenchmarkMetaData b : bs) {
+                if (b.benchmarkUri.equals("http://example.org/GerbilBenchmark")) {
+                    gerbilBench = b;
+                }
             }
-        }
-        Assert.assertNotNull(gerbilBench);
-        // System.out.println(b.benchmarkUri);
-        List<SystemMetaData> systs = imageManager.getSystemsForBenchmark(gerbilBench.benchmarkUri);
-        Assert.assertTrue(systs.size() > 0);
-        // System.out.println(Arrays.toString(systs.toArray()));
-        Model benchmarkModel = imageManager.getBenchmarkModel("http://example.org/GerbilBenchmark");
-        Assert.assertNotNull(benchmarkModel);
-        // System.out.println(benchmarkModel);
-        Model systemModel = imageManager.getSystemModel("http://example.org/DummySystem");
-        // System.out.println(systemModel);
-        Assert.assertNotNull(systemModel);
-        // check for systems of user
-        List<SystemMetaData> systems = imageManager.getSystemsOfUser("DefaultHobbitUser");
-        Assert.assertNotNull(systems);
+            Assert.assertNotNull(gerbilBench);
+
+            // find systems for gerbil
+            List<SystemMetaData> gbSys = imageManager.getSystemsForBenchmark(gerbilBench.benchmarkUri);
+            Assert.assertTrue(gbSys.size() > 1);
+
+            // get gerbil benchmark by URL
+            Model benchmarkModel = imageManager.getBenchmarkModel("http://example.org/GerbilBenchmark");
+            Assert.assertNotNull(benchmarkModel);
+
+            // find test systems for gerbil by URL
+            Model systemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance1");
+            Assert.assertNotNull(systemModel);
+            Model otherSystemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance2");
+            Assert.assertNotNull(otherSystemModel);
+
+            // check for systems of user
+            List<SystemMetaData> systems = imageManager.getSystemsOfUser("DefaultHobbitUser");
+            Assert.assertNotNull(systems);
+            // make sure that the list is not empty
+            systems = imageManager.getSystemsOfUser("testuser");
+            Assert.assertTrue(systems.size() > 0);
+            systems = imageManager.getSystemsOfUser("kleanthie.georgala");
+            Assert.assertTrue(systems.size() > 0);
+
+            List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
+            String userName = "testuser";
+            Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
+                    imageManager.getSystemsOfUser(userName));
+            List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
+            for (SystemMetaData s : systems4Benchmark) {
+                if (userSystems.contains(s)) {
+                    filteredSystems.add(s);
+                }
+            }
+            systems4Benchmark = filteredSystems;
+            Gson gson = new Gson();
+            System.out.println(gson.toJson(filteredSystems));
+            byte data[] = RabbitMQUtils.writeString(gson.toJson(filteredSystems));
+            Collection<SystemMetaData> recSystems = gson.fromJson(RabbitMQUtils.readString(data), new TypeToken<Collection<SystemMetaData>>() {
+            }.getType());
+            System.out.println(recSystems.size());
+            
+            future.complete("done");
+        });
+        // System.out.println("Waiting for gitlab...");
+
+        Assert.assertEquals("done", future.get());
     }
 }

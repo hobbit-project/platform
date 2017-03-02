@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 import org.hobbit.controller.data.ExperimentConfiguration;
@@ -39,8 +38,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         cal.set(Calendar.YEAR, 2016);
         cal.set(Calendar.MONTH, Calendar.SEPTEMBER);
         cal.set(Calendar.DAY_OF_MONTH, 5);
-        Date d1 = cal.getTime();
-        cfg.ExecutionDate = d1;
+        cfg.executionDate = cal;
         // add to queue
         queue.add(cfg);
 
@@ -70,8 +68,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         cal.set(Calendar.YEAR, 2016);
         cal.set(Calendar.MONTH, Calendar.SEPTEMBER);
         cal.set(Calendar.DAY_OF_MONTH, 4);
-        Date d2 = cal.getTime();
-        cfg2.ExecutionDate = d2;
+        cfg2.executionDate = cal;
         // add to queue
         queue.add(cfg);
         queue.add(cfg2);
@@ -87,8 +84,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         cal.set(Calendar.YEAR, 2016);
         cal.set(Calendar.MONTH, Calendar.SEPTEMBER);
         cal.set(Calendar.DAY_OF_MONTH, 6);
-        Date d3 = cal.getTime();
-        cfg3.ExecutionDate = d3;
+        cfg3.executionDate = cal;
         queue.add(cfg3);
         // get next experiment
         ExperimentConfiguration next = queue.getNextExperiment();
@@ -104,8 +100,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         cal.set(Calendar.YEAR, 2016);
         cal.set(Calendar.MONTH, Calendar.SEPTEMBER);
         cal.set(Calendar.DAY_OF_MONTH, 5);
-        Date d1 = cal.getTime();
-        cfg.ExecutionDate = d1;
+        cfg.executionDate = cal;
         // add to queue
         queue.add(cfg);
 

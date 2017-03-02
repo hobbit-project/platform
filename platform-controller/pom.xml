@@ -37,7 +37,7 @@
 		<dependency>
 			<groupId>org.hobbit</groupId>
 			<artifactId>core</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 
 		<dependency>
@@ -53,14 +53,9 @@
 		</dependency>
 		<!-- Docker Client -->
 		<dependency>
-			<groupId>com.github.docker-java</groupId>
-			<artifactId>docker-java</artifactId>
-			<version>3.0.6</version>
-		</dependency>
-		<dependency>
-			<groupId>io.netty</groupId>
-			<artifactId>netty-buffer</artifactId>
-			<version>4.2.2.Final</version>
+			<groupId>com.spotify</groupId>
+			<artifactId>docker-client</artifactId>
+			<version>6.1.0</version>
 		</dependency>
 		<!-- JSON lib -->
 		<dependency>
@@ -117,6 +112,13 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>${junit.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- System rules for setting environment variables -->
+		<dependency>
+			<groupId>com.github.stefanbirkner</groupId>
+			<artifactId>system-rules</artifactId>
+			<version>1.16.0</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->

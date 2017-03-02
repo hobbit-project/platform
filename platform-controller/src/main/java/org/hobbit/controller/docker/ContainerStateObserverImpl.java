@@ -1,12 +1,12 @@
 package org.hobbit.controller.docker;
 
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.model.Container;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
@@ -37,13 +37,13 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
             public void run() {
                 List<Container> containers = manager.getContainers();
                 for (Container c : containers) {
-                    if (c.getStatus().contains("Exit") && monitoredContainers.contains(c.getId())) {
+                    if (c.status().contains("Exit") && monitoredContainers.contains(c.id())) {
                         // get exit code
-                        InspectContainerResponse containerInfo = manager.getContainerInfo(c.getId());
-                        int exitStatus = containerInfo.getState().getExitCode();
+                        ContainerInfo containerInfo = manager.getContainerInfo(c.id());
+                        int exitStatus = containerInfo.state().exitCode();
                         // notify all callbacks
                         for (ContainerTerminationCallback cb : terminationCallbacks) {
-                            cb.notifyTermination(c.getId(), exitStatus);
+                            cb.notifyTermination(c.id(), exitStatus);
                         }
                     }
                 }

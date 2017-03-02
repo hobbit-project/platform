@@ -1,6 +1,6 @@
 package org.hobbit.controller.data;
 
-import java.util.Date;
+import java.util.Calendar;
 
 /**
  * This data structure contains the information about a planned experiment.
@@ -11,11 +11,13 @@ import java.util.Date;
 public class ExperimentConfiguration {
 
     public String id;
-    public Date ExecutionDate;
+    public Calendar executionDate;
     public String benchmarkUri;
     public String benchmarkName;
     public String serializedBenchParams;
     public String systemUri;
+    public String challengeUri;
+    public String challengeTaskUri;
 
     public ExperimentConfiguration() {
     }
@@ -25,6 +27,16 @@ public class ExperimentConfiguration {
         this.benchmarkUri = benchmarkUri;
         this.serializedBenchParams = serializedBenchParams;
         this.systemUri = systemUri;
+    }
+
+    public ExperimentConfiguration(String id, String benchmarkUri, String serializedBenchParams, String systemUri,
+            String challengeUri, String challengeTaskUri, Calendar executionDate) {
+        this.id = id;
+        this.benchmarkUri = benchmarkUri;
+        this.serializedBenchParams = serializedBenchParams;
+        this.systemUri = systemUri;
+        this.challengeUri = challengeUri;
+        this.challengeTaskUri = challengeTaskUri;
     }
 
 }

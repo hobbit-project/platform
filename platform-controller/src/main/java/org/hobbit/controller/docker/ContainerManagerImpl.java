@@ -1,27 +1,29 @@
 package org.hobbit.controller.docker;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.CreateContainerCmd;
-import com.github.dockerjava.api.command.CreateContainerResponse;
-import com.github.dockerjava.api.command.InspectContainerResponse;
-import com.github.dockerjava.api.exception.NotModifiedException;
-import com.github.dockerjava.api.model.Container;
-import com.github.dockerjava.api.model.Image;
-import com.github.dockerjava.api.model.Network;
-import com.github.dockerjava.core.DefaultDockerClientConfig;
-import com.github.dockerjava.core.DockerClientBuilder;
-import com.github.dockerjava.core.command.PullImageResultCallback;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.AttachedNetwork;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
+import com.spotify.docker.client.messages.ContainerCreation;
+import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.messages.Network;
+import com.spotify.docker.client.messages.NetworkConfig;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
@@ -30,17 +32,11 @@ public class ContainerManagerImpl implements ContainerManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
-    private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
+    private static final String DEPLOY_ENV = System.getenv().containsKey("DEPLOY_ENV")
+            ? System.getenv().get("DEPLOY_ENV") : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
-    /**
-     * Label value that denotes container type as "system"
-     */
-    public static final String TYPE_SYSTEM = "system";
-    /**
-     * Label value that denotes container type as "benchmark"
-     */
-    public static final String TYPE_BENCHMARK = "benchmark";
     /**
      * Label that denotes container type
      */
@@ -67,31 +63,27 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private DockerClient dockerClient;
 
-    private List<ContainerStateObserver> containerObservers = new ArrayList<ContainerStateObserver>();
+    private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     /**
      * Constructor that creates new docker client instance
      */
-    public ContainerManagerImpl() {
-        dockerClient = DockerClientBuilder.getInstance(DefaultDockerClientConfig.createDefaultConfigBuilder().build())
-                .build();
+    public ContainerManagerImpl() throws Exception {
+        LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
+        dockerClient = DefaultDockerClient.fromEnv().build();
         // try to find hobbit network in existing ones
-        List<Network> networks = dockerClient.listNetworksCmd().exec();
+        List<Network> networks = dockerClient.listNetworks();
         String hobbitNetwork = null;
         for (Network net : networks) {
-            if (net.getName().equals(HOBBIT_DOCKER_NETWORK)) {
-                hobbitNetwork = net.getId();
+            if (net.name().equals(HOBBIT_DOCKER_NETWORK)) {
+                hobbitNetwork = net.id();
                 break;
             }
         }
         // if not found - create new one
         if (hobbitNetwork == null) {
-            // CreateNetworkResponse network =
-            dockerClient.createNetworkCmd().withName(HOBBIT_DOCKER_NETWORK)
-                    // TODO: figure out why it doesn't work with swarm and
-                    // overlay networks
-                    // .withDriver("overlay")
-                    .exec();
+            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).build();
+            dockerClient.createNetwork(networkConfig);
         }
     }
 
@@ -104,9 +96,22 @@ public class ContainerManagerImpl implements ContainerManager {
      * @return instance name
      */
     private String getInstanceName(String imageName) {
+        String baseName = imageName;
+        // If there is a tag it has to be removed
+        if (containsVersionTag(baseName)) {
+            int pos = imageName.lastIndexOf(':');
+            baseName = baseName.substring(0, pos - 1);
+        }
+        int posSlash = baseName.lastIndexOf('/');
+        int posColon = baseName.lastIndexOf(':');
+        if (posSlash > posColon) {
+            baseName = baseName.substring(posSlash + 1);
+        } else if (posSlash < posColon) {
+            baseName = baseName.substring(posColon + 1);
+        }
         final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-        StringBuilder builder = new StringBuilder(imageName.length() + uuid.length() + 1);
-        builder.append(imageName.replaceAll("/", "_"));
+        StringBuilder builder = new StringBuilder(baseName.length() + uuid.length() + 1);
+        builder.append(baseName.replaceAll("[/\\.]", "_"));
         builder.append('-');
         builder.append(uuid);
         return builder.toString();
@@ -119,24 +124,51 @@ public class ContainerManagerImpl implements ContainerManager {
      * @param imageName
      *            the name of the image that should be pulled
      */
+    @SuppressWarnings("unused")
     private void pullImageIfNeeded(String imageName) {
-        // check if image contains tag, if not - add ":latest"
-        if (!imageName.contains(":")) {
+        if (!containsVersionTag(imageName)) {
             imageName += ":latest";
         }
 
         // check if image is already available
-        List<Image> images = dockerClient.listImagesCmd().exec();
-        for (Image image : images) {
-            for (String tag : image.getRepoTags()) {
-                if (tag.equals(imageName)) {
-                    return;
+        try {
+            List<Image> images = dockerClient.listImages();
+            for (Image image : images) {
+                if (image.repoTags() != null) {
+                    for (String tag : image.repoTags()) {
+                        if (tag.equals(imageName)) {
+                            return;
+                        }
+                    }
                 }
             }
+
+            // pull image and wait for the pull to finish
+            dockerClient.pull(imageName);
+        } catch (Exception e) {
+            LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
+                    + e.getLocalizedMessage());
+        }
+    }
+
+    /**
+     * Pulls the image with the given name.
+     * 
+     * @param imageName
+     *            the name of the image that should be pulled
+     */
+    private void pullImage(String imageName) {
+        if (!containsVersionTag(imageName)) {
+            imageName += ":latest";
         }
 
-        // pull image and wait for the pull to finish
-        dockerClient.pullImageCmd(imageName).exec(new PullImageResultCallback()).awaitSuccess();
+        try {
+            // pull image and wait for the pull to finish
+            dockerClient.pull(imageName);
+        } catch (Exception e) {
+            LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
+                    + e.getLocalizedMessage());
+        }
     }
 
     /**
@@ -157,57 +189,112 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private String createContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
-        // pull image if needed
-        pullImageIfNeeded(imageName);
-        CreateContainerCmd cmd = dockerClient.createContainerCmd(imageName);
+        // pull image
+        pullImage(imageName);
+        ContainerConfig.Builder cfgBuilder = ContainerConfig.builder();
+        cfgBuilder.image(imageName);
 
         // generate unique container name
         String containerName = getInstanceName(imageName);
-        cmd.withName(containerName);
+        cfgBuilder.hostname(containerName);
+        // get parent info
+        List<String> defaultEnv = new ArrayList<>();
+        defaultEnv.add(Constants.CONTAINER_NAME_KEY + "=" + containerName);
+        ContainerInfo parent = getContainerInfo(parentId);
+        String parentType = (parent == null) ? null : parent.config().labels().get(LABEL_TYPE);
+        // If there is no container type try to use the parent type or return
+        // null
+        if ((containerType == null) || containerType.isEmpty()) {
+            if ((parentType != null) && (!parentType.isEmpty())) {
+                containerType = parentType;
+            } else {
+                LOGGER.error(
+                        "Can't create container using image {} without a container type (either a given type or one that can be derived from the parent). Returning null.",
+                        imageName);
+                return null;
+            }
+        }
+        // If the parent has "system" --> we do not care what the container
+        // would like to have OR if there is no parent or the parent is a
+        // benchmark (in case of the benchmark controller) and the container has
+        // type "system"
+        if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
+                && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
+                || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
+            defaultEnv.add("constraint:org.hobbit.workergroup==system");
+            containerType = Constants.CONTAINER_TYPE_SYSTEM;
+        } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
+                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
+                        || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
+            // defaultEnv.add("constraint:org.hobbit.workergroup==" +
+            // Constants.CONTAINER_TYPE_DATABASE);
+            defaultEnv.add("constraint:org.hobbit.type==data");
+        } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
+                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
+            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
+        } else {
+            LOGGER.error(
+                    "Got a request to create a container with type={} and parentType={}. Got no rule to determine its type. Returning null.",
+                    containerType, parentType);
+            return null;
+        }
+
         // create env vars to pass
         if (env != null) {
-            cmd.withEnv(ArrayUtils.add(env, Constants.CONTAINER_NAME_KEY + "=" + containerName));
+            defaultEnv.addAll(Arrays.asList(env));
+            cfgBuilder.env(defaultEnv);
         } else {
-            cmd.withEnv(new String[] { Constants.CONTAINER_NAME_KEY + "=" + containerName });
+            cfgBuilder.env(defaultEnv);
         }
         // create container labels
         Map<String, String> labels = new HashMap<>();
         labels.put(LABEL_TYPE, containerType);
-        labels.put(LABEL_PARENT, parentId);
-        cmd.withLabels(labels);
+        if (parentId != null) {
+            labels.put(LABEL_PARENT, parentId);
+        }
+        cfgBuilder.labels(labels);
         // create logging info
         if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
             // Map<String, String> logOptions = new HashMap<String, String>();
             // logOptions.put("gelf-address", LOGGING_GELF_ADDRESS);
             // logOptions.put("tag", LOGGING_TAG);
-            // cmd.withLogConfig(new LogConfig(LoggingType.GELF, logOptions));
+            // cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create("gelf",
+            // logOptions)).build());
         }
-
-        cmd.withNetworkMode(HOBBIT_DOCKER_NETWORK);
 
         // if command is present - execute it
         if ((command != null) && (command.length > 0)) {
-            cmd.withCmd(command);
+            cfgBuilder.cmd(command);
         }
 
         // trigger creation
-        CreateContainerResponse resp = null;
+        ContainerConfig cfg = cfgBuilder.build();
         try {
-            resp = cmd.exec();
+            ContainerCreation resp = dockerClient.createContainer(cfg, containerName);
+            String containerId = resp.id();
+            // disconnect the container from every network it might be connected
+            // to
+            ContainerInfo info = getContainerInfo(containerId);
+            Map<String, AttachedNetwork> networks = info.networkSettings().networks();
+            for (String networkName : networks.keySet()) {
+                dockerClient.disconnectFromNetwork(containerId, networkName);
+            }
+            // connect to hobbit network
+            dockerClient.connectToNetwork(resp.id(), HOBBIT_DOCKER_NETWORK);
+            // return new container id
+            return containerId;
         } catch (Exception e) {
             LOGGER.error("Couldn't create Docker container. Returning null.", e);
             return null;
         }
-
-        return resp.getId();
     }
 
     public String startContainer(String imageName) {
-        return startContainer(imageName, TYPE_BENCHMARK, "", null);
+        return startContainer(imageName, null, "", null);
     }
 
     public String startContainer(String imageName, String[] command) {
-        return startContainer(imageName, TYPE_BENCHMARK, "", command);
+        return startContainer(imageName, null, "", command);
     }
 
     public String startContainer(String imageName, String type, String parent) {
@@ -230,7 +317,7 @@ public class ContainerManagerImpl implements ContainerManager {
                 observer.addObservedContainer(containerId);
             }
             try {
-                dockerClient.startContainerCmd(containerId).exec();
+                dockerClient.startContainer(containerId);
             } catch (Exception e) {
                 LOGGER.error("Couldn't start container " + containerId + ". Returning null.", e);
                 return null;
@@ -243,7 +330,11 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void removeContainer(String containerId) {
         try {
-            dockerClient.removeContainerCmd(containerId).exec();
+            // If we are not in testing mode, remove all containers. In testing
+            // mode, remove only those that have a non-zero status
+            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (getContainerInfo(containerId).state().exitCode() == 0)) {
+                dockerClient.removeContainer(containerId);
+            }
         } catch (Exception e) {
             LOGGER.error("Couldn't remove container with id " + containerId + ".", e);
         }
@@ -252,12 +343,10 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void stopContainer(String containerId) {
         try {
-            dockerClient.stopContainerCmd(containerId).exec();
-        } catch (NotModifiedException e) {
+            dockerClient.stopContainer(containerId, 5);
+        } catch (DockerException e) {
             // nothing to do
-            // LOGGER.info(
-            // "Couldn't stop container with id " + containerId + ". Most
-            // probably it has already been stopped.");
+            LOGGER.info("Couldn't stop container with id " + containerId + ". " + e.toString());
         } catch (Exception e) {
             LOGGER.error("Couldn't stop container with id " + containerId + ".", e);
         }
@@ -269,12 +358,16 @@ public class ContainerManagerImpl implements ContainerManager {
         stopContainer(parentId);
 
         // find children
-        List<Container> containers = dockerClient.listContainersCmd().exec();
-        for (Container c : containers) {
-            if (c != null && c.getLabels().get(LABEL_PARENT) != null
-                    && c.getLabels().get(LABEL_PARENT).equals(parentId)) {
-                stopParentAndChildren(c.getId());
+        try {
+            List<Container> containers = dockerClient.listContainers();
+            for (Container c : containers) {
+                if (c != null && c.labels().get(LABEL_PARENT) != null
+                        && c.labels().get(LABEL_PARENT).equals(parentId)) {
+                    stopParentAndChildren(c.id());
+                }
             }
+        } catch (Exception e) {
+            LOGGER.error("Error while stopping containers: " + e.toString());
         }
     }
 
@@ -284,23 +377,35 @@ public class ContainerManagerImpl implements ContainerManager {
         removeContainer(parentId);
 
         // find children
-        List<Container> containers = dockerClient.listContainersCmd().withShowAll(true).exec();
-        for (Container c : containers) {
-            if (c != null && c.getLabels().get(LABEL_PARENT) != null
-                    && c.getLabels().get(LABEL_PARENT).equals(parentId)) {
-                removeParentAndChildren(c.getId());
+        try {
+            List<Container> containers = dockerClient.listContainers(DockerClient.ListContainersParam.allContainers());
+            for (Container c : containers) {
+                if (c != null && c.labels().get(LABEL_PARENT) != null
+                        && c.labels().get(LABEL_PARENT).equals(parentId)) {
+                    removeParentAndChildren(c.id());
+                }
             }
+        } catch (Exception e) {
+            LOGGER.error("Error while removing containers: " + e.toString());
         }
     }
 
     @Override
-    public InspectContainerResponse getContainerInfo(String containerId) {
-        return dockerClient.inspectContainerCmd(containerId).exec();
+    public ContainerInfo getContainerInfo(String containerId) {
+        try {
+            return dockerClient.inspectContainer(containerId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
     public List<Container> getContainers() {
-        return dockerClient.listContainersCmd().withShowAll(true).exec();
+        try {
+            return dockerClient.listContainers(DockerClient.ListContainersParam.allContainers());
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     @Override
@@ -308,9 +413,11 @@ public class ContainerManagerImpl implements ContainerManager {
         String extName = "/" + name;
         List<Container> containers = getContainers();
         for (Container container : containers) {
-            for (String containerName : container.getNames()) {
-                if (containerName.equals(name) || containerName.equals(extName)) {
-                    return container.getId();
+            for (String containerName : container.names()) {
+                // Clean name from Swarm node names if needed
+                String cleanedName = containerName.replaceAll("/.+?/", "/");
+                if (cleanedName.equals(name) || cleanedName.equals(extName)) {
+                    return container.id();
                 }
             }
         }
@@ -319,10 +426,10 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String getContainerName(String containerId) {
-        InspectContainerResponse response = getContainerInfo(containerId);
+        ContainerInfo response = getContainerInfo(containerId);
         String containerName = null;
         if (response != null) {
-            containerName = response.getName();
+            containerName = response.name();
             if (containerName.startsWith("/")) {
                 containerName = containerName.substring(1);
             }
@@ -333,6 +440,17 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void addContainerObserver(ContainerStateObserver containerObserver) {
         containerObservers.add(containerObserver);
+    }
+
+    public static boolean containsVersionTag(String imageName) {
+        int pos = 0;
+        // Check whether the given image name contains a host with a port
+        Matcher matcher = PORT_PATTERN.matcher(imageName);
+        while (matcher.find()) {
+            pos = matcher.end();
+        }
+        // Check whether there is a ':' in the remaining part of the image name
+        return imageName.indexOf(':', pos) >= 0;
     }
 
 }
