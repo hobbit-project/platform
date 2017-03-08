@@ -35,7 +35,7 @@ services:
       
   # Keycloak user management (used by the GUI)
   keycloak:
-    image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak
+    image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak:1.0.0
     restart: always
     ports:
       - "8181:8080"
