@@ -93,6 +93,7 @@ public class StorageService extends AbstractComponent {
      * @param queryString
      *            The query to be executed
      * @return Returns the queryString results serialized in JSON
+     * @throws Exception If endpoint not reachable, exception while executing query, etc.
      */
     public String callSparqlEndpoint(String queryString) throws Exception {
         String response = null;
@@ -198,8 +199,8 @@ public class StorageService extends AbstractComponent {
 
     /**
      * A simple method that reduces the given query to the parts that are
-     * located outside of brackets, i.e.,parts that match <code>{...}</code> and
-     * <code><...></code> are removed. It can be used to make sure that only
+     * located outside of brackets, i.e.,parts that match {{@code ...}} and
+     * {@code <...>} are removed. It can be used to make sure that only
      * keywords are processed.
      * 
      * @param query
