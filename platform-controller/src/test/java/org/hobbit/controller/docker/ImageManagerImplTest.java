@@ -75,7 +75,7 @@ public class ImageManagerImplTest {
             // fin gerbil benchmark
             BenchmarkMetaData gerbilBench = null;
             for (BenchmarkMetaData b : bs) {
-                if (b.benchmarkUri.equals("http://example.org/GerbilBenchmark")) {
+                if (b.benchmarkUri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark")) {
                     gerbilBench = b;
                 }
             }
@@ -86,7 +86,7 @@ public class ImageManagerImplTest {
             Assert.assertTrue(gbSys.size() > 1);
 
             // get gerbil benchmark by URL
-            Model benchmarkModel = imageManager.getBenchmarkModel("http://example.org/GerbilBenchmark");
+            Model benchmarkModel = imageManager.getBenchmarkModel("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark");
             Assert.assertNotNull(benchmarkModel);
 
             // find test systems for gerbil by URL

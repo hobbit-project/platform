@@ -57,7 +57,6 @@ public class RabbitMQConnection implements AutoCloseable {
      * 
      * @throws GUIBackendException
      * @throws IOException
-     * @throws Exception
      */
     public void open() throws GUIBackendException, IOException {
         // hobbitSessionId = null;

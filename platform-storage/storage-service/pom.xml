@@ -160,6 +160,7 @@
 				<configuration>
 					<show>private</show>
 					<nohelp>true</nohelp>
+					<failOnError>false</failOnError>
 				</configuration>
 				<executions>
 					<execution>

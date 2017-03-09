@@ -232,8 +232,8 @@ public class RdfModelHelper {
      *
      * @param model
      *            the RDF model containing the options
-     * @param parameter
-     *            the parameter for which the options are possible values
+     * @param typeResource
+     *            the typ resource for which the options are possible values
      * @return a list of options or <code>null</code> if no option could be
      *         found
      */

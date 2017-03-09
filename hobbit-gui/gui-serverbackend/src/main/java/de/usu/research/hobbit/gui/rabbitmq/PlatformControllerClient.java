@@ -113,7 +113,6 @@ public class PlatformControllerClient implements Closeable {
      * @throws InterruptedException
      * @throws ConsumerCancelledException
      * @throws ShutdownSignalException
-     * @throws Exception
      *             If something goes wrong with the request
      */
     public List<BenchmarkBean> requestBenchmarks()
@@ -162,7 +161,6 @@ public class PlatformControllerClient implements Closeable {
      * @throws InterruptedException
      * @throws ConsumerCancelledException
      * @throws ShutdownSignalException
-     * @throws Exception
      */
     public BenchmarkBean requestBenchmarkDetails(String benchmarkUri, UserInfoBean user) throws GUIBackendException,
             IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {

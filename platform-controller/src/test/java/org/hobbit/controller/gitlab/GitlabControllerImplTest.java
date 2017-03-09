@@ -33,12 +33,15 @@ public class GitlabControllerImplTest {
     public void init() throws InterruptedException {
         controller = new GitlabControllerImpl();
         // wait for controller to fetch projects
-        Thread.sleep(2000);
+        Thread.sleep(10000);
     }
 
     @Test
     public void getAllProjects() {
         List<Project> projects = controller.getAllProjects();
         assertNotNull(projects);
+        for(Project project : projects) {
+            System.out.println(project.name.toString());
+        }
     }
 }

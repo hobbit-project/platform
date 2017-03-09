@@ -145,17 +145,18 @@ public class ExperimentsResources {
         }
     }
 
-    /**
-     * Adds benchmark and system labels and descriptions to the given experiment
-     * beans.
-     * 
-     * @param experiments
-     *            the experiments beans that should be updated with the
-     *            retrieved information
-     * @throws Exception
-     *             if the communication with the platform controller does not
-     *             work
-     */
+    // /**
+    // * Adds benchmark and system labels and descriptions to the given
+    // experiment
+    // * beans.
+    // *
+    // * @param experiments
+    // * the experiments beans that should be updated with the
+    // * retrieved information
+    // * @throws Exception
+    // * if the communication with the platform controller does not
+    // * work
+    // */
     // protected void addInfoFromController(List<ExperimentBean> experiments)
     // throws Exception {
     // PlatformControllerClient client =
