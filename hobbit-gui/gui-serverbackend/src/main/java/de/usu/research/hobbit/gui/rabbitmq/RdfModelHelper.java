@@ -94,23 +94,23 @@ public class RdfModelHelper {
     }
 
     public static BenchmarkBean createBenchmarkBean(Model model, Resource benchmarkResource) {
-    	BenchmarkBean bean = new BenchmarkBean();
-    	return createBenchmarkBean(model, benchmarkResource, bean);
+        BenchmarkBean bean = new BenchmarkBean();
+        return createBenchmarkBean(model, benchmarkResource, bean);
     }
-    
-    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource) {
-    	ConfiguredBenchmarkBean bean = new ConfiguredBenchmarkBean();
-    	
-    	createBenchmarkBean(model, benchmarkResource, bean);
 
-    	// TODO fill ConfigurationParamValues
-//        Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
-//        createParamValueBeans(model, benchmarkResource, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), configuredParams);
-//        bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
-    	
-    	return bean;
+    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource) {
+        ConfiguredBenchmarkBean bean = new ConfiguredBenchmarkBean();
+        createBenchmarkBean(model, benchmarkResource, bean);
+
+        // fill ConfigurationParamValues
+        Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
+        createParamValueBeans(model, benchmarkResource,
+                model.listResourcesWithProperty(RDF.type, HOBBIT.ConfigurableParameter), configuredParams);
+        bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
+
+        return bean;
     }
-    
+
     /**
      * Creates a {@link BenchmarkBean} from the given RDF model by collecting
      * all benchmark-relevant information found for the given benchmark
@@ -480,7 +480,6 @@ public class RdfModelHelper {
                         }
                     }
                 }
-
                 parameters.put(parameterUri, paramBean);
             }
         }
