@@ -106,6 +106,8 @@ public class RdfModelHelper {
         Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
         createParamValueBeans(model, benchmarkResource,
                 model.listResourcesWithProperty(RDF.type, HOBBIT.ConfigurableParameter), configuredParams);
+        createParamValueBeans(model, benchmarkResource,
+                model.listResourcesWithProperty(RDF.type, HOBBIT.Parameter), configuredParams);
         bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
 
         return bean;
