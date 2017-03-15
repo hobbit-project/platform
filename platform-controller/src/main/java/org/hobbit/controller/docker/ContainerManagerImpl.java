@@ -31,8 +31,10 @@ import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DefaultDockerClient.Builder;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
+import com.spotify.docker.client.messages.AuthConfig;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
@@ -43,6 +45,8 @@ import com.spotify.docker.client.messages.NetworkConfig;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
+ * 
+ * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  */
 public class ContainerManagerImpl implements ContainerManager {
 
@@ -52,6 +56,9 @@ public class ContainerManagerImpl implements ContainerManager {
             ? System.getenv().get("DEPLOY_ENV") : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
+
+    public static final String TEMP_USER_NAME = "GITLAB_USER_NAME";
+    public static final String TEMP_USER_PASSWORD = "GITLAB_USER_PASSWORD";
 
     /**
      * Label that denotes container type
@@ -86,7 +93,18 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     public ContainerManagerImpl() throws Exception {
         LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
-        dockerClient = DefaultDockerClient.fromEnv().build();
+        Builder builder = DefaultDockerClient.fromEnv();
+        String username = System.getenv(TEMP_USER_NAME);
+        String password = System.getenv(TEMP_USER_PASSWORD);
+        if ((username != null) && (password != null)) {
+            builder.authConfig(AuthConfig.builder().serverAddress("git.project-hobbit.eu:4567").username(username)
+                    .password(password).build());
+        } else {
+            LOGGER.warn(
+                    "Couldn't load a username ({}) and a passwort ({}) to access private repositories. This platform won't be able to pull protected or private images.",
+                    TEMP_USER_NAME, TEMP_USER_PASSWORD);
+        }
+        dockerClient = builder.build();
         // try to find hobbit network in existing ones
         List<Network> networks = dockerClient.listNetworks();
         String hobbitNetwork = null;
