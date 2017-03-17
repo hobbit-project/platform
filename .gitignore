@@ -9,3 +9,4 @@ config/db/virtuoso.trx
 .settings
 .gitlab-ci.yml
 dependency-reduced-pom.xml
+docker-compose-local.yml

@@ -1,5 +1,6 @@
 version: '2'
 services:
+- DOCKER_HOST=swarm-master:4000
   platform-controller:
     build: ./platform-controller
     networks:
@@ -9,6 +10,8 @@ services:
       - HOBBIT_RABBIT_HOST=rabbit
       - HOBBIT_REDIS_HOST=redis
       - DEPLOY_ENV=testing
+#      - GITLAB_USER=
+#      - GITLAB_EMAIL=
 #      - GITLAB_TOKEN=
     depends_on:
       - rabbit

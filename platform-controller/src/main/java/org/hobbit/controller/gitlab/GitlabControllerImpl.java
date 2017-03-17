@@ -37,10 +37,13 @@ import org.slf4j.LoggerFactory;
  */
 public class GitlabControllerImpl implements GitlabController {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitlabControllerImpl.class);
+    
+    public static final String GITLAB_URL_KEY = "GITLAB_URL";
+    public static final String GITLAB_TOKEN_KEY = "GITLAB_TOKEN";
 
- // Gitlab URL and access token
-    private static final String GITLAB_URL = System.getProperty("GITLAB_URL", "https://git.project-hobbit.eu/");
-    private static final String GITLAB_TOKEN = System.getenv("GITLAB_TOKEN");
+    // Gitlab URL and access token
+    private static final String GITLAB_URL = System.getProperty(GITLAB_URL_KEY, "https://git.project-hobbit.eu/");
+    private static final String GITLAB_TOKEN = System.getenv(GITLAB_TOKEN_KEY);
     private static final String GITLAB_DEFAULT_GUEST_TOKEN = "fykySfxWaUyCS1xxTSVy";
 
     // Config filenames

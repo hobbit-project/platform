@@ -21,6 +21,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.hobbit</groupId>
 	<artifactId>platform-controller</artifactId>
+	<version>1.0.0</version>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -254,5 +255,4 @@
 			</plugin>
 		</plugins>
 	</build>
-	<version>1.0.0</version>
 </project>

@@ -25,14 +25,17 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DefaultDockerClient.Builder;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
+import com.spotify.docker.client.messages.AuthConfig;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
@@ -43,13 +46,21 @@ import com.spotify.docker.client.messages.NetworkConfig;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
+ * 
+ * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  */
 public class ContainerManagerImpl implements ContainerManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
-    private static final String DEPLOY_ENV = System.getenv().containsKey("DEPLOY_ENV")
-            ? System.getenv().get("DEPLOY_ENV") : "production";
+    public static final String DEPLOY_ENV_KEY = "DEPLOY_ENV";
+    public static final String USER_NAME_KEY = "GITLAB_USER";
+    public static final String USER_EMAIL_KEY = "GITLAB_EMAIL";
+    public static final String USER_PASSWORD_KEY = GitlabControllerImpl.GITLAB_TOKEN_KEY;
+    public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
+
+    private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
+            ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
@@ -86,7 +97,21 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     public ContainerManagerImpl() throws Exception {
         LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
-        dockerClient = DefaultDockerClient.fromEnv().build();
+        Builder builder = DefaultDockerClient.fromEnv();
+        String username = System.getenv(USER_NAME_KEY);
+        String email = System.getenv(USER_EMAIL_KEY);
+        String password = System.getenv(USER_PASSWORD_KEY);
+        String registryUrl = System.getenv().containsKey(REGISTRY_URL_KEY) ? System.getenv(REGISTRY_URL_KEY)
+                : "git.project-hobbit.eu:4567";
+        if ((username != null) && (password != null)) {
+            builder.authConfig(AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
+                    .email(email).build());
+        } else {
+            LOGGER.warn(
+                    "Couldn't load a username ({}), email ({}) and a security token ({}) to access private repositories. This platform won't be able to pull protected or private images.",
+                    USER_NAME_KEY, USER_EMAIL_KEY, USER_PASSWORD_KEY);
+        }
+        dockerClient = builder.build();
         // try to find hobbit network in existing ones
         List<Network> networks = dockerClient.listNetworks();
         String hobbitNetwork = null;
@@ -174,10 +199,6 @@ public class ContainerManagerImpl implements ContainerManager {
      *            the name of the image that should be pulled
      */
     private void pullImage(String imageName) {
-        if (!containsVersionTag(imageName)) {
-            imageName += ":latest";
-        }
-
         try {
             // pull image and wait for the pull to finish
             dockerClient.pull(imageName);
