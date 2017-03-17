@@ -104,12 +104,8 @@ public class ContainerManagerImpl implements ContainerManager {
         String registryUrl = System.getenv().containsKey(REGISTRY_URL_KEY) ? System.getenv(REGISTRY_URL_KEY)
                 : "git.project-hobbit.eu:4567";
         if ((username != null) && (password != null)) {
-            builder.authConfig(AuthConfig.builder()
-                    .serverAddress(registryUrl)
-                    .username(username)
-                    .password(password)
-                    .email(email)
-                    .build());
+            builder.authConfig(AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
+                    .email(email).build());
         } else {
             LOGGER.warn(
                     "Couldn't load a username ({}), email ({}) and a security token ({}) to access private repositories. This platform won't be able to pull protected or private images.",
@@ -203,10 +199,6 @@ public class ContainerManagerImpl implements ContainerManager {
      *            the name of the image that should be pulled
      */
     private void pullImage(String imageName) {
-        if (!containsVersionTag(imageName)) {
-            imageName += ":latest";
-        }
-
         try {
             // pull image and wait for the pull to finish
             dockerClient.pull(imageName);
