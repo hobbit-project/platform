@@ -583,21 +583,21 @@ public class RdfModelHelper {
         if (HobbitErrors.BenchmarkCrashed.equals(errorResource)) {
             return "The benchmark terminated with an error.";
         } else if (HobbitErrors.BenchmarkImageMissing.equals(errorResource)) {
-            return "The benchmark image couldn't be loaded.";
+            return "The benchmark image could not be loaded.";
         } else if (HobbitErrors.BenchmarkCreationError.equals(errorResource)) {
-            return "The benchmark couldn't be created.";
+            return "The benchmark could not be created.";
         } else if (HobbitErrors.ExperimentTookTooMuchTime.equals(errorResource)) {
             return "The experiment took too much time.";
         } else if (HobbitErrors.SystemCrashed.equals(errorResource)) {
             return "The benchmarked system terminated with an error.";
         } else if (HobbitErrors.SystemImageMissing.equals(errorResource)) {
-            return "The benchmarked system image couldn't be loaded.";
+            return "The benchmarked system image could not be loaded.";
         } else if (HobbitErrors.SystemCreationError.equals(errorResource)) {
-            return "The benchmarked system couldn't be created.";
+            return "The benchmarked system could not be created.";
         } else if (HobbitErrors.UnexpectedError.equals(errorResource)) {
-            return "An unexpected error occured.";
+            return "An unexpected error occurred.";
         } else {
-            return "An unknown error occured.";
+            return "An unknown error occurred.";
         }
     }
 }
