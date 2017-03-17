@@ -106,7 +106,7 @@ For getting access to your Systems or Benchmarks that have been uploaded to the 
 
 Benchmarks should already be accessible if the project containing their meta data file is public. For accessing a public system, you need to define a user in your local Keycloak that has exactly the same user name as the user that owns the project in which the system meta data file is located. More information about user management can be found in the section [Details of the user management](https://github.com/hobbit-project/platform#details-of-the-user-management).
 
-If a benchmark or system project is not public, you need to add an access token of your user to the platforms compose file.
+If a benchmark or system project is not public, you need to add your user name, your mail address and an access token of your user to the platforms compose file.
 * Login to the Hobbit git, open the `profile settings`, click on `Access Token` and create a personal access token for using the API
 * Open the docker-compose file and put the token in the platform-controller configuration
 ```yml
@@ -114,6 +114,8 @@ If a benchmark or system project is not public, you need to add an access token 
     ...
     environment:
       ...
+      - GITLAB_USER=user
+      - GITLAB_EMAIL=user@provider.org
       - GITLAB_TOKEN=ABC-XYZ
 ```
 
