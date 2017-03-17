@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
-    
+
     /**
      * Time interval the experiment manager waits before it checks for the an
      * experiment to start. It is larger than {@link #CHECK_FOR_NEW_EXPERIMENT}
@@ -269,7 +269,7 @@ public class ExperimentManager implements Closeable {
             controller.queue.remove(experimentStatus.config);
             if (graphUri.equals(Constants.PUBLIC_RESULT_GRAPH_URI)) {
                 try {
-                    controller.analyzeExperiment(experimentStatus.getConfig().challengeTaskUri);
+                    controller.analyzeExperiment(experimentStatus.experimentUri);
                 } catch (IOException e) {
                     LOGGER.error("Could not send task \"{}\" to AnalyseQueue.",
                             experimentStatus.getConfig().challengeTaskUri);

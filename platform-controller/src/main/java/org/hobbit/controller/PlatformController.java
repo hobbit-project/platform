@@ -717,15 +717,18 @@ public class PlatformController extends AbstractCommandReceivingComponent
                                 .getExperimentOfTaskQuery(null, taskUri, Constants.PRIVATE_RESULT_GRAPH_URI));
                         experiments.addAll(RdfHelper.getSubjectResources(taskExperimentModel, HOBBIT.isPartOf,
                                 taskExperimentModel.getResource(taskUri)));
-                        try {
-                            analyzer.analyzeExperiment(taskUri);
-                        } catch (IOException e) {
-                            LOGGER.error("Could not send task \"{}\" to AnalyseQueue.", taskUri);
-                        }
                         if (!storage.sendInsertQuery(taskExperimentModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
                             LOGGER.error("Couldn't copy experiment results for challenge task \"{}\". Aborting.",
                                     taskUri);
                             return;
+                        }
+                        // Send the experiment to the analysis component
+                        for (Resource experiment : experiments) {
+                            try {
+                                analyzer.analyzeExperiment(experiment.getURI());
+                            } catch (IOException e) {
+                                LOGGER.error("Could not send task \"{}\" to AnalyseQueue.", taskUri);
+                            }
                         }
                     }
                     // Remove challenge from challenge graph
