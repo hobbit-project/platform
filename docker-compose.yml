@@ -1,6 +1,5 @@
 version: '2'
 services:
-- DOCKER_HOST=swarm-master:4000
   platform-controller:
     build: ./platform-controller
     networks:
