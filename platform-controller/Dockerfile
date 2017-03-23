@@ -7,4 +7,4 @@ ADD . /usr/src/app
 
 #RUN mvn package -Dmaven.test.skip=true
 
-CMD ["java", "-cp", "target/platform-controller-1.0.0.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.controller.PlatformController"]
+CMD ["java", "-cp", "target/platform-controller.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.controller.PlatformController"]
