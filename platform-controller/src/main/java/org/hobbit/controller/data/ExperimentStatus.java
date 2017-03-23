@@ -29,6 +29,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
+import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Constants;
@@ -132,20 +133,21 @@ public class ExperimentStatus implements Closeable {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
     }
 
-    public ExperimentStatus(ExperimentConfiguration config, String experimentUri, PlatformController controller,
+    public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting) {
-        this(config, experimentUri, controller, timeUntilAborting, System.currentTimeMillis());
+        this(config, experimentUri, manager, timeUntilAborting, System.currentTimeMillis());
     }
 
-    public ExperimentStatus(ExperimentConfiguration config, String experimentUri, PlatformController controller,
+    public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting, long startTimeStamp) {
         this.config = config;
         this.experimentUri = experimentUri;
         this.startTimeStamp = startTimeStamp;
 
-        if (controller != null) {
+        if (manager != null) {
+            LOGGER.info("Creating abort timer for " + experimentUri + " with " + timeUntilAborting + "ms.");
             abortTimer = new Timer();
-            abortTimer.schedule(new ExperimentAbortTimerTask(controller, this), timeUntilAborting);
+            abortTimer.schedule(new ExperimentAbortTimerTask(manager, this), timeUntilAborting);
         }
     }
 

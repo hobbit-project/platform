@@ -19,7 +19,11 @@ package org.hobbit.controller.gitlab;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -37,7 +41,7 @@ import org.slf4j.LoggerFactory;
  */
 public class GitlabControllerImpl implements GitlabController {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitlabControllerImpl.class);
-    
+
     public static final String GITLAB_URL_KEY = "GITLAB_URL";
     public static final String GITLAB_TOKEN_KEY = "GITLAB_TOKEN";
 
@@ -50,6 +54,8 @@ public class GitlabControllerImpl implements GitlabController {
     private static final String SYSTEM_CONFIG_FILENAME = "system.ttl";
     private static final String BENCHMARK_CONFIG_FILENAME = "benchmark.ttl";
 
+    private static final int MAX_PARSING_ERRORS = 50;
+
     // gitlab api
     private GitlabAPI api;
     // projects refresh timer
@@ -60,14 +66,16 @@ public class GitlabControllerImpl implements GitlabController {
     private List<Runnable> readyRunnable;
     // projects array
     private List<Project> projects;
+    private Set<String> parsingErrors = new HashSet<String>();
+    private Deque<String> sortedParsingErrors = new LinkedList<String>();
 
     public GitlabControllerImpl() {
-    	String token = GITLAB_TOKEN;
-    	if(token==null||token.isEmpty()){
-    		//use default "guest" token, to use openly available projects
-    		token = GITLAB_DEFAULT_GUEST_TOKEN;
-    	}
-   		api = GitlabAPI.connect(GITLAB_URL, token);
+        String token = GITLAB_TOKEN;
+        if (token == null || token.isEmpty()) {
+            // use default "guest" token, to use openly available projects
+            token = GITLAB_DEFAULT_GUEST_TOKEN;
+        }
+        api = GitlabAPI.connect(GITLAB_URL, token);
         timer = new Timer();
         projects = new ArrayList<>();
         readyRunnable = new ArrayList<>();
@@ -87,17 +95,18 @@ public class GitlabControllerImpl implements GitlabController {
                 List<Project> newProjects = new ArrayList<>();
 
                 try {
-                	//Get all projects visible to the user
-                	List<GitlabProject> gitProjects;
-                	if(api.getUser().isAdmin()){
-                		//Get all Projects as Sudo, as "visible" is restricted even though user has sudo access
-                		gitProjects = api.getAllProjects();
-                	}
-                	else{
-                		//If the user does not have sudo access use all the visible projects.
-                		gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
-                	}
-                	LOGGER.info("Projects: "+gitProjects.size());
+                    // Get all projects visible to the user
+                    List<GitlabProject> gitProjects;
+                    if (api.getUser().isAdmin()) {
+                        // Get all Projects as Sudo, as "visible" is restricted
+                        // even though user has sudo access
+                        gitProjects = api.getAllProjects();
+                    } else {
+                        // If the user does not have sudo access use all the
+                        // visible projects.
+                        gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
+                    }
+                    LOGGER.info("Projects: " + gitProjects.size());
                     for (GitlabProject project : gitProjects) {
                         try {
                             Project p = gitlabToProject(project);
@@ -208,7 +217,20 @@ public class GitlabControllerImpl implements GitlabController {
             model.read(new StringReader(modelString), null, "TTL");
             return modelString;
         } catch (Exception e) {
-            LOGGER.info("Couldn't parse " + modelType + " model from " + projectName + ". It won't be available.", e);
+            String parsingError = "Couldn't parse " + modelType + " model from " + projectName
+                    + ". It won't be available. " + e.getMessage();
+            if (parsingErrors.contains(parsingError)) {
+                LOGGER.info(parsingError + " (Error already reported before)");
+            } else {
+                LOGGER.info("Couldn't parse " + modelType + " model from " + projectName + ". It won't be available.",
+                        e);
+                sortedParsingErrors.addLast(parsingError);
+                parsingErrors.add(parsingError);
+                // If the cached errors become to long, remove the oldest
+                if (sortedParsingErrors.size() > MAX_PARSING_ERRORS) {
+                    parsingErrors.remove(sortedParsingErrors.pop());
+                }
+            }
         }
         return null;
     }
