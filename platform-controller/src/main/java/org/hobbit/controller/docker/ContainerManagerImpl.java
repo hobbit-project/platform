@@ -84,12 +84,17 @@ public class ContainerManagerImpl implements ContainerManager {
      * Logging pattern.
      */
     public static final String LOGGING_TAG = "{{.ImageName}}/{{.Name}}/{{.ID}}";
-
     /**
      * Docker client instance
      */
     private DockerClient dockerClient;
-
+    /**
+     * Authentication configuration for accessing private repositories.
+     */
+    private final AuthConfig gitlabAuth;
+    /**
+     * Observers that should be notified if a container terminates.
+     */
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     /**
@@ -98,20 +103,22 @@ public class ContainerManagerImpl implements ContainerManager {
     public ContainerManagerImpl() throws Exception {
         LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
         Builder builder = DefaultDockerClient.fromEnv();
+        dockerClient = builder.build();
+        
         String username = System.getenv(USER_NAME_KEY);
         String email = System.getenv(USER_EMAIL_KEY);
         String password = System.getenv(USER_PASSWORD_KEY);
         String registryUrl = System.getenv().containsKey(REGISTRY_URL_KEY) ? System.getenv(REGISTRY_URL_KEY)
                 : "git.project-hobbit.eu:4567";
         if ((username != null) && (password != null)) {
-            builder.authConfig(AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
-                    .email(email).build());
+            gitlabAuth = AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
+                    .email(email).build();
         } else {
             LOGGER.warn(
                     "Couldn't load a username ({}), email ({}) and a security token ({}) to access private repositories. This platform won't be able to pull protected or private images.",
                     USER_NAME_KEY, USER_EMAIL_KEY, USER_PASSWORD_KEY);
+            gitlabAuth = null;
         }
-        dockerClient = builder.build();
         // try to find hobbit network in existing ones
         List<Network> networks = dockerClient.listNetworks();
         String hobbitNetwork = null;
@@ -200,8 +207,15 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private void pullImage(String imageName) {
         try {
-            // pull image and wait for the pull to finish
-            dockerClient.pull(imageName);
+            // If we have authentication credentials and the image name contains
+            // the server address of these credentials, we should use them
+            if ((gitlabAuth != null) && (imageName.startsWith(gitlabAuth.serverAddress()))) {
+                // pull image and wait for the pull to finish
+                dockerClient.pull(imageName, gitlabAuth);
+            } else {
+                // pull image and wait for the pull to finish
+                dockerClient.pull(imageName);
+            }
         } catch (Exception e) {
             LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
                     + e.getLocalizedMessage());
@@ -326,10 +340,12 @@ public class ContainerManagerImpl implements ContainerManager {
         }
     }
 
+    @Deprecated
     public String startContainer(String imageName) {
         return startContainer(imageName, null, "", null);
     }
 
+    @Deprecated
     public String startContainer(String imageName, String[] command) {
         return startContainer(imageName, null, "", command);
     }
