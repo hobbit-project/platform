@@ -1,6 +1,6 @@
 FROM java
 
-ADD target/analysis-component-1.0.0.jar /analysis/analysis-component.jar
+ADD target/analysis-component.jar /analysis/analysis-component.jar
 
 WORKDIR /analysis
 
