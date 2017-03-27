@@ -31,8 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DefaultDockerClient.Builder;
+import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
 import com.spotify.docker.client.messages.AuthConfig;
@@ -40,7 +40,9 @@ import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.HostConfig;
 import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.messages.LogConfig;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 
@@ -54,6 +56,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
     public static final String DEPLOY_ENV_KEY = "DEPLOY_ENV";
+    public static final String LOGGING_DRIVER_KEY = "LOGGING_DRIVER";
     public static final String USER_NAME_KEY = "GITLAB_USER";
     public static final String USER_EMAIL_KEY = "GITLAB_EMAIL";
     public static final String USER_PASSWORD_KEY = GitlabControllerImpl.GITLAB_TOKEN_KEY;
@@ -62,6 +65,9 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
             ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String LOGGING_DRIVER = System.getenv().containsKey(LOGGING_DRIVER_KEY)
+            ? System.getenv().get(LOGGING_DRIVER_KEY) : "default Docker driver";
+    private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
     /**
@@ -305,12 +311,11 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         cfgBuilder.labels(labels);
         // create logging info
-        if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
-            // Map<String, String> logOptions = new HashMap<String, String>();
-            // logOptions.put("gelf-address", LOGGING_GELF_ADDRESS);
-            // logOptions.put("tag", LOGGING_TAG);
-            // cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create("gelf",
-            // logOptions)).build());
+        if (!LOGGING_DRIVER.equals(LOGGING_DRIVER_GELF)) {
+            Map<String, String> logOptions = new HashMap<String, String>();
+            logOptions.put("gelf-address", LOGGING_GELF_ADDRESS);
+            logOptions.put("tag", LOGGING_TAG);
+            cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create("gelf", logOptions)).build());
         }
 
         // if command is present - execute it
