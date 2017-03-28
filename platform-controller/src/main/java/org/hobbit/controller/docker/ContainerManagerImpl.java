@@ -56,7 +56,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
     public static final String DEPLOY_ENV_KEY = "DEPLOY_ENV";
-    public static final String LOGGING_DRIVER_KEY = "LOGGING_DRIVER";
+    public static final String LOGGING_GELF_ADDRESS_KEY = "LOGGING_GELF_ADDRESS";
     public static final String USER_NAME_KEY = "GITLAB_USER";
     public static final String USER_EMAIL_KEY = "GITLAB_EMAIL";
     public static final String USER_PASSWORD_KEY = GitlabControllerImpl.GITLAB_TOKEN_KEY;
@@ -65,8 +65,6 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
             ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
-    private static final String LOGGING_DRIVER = System.getenv().containsKey(LOGGING_DRIVER_KEY)
-            ? System.getenv().get(LOGGING_DRIVER_KEY) : "default Docker driver";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
@@ -82,10 +80,6 @@ public class ContainerManagerImpl implements ContainerManager {
      * Default network for new containers
      */
     public static final String HOBBIT_DOCKER_NETWORK = "hobbit";
-    /**
-     * Logging address.
-     */
-    public static final String LOGGING_GELF_ADDRESS = "udp://logstash:12201";
     /**
      * Logging pattern.
      */
@@ -103,6 +97,8 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
+    private String gelfAddress = null;
+
     /**
      * Constructor that creates new docker client instance
      */
@@ -110,7 +106,7 @@ public class ContainerManagerImpl implements ContainerManager {
         LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
         Builder builder = DefaultDockerClient.fromEnv();
         dockerClient = builder.build();
-        
+
         String username = System.getenv(USER_NAME_KEY);
         String email = System.getenv(USER_EMAIL_KEY);
         String password = System.getenv(USER_PASSWORD_KEY);
@@ -124,6 +120,12 @@ public class ContainerManagerImpl implements ContainerManager {
                     "Couldn't load a username ({}), email ({}) and a security token ({}) to access private repositories. This platform won't be able to pull protected or private images.",
                     USER_NAME_KEY, USER_EMAIL_KEY, USER_PASSWORD_KEY);
             gitlabAuth = null;
+        }
+        gelfAddress = System.getenv(LOGGING_GELF_ADDRESS_KEY);
+        if (gelfAddress == null) {
+            LOGGER.info(
+                    "Didn't find a gelf address ({}). Containers created by this platform will use the default logging.",
+                    LOGGING_GELF_ADDRESS_KEY);
         }
         // try to find hobbit network in existing ones
         List<Network> networks = dockerClient.listNetworks();
@@ -311,11 +313,11 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         cfgBuilder.labels(labels);
         // create logging info
-        if (!LOGGING_DRIVER.equals(LOGGING_DRIVER_GELF)) {
+        if (gelfAddress != null) {
             Map<String, String> logOptions = new HashMap<String, String>();
-            logOptions.put("gelf-address", LOGGING_GELF_ADDRESS);
+            logOptions.put("gelf-address", gelfAddress);
             logOptions.put("tag", LOGGING_TAG);
-            cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create("gelf", logOptions)).build());
+            cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create(LOGGING_DRIVER_GELF, logOptions)).build());
         }
 
         // if command is present - execute it
