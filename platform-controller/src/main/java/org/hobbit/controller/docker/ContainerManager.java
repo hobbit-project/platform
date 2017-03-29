@@ -37,7 +37,12 @@ public interface ContainerManager {
      *            Name of the image to start
      *
      * @return container id
+     * @deprecated because the method tries to create a container with type=null
+     *             and parent="" which does not work without a predefined
+     *             default type for all containers that are created in that way.
+     *             Use {@link #startContainer(String, String, String)} instead.
      */
+    @Deprecated
     public String startContainer(String imageName);
 
     /**
@@ -49,6 +54,11 @@ public interface ContainerManager {
      *            command to be executed
      *
      * @return container id
+     * @deprecated because the method tries to create a container with type=null
+     *             and parent="" which does not work without a predefined
+     *             default type for all containers that are created in that way.
+     *             Use {@link #startContainer(String, String, String, String[])}
+     *             instead.
      */
     public String startContainer(String imageName, String[] command);
 
@@ -99,7 +109,8 @@ public interface ContainerManager {
      * 
      * @return container Id or null if an error occurred.
      */
-    public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command);
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] command);
 
     /**
      * Stops the container with the given container Id.
