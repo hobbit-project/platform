@@ -35,8 +35,12 @@
     </sg-benchmark-configparams>
     <div *ngIf="model.benchmark" class="row">
       <div class="col-md-4">
-        <button type="submit" [disabled]="!model.benchmark || !model.system" class="btn btn-default">Submit</button>
+        <button type="submit" [disabled]="!model.benchmark || !model.system || successfullySubmitted" class="btn btn-default">Submit</button>
       </div>
     </div>
-  </form>
+  </form>  
 </div>
+
+<p-dialog header="Submission" [(visible)]="displaySubmitting" appendTo="body">
+    <sg-benchmark-submit-response [submitting]="displaySubmitting" [model]="model" (successfullySubmitted)="onSuccessfullySubmitted()"></sg-benchmark-submit-response>
+</p-dialog>

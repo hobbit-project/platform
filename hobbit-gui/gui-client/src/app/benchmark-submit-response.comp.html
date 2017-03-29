@@ -1,13 +1,7 @@
-<sg-app-page-header>
-    <div class="col-md-10">
-       <h1>Benchmark Submitted</h1>
-    </div>
-</sg-app-page-header>
-
 <div class="container">
-  <div *ngIf="!submitted" class="row">
+  <div *ngIf="!submitted && !error" class="row">
     <div class="col-md-8">
-      <h2>Submitting...</h2>
+      <h2>Submitting... <sg-wait-loading [loaded]="submitted"></sg-wait-loading></h2>
     </div>
   </div>
   <div *ngIf="submitted" class="row">
@@ -28,6 +22,11 @@
 
       <br>
       <p>Submitted successfully HOBBIT ID: <a [routerLink]="['/experiments/details']" [queryParams]="{ id: model.submission.id }">{{model.submission.id}}</a> at <i>{{model.submission.timestamp}}</i></p>
+    </div>
+  </div>
+  <div *ngIf="error" class="row">
+    <div class="alert alert-danger">
+      {{error}}
     </div>
   </div>
 </div>
