@@ -92,52 +92,58 @@ public class GitlabControllerImpl implements GitlabController {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                List<Project> newProjects = new ArrayList<>();
-
                 try {
-                    // Get all projects visible to the user
-                    List<GitlabProject> gitProjects;
-                    if (api.getUser().isAdmin()) {
-                        // Get all Projects as Sudo, as "visible" is restricted
-                        // even though user has sudo access
-                        gitProjects = api.getAllProjects();
-                    } else {
-                        // If the user does not have sudo access use all the
-                        // visible projects.
-                        gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
-                    }
-                    LOGGER.info("Projects: " + gitProjects.size());
-                    for (GitlabProject project : gitProjects) {
-                        try {
-                            Project p = gitlabToProject(project);
-                            if (p != null) {
-                                newProjects.add(p);
+                    List<Project> newProjects = new ArrayList<>();
+
+                    try {
+                        // Get all projects visible to the user
+                        List<GitlabProject> gitProjects;
+                        if (api.getUser().isAdmin()) {
+                            // Get all Projects as Sudo, as "visible" is
+                            // restricted
+                            // even though user has sudo access
+                            gitProjects = api.getAllProjects();
+                        } else {
+                            // If the user does not have sudo access use all the
+                            // visible projects.
+                            gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
+                        }
+                        LOGGER.info("Projects: " + gitProjects.size());
+                        for (GitlabProject project : gitProjects) {
+                            try {
+                                Project p = gitlabToProject(project);
+                                if (p != null) {
+                                    newProjects.add(p);
+                                }
+                            } catch (Exception e) {
+                                LOGGER.error("Error getting project config files", e);
                             }
-                        } catch (Exception e) {
-                            LOGGER.error("Error getting project config files", e);
+                        }
+                    } catch (Exception | Error e) {
+                        LOGGER.error("Couldn't get all gitlab projects.", e);
+                    }
+
+                    if (projects == null) {
+                        // This is the first fetching of projects -> we might
+                        // have
+                        // to notify threads that are waiting for that
+                        projects = newProjects;
+                        synchronized (this) {
+                            this.notifyAll();
+                        }
+                    } else {
+                        // update cached version
+                        projects = newProjects;
+                    }
+                    // indicate that projects were fetched
+                    if (!projectsFetched) {
+                        projectsFetched = true;
+                        for (Runnable r : readyRunnable) {
+                            r.run();
                         }
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Couldn't get all gitlab projects.", e);
-                }
-
-                if (projects == null) {
-                    // This is the first fetching of projects -> we might have
-                    // to notify threads that are waiting for that
-                    projects = newProjects;
-                    synchronized (this) {
-                        this.notifyAll();
-                    }
-                } else {
-                    // update cached version
-                    projects = newProjects;
-                }
-                // indicate that projects were fetched
-                if (!projectsFetched) {
-                    projectsFetched = true;
-                    for (Runnable r : readyRunnable) {
-                        r.run();
-                    }
+                } catch (Throwable t) {
+                    LOGGER.error("Got an uncatched throwable.", t);
                 }
             }
         }, 0, repeatInterval);
