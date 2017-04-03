@@ -16,28 +16,64 @@
  */
 package org.hobbit.controller.docker;
 
-import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerInfo;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
+
 /**
+ * This class implements the {@link ContainerStateObserver} interface by
+ * starting a scheduled job that retrieves a list of containers and their status
+ * using the given {@link ContainerManager}. If a container has the status
+ * "exited" and can be found in the internal list of monitored containers, the
+ * {@link ContainerTerminationCallback#notifyTermination(String, int)} methods
+ * of all registered callbacks are called.
+ * 
  * Created by Timofey Ermilov on 01/09/16.
  */
 public class ContainerStateObserverImpl implements ContainerStateObserver {
 
-    // private static final Logger LOGGER =
-    // LoggerFactory.getLogger(ContainerStateObserverImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerStateObserverImpl.class);
 
+    /**
+     * Internal list of monitored Docker containers.
+     */
     private List<String> monitoredContainers;
+    /**
+     * List of termination callbacks that are called if one of the monitored
+     * containers was terminated.
+     */
     private List<ContainerTerminationCallback> terminationCallbacks;
+    /**
+     * The {@link ContainerManager} class that is used to retrieve information
+     * about containers.
+     */
     private ContainerManager manager;
+    /**
+     * The time interval in which the checking of containers is performed.
+     */
     private int repeatInterval;
+    /**
+     * The {@link Timer} used to regularly check the state of container.
+     */
     private Timer timer;
 
+    /**
+     * Constructor.
+     * 
+     * @param manager
+     *            The {@link ContainerManager} class that is used to retrieve
+     *            information about containers.
+     * @param repeatInterval
+     *            The time interval in which the checking of containers is
+     *            performed.
+     */
     public ContainerStateObserverImpl(ContainerManager manager, int repeatInterval) {
         this.manager = manager;
         this.repeatInterval = repeatInterval;
@@ -51,16 +87,35 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                List<Container> containers = manager.getContainers();
+                List<Container> containers = null;
+                try {
+                    containers = manager.getContainers();
+                } catch (Throwable e) {
+                    LOGGER.error(
+                            "Error while retrieving list of containers. Aborting this try to get status updates for the observed containers.",
+                            e);
+                    return;
+                }
                 for (Container c : containers) {
-                    if (c.status().contains("Exit") && monitoredContainers.contains(c.id())) {
-                        // get exit code
-                        ContainerInfo containerInfo = manager.getContainerInfo(c.id());
-                        int exitStatus = containerInfo.state().exitCode();
-                        // notify all callbacks
-                        for (ContainerTerminationCallback cb : terminationCallbacks) {
-                            cb.notifyTermination(c.id(), exitStatus);
+                    try {
+                        if (monitoredContainers.contains(c.id()) && c.status().contains("Exit")) {
+                            // get exit code
+                            ContainerInfo containerInfo = manager.getContainerInfo(c.id());
+                            int exitStatus = containerInfo.state().exitCode();
+                            // notify all callbacks
+                            for (ContainerTerminationCallback cb : terminationCallbacks) {
+                                try {
+                                    cb.notifyTermination(c.id(), exitStatus);
+                                } catch (Throwable e) {
+                                    LOGGER.error("Error while calling container termination callback.", e);
+                                }
+                            }
                         }
+                    } catch (Throwable e) {
+                        LOGGER.error(
+                                "Error while checking status of container " + c.id()
+                                        + "{}. It will be ignored during this run but will be checked again during the next run.",
+                                e);
                     }
                 }
             }
