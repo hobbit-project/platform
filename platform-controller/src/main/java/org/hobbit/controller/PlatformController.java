@@ -92,15 +92,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * 
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "1.0.0";
+    public static final String PLATFORM_VERSION = "1.0.3";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
 
-    /**
-     * Default time an experiment has to terminate after it has been started.
-     */
-    public static final long DEFAULT_MAX_EXECUTION_TIME = 30 * 60 * 1000;
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
 
@@ -145,7 +141,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Manager of benchmark and system images.
      */
-    private ImageManager imageManager;
+    protected ImageManager imageManager;
     /**
      * Last experiment id that has been used.
      */
@@ -158,7 +154,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Timer used to trigger publishing of challenges
      */
-    private Timer challengePublishTimer;
+    protected Timer challengePublishTimer;
 
     @Override
     public void init() throws Exception {
@@ -717,15 +713,18 @@ public class PlatformController extends AbstractCommandReceivingComponent
                                 .getExperimentOfTaskQuery(null, taskUri, Constants.PRIVATE_RESULT_GRAPH_URI));
                         experiments.addAll(RdfHelper.getSubjectResources(taskExperimentModel, HOBBIT.isPartOf,
                                 taskExperimentModel.getResource(taskUri)));
-                        try {
-                            analyzer.analyzeExperiment(taskUri);
-                        } catch (IOException e) {
-                            LOGGER.error("Could not send task \"{}\" to AnalyseQueue.", taskUri);
-                        }
                         if (!storage.sendInsertQuery(taskExperimentModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
                             LOGGER.error("Couldn't copy experiment results for challenge task \"{}\". Aborting.",
                                     taskUri);
                             return;
+                        }
+                        // Send the experiment to the analysis component
+                        for (Resource experiment : experiments) {
+                            try {
+                                analyzer.analyzeExperiment(experiment.getURI());
+                            } catch (IOException e) {
+                                LOGGER.error("Could not send task \"{}\" to AnalyseQueue.", taskUri);
+                            }
                         }
                     }
                     // Remove challenge from challenge graph

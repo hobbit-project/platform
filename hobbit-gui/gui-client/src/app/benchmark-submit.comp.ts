@@ -21,10 +21,16 @@ export class BenchmarkSubmitComponent implements OnInit {
   selectedBenchmark: Benchmark;
   selectedSystem: System;
 
+  displaySubmitting: boolean;
+  successfullySubmitted: boolean;
+
   constructor(private bs: BackendService, private router: Router) {
   }
 
   ngOnInit() {
+    this.displaySubmitting = false;
+    this.successfullySubmitted = false;
+
     this.configFormGroup = new FormGroup({});
     this.bs.listBenchmarks().subscribe(data => {
       this.benchmarks = data;
@@ -66,8 +72,11 @@ export class BenchmarkSubmitComponent implements OnInit {
     this.model.systemName = this.selectedBenchmark.systems.find(x => { return x.id === this.model.system; }).name;
     console.log('submit');
     console.log(JSON.stringify(this.model));
-    let link = ['benchmarks/submitted'];
-    sessionStorage.setItem('benchmark-submission', JSON.stringify(this.model));
-    this.router.navigate(link, { queryParams: { id: 'benchmark-submission' } });
+    this.displaySubmitting = true;
+  }
+
+  onSuccessfullySubmitted() {
+    console.debug("onSuccessfullySubmitted")
+    this.successfullySubmitted = true;
   }
 }

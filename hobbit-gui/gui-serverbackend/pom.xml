@@ -23,7 +23,7 @@
 
   <groupId>org.hobbit</groupId>
   <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.3</version>
   <packaging>war</packaging>
   <name>gui-serverbackend</name>
 

@@ -19,6 +19,7 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
@@ -29,6 +30,8 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
+import org.hobbit.controller.data.ExperimentStatus.States;
+import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.ControllerStatus;
@@ -47,7 +50,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
-    
+
     /**
      * Time interval the experiment manager waits before it checks for the an
      * experiment to start. It is larger than {@link #CHECK_FOR_NEW_EXPERIMENT}
@@ -60,6 +63,10 @@ public class ExperimentManager implements Closeable {
      * experiment to start.
      */
     public static final long CHECK_FOR_NEW_EXPERIMENT = 10000;
+    /**
+     * Default time an experiment has to terminate after it has been started.
+     */
+    public static final long DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
     /**
      * The controller this manager belongs to.
      */
@@ -78,8 +85,17 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     private Timer expStartTimer;
+    /**
+     * Time an experiment has to terminate after it has been started.
+     */
+    protected long maxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
 
     public ExperimentManager(PlatformController controller) {
+        this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
+    }
+
+    protected ExperimentManager(PlatformController controller, long checkForFirstExperiment,
+            long checkForNewExperiment) {
         this.controller = controller;
 
         expStartTimer = new Timer();
@@ -93,7 +109,7 @@ public class ExperimentManager implements Closeable {
                     LOGGER.error("The experiment starting timer got an unexpected exception.", e);
                 }
             }
-        }, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
+        }, checkForFirstExperiment, checkForNewExperiment);
     }
 
     /**
@@ -119,7 +135,7 @@ public class ExperimentManager implements Closeable {
                     LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                             + " and system " + config.systemUri + " to the queue.");
                     experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                            controller, PlatformController.DEFAULT_MAX_EXECUTION_TIME);
+                            this, maxExecutionTime);
                     String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
                     if (benchImageName == null) {
                         experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
@@ -242,7 +258,7 @@ public class ExperimentManager implements Closeable {
                 Model benchmarkModel = controller.imageManager()
                         .getBenchmarkModel(experimentStatus.config.benchmarkUri);
                 if (benchmarkModel != null) {
-                    LOGGER.info("Adding benchmark model : " + benchmarkModel.toString());
+                    LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
                     resultModel.add(benchmarkModel);
                 }
             }
@@ -269,7 +285,7 @@ public class ExperimentManager implements Closeable {
             controller.queue.remove(experimentStatus.config);
             if (graphUri.equals(Constants.PUBLIC_RESULT_GRAPH_URI)) {
                 try {
-                    controller.analyzeExperiment(experimentStatus.getConfig().challengeTaskUri);
+                    controller.analyzeExperiment(experimentStatus.experimentUri);
                 } catch (IOException e) {
                     LOGGER.error("Could not send task \"{}\" to AnalyseQueue.",
                             experimentStatus.getConfig().challengeTaskUri);
@@ -476,6 +492,51 @@ public class ExperimentManager implements Closeable {
         } finally {
             experimentMutex.release();
         }
+    }
+
+    /**
+     * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of
+     * an experiment has been reached.
+     * 
+     * @param expiredState
+     *            the experiment status the timer was working on which is used
+     *            to make sure that the timer was started for the currently
+     *            running experiment.
+     */
+    public void notifyExpRuntimeExpired(ExperimentStatus expiredState) {
+        Objects.requireNonNull(expiredState);
+        try {
+            experimentMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error(
+                    "Interrupted while waiting for the experiment mutex. The experiment abortion time won't be checked.",
+                    e);
+            return;
+        }
+        try {
+            // If this is the currently running experiment
+            if ((experimentStatus != null) && (expiredState.experimentUri.equals(expiredState.experimentUri))) {
+                // If the experiment hasn't been stopped
+                if (experimentStatus.getState() != States.STOPPED) {
+                    LOGGER.error("The experiment {} took too much time. Forcing termination.",
+                            experimentStatus.experimentUri);
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.ExperimentTookTooMuchTime);
+                }
+            } else {
+                LOGGER.warn(
+                        "Got a timeout notification for an experiment that does not match the current experiment. It will be ignored.");
+            }
+        } finally {
+            experimentMutex.release();
+        }
+    }
+
+    public long getMaxExecutionTime() {
+        return maxExecutionTime;
+    }
+
+    public void setMaxExecutionTime(long maxExecutionTime) {
+        this.maxExecutionTime = maxExecutionTime;
     }
 
     @Override

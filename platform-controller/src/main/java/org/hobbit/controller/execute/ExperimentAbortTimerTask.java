@@ -18,10 +18,9 @@ package org.hobbit.controller.execute;
 
 import java.util.TimerTask;
 
+import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.data.ExperimentStatus;
-import org.hobbit.controller.data.ExperimentStatus.States;
-import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,21 +35,18 @@ public class ExperimentAbortTimerTask extends TimerTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentAbortTimerTask.class);
 
-    private PlatformController controller;
     private ExperimentStatus experiment;
+    private ExperimentManager manager;
 
-    public ExperimentAbortTimerTask(PlatformController controller, ExperimentStatus experiment) {
-        this.controller = controller;
+    public ExperimentAbortTimerTask(ExperimentManager manager, ExperimentStatus experiment) {
+        this.manager = manager;
         this.experiment = experiment;
     }
 
     @Override
     public void run() {
-        if (experiment.getState() != States.STOPPED) {
-            LOGGER.error("The experiment {} took too much time. Forcing termination.", experiment.experimentUri);
-            experiment.addError(HobbitErrors.ExperimentTookTooMuchTime);
-            controller.stopContainer(experiment.getBenchmarkContainer());
-        }
+        LOGGER.info("Experiment Abortion timer task triggered");
+        manager.notifyExpRuntimeExpired(experiment);
     }
 
     public void setExperiment(ExperimentStatus experiment) {

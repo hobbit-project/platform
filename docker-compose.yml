@@ -9,6 +9,8 @@ services:
       - HOBBIT_RABBIT_HOST=rabbit
       - HOBBIT_REDIS_HOST=redis
       - DEPLOY_ENV=testing
+#      - GITLAB_USER=
+#      - GITLAB_EMAIL=
 #      - GITLAB_TOKEN=
     depends_on:
       - rabbit
