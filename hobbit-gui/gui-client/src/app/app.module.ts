@@ -4,7 +4,7 @@ import { CommonModule, LocationStrategy, HashLocationStrategy } from '@angular/c
 import { XHRBackend, Http, RequestOptions, HttpModule } from '@angular/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { DataTableModule, ConfirmDialogModule, ConfirmationService, CalendarModule, TooltipModule } from 'primeng/primeng';
+import { DataTableModule, ConfirmDialogModule, ConfirmationService, CalendarModule, TooltipModule, DialogModule } from 'primeng/primeng';
 import { DynamicFormsCoreModule } from '@ng2-dynamic-forms/core';
 import { DynamicFormsBootstrapUIModule } from './dyn-form/ui-bootstrap.module';
 
@@ -49,7 +49,7 @@ const hashStrategyProvide = { provide: LocationStrategy, useClass: HashLocationS
   imports:      [ BrowserModule, CommonModule, FormsModule, ReactiveFormsModule,
                   HttpModule, RouterModule.forRoot(rootRouterConfig),
                   DynamicFormsCoreModule.forRoot(),
-                  DynamicFormsBootstrapUIModule, DataTableModule, ConfirmDialogModule, CalendarModule, TooltipModule ],
+                  DynamicFormsBootstrapUIModule, DataTableModule, ConfirmDialogModule, CalendarModule, TooltipModule, DialogModule ],
   providers:    [ BackendService, KeycloakService, httpProvide, hashStrategyProvide, ConfirmationService ],
   declarations: [ AppComponent, MenuItemComponent, NavbarComponent, HomeComponent,
                   UploadBenchmarkComponent, UploadSystemComponent,

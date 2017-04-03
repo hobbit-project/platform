@@ -4,7 +4,6 @@ import { HomeComponent } from './home.comp';
 import { UploadBenchmarkComponent } from './upload-benchmark.comp';
 import { UploadSystemComponent } from './upload-system.comp';
 import { BenchmarkSubmitComponent } from './benchmark-submit.comp';
-import { BenchmarkSubmitResponseComponent } from './benchmark-submit-response.comp';
 import { BenchmarkStatusComponent } from './benchmark-status.comp';
 import { BenchmarkResultDisplayComponent } from './benchmark-result-display.comp';
 import { SubmissionDetailsComponent } from './submission-details.comp';
@@ -23,7 +22,6 @@ export const rootRouterConfig: Routes = [
   {path: 'upload/benchmarks', component: UploadBenchmarkComponent},
   {path: 'upload/systems', component: UploadSystemComponent},
   {path: 'benchmarks/submit', component: BenchmarkSubmitComponent},
-  {path: 'benchmarks/submitted', component: BenchmarkSubmitResponseComponent},
   {path: 'benchmarks/validate', component: BenchmarkStatusComponent},
   {path: 'benchmarks/display', component: BenchmarkResultDisplayComponent},
   {path: 'submissions/:id', component: SubmissionDetailsComponent},
