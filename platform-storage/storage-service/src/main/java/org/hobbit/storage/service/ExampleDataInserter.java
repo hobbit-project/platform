@@ -51,7 +51,7 @@ public class ExampleDataInserter extends AbstractCommandReceivingComponent {
     @Override
     public void init() throws Exception {
         super.init();
-        storage = StorageServiceClient.create(connection);
+        storage = StorageServiceClient.create(dataConnection);
     }
 
     @Override

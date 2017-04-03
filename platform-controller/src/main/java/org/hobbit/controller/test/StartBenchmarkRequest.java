@@ -52,7 +52,7 @@ public class StartBenchmarkRequest extends AbstractCommandReceivingComponent {
     public void init() throws Exception {
         super.init();
 
-        frontEnd2Controller = connection.createChannel();
+        frontEnd2Controller = dataConnection.createChannel();
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
 
         frontEnd2Controller.queueDeclare(Constants.CONTROLLER_2_FRONT_END_QUEUE_NAME, false, false, true, null);
