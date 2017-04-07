@@ -105,6 +105,8 @@ public class ContainerManagerImpl implements ContainerManager {
     public ContainerManagerImpl() throws Exception {
         LOGGER.info("Deployed as \"{}\".", DEPLOY_ENV);
         Builder builder = DefaultDockerClient.fromEnv();
+        builder.connectionPoolSize(5000);
+        builder.connectTimeoutMillis(1000);
         dockerClient = builder.build();
 
         String username = System.getenv(USER_NAME_KEY);
