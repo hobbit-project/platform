@@ -8,6 +8,8 @@
    1. [Using Benchmarks from the HOBBIT Git](https://github.com/hobbit-project/platform#using-benchmarks-from-the-hobbit-git)
 1. [Running](https://github.com/hobbit-project/platform#running)
 
+If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
+
 ## Requirements
 
 - Maven for building java projects
