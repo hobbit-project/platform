@@ -18,6 +18,7 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
   configFormGroup: FormGroup;
 
   configDynamicFormModel: Array<DynamicFormControlModel>;
+  configurationParamId2Index = {};
 
   constructor(private dynamicFormService: DynamicFormService) {
   }
@@ -31,6 +32,8 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
   }
 
   private initConfigFormGroup() {
+     this.createConfigParamMapping();
+
      this.configDynamicFormModel = new Array<DynamicFormControlModel>();
      if (this.hasConfigParams()) {
        let i = 0;
@@ -44,10 +47,24 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
      this.onConfigFormGroup.emit(this.configFormGroup);
   }
 
+  private createConfigParamMapping() {
+    this.configurationParamId2Index = {};
+    if (this.configurationParams) {
+      let i = 0;
+      for (let param of this.configurationParams) {
+        this.configurationParamId2Index[param.id] = i;
+        i += 1;
+      }       
+    }
+  }
+
   private createControlModel(i: number, param: ConfigurationParameter): DynamicFormControlModel {
-    let config = { id: `param_${i}`, label: param.name, required: param.required, value: param.defaultValue};
-    if (this.configurationParams && this.configurationParams[i]) {
-      config.value = this.configurationParams[i].value;
+    let config = { id: `param_${i}`, label: param.name, required: param.required, value: param.defaultValue };
+    if (this.configurationParams && this.configurationParamId2Index[param.id]) {
+      const index = this.configurationParamId2Index[param.id];
+      if (this.configurationParams[index]) {
+        config.value = this.configurationParams[index].value;
+      }
     }
     if (param.datatype === 'xsd:boolean') {
       let input = new DynamicCheckboxModel(config);
