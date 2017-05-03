@@ -5,7 +5,6 @@ config/db/virtuoso.log
 config/db/virtuoso.pxa
 config/db/virtuoso.trx
 config/db/virtuoso.qrl
-.editorconfig
 .project
 .settings
 .gitlab-ci.yml
