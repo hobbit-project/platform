@@ -83,7 +83,7 @@ public class StorageServiceChannel implements AutoCloseable {
     public void close() throws Exception {
         if (channel != null) {
             try {
-            	channel.close();
+                channel.close();
             } catch (Exception e) {
               // ignore
             }

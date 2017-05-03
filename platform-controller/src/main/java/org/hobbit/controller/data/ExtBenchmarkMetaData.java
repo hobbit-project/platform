@@ -22,7 +22,7 @@ import org.hobbit.core.data.BenchmarkMetaData;
 /**
  * An extended metadata class for benchmarks including the RDF model of the
  * benchmark.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

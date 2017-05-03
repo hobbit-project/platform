@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Singleton implementation of the {@link StorageServiceClient} class.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -35,7 +35,7 @@ public class StorageServiceClientSingleton {
     /**
      * Returns the instance of the {@link StorageServiceClient} or
      * <code>null</code> if it couldn't be instantiated.
-     * 
+     *
      * @return the instance of the {@link StorageServiceClient} or
      *         <code>null</code>
      */

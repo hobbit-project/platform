@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This timer task uses the given {@link PlatformController} to terminate the
  * benchmark container of the given experiment.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

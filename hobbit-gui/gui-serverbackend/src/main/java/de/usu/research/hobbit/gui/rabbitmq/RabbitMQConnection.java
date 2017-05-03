@@ -30,7 +30,7 @@ import com.rabbitmq.client.ConnectionFactory;
  * Managing the connection to the HOBBIT RabbitMQ instance (partly based on
  * org.hobbit.controller.test.RequestBenchmarkDetails and
  * org.hobbit.controller.test.RequestBenchmarks)
- * 
+ *
  * @author Roman Korf
  *
  */
@@ -54,7 +54,7 @@ public class RabbitMQConnection implements AutoCloseable {
 
     /**
      * Initialize connection to HOBBIT RabbitMQ instance.
-     * 
+     *
      * @throws GUIBackendException
      * @throws IOException
      */
@@ -107,7 +107,7 @@ public class RabbitMQConnection implements AutoCloseable {
 
     /**
      * Don't forget to close the connection.
-     * 
+     *
      * @throws IOException
      */
     public void close() throws IOException {
@@ -119,11 +119,11 @@ public class RabbitMQConnection implements AutoCloseable {
         }
     }
 
-	public Channel createChannel() throws IOException {
-		return connection.createChannel();
-	}
-	
-	public Connection getConnection() {
+    public Channel createChannel() throws IOException {
+        return connection.createChannel();
+    }
+
+    public Connection getConnection() {
         return connection;
     }
 }

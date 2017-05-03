@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This class is used to store all the information that are needed to controle a
  * running experiment.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -49,7 +49,7 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Typical states of a benchmark.
-     * 
+     *
      * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
      *
      */
@@ -199,7 +199,7 @@ public class ExperimentStatus implements Closeable {
      * The method sets a flag that (depending on the given flag) the system or
      * the benchmark is ready and returns <code>true</code> if internally both
      * have the state of being ready.
-     * 
+     *
      * @param systemReportedReady
      *            <code>true</code> if the system is ready or <code>false</code>
      *            if the benchmark is ready
@@ -221,11 +221,11 @@ public class ExperimentStatus implements Closeable {
     /**
      * Sets the result model if there is no model present. Otherwise, the given
      * model is merged with the existing model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param resultModel
      *            the new result model
      */
@@ -250,11 +250,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Sets the result model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param resultModel
      *            the new result model
      */
@@ -276,11 +276,11 @@ public class ExperimentStatus implements Closeable {
     /**
      * Adds the given error to the result model if it does not already contain
      * an error.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -307,11 +307,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds the given error to the result model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -334,11 +334,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds the given error to the result model.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -352,7 +352,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Initializes the result model and adds basic information using
      * {@link #addBasicInformation_Unsecured()}.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>
@@ -364,7 +364,7 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds basic information to the result model.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>

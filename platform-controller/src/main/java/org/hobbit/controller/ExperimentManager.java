@@ -497,7 +497,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of
      * an experiment has been reached.
-     * 
+     *
      * @param expiredState
      *            the experiment status the timer was working on which is used
      *            to make sure that the timer was started for the currently

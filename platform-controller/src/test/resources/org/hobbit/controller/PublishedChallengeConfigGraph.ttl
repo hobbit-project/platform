@@ -1,6 +1,6 @@
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix qb: <http://purl.org/linked-data/cube#> . 
+@prefix qb: <http://purl.org/linked-data/cube#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix hobbit: <http://w3id.org/hobbit/vocab#> .
 @prefix exp: <http://w3id.org/hobbit/experiments#> .
@@ -11,43 +11,43 @@
 # --- Challenges ---
 
 ex:Challenge2 a	hobbit:Challenge;
-	rdfs:label "Challenge 2 Label"@en;
-	rdfs:comment	"Challenge 2 Desc."@en;
-	hobbit:executionDate "2100-12-24"^^xsd:date;
-	hobbit:publicationDate "2100-12-26"^^xsd:date;
-	hobbit:organizer "owner"@en;
-	hobbit:closed	"true"^^xsd:boolean;
-	hobbit:visible	"true"^^xsd:boolean .
-    
+  rdfs:label "Challenge 2 Label"@en;
+  rdfs:comment	"Challenge 2 Desc."@en;
+  hobbit:executionDate "2100-12-24"^^xsd:date;
+  hobbit:publicationDate "2100-12-26"^^xsd:date;
+  hobbit:organizer "owner"@en;
+  hobbit:closed	"true"^^xsd:boolean;
+  hobbit:visible	"true"^^xsd:boolean .
+
 # --- Challenge Tasks ---
 
 ex:Challenge2Task1 a hobbit:ChallengeTask;
-	rdfs:label "Challenge 2 task 1 Label"@en;
-	rdfs:comment	"Challenge 2 task 1 Desc"@en;
-	hobbit:isTaskOf ex:Challenge2;
-	hobbit:involvesBenchmark bench:BenchmarkZ;
-	bench:triples "1000"^^xsd:positiveInteger;
-	hobbit:involvesSystemInstance ex:SystemD .
-    
+  rdfs:label "Challenge 2 task 1 Label"@en;
+  rdfs:comment	"Challenge 2 task 1 Desc"@en;
+  hobbit:isTaskOf ex:Challenge2;
+  hobbit:involvesBenchmark bench:BenchmarkZ;
+  bench:triples "1000"^^xsd:positiveInteger;
+  hobbit:involvesSystemInstance ex:SystemD .
+
 # --- Benchamrks ---
 
 bench:BenchmarkZ a	hobbit:Benchmark;
-	rdfs:label "Benchmark Z Label"@en;
-	rdfs:comment	"Benchmark Z Desc"@en;
-	hobbit:hasParameter bench:triples;
+  rdfs:label "Benchmark Z Label"@en;
+  rdfs:comment	"Benchmark Z Desc"@en;
+  hobbit:hasParameter bench:triples;
     hobbit:hasAPI bench:ApiZ;
-	hobbit:measuresKPI bench:kpiZ .
+  hobbit:measuresKPI bench:kpiZ .
 
 bench:triples a hobbit:ConfigurableParameter;
     rdfs:range xsd:positiveInteger .
 
 bench:kpiZ a hobbit:KPI;
     rdfs:range xsd:double .
-    
+
 # --- Systems ---
 
-ex:SystemD a  hobbit:SystemInstance ; 
-	rdfs:label	"System D Label"@en;
-	rdfs:comment	"System D Desc"@en;
-	hobbit:imageName "SystemImageName" ;
-	hobbit:implementsAPI bench:ApiZ .
+ex:SystemD a  hobbit:SystemInstance ;
+  rdfs:label	"System D Label"@en;
+  rdfs:comment	"System D Desc"@en;
+  hobbit:imageName "SystemImageName" ;
+  hobbit:implementsAPI bench:ApiZ .

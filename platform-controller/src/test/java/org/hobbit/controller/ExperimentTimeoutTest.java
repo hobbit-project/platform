@@ -32,7 +32,7 @@ import com.spotify.docker.client.messages.ContainerInfo;
  * A simple test that uses a dummy {@link PlatformController} to simulate an
  * experiment that does not terminate and needs to be terminated by the
  * {@link ExperimentManager}.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

@@ -59,7 +59,7 @@ import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
  * Managing the connection to the HOBBIT RabbitMQ instance (partly based on
  * org.hobbit.controller.test.RequestBenchmarkDetails and
  * org.hobbit.controller.test.RequestBenchmarks)
- * 
+ *
  * @author Roman Korf
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
@@ -92,7 +92,7 @@ public class PlatformControllerClient implements Closeable {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see de.usu.research.hobbit.gui.rabbitmq.IRabbitMQConnection#close()
      */
     @Override
@@ -107,7 +107,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Retrieves the benchmarks registered at the HOBBIT PlatformController
-     * 
+     *
      * @return A list of benchmarks
      * @throws IOException
      * @throws InterruptedException
@@ -147,7 +147,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Retrieves the benchmark details from the HOBBIT PlatformControler
-     * 
+     *
      * @param benchmarkUri
      *            the URI of the benchmark for which the details should be
      *            retrieved

@@ -37,7 +37,7 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(ControllerStatusRequest.class);
 
     private static final long REQUEST_TIMEOUT = 60000;
-    
+
     private static final String NEWLINE = String.format("%n") + String.format("%n");
 
     protected Channel frontEnd2Controller;

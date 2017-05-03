@@ -108,9 +108,9 @@ public class ExperimentsResources {
         } else {
             /*
              * 1. retrieve the tasks of the given challenge
-             * 
+             *
              * 2. count the experiments for the single tasks
-             * 
+             *
              * Note that we do not use a single, large query that selects all at
              * once because the tasks and the experiment results can be located
              * in different graphs.

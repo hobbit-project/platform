@@ -37,7 +37,7 @@ public class TestClass {
 
         try {
             System.out.println("sending request");
-            
+
             String experimentUri = Constants.EXPERIMENT_URI_NS + "1487768956587";
             String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
             // TODO make sure that the user is allowed to see the

@@ -22,9 +22,9 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class TaskRegistrationBean {
-	private String challengeId;
-	private String taskId;
-	private String systemId;
+    private String challengeId;
+    private String taskId;
+    private String systemId;
 
     public TaskRegistrationBean() {
     }

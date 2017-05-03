@@ -28,7 +28,7 @@ public class ChallengeTaskBean extends NamedEntityBean {
   private BenchmarkBean benchmark;
 
   private List<ConfigurationParamValueBean> configurationParams;
-  
+
 
   public List<ConfigurationParamValueBean> getConfigurationParams() {
       return configurationParams;

@@ -121,7 +121,7 @@ public class ImageManagerImplTest {
             Collection<SystemMetaData> recSystems = gson.fromJson(RabbitMQUtils.readString(data), new TypeToken<Collection<SystemMetaData>>() {
             }.getType());
             System.out.println(recSystems.size());
-            
+
             future.complete("done");
         });
         // System.out.println("Waiting for gitlab...");

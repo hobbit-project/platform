@@ -1,65 +1,65 @@
 {
-	"benchmarks": [{
-			"id": "http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark2",
-			"name": "GERBIL Benchmark 2",
-			"description": "Example of a HOBBIT T3.2 benchmark based on GERBIL",
-			"systems": [{
-					"id": "ex:DummySystem",
-					"name": "Example GERBIL System",
-					"description": "Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"
-				}
-			],
-			"configurationParams": [{
-					"description": "The number of documents that will be generated.",
-					"id": "http://w3id.org/gerbil/hobbit/vocab#hasNumberOfDocuments",
-					"name": "Number of documents",
-					"datatype": "xsd:unsignedInt",
-					"defaultValue": "100",
-					"feature": true,
-					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
-					"required": false
-				}, {
-					"description": "Defines the type of experiment that should be carried out.",
-					"id": "http://w3id.org/gerbil/hobbit/vocab#hasExperimentType",
-					"name": "Type of experiment",
-					"datatype": "gerbil:ExperimentTypes",
-					"defaultValue": "gerbil:A2KB",
-					"feature": true,
-					"range": "gerbil:ExperimentTypes",
-					"required": false,
-					"options": [{
-							"label": "A2KB",
-							"value": "gerbil:A2KB"
-						}, {
-							"label": "C2KB",
-							"value": "gerbil:C2KB"
-						}, {
-							"label": "D2KB",
-							"value": "gerbil:D2KB"
-						}, {
-							"label": "OKE2015 Task1",
-							"value": "gerbil:OKE2015_Task1"
-						}, {
-							"label": "OKE2015 Task2",
-							"value": "gerbil:OKE2015_Task2"
-						}, {
-							"label": "ERec",
-							"value": "gerbil:ERec"
-						}, {
-							"label": "ETyping",
-							"value": "gerbil:ETyping"
-						}
-					]
-				}
-			]
-		}, {
-			"id": "http://w3id.org/bench#lance",
-			"name": "Lance Benchmark",
-			"description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
-		}, {
-			"id": "http://w3id.org/bench#OdinBenchmark",
-			"name": "ODIN Benchmark",
-			"description": "HOBBIT T3.1 benchmark ODIN"
-		}
-	]
+  "benchmarks": [{
+      "id": "http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark2",
+      "name": "GERBIL Benchmark 2",
+      "description": "Example of a HOBBIT T3.2 benchmark based on GERBIL",
+      "systems": [{
+          "id": "ex:DummySystem",
+          "name": "Example GERBIL System",
+          "description": "Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"
+        }
+      ],
+      "configurationParams": [{
+          "description": "The number of documents that will be generated.",
+          "id": "http://w3id.org/gerbil/hobbit/vocab#hasNumberOfDocuments",
+          "name": "Number of documents",
+          "datatype": "xsd:unsignedInt",
+          "defaultValue": "100",
+          "feature": true,
+          "range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+          "required": false
+        }, {
+          "description": "Defines the type of experiment that should be carried out.",
+          "id": "http://w3id.org/gerbil/hobbit/vocab#hasExperimentType",
+          "name": "Type of experiment",
+          "datatype": "gerbil:ExperimentTypes",
+          "defaultValue": "gerbil:A2KB",
+          "feature": true,
+          "range": "gerbil:ExperimentTypes",
+          "required": false,
+          "options": [{
+              "label": "A2KB",
+              "value": "gerbil:A2KB"
+            }, {
+              "label": "C2KB",
+              "value": "gerbil:C2KB"
+            }, {
+              "label": "D2KB",
+              "value": "gerbil:D2KB"
+            }, {
+              "label": "OKE2015 Task1",
+              "value": "gerbil:OKE2015_Task1"
+            }, {
+              "label": "OKE2015 Task2",
+              "value": "gerbil:OKE2015_Task2"
+            }, {
+              "label": "ERec",
+              "value": "gerbil:ERec"
+            }, {
+              "label": "ETyping",
+              "value": "gerbil:ETyping"
+            }
+          ]
+        }
+      ]
+    }, {
+      "id": "http://w3id.org/bench#lance",
+      "name": "Lance Benchmark",
+      "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
+    }, {
+      "id": "http://w3id.org/bench#OdinBenchmark",
+      "name": "ODIN Benchmark",
+      "description": "HOBBIT T3.1 benchmark ODIN"
+    }
+  ]
 }

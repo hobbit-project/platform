@@ -49,8 +49,8 @@ var webpackConfig = {
     new webpack.optimize.OccurenceOrderPlugin(true),
     new webpack.optimize.CommonsChunkPlugin({ name: ['main', 'vendor', 'polyfills'], minChunks: Infinity }),
     new CopyWebpackPlugin([
-	    {from: './src/index.html', to: 'index.html'},
-	    {from: './src/assets', to: 'assets'},
+      {from: './src/index.html', to: 'index.html'},
+      {from: './src/assets', to: 'assets'},
       {from: 'node_modules/primeng/resources/themes/omega', to: 'assets/primeng/resources/themes/omega'},
       {from: 'node_modules/primeng/resources/images', to: 'assets/primeng/resources/images'},
       {from: 'node_modules/primeng/resources/primeng.min.css', to: 'assets/primeng/resources/primeng.min.css'}]),

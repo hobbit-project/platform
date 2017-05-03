@@ -1,120 +1,120 @@
 {
-	"benchmarks": [
-		{
-			"id": "b1",
-			"name": "Benchmark 1",
-			"systemIds": [
-				"s1",
-				"s2",
-				"s3"
-			],
-			"configurationParams": [
-				{
-					"name": "i1",
-					"datatype": "xsd:integer",
-					"min": 1,
-					"max": 5
-				},
-				{
-					"name": "s1",
-					"datatype": "xsd:string"
-				},
-				{
-					"name": "select1",
-					"datatype": "xsd:string",
-					"options": [{"value": "f", "label": "frosty"}, {"value": "c", "label": "cold"}, {"value": "h", "label": "hot"}]
-				},
-				{
-					"name": "b1",
-					"datatype": "xsd:boolean"
-				},
-				{
-					"name": "dec1",
-					"datatype": "xsd:decimal"
-				},
-				{
-					"name": "dbl1",
-					"datatype": "xsd:double"
-				},
-				{
-					"name": "flt1",
-					"datatype": "xsd:float"
-				}
-			]
-		},
-		{
-			"id": "b2",
-			"name": "Benchmark 2",
-			"systemIds": [
-				"s2",
-				"s3",
-				"s4"
-			],
-			"configurationParams": [
-				{
-					"name": "s1",
-					"datatype": "xsd:string",
-					"required": true
-				},
-				{
-					"name": "s2",
-					"datatype": "xsd:string",
-					"defaultValue": "bla"
-				},
-				{
-					"name": "s3",
-					"datatype": "xsd:string",
-					"required": true,
-					"defaultValue": "foo"
-				}
-			]
-		},
-			{
-		"id": "b3",
-		"name": "Benchmark 3",
-		"systemIds": [
-			"s3",
-			"s4",
-			"s5"
-		],
-		"configurationParams": [
-			{
-				"name": "param1",
-				"datatype": "xsd:string",
-				"required": true
-			}
-		]
-	},
-	{
-		"id": "b4",
-		"name": "Benchmark 4",
-		"systemIds": [
-			"s1"
-		],
-		"configurationParams": [
-			{
-				"name": "count",
-				"datatype": "xsd:integer",
-				"required": true
-			}
-		]		
-	},
-	{
-		"id": "b5",
-		"name": "Benchmark 5",
-		"systemIds": [
-			"s2",
-			"s4"
-		]
-	},
-	{
-		"id": "b6",
-		"name": "Benchmark 6",
-		"systemIds": [
-			"s1",
-			"s3",
-			"s5"
-		]
-	}
+  "benchmarks": [
+    {
+      "id": "b1",
+      "name": "Benchmark 1",
+      "systemIds": [
+        "s1",
+        "s2",
+        "s3"
+      ],
+      "configurationParams": [
+        {
+          "name": "i1",
+          "datatype": "xsd:integer",
+          "min": 1,
+          "max": 5
+        },
+        {
+          "name": "s1",
+          "datatype": "xsd:string"
+        },
+        {
+          "name": "select1",
+          "datatype": "xsd:string",
+          "options": [{"value": "f", "label": "frosty"}, {"value": "c", "label": "cold"}, {"value": "h", "label": "hot"}]
+        },
+        {
+          "name": "b1",
+          "datatype": "xsd:boolean"
+        },
+        {
+          "name": "dec1",
+          "datatype": "xsd:decimal"
+        },
+        {
+          "name": "dbl1",
+          "datatype": "xsd:double"
+        },
+        {
+          "name": "flt1",
+          "datatype": "xsd:float"
+        }
+      ]
+    },
+    {
+      "id": "b2",
+      "name": "Benchmark 2",
+      "systemIds": [
+        "s2",
+        "s3",
+        "s4"
+      ],
+      "configurationParams": [
+        {
+          "name": "s1",
+          "datatype": "xsd:string",
+          "required": true
+        },
+        {
+          "name": "s2",
+          "datatype": "xsd:string",
+          "defaultValue": "bla"
+        },
+        {
+          "name": "s3",
+          "datatype": "xsd:string",
+          "required": true,
+          "defaultValue": "foo"
+        }
+      ]
+    },
+      {
+    "id": "b3",
+    "name": "Benchmark 3",
+    "systemIds": [
+      "s3",
+      "s4",
+      "s5"
+    ],
+    "configurationParams": [
+      {
+        "name": "param1",
+        "datatype": "xsd:string",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "b4",
+    "name": "Benchmark 4",
+    "systemIds": [
+      "s1"
+    ],
+    "configurationParams": [
+      {
+        "name": "count",
+        "datatype": "xsd:integer",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "b5",
+    "name": "Benchmark 5",
+    "systemIds": [
+      "s2",
+      "s4"
+    ]
+  },
+  {
+    "id": "b6",
+    "name": "Benchmark 6",
+    "systemIds": [
+      "s1",
+      "s3",
+      "s5"
+    ]
+  }
 ]
 }

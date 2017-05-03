@@ -89,7 +89,7 @@ public class StorageService extends AbstractComponent {
 
     /**
      * Calls the SPARQL Endpoint denoted by the URL, to execute the queryString.
-     * 
+     *
      * @param queryString
      *            The query to be executed
      * @return Returns the queryString results serialized in JSON
@@ -202,7 +202,7 @@ public class StorageService extends AbstractComponent {
      * located outside of brackets, i.e.,parts that match {{@code ...}} and
      * {@code <...>} are removed. It can be used to make sure that only
      * keywords are processed.
-     * 
+     *
      * @param query
      *            the SPARQL query that should be reduced
      * @return the reduced SPARQL query
@@ -234,7 +234,7 @@ public class StorageService extends AbstractComponent {
      * such a variable can be found. Otherwise, if the given essential flag is
      * <code>true</code> an {@link IllegalStateException} is thrown. If the flag
      * is <code>false</code>, <code>null</code> is returned.
-     * 
+     *
      * @param key
      *            the name of the environmental variable
      * @param essential

@@ -22,57 +22,57 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class ExperimentBean {
-	private String id;
-	
-	private List<ConfigurationParamValueBean> kpis;
+    private String id;
 
-	private ConfiguredBenchmarkBean benchmark;
+    private List<ConfigurationParamValueBean> kpis;
 
-	private NamedEntityBean system;
-	
-	private NamedEntityBean challengeTask; 
-	
-	private String error;
+    private ConfiguredBenchmarkBean benchmark;
 
-	public List<ConfigurationParamValueBean> getKpis() {
-		return kpis;
-	}
+    private NamedEntityBean system;
 
-	public void setKpis(List<ConfigurationParamValueBean> kpis) {
-		this.kpis = kpis;
-	}
+    private NamedEntityBean challengeTask;
 
-	public ConfiguredBenchmarkBean getBenchmark() {
-		return benchmark;
-	}
+    private String error;
 
-	public void setBenchmark(ConfiguredBenchmarkBean benchmark) {
-		this.benchmark = benchmark;
-	}
+    public List<ConfigurationParamValueBean> getKpis() {
+        return kpis;
+    }
 
-	public NamedEntityBean getSystem() {
-		return system;
-	}
+    public void setKpis(List<ConfigurationParamValueBean> kpis) {
+        this.kpis = kpis;
+    }
 
-	public void setSystem(NamedEntityBean system) {
-		this.system = system;
-	}
-	
-	public NamedEntityBean getChallengeTask() {
-		return challengeTask;
-	}
+    public ConfiguredBenchmarkBean getBenchmark() {
+        return benchmark;
+    }
 
-	public void setChallengeTask(NamedEntityBean challengeTask) {
-		this.challengeTask = challengeTask;
-	}
+    public void setBenchmark(ConfiguredBenchmarkBean benchmark) {
+        this.benchmark = benchmark;
+    }
 
-	public String getId() {
-		return id;
-	}
+    public NamedEntityBean getSystem() {
+        return system;
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    public void setSystem(NamedEntityBean system) {
+        this.system = system;
+    }
+
+    public NamedEntityBean getChallengeTask() {
+        return challengeTask;
+    }
+
+    public void setChallengeTask(NamedEntityBean challengeTask) {
+        this.challengeTask = challengeTask;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getError() {
         return error;

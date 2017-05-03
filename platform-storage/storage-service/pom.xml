@@ -27,18 +27,18 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-		<junit.version>4.11</junit.version>
+        <junit.version>4.11</junit.version>
     </properties>
 
-	<!-- LICENSE -->
-	<licenses>
-		<license>
-			<name>GPL 2.0</name>
-			<url>https://www.gnu.org/licenses/gpl-2.0.txt</url>
-		</license>
-	</licenses>
+    <!-- LICENSE -->
+    <licenses>
+        <license>
+            <name>GPL 2.0</name>
+            <url>https://www.gnu.org/licenses/gpl-2.0.txt</url>
+        </license>
+    </licenses>
     <inceptionYear>2017</inceptionYear>
-    
+
     <repositories>
         <repository>
             <id>maven.aksw.internal</id>
@@ -68,7 +68,7 @@
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
             <version>0.0.1-SNAPSHOT</version>
-        </dependency>        
+        </dependency>
         <!-- RabbitMQ -->
         <dependency>
             <groupId>com.rabbitmq</groupId>
@@ -81,97 +81,97 @@
             <artifactId>jena-core</artifactId>
             <version>3.1.0</version>
         </dependency>
-		<dependency>
-			<groupId>org.apache.jena</groupId>
-			<artifactId>apache-jena-libs</artifactId>
-			<type>pom</type>
-			<version>3.1.0</version>
-		</dependency>
-		<!-- ~~~~~~~~~~~~~~~~~~~ Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
-		<!-- JUnit -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<!-- System rules for setting environment variables -->
-		<!-- <dependency>
-			<groupId>com.github.stefanbirkner</groupId>
-			<artifactId>system-rules</artifactId>
-			<version>1.16.0</version>
-			<scope>test</scope>
-		</dependency> -->
-		<!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <dependency>
+            <groupId>org.apache.jena</groupId>
+            <artifactId>apache-jena-libs</artifactId>
+            <type>pom</type>
+            <version>3.1.0</version>
+        </dependency>
+        <!-- ~~~~~~~~~~~~~~~~~~~ Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <!-- JUnit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- System rules for setting environment variables -->
+        <!-- <dependency>
+            <groupId>com.github.stefanbirkner</groupId>
+            <artifactId>system-rules</artifactId>
+            <version>1.16.0</version>
+            <scope>test</scope>
+        </dependency> -->
+        <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
     </dependencies>
 
-	<build>
-		<finalName>${project.artifactId}</finalName>
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.5.1</version>
-				<configuration>
-					<source>${maven.compiler.source}</source>
-					<target>${maven.compiler.target}</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>2.4.3</version>
-				<configuration>
-					<!-- filter all the META-INF files of other artifacts -->
-					<filters>
-						<filter>
-							<artifact>*:*</artifact>
-							<excludes>
-								<exclude>META-INF/*.SF</exclude>
-								<exclude>META-INF/*.DSA</exclude>
-								<exclude>META-INF/*.RSA</exclude>
-							</excludes>
-						</filter>
-					</filters>
-					<transformers>
-						<transformer
-							implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-							<manifestEntries>
-								<X-Compile-Source-JDK>${maven.compile.source}</X-Compile-Source-JDK>
-								<X-Compile-Target-JDK>${maven.compile.target}</X-Compile-Target-JDK>
-							</manifestEntries>
-						</transformer>
-						<transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-					</transformers>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<!-- Javadoc plugin for generating documentation -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.10.1</version>
-				<configuration>
-					<show>private</show>
-					<nohelp>true</nohelp>
-					<failOnError>false</failOnError>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.3</version>
+                <configuration>
+                    <!-- filter all the META-INF files of other artifacts -->
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <transformers>
+                        <transformer
+                            implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <manifestEntries>
+                                <X-Compile-Source-JDK>${maven.compile.source}</X-Compile-Source-JDK>
+                                <X-Compile-Target-JDK>${maven.compile.target}</X-Compile-Target-JDK>
+                            </manifestEntries>
+                        </transformer>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                    </transformers>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Javadoc plugin for generating documentation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
+                <configuration>
+                    <show>private</show>
+                    <nohelp>true</nohelp>
+                    <failOnError>false</failOnError>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Source plugin for creating source file jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -186,27 +186,27 @@
                     </execution>
                 </executions>
             </plugin>
-			<!-- License management plugin -->
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>2.11</version>
-				<configuration>
-					<header>com/mycila/maven/plugin/license/templates/GPL-3.txt</header>
-					<properties>
-						<owner>Semantic Data Management Unit (InfAI)</owner>
-						<email>ngonga@informatik.uni-leipzig.de</email>
-					</properties>
-					<excludes>
-						<exclude>**/README</exclude>
-						<exclude>**/LICENSE</exclude>
-						<exclude>Makefile</exclude>
-						<exclude>Dockerfile</exclude>
-						<exclude>src/test/resources/**</exclude>
-						<exclude>src/main/resources/**</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+            <!-- License management plugin -->
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.11</version>
+                <configuration>
+                    <header>com/mycila/maven/plugin/license/templates/GPL-3.txt</header>
+                    <properties>
+                        <owner>Semantic Data Management Unit (InfAI)</owner>
+                        <email>ngonga@informatik.uni-leipzig.de</email>
+                    </properties>
+                    <excludes>
+                        <exclude>**/README</exclude>
+                        <exclude>**/LICENSE</exclude>
+                        <exclude>Makefile</exclude>
+                        <exclude>Dockerfile</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/main/resources/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
