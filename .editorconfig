@@ -25,7 +25,12 @@ trim_trailing_whitespace = false
 indent_style = tab
 indent_size = 4
 
-# 2 spaces for Dockerfiles, yml
-[{Dockerfile*,*.yml}]
+# 2 spaces for Dockerfiles
+[{Dockerfile, Dockerfile*}]
+indent_style = space
+indent_size = 2
+
+# 2 spaces for md, yaml, ttl, etc..
+[*.{md,yml,iml,json,ttl,ts,js,html,css}]
 indent_style = space
 indent_size = 2
