@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.jena.datatypes.DatatypeFormatException;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -316,12 +317,26 @@ public class RdfModelHelper {
         challenge.setOrganizer(RdfHelper.getStringValue(model, challengeResource, HOBBIT.organizer));
         Literal literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.closed);
         if (literal != null) {
-            challenge.setClosed(literal.getBoolean());
+            try {
+                challenge.setClosed(getBooleanFromLiteral(literal));
+            } catch (DatatypeFormatException e) {
+                LOGGER.error(
+                        "Got an unexpected non-boolean literal that couldn't be interpreted as flag. Returning null.",
+                        e);
+                return null;
+            }
         }
 
         literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.visible);
         if (literal != null) {
-            challenge.setVisible(literal.getBoolean());
+            try {
+                challenge.setVisible(getBooleanFromLiteral(literal));
+            } catch (DatatypeFormatException e) {
+                LOGGER.error(
+                        "Got an unexpected non-boolean literal that couldn't be interpreted as flag. Returning null.",
+                        e);
+                return null;
+            }
         }
 
         // Internally, we are only using UTC
@@ -343,6 +358,26 @@ public class RdfModelHelper {
         challenge.setTasks(listChallengeTasks(model, challengeResource));
 
         return challenge;
+    }
+
+    private static boolean getBooleanFromLiteral(Literal literal) throws DatatypeFormatException {
+        try {
+            return literal.getBoolean();
+        } catch (DatatypeFormatException e) {
+            // This litral is not a boolean. Try to understand it
+            String lexicalForm = literal.getLexicalForm().toLowerCase();
+            boolean result;
+            if ("true".equals(lexicalForm) || "1".equals(lexicalForm)) {
+                result = true;
+            } else if ("false".equals(lexicalForm) || "0".equals(lexicalForm)) {
+                result = false;
+            } else {
+                throw e;
+            }
+            LOGGER.warn("Interpreted the non-boolean literal {} as {}. This should be avoided.", literal.toString(),
+                    result);
+            return result;
+        }
     }
 
     private static Calendar getTolerantDateTimeValue(Model model, Resource resource, Property property) {
