@@ -130,6 +130,12 @@ public class SystemProviderResources {
     @Consumes(MediaType.APPLICATION_JSON)
     public void updateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
             List<TaskRegistrationBean> list) {
+    	// who is using this method?
+    	doUpdateChallengeRegistrations(sc, challengeId, list, null);
+    }
+    		
+    private void doUpdateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
+            List<TaskRegistrationBean> list, String taskIdToUpdate) {
         // check whether the user is allowed to change the given registrations,
         // i.e., whether he is allowed to see the systems.
         List<SystemBean> systems = getSystems(sc);
@@ -154,6 +160,11 @@ public class SystemProviderResources {
         Model oldSystemTaskMappingModel = ModelFactory.createDefaultModel();
         for (TaskRegistrationBean registration : oldList) {
             if (visibleSystems.contains(registration.getSystemId())) {
+            	if (taskIdToUpdate != null && !taskIdToUpdate.equals(registration.getTaskId())) {
+	                newSystemTaskMappingModel.add(newSystemTaskMappingModel.getResource(registration.getTaskId()),
+	                        HOBBIT.involvesSystemInstance,
+	                        newSystemTaskMappingModel.getResource(registration.getSystemId()));
+            	}
                 oldSystemTaskMappingModel.add(oldSystemTaskMappingModel.getResource(registration.getTaskId()),
                         HOBBIT.involvesSystemInstance,
                         oldSystemTaskMappingModel.getResource(registration.getSystemId()));
@@ -181,7 +192,7 @@ public class SystemProviderResources {
                 registrationsForTask.add(registration);
             }
         }
-        updateChallengeRegistrations(sc, challengeId, registrationsForTask);
+        doUpdateChallengeRegistrations(sc, challengeId, registrationsForTask, taskId);
     }
 
 }
