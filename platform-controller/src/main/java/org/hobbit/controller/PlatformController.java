@@ -30,6 +30,8 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
@@ -751,13 +753,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     private Model createExpModelForChallengeTask(Model model, String challengeTaskUri, String systemUri) {
+        Dataset dataset = DatasetFactory.create();
+        dataset.addNamedModel("http://temp.org/challenge", model);
         String query = SparqlQueries.getCreateExperimentFromTaskQuery(Constants.NEW_EXPERIMENT_URI, challengeTaskUri,
-                systemUri, null);
+                systemUri, "http://temp.org/challenge");
         if (query == null) {
             LOGGER.error("Couldn't load SPARQL query to create an RDF model for a new experiment. Returning null.");
             return null;
         }
-        QueryExecution qe = QueryExecutionFactory.create(query, model);
+        QueryExecution qe = QueryExecutionFactory.create(query, dataset);
         return qe.execConstruct();
     }
 
