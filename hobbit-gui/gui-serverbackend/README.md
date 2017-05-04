@@ -11,19 +11,19 @@ The HOBBIT GUI is used to select/configure/launch a benchmark and to visualize t
 ## Building the docker image from source
 
 1. Install note.js
-		a. https://nodejs.org/en/ (tested with v6.3 and v6.8)
-	
+    a. https://nodejs.org/en/ (tested with v6.3 and v6.8)
+  
 2. Build GUI client
-	> cd hobbit/gui-client
-	> npm install
-	> npm run build
-	
+  > cd hobbit/gui-client
+  > npm install
+  > npm run build
+  
 3. Build GUI backend
-		a. This requires the previouse build of the client
-	4. > cd hobbit/gui-serverbackend
-	> mvn package
-	
-	5. Dockerfile - https://hub.docker.com/_/jetty/
+    a. This requires the previouse build of the client
+  4. > cd hobbit/gui-serverbackend
+  > mvn package
+  
+  5. Dockerfile - https://hub.docker.com/_/jetty/
 
 ```
         FROM jetty
@@ -36,7 +36,7 @@ The HOBBIT GUI is used to select/configure/launch a benchmark and to visualize t
         RUN cd $JETTY_BASE
         RUN java -jar $JETTY_HOME/start.jar --add-to-startd=keycloak
 ```
-	6. Create image
+  6. Create image
 > docker build -t gui .
 
 

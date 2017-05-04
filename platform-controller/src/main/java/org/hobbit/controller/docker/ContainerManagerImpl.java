@@ -48,7 +48,7 @@ import com.spotify.docker.client.messages.NetworkConfig;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  */
 public class ContainerManagerImpl implements ContainerManager {
@@ -178,7 +178,7 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Pulls the image with the given name if it does not appear in the list of
      * available images.
-     * 
+     *
      * @param imageName
      *            the name of the image that should be pulled
      */
@@ -211,7 +211,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
     /**
      * Pulls the image with the given name.
-     * 
+     *
      * @param imageName
      *            the name of the image that should be pulled
      */

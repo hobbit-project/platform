@@ -32,7 +32,7 @@ public class ChallengeBean extends NamedEntityBean {
 
   @XmlJavaTypeAdapter(value = OffsetDateTimeAdapter.class)
   private OffsetDateTime publishDate;
-  
+
   @XmlJavaTypeAdapter(value = OffsetDateTimeAdapter.class)
   private OffsetDateTime executionDate;
 
@@ -50,7 +50,7 @@ public class ChallengeBean extends NamedEntityBean {
     this.organizer = organizer;
   }
 
-  
+
   public OffsetDateTime getPublishDate() {
     return publishDate;
   }

@@ -37,7 +37,7 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(ControllerStatusRequest.class);
 
     private static final long REQUEST_TIMEOUT = 60000;
-    
+
     private static final String NEWLINE = String.format("%n") + String.format("%n");
 
     protected Channel frontEnd2Controller;
@@ -47,7 +47,7 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
     public void init() throws Exception {
         super.init();
 
-        frontEnd2Controller = connection.createChannel();
+        frontEnd2Controller = dataConnection.createChannel();
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
 
         frontEnd2Controller.queueDeclare(Constants.CONTROLLER_2_FRONT_END_QUEUE_NAME, false, false, true, null);

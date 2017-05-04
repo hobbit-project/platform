@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Singleton implementation of the {@link PlatformControllerClient} class.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -35,7 +35,7 @@ public class PlatformControllerClientSingleton {
     /**
      * Returns the instance of the {@link RabbitRpcClient} or <code>null</code>
      * if it couldn't be instantiated.
-     * 
+     *
      * @return the instance of the {@link RabbitRpcClient} or <code>null</code>
      */
     public static synchronized PlatformControllerClient getInstance() {

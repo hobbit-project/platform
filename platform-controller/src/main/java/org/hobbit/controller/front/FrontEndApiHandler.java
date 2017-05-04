@@ -32,13 +32,13 @@ import com.rabbitmq.client.AMQP.BasicProperties;
  */
 public class FrontEndApiHandler extends DefaultConsumer {
 
-	public FrontEndApiHandler(Channel channel) {
-		super(channel);
-	}
+    public FrontEndApiHandler(Channel channel) {
+        super(channel);
+    }
 
-	@Override
-	public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
-			throws IOException {
-		// TODO handle request and send response
-	}
+    @Override
+    public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
+            throws IOException {
+        // TODO handle request and send response
+    }
 }

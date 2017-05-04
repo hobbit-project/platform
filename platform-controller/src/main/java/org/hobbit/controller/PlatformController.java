@@ -30,6 +30,8 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.query.Dataset;
+import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryExecution;
 import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.rdf.model.Model;
@@ -89,10 +91,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * The current version of the platform.
-     * 
+     *
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "1.0.7";
+    public static final String PLATFORM_VERSION = "1.0.8";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -177,7 +179,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         imageManager = new ImageManagerImpl();
         LOGGER.debug("Image manager initialized.");
 
-        frontEnd2Controller = connection.createChannel();
+        frontEnd2Controller = dataConnection.createChannel();
         frontEndApiHandler = new DefaultConsumer(frontEnd2Controller) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
@@ -193,12 +195,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
         frontEnd2Controller.basicConsume(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, true, frontEndApiHandler);
 
-        controller2Analysis = connection.createChannel();
+        controller2Analysis = dataConnection.createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
 
         queue = new ExperimentQueueImpl();
 
-        storage = StorageServiceClient.create(connection);
+        storage = StorageServiceClient.create(dataConnection);
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
@@ -219,7 +221,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * Handles incoming command request from the hobbit command queue.
-     * 
+     *
      * <p>
      * Commands handled by this method:
      * <ul>
@@ -316,7 +318,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Creates and starts a container based on the given
      * {@link StartCommandData} instance.
-     * 
+     *
      * @param data
      *            the data needed to start the container
      * @return the name of the created container
@@ -338,7 +340,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * Stops the container with the given container name.
-     * 
+     *
      * @param containerName
      *            name of the container that should be stopped
      */
@@ -426,7 +428,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Sends the given command to the command queue with the given data appended
      * and using the given properties.
-     * 
+     *
      * @param address
      *            address for the message
      * @param command
@@ -751,20 +753,22 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     private Model createExpModelForChallengeTask(Model model, String challengeTaskUri, String systemUri) {
+        Dataset dataset = DatasetFactory.create();
+        dataset.addNamedModel("http://temp.org/challenge", model);
         String query = SparqlQueries.getCreateExperimentFromTaskQuery(Constants.NEW_EXPERIMENT_URI, challengeTaskUri,
-                systemUri, null);
+                systemUri, "http://temp.org/challenge");
         if (query == null) {
             LOGGER.error("Couldn't load SPARQL query to create an RDF model for a new experiment. Returning null.");
             return null;
         }
-        QueryExecution qe = QueryExecutionFactory.create(query, model);
+        QueryExecution qe = QueryExecutionFactory.create(query, dataset);
         return qe.execConstruct();
     }
 
     /**
      * Adds a new experiment with the given benchmark, system and benchmark
      * parameter to the queue.
-     * 
+     *
      * @param benchmarkUri
      *            the URI of the benchmark
      * @param systemUri
@@ -790,7 +794,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Creates a status object summarizing the current status of this
      * controller.
-     * 
+     *
      * @return the status of this controller
      */
     private ControllerStatus getStatus() {
@@ -820,7 +824,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Generates a unique experiment Id based on the current time stamp and the
      * last Id ({@link #lastIdTime}) that has been created.
-     * 
+     *
      * @return a unique experiment Id
      */
     private synchronized String generateExperimentId() {
@@ -835,7 +839,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Generates an experiment URI using the given id and the experiment URI
      * namespace defined by {@link Constants#EXPERIMENT_URI_NS}.
-     * 
+     *
      * @param id
      *            the id of the experiment
      * @return the experiment URI

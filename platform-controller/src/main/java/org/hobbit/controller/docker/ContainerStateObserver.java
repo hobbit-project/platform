@@ -17,7 +17,7 @@
 package org.hobbit.controller.docker;
 
 /**
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -53,7 +53,7 @@ public interface ContainerStateObserver {
     /**
      * Adds the container with the given container Id to the list of observed
      * containers.
-     * 
+     *
      * @param containerId
      *            the Id of the container that should be observed
      */
@@ -62,7 +62,7 @@ public interface ContainerStateObserver {
     /**
      * Removes the container with the given container Id from the list of
      * observed containers.
-     * 
+     *
      * @param containerId
      *            the Id of the container that should be removed
      */

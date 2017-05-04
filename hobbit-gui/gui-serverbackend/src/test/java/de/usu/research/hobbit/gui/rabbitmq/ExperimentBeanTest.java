@@ -127,7 +127,7 @@ public class ExperimentBeanTest {
         expectedParameters.put(paramBean.getId(), paramBean);
 
         checkConfigurationParameters(expectedParameters, benchmark.getConfigurationParams());
-        
+
         // Check KPIs
         Map<String, ConfigurationParamValueBean> expectedKpis = new HashMap<>();
         ConfigurationParamValueBean kpiBean;
@@ -166,7 +166,7 @@ public class ExperimentBeanTest {
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#runtime");
         kpiBean.setRange("http://www.w3.org/2001/XMLSchema#integer");
         expectedKpis.put(kpiBean.getId(), kpiBean);
-        
+
         checkKpis(expectedKpis, experiment.getKpis());
     }
 

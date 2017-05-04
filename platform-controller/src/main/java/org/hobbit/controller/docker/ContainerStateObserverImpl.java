@@ -34,7 +34,7 @@ import com.spotify.docker.client.messages.ContainerInfo;
  * "exited" and can be found in the internal list of monitored containers, the
  * {@link ContainerTerminationCallback#notifyTermination(String, int)} methods
  * of all registered callbacks are called.
- * 
+ *
  * Created by Timofey Ermilov on 01/09/16.
  */
 public class ContainerStateObserverImpl implements ContainerStateObserver {
@@ -66,7 +66,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
 
     /**
      * Constructor.
-     * 
+     *
      * @param manager
      *            The {@link ContainerManager} class that is used to retrieve
      *            information about containers.

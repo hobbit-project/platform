@@ -8,8 +8,8 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
 ex:BenchmarkRun_123	rdf:type	hobbit:Experiment;
-			gerbil2:hasNumberOfDocuments	"200"^^xsd:unsignedInt;
-			gerbil2:hasExperimentType	gerbil:A2KB;
+      gerbil2:hasNumberOfDocuments	"200"^^xsd:unsignedInt;
+      gerbil2:hasExperimentType	gerbil:A2KB;
             hobbit:involvesBenchmark    gerbil2:GerbilBenchmark;
             hobbit:involvesSystem   ex:DummySystemInstance1 .
-			
+

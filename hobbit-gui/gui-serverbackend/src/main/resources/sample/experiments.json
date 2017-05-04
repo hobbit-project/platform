@@ -1,256 +1,256 @@
 {
-	"experiments": [
-		{
-			"id": "LinkingExp10",
-			"kpis": [
-				{
-					"id": "http://w3id.org/hobbit/vocab#startTime",
-					"name": "Start Time",
-					"value": "2016-11-31T22:57:00",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#endTime",
-					"name": "End Time",
-					"value": "2016-11-31T23:01:00",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
-					"name": "Platform Version",
-					"value": "V1.3",
-					"datatype": "xsd:string"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
-					"name": "Lance dataset format",
-					"value": "RDF_XML"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#precision",
-					"name": "Precision",
-					"description": "Precision = TP / (TP + FP)",
-					"value": "0.5",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#recall",
-					"name": "Recall",
-					"description": "Recall = TP / (TP + FN)",
-					"value": "0.5",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#fmeasure",
-					"name": "F-measure",
-					"description": "F-measure is the harmonic mean of precision and recall.",
-					"value": "0.5",
-					"datatype": "xsd:float"
-				}
-			],
-			"benchmark": {
-				"id": "http://w3id.org/bench#lance",
-				"name": "Lance Benchmark",
-				"description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
-			},
-			"system": {
-				"id": "http://w3id.org/system#limesV1",
-				"name": "Limes",
-				"description": "Limes is an Instance Matching System..."
-			},
-			"challengeTask": {
-				"id": "OAEILinkingChallenge",
-				"name": "Linking",
-				"description": "Linking Challenge for OAEI 2017"
-			}
-		},
-		{
-			"id": "LinkingExp11",
-			"error": "this is a very long long long long long long long long long long long long long long error\nline2\nline3",
-			"kpis": [
-				{
-					"id": "http://w3id.org/hobbit/vocab#startTime",
-					"name": "Start Time",
-					"value": "2016-11-30T12:57:00",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#endTime",
-					"name": "End Time",
-					"value": "2016-11-30T13:01:00",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
-					"name": "Platform Version",
-					"value": "V1.3",
-					"datatype": "xsd:string"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
-					"name": "Lance dataset format",
-					"value": "RDF_XML"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#precision",
-					"name": "Precision",
-					"description": "Precision = TP / (TP + FP)",
-					"value": "0.3",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#recall",
-					"name": "Recall",
-					"description": "Recall = TP / (TP + FN)",
-					"value": "0.3",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#fmeasure",
-					"name": "F-measure",
-					"description": "F-measure is the harmonic mean of precision and recall.",
-					"value": "0.3",
-					"datatype": "xsd:float"
-				}
-			],
-			"benchmark": {
-				"id": "http://w3id.org/bench#lance",
-				"name": "Lance Benchmark",
-				"description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
-			},
-			"system": {
-				"id": "http://w3id.org/system#limesV0.1",
-				"name": "Limes 0.1",
-				"description": "Limes is an Instance Matching System..."
-			},
-			"challengeTask": {
-				"id": "OAEILinkingChallenge",
-				"name": "Linking",
-				"description": "Linking Challenge for OAEI 2017"
-			}
-		},
-		{
-			"id": "LinkingExp12",
-			"kpis": [
-				{
-					"id": "http://w3id.org/hobbit/vocab#startTime",
-					"name": "Start Time",
-					"value": "2016-11-30T16:57:02",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#endTime",
-					"name": "End Time",
-					"value": "2016-11-30T17:01:02",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
-					"name": "Platform Version",
-					"value": "V1.3",
-					"datatype": "xsd:string"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
-					"name": "Lance dataset format",
-					"value": "RDF_XML"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#precision",
-					"name": "Precision",
-					"description": "Precision = TP / (TP + FP)",
-					"value": "0.55",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#recall",
-					"name": "Recall",
-					"description": "Recall = TP / (TP + FN)",
-					"value": "0.54",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#fmeasure",
-					"name": "F-measure",
-					"description": "F-measure is the harmonic mean of precision and recall.",
-					"value": "0.54",
-					"datatype": "xsd:float"
-				}
-			],
-			"benchmark": {
-				"id": "http://w3id.org/bench#lance",
-				"name": "Lance Benchmark",
-				"description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
-			},
-			"system": {
-				"id": "http://w3id.org/system#foo",
-				"name": "foo",
-				"description": "foo dummy"
-			},
-			"challengeTask": {
-				"id": "OAEILinkingChallenge",
-				"name": "Linking",
-				"description": "Linking Challenge for OAEI 2017"
-			}
-		},
-		{
-			"id": "DummyExp1",
-			"kpis": [
-				{
-					"id": "http://w3id.org/hobbit/vocab#startTime",
-					"name": "Start Time",
-					"value": "2016-11-11T11:11:11",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#endTime",
-					"name": "End Time",
-					"value": "2016-11-11T12:13:14",
-					"datatype": "xsd:dateTime"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
-					"name": "Platform Version",
-					"value": "V1.3",
-					"datatype": "xsd:string"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#precision",
-					"name": "Precision",
-					"description": "Precision = TP / (TP + FP)",
-					"value": "0.11",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#recall",
-					"name": "Recall",
-					"description": "Recall = TP / (TP + FN)",
-					"value": "0.11",
-					"datatype": "xsd:float"
-				},
-				{
-					"id": "http://w3id.org/hobbit/vocab#fmeasure",
-					"name": "F-measure",
-					"description": "F-measure is the harmonic mean of precision and recall.",
-					"value": "0.11",
-					"datatype": "xsd:float"
-				}
-			],
-			"benchmark": {
-				"id": "http://w3id.org/bench#foo",
-				"name": "Foo Benchmark",
-				"description": "Foo dummy"
-			},
-			"system": {
-				"id": "http://w3id.org/system#foo",
-				"name": "foo",
-				"description": "foo dummy"
-			},
-			"challengeTask": {
-				"id": "http://w3id.org/hobbit/vocab#foo",
-				"name": "Foo Task",
-				"description": "foo dummy"
-			}
-		}
-	]
+  "experiments": [
+    {
+      "id": "LinkingExp10",
+      "kpis": [
+        {
+          "id": "http://w3id.org/hobbit/vocab#startTime",
+          "name": "Start Time",
+          "value": "2016-11-31T22:57:00",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#endTime",
+          "name": "End Time",
+          "value": "2016-11-31T23:01:00",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
+          "name": "Platform Version",
+          "value": "V1.3",
+          "datatype": "xsd:string"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
+          "name": "Lance dataset format",
+          "value": "RDF_XML"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#precision",
+          "name": "Precision",
+          "description": "Precision = TP / (TP + FP)",
+          "value": "0.5",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#recall",
+          "name": "Recall",
+          "description": "Recall = TP / (TP + FN)",
+          "value": "0.5",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#fmeasure",
+          "name": "F-measure",
+          "description": "F-measure is the harmonic mean of precision and recall.",
+          "value": "0.5",
+          "datatype": "xsd:float"
+        }
+      ],
+      "benchmark": {
+        "id": "http://w3id.org/bench#lance",
+        "name": "Lance Benchmark",
+        "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
+      },
+      "system": {
+        "id": "http://w3id.org/system#limesV1",
+        "name": "Limes",
+        "description": "Limes is an Instance Matching System..."
+      },
+      "challengeTask": {
+        "id": "OAEILinkingChallenge",
+        "name": "Linking",
+        "description": "Linking Challenge for OAEI 2017"
+      }
+    },
+    {
+      "id": "LinkingExp11",
+      "error": "this is a very long long long long long long long long long long long long long long error\nline2\nline3",
+      "kpis": [
+        {
+          "id": "http://w3id.org/hobbit/vocab#startTime",
+          "name": "Start Time",
+          "value": "2016-11-30T12:57:00",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#endTime",
+          "name": "End Time",
+          "value": "2016-11-30T13:01:00",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
+          "name": "Platform Version",
+          "value": "V1.3",
+          "datatype": "xsd:string"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
+          "name": "Lance dataset format",
+          "value": "RDF_XML"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#precision",
+          "name": "Precision",
+          "description": "Precision = TP / (TP + FP)",
+          "value": "0.3",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#recall",
+          "name": "Recall",
+          "description": "Recall = TP / (TP + FN)",
+          "value": "0.3",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#fmeasure",
+          "name": "F-measure",
+          "description": "F-measure is the harmonic mean of precision and recall.",
+          "value": "0.3",
+          "datatype": "xsd:float"
+        }
+      ],
+      "benchmark": {
+        "id": "http://w3id.org/bench#lance",
+        "name": "Lance Benchmark",
+        "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
+      },
+      "system": {
+        "id": "http://w3id.org/system#limesV0.1",
+        "name": "Limes 0.1",
+        "description": "Limes is an Instance Matching System..."
+      },
+      "challengeTask": {
+        "id": "OAEILinkingChallenge",
+        "name": "Linking",
+        "description": "Linking Challenge for OAEI 2017"
+      }
+    },
+    {
+      "id": "LinkingExp12",
+      "kpis": [
+        {
+          "id": "http://w3id.org/hobbit/vocab#startTime",
+          "name": "Start Time",
+          "value": "2016-11-30T16:57:02",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#endTime",
+          "name": "End Time",
+          "value": "2016-11-30T17:01:02",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
+          "name": "Platform Version",
+          "value": "V1.3",
+          "datatype": "xsd:string"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#lanceDataFormat",
+          "name": "Lance dataset format",
+          "value": "RDF_XML"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#precision",
+          "name": "Precision",
+          "description": "Precision = TP / (TP + FP)",
+          "value": "0.55",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#recall",
+          "name": "Recall",
+          "description": "Recall = TP / (TP + FN)",
+          "value": "0.54",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#fmeasure",
+          "name": "F-measure",
+          "description": "F-measure is the harmonic mean of precision and recall.",
+          "value": "0.54",
+          "datatype": "xsd:float"
+        }
+      ],
+      "benchmark": {
+        "id": "http://w3id.org/bench#lance",
+        "name": "Lance Benchmark",
+        "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
+      },
+      "system": {
+        "id": "http://w3id.org/system#foo",
+        "name": "foo",
+        "description": "foo dummy"
+      },
+      "challengeTask": {
+        "id": "OAEILinkingChallenge",
+        "name": "Linking",
+        "description": "Linking Challenge for OAEI 2017"
+      }
+    },
+    {
+      "id": "DummyExp1",
+      "kpis": [
+        {
+          "id": "http://w3id.org/hobbit/vocab#startTime",
+          "name": "Start Time",
+          "value": "2016-11-11T11:11:11",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#endTime",
+          "name": "End Time",
+          "value": "2016-11-11T12:13:14",
+          "datatype": "xsd:dateTime"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#hobbitPlatformVersion",
+          "name": "Platform Version",
+          "value": "V1.3",
+          "datatype": "xsd:string"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#precision",
+          "name": "Precision",
+          "description": "Precision = TP / (TP + FP)",
+          "value": "0.11",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#recall",
+          "name": "Recall",
+          "description": "Recall = TP / (TP + FN)",
+          "value": "0.11",
+          "datatype": "xsd:float"
+        },
+        {
+          "id": "http://w3id.org/hobbit/vocab#fmeasure",
+          "name": "F-measure",
+          "description": "F-measure is the harmonic mean of precision and recall.",
+          "value": "0.11",
+          "datatype": "xsd:float"
+        }
+      ],
+      "benchmark": {
+        "id": "http://w3id.org/bench#foo",
+        "name": "Foo Benchmark",
+        "description": "Foo dummy"
+      },
+      "system": {
+        "id": "http://w3id.org/system#foo",
+        "name": "foo",
+        "description": "foo dummy"
+      },
+      "challengeTask": {
+        "id": "http://w3id.org/hobbit/vocab#foo",
+        "name": "Foo Task",
+        "description": "foo dummy"
+      }
+    }
+  ]
 }

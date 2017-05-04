@@ -40,7 +40,7 @@ public class PlatformControllerTest extends DockerBasedTest {
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-    
+
     private PlatformController controller;
 
     @Before
@@ -49,7 +49,7 @@ public class PlatformControllerTest extends DockerBasedTest {
         environmentVariables.set(Constants.GENERATOR_ID_KEY, "0");
         environmentVariables.set(Constants.GENERATOR_COUNT_KEY, "1");
         environmentVariables.set(Constants.HOBBIT_SESSION_ID_KEY, "0");
-        
+
         controller = new PlatformController();
         try {
             controller.init();

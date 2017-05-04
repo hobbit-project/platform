@@ -42,7 +42,7 @@ public class StartBenchmarkRequest extends AbstractCommandReceivingComponent {
     public static final String BENCHMARK_URI_KEY = "BENCHMARK";
     public static final String SYSTEM_URI_KEY = "SYSTEM";
     public static final String BENCHMARK_PARAM_FILE_KEY = "BENCHMARK_PARAM_FILE";
-    
+
     private static final long REQUEST_TIMEOUT = 60000;
 
     protected Channel frontEnd2Controller;
@@ -52,7 +52,7 @@ public class StartBenchmarkRequest extends AbstractCommandReceivingComponent {
     public void init() throws Exception {
         super.init();
 
-        frontEnd2Controller = connection.createChannel();
+        frontEnd2Controller = dataConnection.createChannel();
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
 
         frontEnd2Controller.queueDeclare(Constants.CONTROLLER_2_FRONT_END_QUEUE_NAME, false, false, true, null);

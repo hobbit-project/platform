@@ -23,19 +23,19 @@
 
   <groupId>org.hobbit</groupId>
   <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.7</version>
+  <version>1.0.8</version>
   <packaging>war</packaging>
   <name>gui-serverbackend</name>
 
   <description>Hobbit GUI server backend</description>
 
-	<!-- LICENSE -->
-	<licenses>
-		<license>
-			<name>GPL 2.0</name>
-			<url>https://www.gnu.org/licenses/gpl-2.0.txt</url>
-		</license>
-	</licenses>
+    <!-- LICENSE -->
+    <licenses>
+        <license>
+            <name>GPL 2.0</name>
+            <url>https://www.gnu.org/licenses/gpl-2.0.txt</url>
+        </license>
+    </licenses>
     <inceptionYear>2017</inceptionYear>
 
   <properties>
@@ -94,7 +94,7 @@
     <dependency>
       <groupId>org.hobbit</groupId>
       <artifactId>core</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.3</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
@@ -217,31 +217,31 @@
         </plugin>
         <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
         <plugin>
-        	<groupId>org.eclipse.m2e</groupId>
-        	<artifactId>lifecycle-mapping</artifactId>
-        	<version>1.0.0</version>
-        	<configuration>
-        		<lifecycleMappingMetadata>
-        			<pluginExecutions>
-        				<pluginExecution>
-        					<pluginExecutionFilter>
-        						<groupId>org.codehaus.mojo</groupId>
-        						<artifactId>
-        							keytool-maven-plugin
-        						</artifactId>
-        						<versionRange>[1.5,)</versionRange>
-        						<goals>
-        							<goal>clean</goal>
-        							<goal>generateKeyPair</goal>
-        						</goals>
-        					</pluginExecutionFilter>
-        					<action>
-        						<ignore></ignore>
-        					</action>
-        				</pluginExecution>
-        			</pluginExecutions>
-        		</lifecycleMappingMetadata>
-        	</configuration>
+            <groupId>org.eclipse.m2e</groupId>
+            <artifactId>lifecycle-mapping</artifactId>
+            <version>1.0.0</version>
+            <configuration>
+                <lifecycleMappingMetadata>
+                    <pluginExecutions>
+                        <pluginExecution>
+                            <pluginExecutionFilter>
+                                <groupId>org.codehaus.mojo</groupId>
+                                <artifactId>
+                                    keytool-maven-plugin
+                                </artifactId>
+                                <versionRange>[1.5,)</versionRange>
+                                <goals>
+                                    <goal>clean</goal>
+                                    <goal>generateKeyPair</goal>
+                                </goals>
+                            </pluginExecutionFilter>
+                            <action>
+                                <ignore></ignore>
+                            </action>
+                        </pluginExecution>
+                    </pluginExecutions>
+                </lifecycleMappingMetadata>
+            </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -277,25 +277,25 @@
           <keyalg>RSA</keyalg>
         </configuration>
       </plugin>
-			<!-- Javadoc plugin for generating documentation -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.10.1</version>
-				<configuration>
-					<show>private</show>
-					<nohelp>true</nohelp>
-					<failOnError>false</failOnError>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+            <!-- Javadoc plugin for generating documentation -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
+                <configuration>
+                    <show>private</show>
+                    <nohelp>true</nohelp>
+                    <failOnError>false</failOnError>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Source plugin for creating source file jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -310,28 +310,28 @@
                     </execution>
                 </executions>
             </plugin>
-			<!-- License management plugin -->
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>2.11</version>
-				<configuration>
-					<header>com/mycila/maven/plugin/license/templates/GPL-3.txt</header>
-					<properties>
-						<owner>Semantic Data Management Unit (InfAI)</owner>
-						<email>ngonga@informatik.uni-leipzig.de</email>
-					</properties>
-					<excludes>
-						<exclude>**/README</exclude>
-						<exclude>**/LICENSE</exclude>
-						<exclude>Makefile</exclude>
-						<exclude>Dockerfile</exclude>
-						<exclude>src/main/webapp/**</exclude>
-						<exclude>src/test/resources/**</exclude>
-						<exclude>src/main/resources/**</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+            <!-- License management plugin -->
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.11</version>
+                <configuration>
+                    <header>com/mycila/maven/plugin/license/templates/GPL-3.txt</header>
+                    <properties>
+                        <owner>Semantic Data Management Unit (InfAI)</owner>
+                        <email>ngonga@informatik.uni-leipzig.de</email>
+                    </properties>
+                    <excludes>
+                        <exclude>**/README</exclude>
+                        <exclude>**/LICENSE</exclude>
+                        <exclude>Makefile</exclude>
+                        <exclude>Dockerfile</exclude>
+                        <exclude>src/main/webapp/**</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/main/resources/**</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
     </plugins>
 
   </build>

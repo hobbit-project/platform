@@ -24,21 +24,21 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class ChallengesListBean {
-	private List<ChallengeBean> challenges;
-	
-	public ChallengesListBean() {		
-	}
+    private List<ChallengeBean> challenges;
 
-	public List<ChallengeBean> getChallenges() {
-		return challenges;
-	}
+    public ChallengesListBean() {
+    }
 
-	public void setChallenges(List<ChallengeBean> challenges) {
-		this.challenges = challenges;
-	}
-	
-	@Override
-	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
-	}
+    public List<ChallengeBean> getChallenges() {
+        return challenges;
+    }
+
+    public void setChallenges(List<ChallengeBean> challenges) {
+        this.challenges = challenges;
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
 }

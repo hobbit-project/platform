@@ -26,13 +26,13 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class UserInfoBean {
-	private String userPrincipalName;
-	private String preferredUsername;
-	private String name;
-	private String email;
-	private List<String> roles;
-	private transient Set<String> roleSet;
-  
+    private String userPrincipalName;
+    private String preferredUsername;
+    private String name;
+    private String email;
+    private List<String> roles;
+    private transient Set<String> roleSet;
+
   public String getUserPrincipalName() {
     return userPrincipalName;
   }

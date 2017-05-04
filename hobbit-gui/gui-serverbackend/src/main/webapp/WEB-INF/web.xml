@@ -19,15 +19,15 @@
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>webapi</web-resource-name>
-      <url-pattern>/rest/internal/keycloak-config</url-pattern>      
+      <url-pattern>/rest/internal/keycloak-config</url-pattern>
     </web-resource-collection>
     <!-- no constraints -->
   </security-constraint>
-  
+
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>webapi</web-resource-name>
-      <url-pattern>/rest/*</url-pattern>      
+      <url-pattern>/rest/*</url-pattern>
       <http-method>GET</http-method>
       <http-method>POST</http-method>
       <http-method>PUT</http-method>

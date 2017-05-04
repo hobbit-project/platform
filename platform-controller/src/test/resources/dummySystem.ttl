@@ -7,7 +7,7 @@
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
 ex:DummySystem	a	hobbit:SystemInstance;
-			rdfs:label	"Dummy System"@en;
-			rdfs:comment	"Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"@en;
-			hobbit:hasAPI	ex:GerbilApi;
-			hobbit:imageName	"gerbil_dummy_system" .
+      rdfs:label	"Dummy System"@en;
+      rdfs:comment	"Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"@en;
+      hobbit:hasAPI	ex:GerbilApi;
+      hobbit:imageName	"gerbil_dummy_system" .
