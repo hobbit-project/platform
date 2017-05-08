@@ -9,4 +9,3 @@ config/db/virtuoso.qrl
 .settings
 .gitlab-ci.yml
 dependency-reduced-pom.xml
-docker-compose-local.yml

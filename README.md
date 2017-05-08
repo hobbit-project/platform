@@ -169,3 +169,8 @@ Available services
 * :8181 Keycloak GUI
 * :8890 Virtuoso GUI (including a SPARQL endpoint)
 * :5672 RabbitMQ communication port for adding additional components to the platform, e.g., for testing scenarios
+
+## Running controller without docker
+
+1. Start the platform components by running: `docker-compose -f docker-compose-local.yml up`
+2. Start the platform-controller by running: `make local-controller`
