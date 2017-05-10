@@ -19,6 +19,7 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,6 +36,7 @@ import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.ControllerStatus;
+import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
@@ -131,58 +133,75 @@ public class ExperimentManager implements Closeable {
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
                     LOGGER.debug("There is no experiment to start.");
-                } else {
-                    LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
-                            + " and system " + config.systemUri + " to the queue.");
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                            this, maxExecutionTime);
-                    String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
-                    if (benchImageName == null) {
-                        experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
-                        throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
-                    } else {
-                        String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
-                        if (sysImageName == null) {
-                            experimentStatus.addError(HobbitErrors.SystemImageMissing);
-                            throw new Exception("Couldn't find image name for system " + config.systemUri);
-                        } else {
-                            LOGGER.info("Creating benchmark controller " + benchImageName);
-                            String containerId = controller.containerManager.startContainer(benchImageName,
-                                    Constants.CONTAINER_TYPE_BENCHMARK, null,
-                                    new String[] {
-                                            Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                            Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                            Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
-                                            Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "="
-                                                    + config.serializedBenchParams,
-                                            Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                                    null);
-                            if (containerId == null) {
-                                experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
-                                throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
-                            } else {
-                                experimentStatus.setBenchmarkContainer(containerId);
+                    return;
+                }
+                LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
+                        + " and system " + config.systemUri + " to the queue.");
 
-                                LOGGER.info("Creating system " + sysImageName);
-                                String serializedSystemParams = RabbitMQUtils
-                                        .writeModel2String(controller.imageManager().getSystemModel(config.systemUri));
-                                containerId = controller.containerManager.startContainer(sysImageName,
-                                        Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
-                                        new String[] {
-                                                Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                                Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                                        null);
-                                if (containerId == null) {
-                                    LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
-                                    forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
-                                    throw new Exception("Couldn't start the system " + config.systemUri);
-                                } else {
-                                    experimentStatus.setSystemContainer(containerId);
-                                }
-                            }
+                String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
+                if (benchImageName == null) {
+                    experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
+                    throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
+                }
+
+                String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
+                if (sysImageName == null) {
+                    experimentStatus.addError(HobbitErrors.SystemImageMissing);
+                    throw new Exception("Couldn't find image name for system " + config.systemUri);
+                }
+
+                // pull all used images
+                Model systemModel = controller.imageManager().getSystemModel(config.systemUri);
+                List<SystemMetaData> sysMetas = controller.imageManager().modelToSystemMetaData(systemModel);
+                for(SystemMetaData s : sysMetas) {
+                    if (s.systemUri == config.systemUri) {
+                        for (String image : s.usedImages) {
+                            LOGGER.info("Pulling used image:" + image);
+                            controller.containerManager.pullImage(image);
                         }
+                        break;
                     }
+                }
+
+
+                // start experiment timer/status
+                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                        this, maxExecutionTime);
+
+                LOGGER.info("Creating benchmark controller " + benchImageName);
+                String containerId = controller.containerManager.startContainer(benchImageName,
+                        Constants.CONTAINER_TYPE_BENCHMARK, null,
+                        new String[] {
+                                Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
+                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "="
+                                        + config.serializedBenchParams,
+                                Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
+                        null);
+                if (containerId == null) {
+                    experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
+                    throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
+                }
+
+                experimentStatus.setBenchmarkContainer(containerId);
+
+                LOGGER.info("Creating system " + sysImageName);
+                String serializedSystemParams = RabbitMQUtils
+                        .writeModel2String(controller.imageManager().getSystemModel(config.systemUri));
+                containerId = controller.containerManager.startContainer(sysImageName,
+                        Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
+                        new String[] {
+                                Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
+                        null);
+                if (containerId == null) {
+                    LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
+                    throw new Exception("Couldn't start the system " + config.systemUri);
+                } else {
+                    experimentStatus.setSystemContainer(containerId);
                 }
             }
         } catch (Exception e) {
