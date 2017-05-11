@@ -143,7 +143,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Manager of benchmark and system images.
      */
-    protected ImageManagerImpl imageManager;
+    protected ImageManager imageManager;
     /**
      * Last experiment id that has been used.
      */
@@ -848,7 +848,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         return Constants.EXPERIMENT_URI_NS + id;
     }
 
-    public ImageManagerImpl imageManager() {
+    public ImageManager imageManager() {
         return imageManager;
     }
 
