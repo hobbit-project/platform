@@ -88,6 +88,8 @@ public class ImageManagerImpl implements ImageManager {
         result.benchmarkDescription = getDescription(model, benchmark);
         // find APIs
         result.implementedApis = getAPIs(model, benchmark, true);
+        // find used images
+        result.usedImages = getUsedImages(model, benchmark);
 
         return result;
     }
