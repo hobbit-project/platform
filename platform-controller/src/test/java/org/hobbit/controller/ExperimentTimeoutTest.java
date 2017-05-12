@@ -2,6 +2,7 @@ package org.hobbit.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
@@ -40,6 +41,7 @@ public class ExperimentTimeoutTest {
 
     private static final String EXPERIMENT_ID = "123";
     private static final String BENCHMARK_NAME = "benchmark";
+    private static final String SYSTEM_URI = "systemUri";
 
     private ExperimentManager manager;
     private PlatformController controller;
@@ -48,7 +50,7 @@ public class ExperimentTimeoutTest {
     @Before
     public void init() {
         controller = new DummyPlatformController(benchmarkControllerTerminated);
-        controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", "systemUri"));
+        controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", SYSTEM_URI));
         manager = new ExperimentManager(controller, 1000, 1000);
         controller.expManager = manager;
         manager.setMaxExecutionTime(1000);
@@ -144,6 +146,33 @@ public class ExperimentTimeoutTest {
             return systemUri;
         }
 
+        @Override
+        public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
+            BenchmarkMetaData meta = new BenchmarkMetaData();
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("benchmarkImage1");
+            meta.usedImages.add("benchmarkImage2");
+            return meta;
+        }
+
+        @Override
+        public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+            List<SystemMetaData> result = new ArrayList<>();
+            SystemMetaData meta = new SystemMetaData();
+            meta.systemUri = SYSTEM_URI;
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("SystemImage1");
+            meta.usedImages.add("SystemImage2");
+            result.add(meta);
+            meta = new SystemMetaData();
+            meta.systemUri = "wrong_" + SYSTEM_URI;
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("wrong_SystemImage1");
+            meta.usedImages.add("wrong_SystemImage2");
+            result.add(meta);
+            return new ArrayList<>(0);
+        }
+
     }
 
     private static class DummyContainerManager implements ContainerManager {
@@ -233,6 +262,13 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void addContainerObserver(ContainerStateObserver containerObserver) {
+        }
+
+        @Override
+        public void pullImage(String imageName) {
+            System.out.print("Pulling Image ");
+            System.out.print(imageName);
+            System.out.println("...");
         }
 
     }

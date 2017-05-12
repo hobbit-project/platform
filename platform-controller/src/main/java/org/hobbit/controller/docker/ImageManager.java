@@ -99,4 +99,8 @@ public interface ImageManager {
      * @return the Docker image name of the chosen system
      */
     public String getSystemImageName(String systemUri);
+
+    public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception;
+
+    public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception;
 }

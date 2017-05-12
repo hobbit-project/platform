@@ -224,7 +224,7 @@ public class ContainerManagerImpl implements ContainerManager {
      * @param imageName
      *            the name of the image that should be pulled
      */
-    private void pullImage(String imageName) {
+    public void pullImage(String imageName) {
         // do not pull if env var is set to false
         if (!DOCKER_AUTOPULL) {
             return;
