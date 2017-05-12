@@ -211,7 +211,7 @@ public class ContainerManagerImpl implements ContainerManager {
             }
 
             // pull image and wait for the pull to finish
-            dockerClient.pull(imageName);
+            pullImage(imageName);
         } catch (Exception e) {
             LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
                     + e.getLocalizedMessage());
@@ -235,7 +235,7 @@ public class ContainerManagerImpl implements ContainerManager {
             // the server address of these credentials, we should use them
             if ((gitlabAuth != null) && (imageName.startsWith(gitlabAuth.serverAddress()))) {
                 // pull image and wait for the pull to finish
-                dockerClient.pull(imageName, gitlabAuth);
+                dockerClient.pull(imageName, gitlabAuth, new LoggingPullHandler(imageName));
             } else {
                 // pull image and wait for the pull to finish
                 dockerClient.pull(imageName);
