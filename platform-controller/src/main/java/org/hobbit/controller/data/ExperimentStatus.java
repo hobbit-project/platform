@@ -19,6 +19,7 @@ package org.hobbit.controller.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
 
@@ -31,6 +32,7 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
+import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Constants;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -403,6 +405,53 @@ public class ExperimentStatus implements Closeable {
         }
         if (config.challengeTaskUri != null) {
             resultModel.add(experiment, HOBBIT.isPartOf, resultModel.getResource(config.challengeTaskUri));
+        }
+    }
+
+    /**
+     * Uses the given {@link ImageManager} instance to add additional meta data
+     * regarding the benchmark and the system to the experiment result model.
+     * 
+     * @param imageManager
+     *            used to get RDF models for the benchmark and the system of
+     *            this experiment
+     */
+    public void addMetaDataToResult(ImageManager imageManager) {
+        try {
+            modelMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error("Interrupted while waiting for mutex of result model. Returning.");
+            return;
+        }
+        try {
+            // If there is no result model, create it
+            if (resultModel == null) {
+                initModel_Unsecured();
+            }
+            // Add basic information about the benchmark and the system
+            if (config.benchmarkUri != null) {
+                Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);
+                if (benchmarkModel != null) {
+                    LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
+                    resultModel.add(benchmarkModel);
+                }
+            }
+            if (config.systemUri != null) {
+                Model systemModel = imageManager.getSystemModel(config.systemUri);
+                if (systemModel != null) {
+                    resultModel.add(systemModel);
+                }
+            }
+
+            // Remove statements that shouldn't be part of the result model.
+            List<Statement> removableStatements = resultModel.listStatements(null, HOBBIT.imageName, (RDFNode) null)
+                    .toList();
+            removableStatements.addAll(resultModel.listStatements(null, HOBBIT.usesImage, (RDFNode) null).toList());
+            System.out.print("stmts to remove: ");
+            System.out.println(removableStatements.toString());
+            resultModel.remove(removableStatements);
+        } finally {
+            modelMutex.release();
         }
     }
 

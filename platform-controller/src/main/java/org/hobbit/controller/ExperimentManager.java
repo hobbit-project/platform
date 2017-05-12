@@ -152,7 +152,7 @@ public class ExperimentManager implements Closeable {
                     experimentStatus.addError(HobbitErrors.SystemImageMissing);
                     throw new Exception("Couldn't find image name for system " + config.systemUri);
                 }
-                
+
                 prefetchImages(config, benchImageName, sysImageName);
 
                 // start experiment timer/status
@@ -203,8 +203,9 @@ public class ExperimentManager implements Closeable {
             experimentMutex.release();
         }
     }
-    
-    protected void prefetchImages(ExperimentConfiguration config, String benchImageName, String sysImageName) throws Exception {
+
+    protected void prefetchImages(ExperimentConfiguration config, String benchImageName, String sysImageName)
+            throws Exception {
         Set<String> usedImages = new HashSet<String>();
         usedImages.add(benchImageName);
         usedImages.add(sysImageName);
@@ -291,32 +292,13 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
                 resultModel = experimentStatus.getResultModel();
             }
-            // Add basic information about the benchmark and the system
-            if (experimentStatus.config.benchmarkUri != null) {
-                Model benchmarkModel = controller.imageManager()
-                        .getBenchmarkModel(experimentStatus.config.benchmarkUri);
-                if (benchmarkModel != null) {
-                    LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
-                    resultModel.add(benchmarkModel);
-                }
-            }
-            if (experimentStatus.config.systemUri != null) {
-                Model systemModel = controller.imageManager().getSystemModel(experimentStatus.config.systemUri);
-                if (systemModel != null) {
-                    // Remove the image name of the system. Otherwise it could
-                    // be misused.
-                    systemModel.remove(
-                            systemModel.listStatements(systemModel.getResource(experimentStatus.config.systemUri),
-                                    HOBBIT.imageName, (RDFNode) null));
-                    resultModel.add(systemModel);
-                }
-            }
+            experimentStatus.addMetaDataToResult(controller.imageManager());
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
                 if (resultModel != null) {
                     StringWriter writer = new StringWriter();
                     resultModel.write(writer, "TTL");
                     LOGGER.error("Error while storing the result model of the experiment. Logging it: ",
-                            writer.toString().replace(String.format("%n"), "|"));
+                            writer.toString().replace('\n', ' '));
                 }
             }
             // We have to remove the config from the queue
