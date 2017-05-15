@@ -21,13 +21,11 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
  * A simple test that uses a dummy {@link PlatformController} to simulate an
@@ -47,10 +45,13 @@ public class ExperimentTimeoutTest {
     private PlatformController controller;
     private Semaphore benchmarkControllerTerminated = new Semaphore(0);
 
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
     @Before
     public void init() {
         // set max execution time to 1s
-        System.setProperty("MAX_EXECUTION_TIME", "1000");
+        environmentVariables.set("MAX_EXECUTION_TIME", "1000");
         controller = new DummyPlatformController(benchmarkControllerTerminated);
         controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", SYSTEM_URI));
         manager = new ExperimentManager(controller, 1000, 1000);
