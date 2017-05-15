@@ -50,7 +50,7 @@ public class GitlabControllerImpl implements GitlabController {
     private static final String GITLAB_TOKEN = System.getenv(GITLAB_TOKEN_KEY);
     private static final String GITLAB_DEFAULT_GUEST_TOKEN = "fykySfxWaUyCS1xxTSVy";
 
-    // Config filenames
+    // HobbitConfig filenames
     private static final String SYSTEM_CONFIG_FILENAME = "system.ttl";
     private static final String BENCHMARK_CONFIG_FILENAME = "benchmark.ttl";
 

@@ -19,17 +19,13 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
+import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
@@ -89,10 +85,6 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     private Timer expStartTimer;
-    /**
-     * Time an experiment has to terminate after it has been started.
-     */
-    protected long maxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
 
     public ExperimentManager(PlatformController controller) {
         this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
@@ -153,6 +145,20 @@ public class ExperimentManager implements Closeable {
                 }
 
                 prefetchImages(config, benchImageName, sysImageName);
+
+                // time an experiment has to terminate after it has been started
+                long maxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
+
+                // try to load benchmark timeouts from config file
+                HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
+                HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
+                if (timeouts != null) {
+                    if (config.challengeUri != null) {
+                        maxExecutionTime = timeouts.challengeTimeout;
+                    } else {
+                        maxExecutionTime = timeouts.benchmarkTimeout;
+                    }
+                }
 
                 // start experiment timer/status
                 experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
@@ -548,14 +554,6 @@ public class ExperimentManager implements Closeable {
         } finally {
             experimentMutex.release();
         }
-    }
-
-    public long getMaxExecutionTime() {
-        return maxExecutionTime;
-    }
-
-    public void setMaxExecutionTime(long maxExecutionTime) {
-        this.maxExecutionTime = maxExecutionTime;
     }
 
     @Override
