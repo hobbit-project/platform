@@ -40,4 +40,6 @@ public class HobbitConfig {
         long ct = Integer.parseInt(item.get("challenge").toString());
         return new TimeoutConfig(bt, ct);
     }
+
+
 }

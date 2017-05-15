@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
-    private static final int MAX_EXECUTION_TIME = 20 * 60 * 1000;
+    private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
     /**
      * Time interval the experiment manager waits before it checks for the an
@@ -66,7 +66,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public static final long DEFAULT_MAX_EXECUTION_TIME = Integer.parseInt(System.getProperty("MAX_EXECUTION_TIME", Integer.toString(MAX_EXECUTION_TIME)));
+    public long MAX_EXECUTION_TIME = DEFAULT_MAX_EXECUTION_TIME;
     /**
      * The controller this manager belongs to.
      */
@@ -93,6 +93,12 @@ public class ExperimentManager implements Closeable {
     protected ExperimentManager(PlatformController controller, long checkForFirstExperiment,
             long checkForNewExperiment) {
         this.controller = controller;
+
+        try {
+            MAX_EXECUTION_TIME = Long.parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+        } catch (Exception e) {
+            LOGGER.debug("Could not get execution time from env, using default value..");
+        }
 
         expStartTimer = new Timer();
         expStartTimer.schedule(new TimerTask() {
@@ -147,7 +153,7 @@ public class ExperimentManager implements Closeable {
                 prefetchImages(config, benchImageName, sysImageName);
 
                 // time an experiment has to terminate after it has been started
-                long maxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
+                long maxExecutionTime = MAX_EXECUTION_TIME;
 
                 // try to load benchmark timeouts from config file
                 HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
