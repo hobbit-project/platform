@@ -36,10 +36,17 @@ public class HobbitConfig {
         if (item == null) {
             return null;
         }
-        long bt = Integer.parseInt(item.get("benchmark").toString());
-        long ct = Integer.parseInt(item.get("challenge").toString());
+        long bt = -1;
+        Object b = item.get("benchmark");
+        if (b != null) {
+            bt = Integer.parseInt(b.toString());
+        }
+
+        long ct = -1;
+        Object c = item.get("challenge");
+        if (c != null) {
+            ct = Integer.parseInt(c.toString());
+        }
         return new TimeoutConfig(bt, ct);
     }
-
-
 }

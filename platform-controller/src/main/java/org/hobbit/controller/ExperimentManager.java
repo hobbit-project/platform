@@ -160,9 +160,13 @@ public class ExperimentManager implements Closeable {
                 HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
                 if (timeouts != null) {
                     if (config.challengeUri != null) {
-                        maxExecutionTime = timeouts.challengeTimeout;
+                        if (timeouts.challengeTimeout != -1) {
+                            maxExecutionTime = timeouts.challengeTimeout;
+                        }
                     } else {
-                        maxExecutionTime = timeouts.benchmarkTimeout;
+                        if (timeouts.benchmarkTimeout != -1) {
+                            maxExecutionTime = timeouts.benchmarkTimeout;
+                        }
                     }
                 }
 
