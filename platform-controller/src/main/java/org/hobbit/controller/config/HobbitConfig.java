@@ -24,7 +24,7 @@ public class HobbitConfig {
 
     public Map<String, LinkedHashMap<String, Object>> timeouts;
 
-    public static HobbitConfig loadConfig() throws IOException {
+    public static HobbitConfig loadConfig() throws Exception {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         String file = HobbitConfig.class.getClassLoader().getResource("config.yaml").getFile();
         HobbitConfig cfg = mapper.readValue(new File(file), HobbitConfig.class);

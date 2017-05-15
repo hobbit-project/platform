@@ -156,18 +156,22 @@ public class ExperimentManager implements Closeable {
                 long maxExecutionTime = MAX_EXECUTION_TIME;
 
                 // try to load benchmark timeouts from config file
-                HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
-                HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
-                if (timeouts != null) {
-                    if (config.challengeUri != null) {
-                        if (timeouts.challengeTimeout != -1) {
-                            maxExecutionTime = timeouts.challengeTimeout;
-                        }
-                    } else {
-                        if (timeouts.benchmarkTimeout != -1) {
-                            maxExecutionTime = timeouts.benchmarkTimeout;
+                try {
+                    HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
+                    HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
+                    if (timeouts != null) {
+                        if (config.challengeUri != null) {
+                            if (timeouts.challengeTimeout != -1) {
+                                maxExecutionTime = timeouts.challengeTimeout;
+                            }
+                        } else {
+                            if (timeouts.benchmarkTimeout != -1) {
+                                maxExecutionTime = timeouts.benchmarkTimeout;
+                            }
                         }
                     }
+                } catch (Exception e) {
+                    LOGGER.debug("Could not load config, using default values..");
                 }
 
                 // start experiment timer/status
