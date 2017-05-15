@@ -83,7 +83,7 @@ public class ExperimentStatus implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentStatus.class);
 
     /**
-     * HobbitConfig of the current benchmark.
+     * Config of the current benchmark.
      */
     public final ExperimentConfiguration config;
     /**

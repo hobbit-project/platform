@@ -39,13 +39,13 @@ public class HobbitConfig {
         long bt = -1;
         Object b = item.get("benchmark");
         if (b != null) {
-            bt = Integer.parseInt(b.toString());
+            bt = Long.parseLong(b.toString());
         }
 
         long ct = -1;
         Object c = item.get("challenge");
         if (c != null) {
-            ct = Integer.parseInt(c.toString());
+            ct = Long.parseLong(c.toString());
         }
         return new TimeoutConfig(bt, ct);
     }
