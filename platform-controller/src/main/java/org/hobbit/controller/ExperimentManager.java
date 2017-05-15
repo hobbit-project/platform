@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
+    private static final int MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
     /**
      * Time interval the experiment manager waits before it checks for the an
@@ -69,7 +70,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public static final long DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
+    public static final long DEFAULT_MAX_EXECUTION_TIME = Integer.parseInt(System.getProperty("MAX_EXECUTION_TIME", Integer.toString(MAX_EXECUTION_TIME)));
     /**
      * The controller this manager belongs to.
      */
