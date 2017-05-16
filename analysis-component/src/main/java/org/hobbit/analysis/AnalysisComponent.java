@@ -56,7 +56,7 @@ public class AnalysisComponent extends AbstractComponent {
         consumer = new QueueingConsumer(controller2AnalysisQueue.channel);
         controller2AnalysisQueue.channel.basicConsume(controller2AnalysisQueue.name, false, consumer);
         controller2AnalysisQueue.channel.basicConsume(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, consumer);
-        storage = StorageServiceClient.create(connection);
+        storage = StorageServiceClient.create(dataConnection);
         LOGGER.debug("Analysis Component Initialized!");
     }
 
