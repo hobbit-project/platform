@@ -165,4 +165,12 @@ public interface ContainerManager {
     public String getContainerName(String containerId);
 
     public void addContainerObserver(ContainerStateObserver containerObserver);
+
+    /**
+     * Pulls the image with the given name.
+     *
+     * @param imageName
+     *            the name of the image that should be pulled
+     */
+    public void pullImage(String imageName);
 }

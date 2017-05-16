@@ -248,7 +248,12 @@ public class PlatformControllerClient implements Closeable {
         model.add(benchmarkInstanceResource, HOBBIT.involvesBenchmark, model.createResource(benchmarkUri));
         model.add(benchmarkInstanceResource, HOBBIT.involvesSystemInstance, model.createResource(systemUri));
 
-        model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
+        try {
+            model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
+        } catch (Exception e) {
+            LOGGER.error("Got an exception while processing the parameters.",e);
+            throw new GUIBackendException("Please check your parameter definitions.");
+        }
 
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),

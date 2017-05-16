@@ -56,6 +56,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
     public static final String DEPLOY_ENV_KEY = "DEPLOY_ENV";
+    public static final String DOCKER_AUTOPULL_ENV_KEY = "DOCKER_AUTOPULL";
     public static final String LOGGING_GELF_ADDRESS_KEY = "LOGGING_GELF_ADDRESS";
     public static final String USER_NAME_KEY = "GITLAB_USER";
     public static final String USER_EMAIL_KEY = "GITLAB_EMAIL";
@@ -67,6 +68,9 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
+
+    private static final Boolean DOCKER_AUTOPULL = System.getenv().containsKey(DOCKER_AUTOPULL_ENV_KEY)
+            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1" : true;
 
     /**
      * Label that denotes container type
@@ -184,6 +188,11 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     @SuppressWarnings("unused")
     private void pullImageIfNeeded(String imageName) {
+        // do not pull if env var is set to false
+        if (!DOCKER_AUTOPULL) {
+            return;
+        }
+
         if (!containsVersionTag(imageName)) {
             imageName += ":latest";
         }
@@ -202,7 +211,7 @@ public class ContainerManagerImpl implements ContainerManager {
             }
 
             // pull image and wait for the pull to finish
-            dockerClient.pull(imageName);
+            pullImage(imageName);
         } catch (Exception e) {
             LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
                     + e.getLocalizedMessage());
@@ -215,13 +224,18 @@ public class ContainerManagerImpl implements ContainerManager {
      * @param imageName
      *            the name of the image that should be pulled
      */
-    private void pullImage(String imageName) {
+    public void pullImage(String imageName) {
+        // do not pull if env var is set to false
+        if (!DOCKER_AUTOPULL) {
+            return;
+        }
+
         try {
             // If we have authentication credentials and the image name contains
             // the server address of these credentials, we should use them
             if ((gitlabAuth != null) && (imageName.startsWith(gitlabAuth.serverAddress()))) {
                 // pull image and wait for the pull to finish
-                dockerClient.pull(imageName, gitlabAuth);
+                dockerClient.pull(imageName, gitlabAuth, new LoggingPullHandler(imageName));
             } else {
                 // pull image and wait for the pull to finish
                 dockerClient.pull(imageName);
