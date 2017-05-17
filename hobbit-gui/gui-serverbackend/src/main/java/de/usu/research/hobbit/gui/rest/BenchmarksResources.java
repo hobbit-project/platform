@@ -96,15 +96,14 @@ public class BenchmarksResources {
     @Produces(MediaType.APPLICATION_JSON)
     public SubmitResponseBean submitBenchmark(SubmitModelBean model) throws Exception {
     	try {
-            throw new GUIBackendException("My fault.");
-//	        LOGGER.info("Submit benchmark id = " + model.getBenchmark());
-//	        LOGGER.info("Submit system id = " + model.getSystem());
-//	        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-//	        if (client == null) {
-//	            throw new GUIBackendException("Couldn't connect to platform controller.");
-//	        }
-//	        String id = client.submitBenchmark(model);
-//	        return new SubmitResponseBean(id);
+	        LOGGER.info("Submit benchmark id = " + model.getBenchmark());
+	        LOGGER.info("Submit system id = " + model.getSystem());
+	        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+	        if (client == null) {
+	            throw new GUIBackendException("Couldn't connect to platform controller.");
+	        }
+	        String id = client.submitBenchmark(model);
+	        return new SubmitResponseBean(id);
     	} catch (Exception e) {
     		SubmitResponseBean error = new SubmitResponseBean();
     		error.setError(e.getMessage());
