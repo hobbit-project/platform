@@ -52,6 +52,26 @@ public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
 
+    private UserInfoBean getUserInfo(SecurityContext sc) {
+        // get user
+        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+        return userInfo;
+    }
+
+    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
+        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
+        // create set of user owned system ids
+        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+        return userOwnedSystemIds;
+    }
+
+    private Set<String> getUserSystemIds(SecurityContext sc) {
+        UserInfoBean userInfo = getUserInfo(sc);
+        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+        return userOwnedSystemIds;
+    }
+
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
@@ -67,12 +87,7 @@ public class ExperimentsResources {
         if (Application.isUsingDevDb()) {
             return getDevDb().queryExperiments(ids, challengeTaskId);
         } else {
-            // get user
-            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-            List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
-            // create set of user owned system ids
-            String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-            Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+
 
             if (ids != null) {
                 System.out.println("Querying experiment results for " + Arrays.toString(ids));
@@ -85,18 +100,21 @@ public class ExperimentsResources {
                     // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null) {
-                        results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                        if (model.size() > 0) {
+                            results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                        }
                     } else {
                         // if public experiment is not found
                         // try requesting model from private graph
                         query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PRIVATE_RESULT_GRAPH_URI);
                         model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-                        if (model != null) {
+                        if (model != null && model.size() > 0) {
                             // get current experiment system
                             Resource subj = model.getResource(experimentUri);
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
+                                Set<String> userOwnedSystemIds = getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
@@ -113,12 +131,14 @@ public class ExperimentsResources {
                 Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                 // if model is public and available - go with it
                 if (model != null) {
-                    results = RdfModelHelper.createExperimentBeans(model);
+                    if (model.size() > 0) {
+                        results = RdfModelHelper.createExperimentBeans(model);
+                    }
                 } else {
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-                    if (model != null) {
+                    if (model != null && model.size() > 0) {
                         // get challenge organizer
                         Resource subj = model.getResource(challengeTaskId);
                         // get challenge info
@@ -128,12 +148,14 @@ public class ExperimentsResources {
                         if (organizer != null) {
                             // check if organizer is user
                             // return whole thing if he is
+                            UserInfoBean userInfo = getUserInfo(sc);
                             if (organizer.getURI() == userInfo.getPreferredUsername()) {
                                 results = RdfModelHelper.createExperimentBeans(model);
                             } else {
                                 // if he is not, iterate over the beans and remove all beans that's now user owned
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
+                                    Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
                                     results = experiments.stream()
                                             .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
