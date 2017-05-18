@@ -10,3 +10,4 @@ config/db/virtuoso.qrl
 .gitlab-ci.yml
 dependency-reduced-pom.xml
 *.iml
+.idea
