@@ -16,22 +16,26 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.SecurityContext;
 
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.*;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -42,9 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
-import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -55,7 +56,8 @@ public class ExperimentsResources {
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ExperimentBean> query(@QueryParam("id") String idsCommaSep,
-            @QueryParam("challenge-task-id") String challengeTaskId) throws Exception {
+                                      @QueryParam("challenge-task-id") String challengeTaskId,
+                                      @Context SecurityContext sc) throws Exception {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
@@ -65,28 +67,81 @@ public class ExperimentsResources {
         if (Application.isUsingDevDb()) {
             return getDevDb().queryExperiments(ids, challengeTaskId);
         } else {
+            // get user
+            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+            List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
+            // create set of user owned system ids
+            String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+            Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+
             if (ids != null) {
                 System.out.println("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
                 for (String id : ids) {
                     // create experiment URI
                     String experimentUri = Constants.EXPERIMENT_URI_NS + id;
-                    String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
-                    // TODO make sure that the user is allowed to see the
-                    // experiment!
+                    // construct public query
+                    String query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PUBLIC_RESULT_GRAPH_URI);
+                    // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null) {
                         results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                    } else {
+                        // if public experiment is not found
+                        // try requesting model from private graph
+                        query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PRIVATE_RESULT_GRAPH_URI);
+                        model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+                        if (model != null) {
+                            // get current experiment system
+                            Resource subj = model.getResource(experimentUri);
+                            Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
+                            if (system != null) {
+                                String systemURI = system.getURI();
+                                // check if it's owned by user
+                                if (userOwnedSystemIds.contains(systemURI)) {
+                                    results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                                }
+                            }
+                        }
                     }
                 }
             } else if (challengeTaskId != null) {
                 System.out.println("Querying experiment results for challenge task " + challengeTaskId);
-                // create experiment URI
-                String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, null);
-                // TODO make sure that the user is allowed to see the
-                // experiment!
+                // create experiment URI from public results graph
+                String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
+                // get public experiment
                 Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-                results = RdfModelHelper.createExperimentBeans(model);
+                // if model is public and available - go with it
+                if (model != null) {
+                    results = RdfModelHelper.createExperimentBeans(model);
+                } else {
+                    // otherwise try to look in private graph
+                    query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
+                    model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+                    if (model != null) {
+                        // get challenge organizer
+                        Resource subj = model.getResource(challengeTaskId);
+                        // get challenge info
+                        String challengeQuery = SparqlQueries.getChallengeTaskOrganizer(challengeTaskId, null);
+                        Model challengeModel = StorageServiceClientSingleton.getInstance().sendConstructQuery(challengeQuery);
+                        Resource organizer = RdfHelper.getObjectResource(challengeModel, subj, HOBBIT.organizer);
+                        if (organizer != null) {
+                            // check if organizer is user
+                            // return whole thing if he is
+                            if (organizer.getURI() == userInfo.getPreferredUsername()) {
+                                results = RdfModelHelper.createExperimentBeans(model);
+                            } else {
+                                // if he is not, iterate over the beans and remove all beans that's now user owned
+                                List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
+                                if (experiments != null) {
+                                    results = experiments.stream()
+                                            .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
+                                            .collect(Collectors.toList());
+                                }
+                            }
+                        }
+                    }
+                }
             } else {
                 // TODO make sure that the user is allowed to see the
                 // experiment!
