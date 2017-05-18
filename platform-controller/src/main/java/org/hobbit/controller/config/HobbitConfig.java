@@ -2,6 +2,7 @@ package org.hobbit.controller.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,8 +27,7 @@ public class HobbitConfig {
 
     public static HobbitConfig loadConfig() throws Exception {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        String file = HobbitConfig.class.getClassLoader().getResource("config.yaml").getFile();
-        HobbitConfig cfg = mapper.readValue(new File(file), HobbitConfig.class);
+        HobbitConfig cfg = mapper.readValue(new File("config.yaml"), HobbitConfig.class);
         return cfg;
     }
 
@@ -49,4 +49,6 @@ public class HobbitConfig {
         }
         return new TimeoutConfig(bt, ct);
     }
+
+
 }
