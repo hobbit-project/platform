@@ -163,15 +163,23 @@ public class ExperimentManager implements Closeable {
                         if (config.challengeUri != null) {
                             if (timeouts.challengeTimeout != -1) {
                                 maxExecutionTime = timeouts.challengeTimeout;
+                                LOGGER.info("Using challenge timeout:", maxExecutionTime);
+                            } else {
+                                LOGGER.error("Challenge timeout for given benchmark is not set, using default value..");
                             }
                         } else {
                             if (timeouts.benchmarkTimeout != -1) {
                                 maxExecutionTime = timeouts.benchmarkTimeout;
+                                LOGGER.info("Using benchmark timeout:", maxExecutionTime);
+                            } else {
+                                LOGGER.error("Benchmark timeout is not set, using default value..");
                             }
                         }
+                    } else {
+                        LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
                 } catch (Exception e) {
-                    LOGGER.debug("Could not load config, using default values..");
+                    LOGGER.error("Could not load timeouts config, using default values:", e.toString());
                 }
 
                 // start experiment timer/status
