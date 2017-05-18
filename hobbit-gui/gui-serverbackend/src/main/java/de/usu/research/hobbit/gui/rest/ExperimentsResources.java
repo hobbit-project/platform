@@ -99,10 +99,8 @@ public class ExperimentsResources {
                     String query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PUBLIC_RESULT_GRAPH_URI);
                     // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-                    if (model != null) {
-                        if (model.size() > 0) {
-                            results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
-                        }
+                    if (model != null && model.size() > 0) {
+                        results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
                     } else {
                         // if public experiment is not found
                         // try requesting model from private graph
@@ -130,10 +128,8 @@ public class ExperimentsResources {
                 // get public experiment
                 Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                 // if model is public and available - go with it
-                if (model != null) {
-                    if (model.size() > 0) {
-                        results = RdfModelHelper.createExperimentBeans(model);
-                    }
+                if (model != null && model.size() > 0) {
+                    results = RdfModelHelper.createExperimentBeans(model);
                 } else {
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
