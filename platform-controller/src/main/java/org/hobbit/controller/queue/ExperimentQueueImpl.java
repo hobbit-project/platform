@@ -75,13 +75,13 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         ExperimentConfiguration challenge = null;
 
         if (!experimentIds.isEmpty()) {
-            String experimentId = experimentIds.get(experimentIds.size() - 1);
+            String experimentId = experimentIds.get(0);
             String experimentStr = redisSyncCommands.hget(EXPERIMENT_KEY, experimentId);
             experiment = decodeExperimentFromString(experimentStr);
         }
 
         if (!challengeIds.isEmpty()) {
-            String challengeId = challengeIds.get(challengeIds.size() - 1);
+            String challengeId = challengeIds.get(0);
             String challengeStr = redisSyncCommands.hget(CHALLENGE_KEY, challengeId);
             challenge = decodeExperimentFromString(challengeStr);
         }
@@ -148,6 +148,10 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         // create result
         List<ExperimentConfiguration> result = stringMapToExperimentList(experiments);
         result.addAll(stringMapToExperimentList(challenges));
+        result.sort(
+                (ExperimentConfiguration o1, ExperimentConfiguration o2) ->
+                        o1.executionDate.before(o2.executionDate) ? -1 : 1
+        );
         // return result
         return result;
     }

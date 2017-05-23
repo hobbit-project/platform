@@ -104,7 +104,14 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         queue.add(cfg3);
         // get next experiment
         ExperimentConfiguration next = queue.getNextExperiment();
-        assertEquals(next.id, cfg3.id);
+        assertEquals(next.id, cfg2.id);
+
+        // get a list
+        List<ExperimentConfiguration> allThree = queue.listAll();
+        assertEquals(allThree.size(), 3);
+        assertEquals(allThree.get(0).id, "2");
+        assertEquals(allThree.get(1).id, "1");
+        assertEquals(allThree.get(2).id, "3");
     }
 
     @Test
