@@ -179,7 +179,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         imageManager = new ImageManagerImpl();
         LOGGER.debug("Image manager initialized.");
 
-        frontEnd2Controller = dataConnection.createChannel();
+        frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
         frontEndApiHandler = new DefaultConsumer(frontEnd2Controller) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
@@ -195,12 +195,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
         frontEnd2Controller.basicConsume(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, true, frontEndApiHandler);
 
-        controller2Analysis = dataConnection.createChannel();
+        controller2Analysis = cmdQueueFactory.getConnection().createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
 
         queue = new ExperimentQueueImpl();
 
-        storage = StorageServiceClient.create(dataConnection);
+        storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
