@@ -1,5 +1,7 @@
 package org.hobbit.controller.config;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
@@ -50,5 +52,12 @@ public class HobbitConfig {
         return new TimeoutConfig(bt, ct);
     }
 
-
+    public static void main(String[] args) throws Exception {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        HobbitConfig cfg = mapper.readValue(new File("test-config.yaml"), HobbitConfig.class);
+        for(String s : cfg.timeouts.keySet()) {
+            TimeoutConfig t = cfg.getTimeout(s);
+            System.out.println(s + " " + t.benchmarkTimeout + " " + t.challengeTimeout);
+        }
+    }
 }
