@@ -138,16 +138,17 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
 
     @Override
     public List<ExperimentConfiguration> listAll() {
-        // get all experiments and challenges
+        // get all experiments
         Map<String, String> experiments = redisSyncCommands.hgetall(EXPERIMENT_KEY);
-        Map<String, String> challenges = redisSyncCommands.hgetall(CHALLENGE_KEY);
         // create result
         List<ExperimentConfiguration> result = stringMapToExperimentList(experiments);
-        result.addAll(stringMapToExperimentList(challenges));
         result.sort(
                 (ExperimentConfiguration o1, ExperimentConfiguration o2) ->
                         o1.executionDate.before(o2.executionDate) ? -1 : 1
         );
+        Map<String, String> challenges = redisSyncCommands.hgetall(CHALLENGE_KEY);
+        // Add all challenges in front of the experiments
+        result.addAll(0, stringMapToExperimentList(challenges));
         // return result
         return result;
     }
