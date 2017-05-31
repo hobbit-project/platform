@@ -19,6 +19,7 @@ package org.hobbit.controller.queue;
 import java.io.Closeable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
@@ -86,14 +87,9 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
             challenge = decodeExperimentFromString(challengeStr);
         }
 
-        if (challenge != null && experiment != null && challenge.executionDate.before(experiment.executionDate)) {
+        if (challenge != null && challenge.executionDate.before(Calendar.getInstance())) {
             return challenge;
         }
-
-        if (challenge != null && experiment == null) {
-            return challenge;
-        }
-
         return experiment;
     }
 
