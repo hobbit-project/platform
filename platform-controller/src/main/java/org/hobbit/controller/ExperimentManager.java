@@ -66,7 +66,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public long MAX_EXECUTION_TIME = DEFAULT_MAX_EXECUTION_TIME;
+    public long defaultMaxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
     /**
      * The controller this manager belongs to.
      */
@@ -95,7 +95,8 @@ public class ExperimentManager implements Closeable {
         this.controller = controller;
 
         try {
-            MAX_EXECUTION_TIME = Long.parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+            defaultMaxExecutionTime = Long
+                    .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
         } catch (Exception e) {
             LOGGER.debug("Could not get execution time from env, using default value..");
         }
@@ -108,7 +109,12 @@ public class ExperimentManager implements Closeable {
                     // trigger the creation of the next benchmark
                     createNextExperiment();
                 } catch (Throwable e) {
-                    LOGGER.error("The experiment starting timer got an unexpected exception.", e);
+                    LOGGER.error(
+                            "The experiment starting timer got an unexpected exception. Trying to handle the corrupted experiment if there is one.",
+                            e);
+                    // If there is an experiment status, it will be handled in
+                    // this method
+                    handleExperimentTermination();
                 }
             }
         }, checkForFirstExperiment, checkForNewExperiment);
@@ -140,12 +146,16 @@ public class ExperimentManager implements Closeable {
 
                 String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
                 if (benchImageName == null) {
+                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                            this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
                     throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
                 }
 
                 String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
                 if (sysImageName == null) {
+                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                            this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.SystemImageMissing);
                     throw new Exception("Couldn't find image name for system " + config.systemUri);
                 }
@@ -153,7 +163,7 @@ public class ExperimentManager implements Closeable {
                 prefetchImages(config, benchImageName, sysImageName);
 
                 // time an experiment has to terminate after it has been started
-                long maxExecutionTime = MAX_EXECUTION_TIME;
+                long maxExecutionTime = defaultMaxExecutionTime;
 
                 // try to load benchmark timeouts from config file
                 try {
@@ -179,7 +189,9 @@ public class ExperimentManager implements Closeable {
                         LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Could not load timeouts config, using default values:", e.toString());
+                    LOGGER.error(
+                            "Could not load timeouts config, using default value " + defaultMaxExecutionTime + "ms.",
+                            e);
                 }
 
                 // start experiment timer/status
