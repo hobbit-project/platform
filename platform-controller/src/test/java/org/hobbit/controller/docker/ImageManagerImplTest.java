@@ -24,9 +24,12 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.vocabulary.RDF;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.HOBBIT;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,16 +48,16 @@ public class ImageManagerImplTest {
         imageManager = new ImageManagerImpl();
     }
 
-//    @Test
-//    public void modelToBenchmarkMetaDataTest() throws Exception {
-        // Model m = imageManager.getBenchmarkModel("test");
-        // BenchmarkMetaData data = imageManager.modelToBenchmarkMetaData(m);
-        // assertEquals(data.benchmarkName, "GERBIL Benchmark");
-        // assertEquals(data.benchmarkDescription, "Example of a HOBBIT T3.2
-        // benchmark based on GERBIL");
-        // assertEquals(data.benchmarkUri,
-        // "http://example.org/GerbilBenchmark");
-//    }
+    // @Test
+    // public void modelToBenchmarkMetaDataTest() throws Exception {
+    // Model m = imageManager.getBenchmarkModel("test");
+    // BenchmarkMetaData data = imageManager.modelToBenchmarkMetaData(m);
+    // assertEquals(data.benchmarkName, "GERBIL Benchmark");
+    // assertEquals(data.benchmarkDescription, "Example of a HOBBIT T3.2
+    // benchmark based on GERBIL");
+    // assertEquals(data.benchmarkUri,
+    // "http://example.org/GerbilBenchmark");
+    // }
 
     @Test
     public void getBenchmarks() throws Exception {
@@ -63,6 +66,7 @@ public class ImageManagerImplTest {
 
         // execute tests when gitlab is ready
         imageManager.runWhenGitlabIsReady(() -> {
+            try {
             // System.out.println("Gitlab is ready! Running tests...");
             // get all benchmarks
             List<BenchmarkMetaData> bs = imageManager.getBenchmarks();
@@ -72,10 +76,10 @@ public class ImageManagerImplTest {
             List<SystemMetaData> sys = imageManager.getSystems();
             Assert.assertTrue(sys.size() > 0);
 
-            // fin gerbil benchmark
+            // find gerbil benchmark
             BenchmarkMetaData gerbilBench = null;
             for (BenchmarkMetaData b : bs) {
-                if (b.benchmarkUri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark")) {
+                if (b.benchmarkUri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB")) {
                     gerbilBench = b;
                 }
             }
@@ -86,11 +90,18 @@ public class ImageManagerImplTest {
             Assert.assertTrue(gbSys.size() > 1);
 
             // get gerbil benchmark by URL
-            Model benchmarkModel = imageManager.getBenchmarkModel("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark");
+            Model benchmarkModel = imageManager
+                    .getBenchmarkModel("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB");
             Assert.assertNotNull(benchmarkModel);
 
+            // make sure that the retrieved model contains only one single
+            // system instance
+            Model systemModel = imageManager.getSystemModel("http://adel.eurecom.fr/SystemTask1");
+            Assert.assertNotNull(systemModel);
+            Assert.assertEquals(1, RdfHelper.getSubjectResources(systemModel, RDF.type, HOBBIT.SystemInstance).size());
+
             // find test systems for gerbil by URL
-            Model systemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance1");
+            systemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance1");
             Assert.assertNotNull(systemModel);
             Model otherSystemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance2");
             Assert.assertNotNull(otherSystemModel);
@@ -106,8 +117,7 @@ public class ImageManagerImplTest {
 
             List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
             String userName = "testuser";
-            Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
-                    imageManager.getSystemsOfUser(userName));
+            Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(imageManager.getSystemsOfUser(userName));
             List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
             for (SystemMetaData s : systems4Benchmark) {
                 if (userSystems.contains(s)) {
@@ -118,11 +128,16 @@ public class ImageManagerImplTest {
             Gson gson = new Gson();
             System.out.println(gson.toJson(filteredSystems));
             byte data[] = RabbitMQUtils.writeString(gson.toJson(filteredSystems));
-            Collection<SystemMetaData> recSystems = gson.fromJson(RabbitMQUtils.readString(data), new TypeToken<Collection<SystemMetaData>>() {
-            }.getType());
+            Collection<SystemMetaData> recSystems = gson.fromJson(RabbitMQUtils.readString(data),
+                    new TypeToken<Collection<SystemMetaData>>() {
+                    }.getType());
             System.out.println(recSystems.size());
 
             future.complete("done");
+            } catch (Throwable t) {
+                t.printStackTrace();
+                future.complete("error");
+            }
         });
         // System.out.println("Waiting for gitlab...");
 
