@@ -98,6 +98,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
+    private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
+            ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1" : true;
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -325,7 +328,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     private String createContainer(StartCommandData data) {
         String parentId = containerManager.getContainerId(data.parent);
-        if (parentId == null) {
+        if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }

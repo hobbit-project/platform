@@ -385,6 +385,7 @@ public class ExperimentManager implements Closeable {
      *            exit code of the termination
      */
     public void notifyTermination(String containerId, int exitCode) {
+        boolean consumed = false;
         try {
             experimentMutex.acquire();
         } catch (InterruptedException e) {
@@ -407,36 +408,39 @@ public class ExperimentManager implements Closeable {
                     handleExperimentTermination_unsecured();
                     // If this is the system container and benchmark and
                     // system are not running
+                    consumed = true;
                 } else if (containerId.equals(experimentStatus.getSystemContainer())
                         && (experimentStatus.getState() == ExperimentStatus.States.INIT)) {
                     LOGGER.info("The system has been stopped before the benchmark has been started. Aborting.");
                     // Cancel the experiment
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCrashed);
-                } else {
-                    LOGGER.info("Sending broadcast message...");
-                    // send a message using sendToCmdQueue(command,
-                    // data) comprising a command that indicates that a
-                    // container terminated and the container name
-                    String containerName = controller.containerManager.getContainerName(containerId);
-                    if (containerName != null) {
-                        try {
-                            controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
-                                    Commands.DOCKER_CONTAINER_TERMINATED,
-                                    RabbitMQUtils.writeByteArrays(null,
-                                            new byte[][] { RabbitMQUtils.writeString(containerName) },
-                                            new byte[] { (byte) exitCode }),
-                                    null);
-                        } catch (IOException e) {
-                            LOGGER.error("Couldn't send the " + Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS
-                                    + " message for container " + containerName + " to the command queue.", e);
-                        }
-                    } else {
-                        LOGGER.info("Unknown container " + containerId + " stopped with exitCode=" + exitCode);
-                    }
+                    consumed = true;
                 }
             }
         } finally {
             experimentMutex.release();
+        }
+        if(!consumed) {
+            LOGGER.info("Sending broadcast message...");
+            // send a message using sendToCmdQueue(command,
+            // data) comprising a command that indicates that a
+            // container terminated and the container name
+            String containerName = controller.containerManager.getContainerName(containerId);
+            if (containerName != null) {
+                try {
+                    controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
+                            Commands.DOCKER_CONTAINER_TERMINATED,
+                            RabbitMQUtils.writeByteArrays(null,
+                                    new byte[][] { RabbitMQUtils.writeString(containerName) },
+                                    new byte[] { (byte) exitCode }),
+                            null);
+                } catch (IOException e) {
+                    LOGGER.error("Couldn't send the " + Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS
+                            + " message for container " + containerName + " to the command queue.", e);
+                }
+            } else {
+                LOGGER.info("Unknown container " + containerId + " stopped with exitCode=" + exitCode);
+            }
         }
     }
 
