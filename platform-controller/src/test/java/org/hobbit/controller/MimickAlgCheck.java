@@ -34,6 +34,7 @@ public class MimickAlgCheck extends AbstractPlatformConnectorComponent {
     private static final String MIMICKING_ALG_ENV_VARS[] = { "hobbit.numtraces=10", "hobbit.seed=3",
             "hobbit.outputformat=rdf" };
     private static final String OUTPUT_DIR = "test_output";
+    private static final String RABBIT_HOST_NAME_IN_DOCKER_NETWORK = "rabbit";
 
     public MimickAlgCheck() {
         defaultContainerType = Constants.CONTAINER_TYPE_BENCHMARK;
@@ -70,6 +71,11 @@ public class MimickAlgCheck extends AbstractPlatformConnectorComponent {
 
     @Override
     public void run() throws Exception {
+        // After this component has been initialized and is connected to rabbit,
+        // we need to set the rabbit host name to the value that this container
+        // would have if it would be running as Docker container inside the
+        // hobbit network.
+        this.rabbitMQHostName = RABBIT_HOST_NAME_IN_DOCKER_NETWORK;
         DockerBasedMimickingAlg alg = new DockerBasedMimickingAlg(this, DOCKER_IMAGE);
         alg.generateData(OUTPUT_DIR, MIMICKING_ALG_ENV_VARS);
     }
