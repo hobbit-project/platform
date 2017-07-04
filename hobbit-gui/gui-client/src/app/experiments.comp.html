@@ -10,7 +10,7 @@
   <div *ngIf="loaded">
     <div class="row">
       <div class="col-md-12">
-        <p-dataTable [value]="experiments" [(selection)]="selectedExperiments" resizableColumns="true">
+        <p-dataTable [value]="experiments" [(selection)]="selectedExperiments" resizableColumns="true" [rows]="20" [paginator]="true"  sortField="id" sortOrder="-1">
           <p-column [style]="{'width':'38px'}" selectionMode="multiple"></p-column>
           <p-column field="id" header="Id" [sortable]="true"></p-column>
           <p-column field="benchmark.name" header="Benchmark" [sortable]="true">
