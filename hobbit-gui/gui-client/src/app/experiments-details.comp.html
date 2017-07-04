@@ -4,7 +4,7 @@
   <div *ngIf="loaded">
     <div class="row">
       <div class="col-md-12">
-        <p-dataTable [value]="rows" resizableColumns="true">
+        <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true">
           <p-column header="Parameter" [sortable]="true" styleClass="dataTableWrapping">
             <template let-row="rowData" pTemplate type="body">
               <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
