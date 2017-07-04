@@ -20,7 +20,7 @@ import java.util.Calendar;
 
 /**
  * This data structure contains the information about a planned experiment.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

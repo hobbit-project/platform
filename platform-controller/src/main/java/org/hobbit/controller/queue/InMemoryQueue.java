@@ -10,7 +10,7 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 /**
  * A simple in-memory implementation of the {@link ExperimentQueue} interface
  * that can be used for JUnit tests.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

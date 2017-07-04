@@ -58,7 +58,7 @@ public class RdfModelCreationHelper {
 
     /**
      * Creates a new RDF model with some predefined prefixes.
-     * 
+     *
      * @return a new RDF model
      */
     public static Model createNewModel() {
@@ -73,7 +73,7 @@ public class RdfModelCreationHelper {
     /**
      * Adds the given challenge to the given model and returns the created
      * {@link Resource} of the challenge.
-     * 
+     *
      * @param challenge
      *            the bean containing the information about the challenge that
      *            should be added
@@ -115,7 +115,7 @@ public class RdfModelCreationHelper {
     /**
      * Adds the given challenge task to the given model and returns the created
      * {@link Resource} of the task.
-     * 
+     *
      * @param task
      *            the bean containing the information about the challenge task
      *            that should be added
@@ -158,7 +158,7 @@ public class RdfModelCreationHelper {
      * Adds the given benchmark to the given model and returns the created
      * {@link Resource} of the benchmark. Note that the list of systems (
      * {@link BenchmarkBean#systems}) is not added to the model.
-     * 
+     *
      * @param benchmark
      *            the bean containing the information about the benchmark that
      *            should be added
@@ -188,7 +188,7 @@ public class RdfModelCreationHelper {
     /**
      * Adds the given configuration parameter to the given model and returns the
      * created {@link Resource} of the parameter.
-     * 
+     *
      * @param parameter
      *            the bean containing the information about the parameter that
      *            should be added

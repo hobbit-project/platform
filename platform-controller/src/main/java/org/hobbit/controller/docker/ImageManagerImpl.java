@@ -88,6 +88,8 @@ public class ImageManagerImpl implements ImageManager {
         result.benchmarkDescription = getDescription(model, benchmark);
         // find APIs
         result.implementedApis = getAPIs(model, benchmark, true);
+        // find used images
+        result.usedImages = getUsedImages(model, benchmark);
 
         return result;
     }
@@ -114,6 +116,8 @@ public class ImageManagerImpl implements ImageManager {
             result.system_image_name = getImage(model, system);
             // find APIs
             result.implementedApis = getAPIs(model, system, false);
+            // find used images
+            result.usedImages = getUsedImages(model, system);
             // append to results
             results.add(result);
         }
@@ -326,6 +330,16 @@ public class ImageManagerImpl implements ImageManager {
             apis.add(n.toString());
         }
         return apis;
+    }
+
+    protected Set<String> getUsedImages(Model model, Resource resource) {
+        Set<String> images = new HashSet<>();
+        NodeIterator imagesList = model.listObjectsOfProperty(resource, HOBBIT.usesImage);
+        while (imagesList.hasNext()) {
+            RDFNode n = imagesList.next();
+            images.add(n.toString());
+        }
+        return images;
     }
 
     protected String getName(Model model, Resource resource) {

@@ -19,24 +19,23 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Objects;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Resource;
+import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
+import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ControllerStatus;
+import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
-import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
+    private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
     /**
      * Time interval the experiment manager waits before it checks for the an
@@ -66,7 +66,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public static final long DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
+    public long MAX_EXECUTION_TIME = DEFAULT_MAX_EXECUTION_TIME;
     /**
      * The controller this manager belongs to.
      */
@@ -85,10 +85,6 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     private Timer expStartTimer;
-    /**
-     * Time an experiment has to terminate after it has been started.
-     */
-    protected long maxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
 
     public ExperimentManager(PlatformController controller) {
         this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
@@ -97,6 +93,12 @@ public class ExperimentManager implements Closeable {
     protected ExperimentManager(PlatformController controller, long checkForFirstExperiment,
             long checkForNewExperiment) {
         this.controller = controller;
+
+        try {
+            MAX_EXECUTION_TIME = Long.parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+        } catch (Exception e) {
+            LOGGER.debug("Could not get execution time from env, using default value..");
+        }
 
         expStartTimer = new Timer();
         expStartTimer.schedule(new TimerTask() {
@@ -131,58 +133,90 @@ public class ExperimentManager implements Closeable {
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
                     LOGGER.debug("There is no experiment to start.");
-                } else {
-                    LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
-                            + " and system " + config.systemUri + " to the queue.");
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                            this, maxExecutionTime);
-                    String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
-                    if (benchImageName == null) {
-                        experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
-                        throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
-                    } else {
-                        String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
-                        if (sysImageName == null) {
-                            experimentStatus.addError(HobbitErrors.SystemImageMissing);
-                            throw new Exception("Couldn't find image name for system " + config.systemUri);
-                        } else {
-                            LOGGER.info("Creating benchmark controller " + benchImageName);
-                            String containerId = controller.containerManager.startContainer(benchImageName,
-                                    Constants.CONTAINER_TYPE_BENCHMARK, null,
-                                    new String[] {
-                                            Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                            Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                            Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
-                                            Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "="
-                                                    + config.serializedBenchParams,
-                                            Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                                    null);
-                            if (containerId == null) {
-                                experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
-                                throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
-                            } else {
-                                experimentStatus.setBenchmarkContainer(containerId);
+                    return;
+                }
+                LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
+                        + " and system " + config.systemUri + " to the queue.");
 
-                                LOGGER.info("Creating system " + sysImageName);
-                                String serializedSystemParams = RabbitMQUtils
-                                        .writeModel2String(controller.imageManager().getSystemModel(config.systemUri));
-                                containerId = controller.containerManager.startContainer(sysImageName,
-                                        Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
-                                        new String[] {
-                                                Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                                Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                                        null);
-                                if (containerId == null) {
-                                    LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
-                                    forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
-                                    throw new Exception("Couldn't start the system " + config.systemUri);
-                                } else {
-                                    experimentStatus.setSystemContainer(containerId);
-                                }
+                String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
+                if (benchImageName == null) {
+                    experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
+                    throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
+                }
+
+                String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
+                if (sysImageName == null) {
+                    experimentStatus.addError(HobbitErrors.SystemImageMissing);
+                    throw new Exception("Couldn't find image name for system " + config.systemUri);
+                }
+
+                prefetchImages(config, benchImageName, sysImageName);
+
+                // time an experiment has to terminate after it has been started
+                long maxExecutionTime = MAX_EXECUTION_TIME;
+
+                // try to load benchmark timeouts from config file
+                try {
+                    HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
+                    HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
+                    if (timeouts != null) {
+                        if (config.challengeUri != null) {
+                            if (timeouts.challengeTimeout != -1) {
+                                maxExecutionTime = timeouts.challengeTimeout;
+                                LOGGER.info("Using challenge timeout:", maxExecutionTime);
+                            } else {
+                                LOGGER.error("Challenge timeout for given benchmark is not set, using default value..");
+                            }
+                        } else {
+                            if (timeouts.benchmarkTimeout != -1) {
+                                maxExecutionTime = timeouts.benchmarkTimeout;
+                                LOGGER.info("Using benchmark timeout:", maxExecutionTime);
+                            } else {
+                                LOGGER.error("Benchmark timeout is not set, using default value..");
                             }
                         }
+                    } else {
+                        LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
+                } catch (Exception e) {
+                    LOGGER.error("Could not load timeouts config, using default values:", e.toString());
+                }
+
+                // start experiment timer/status
+                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                        this, maxExecutionTime);
+
+                LOGGER.info("Creating benchmark controller " + benchImageName);
+                String containerId = controller.containerManager.startContainer(benchImageName,
+                        Constants.CONTAINER_TYPE_BENCHMARK, null,
+                        new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
+                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
+                                Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
+                        null);
+                if (containerId == null) {
+                    experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
+                    throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
+                }
+
+                experimentStatus.setBenchmarkContainer(containerId);
+
+                LOGGER.info("Creating system " + sysImageName);
+                String serializedSystemParams = RabbitMQUtils
+                        .writeModel2String(controller.imageManager().getSystemModel(config.systemUri));
+                containerId = controller.containerManager.startContainer(sysImageName, Constants.CONTAINER_TYPE_SYSTEM,
+                        experimentStatus.getBenchmarkContainer(),
+                        new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
+                        null);
+                if (containerId == null) {
+                    LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
+                    throw new Exception("Couldn't start the system " + config.systemUri);
+                } else {
+                    experimentStatus.setSystemContainer(containerId);
                 }
             }
         } catch (Exception e) {
@@ -194,6 +228,38 @@ public class ExperimentManager implements Closeable {
             handleExperimentTermination_unsecured();
         } finally {
             experimentMutex.release();
+        }
+    }
+
+    protected void prefetchImages(ExperimentConfiguration config, String benchImageName, String sysImageName)
+            throws Exception {
+        Set<String> usedImages = new HashSet<String>();
+        usedImages.add(benchImageName);
+        usedImages.add(sysImageName);
+        // Get the list of images used by the benchmark
+        Model model = controller.imageManager().getBenchmarkModel(config.benchmarkUri);
+        if (model != null) {
+            BenchmarkMetaData benchMeta = controller.imageManager().modelToBenchmarkMetaData(model);
+            usedImages.addAll(benchMeta.usedImages);
+        } else {
+            LOGGER.warn("Couldn't get model of benchmark {}. Won't prefetch its images.", config.benchmarkUri);
+        }
+        // Get the list of images used by the system
+        model = controller.imageManager().getBenchmarkModel(config.systemUri);
+        if (model != null) {
+            List<SystemMetaData> sysMetas = controller.imageManager().modelToSystemMetaData(model);
+            for (SystemMetaData s : sysMetas) {
+                if (s.systemUri == config.systemUri) {
+                    usedImages.addAll(s.usedImages);
+                    break;
+                }
+            }
+        } else {
+            LOGGER.warn("Couldn't get model of system {}. Won't prefetch its images.", config.systemUri);
+        }
+        // pull all used images
+        for (String image : usedImages) {
+            controller.containerManager.pullImage(image);
         }
     }
 
@@ -253,32 +319,13 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
                 resultModel = experimentStatus.getResultModel();
             }
-            // Add basic information about the benchmark and the system
-            if (experimentStatus.config.benchmarkUri != null) {
-                Model benchmarkModel = controller.imageManager()
-                        .getBenchmarkModel(experimentStatus.config.benchmarkUri);
-                if (benchmarkModel != null) {
-                    LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
-                    resultModel.add(benchmarkModel);
-                }
-            }
-            if (experimentStatus.config.systemUri != null) {
-                Model systemModel = controller.imageManager().getSystemModel(experimentStatus.config.systemUri);
-                if (systemModel != null) {
-                    // Remove the image name of the system. Otherwise it could
-                    // be misused.
-                    systemModel.remove(
-                            systemModel.listStatements(systemModel.getResource(experimentStatus.config.systemUri),
-                                    HOBBIT.imageName, (RDFNode) null));
-                    resultModel.add(systemModel);
-                }
-            }
+            experimentStatus.addMetaDataToResult(controller.imageManager());
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
                 if (resultModel != null) {
                     StringWriter writer = new StringWriter();
                     resultModel.write(writer, "TTL");
                     LOGGER.error("Error while storing the result model of the experiment. Logging it: ",
-                            writer.toString().replace(String.format("%n"), "|"));
+                            writer.toString().replace('\n', ' '));
                 }
             }
             // We have to remove the config from the queue
@@ -497,7 +544,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of
      * an experiment has been reached.
-     * 
+     *
      * @param expiredState
      *            the experiment status the timer was working on which is used
      *            to make sure that the timer was started for the currently
@@ -529,14 +576,6 @@ public class ExperimentManager implements Closeable {
         } finally {
             experimentMutex.release();
         }
-    }
-
-    public long getMaxExecutionTime() {
-        return maxExecutionTime;
-    }
-
-    public void setMaxExecutionTime(long maxExecutionTime) {
-        this.maxExecutionTime = maxExecutionTime;
     }
 
     @Override

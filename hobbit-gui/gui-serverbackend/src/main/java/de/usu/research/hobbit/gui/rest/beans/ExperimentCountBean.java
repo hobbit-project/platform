@@ -21,8 +21,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class ExperimentCountBean {
 
-	private NamedEntityBean challengeTask;
-	private int count;
+    private NamedEntityBean challengeTask;
+    private int count;
 
     public ExperimentCountBean() {
     }

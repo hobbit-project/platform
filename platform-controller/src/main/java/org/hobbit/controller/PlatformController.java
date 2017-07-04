@@ -91,10 +91,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * The current version of the platform.
-     * 
+     *
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "1.0.7";
+    public static final String PLATFORM_VERSION = "1.0.9";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -221,7 +221,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * Handles incoming command request from the hobbit command queue.
-     * 
+     *
      * <p>
      * Commands handled by this method:
      * <ul>
@@ -318,7 +318,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Creates and starts a container based on the given
      * {@link StartCommandData} instance.
-     * 
+     *
      * @param data
      *            the data needed to start the container
      * @return the name of the created container
@@ -340,7 +340,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * Stops the container with the given container name.
-     * 
+     *
      * @param containerName
      *            name of the container that should be stopped
      */
@@ -428,7 +428,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Sends the given command to the command queue with the given data appended
      * and using the given properties.
-     * 
+     *
      * @param address
      *            address for the message
      * @param command
@@ -768,7 +768,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Adds a new experiment with the given benchmark, system and benchmark
      * parameter to the queue.
-     * 
+     *
      * @param benchmarkUri
      *            the URI of the benchmark
      * @param systemUri
@@ -794,7 +794,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Creates a status object summarizing the current status of this
      * controller.
-     * 
+     *
      * @return the status of this controller
      */
     private ControllerStatus getStatus() {
@@ -824,7 +824,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Generates a unique experiment Id based on the current time stamp and the
      * last Id ({@link #lastIdTime}) that has been created.
-     * 
+     *
      * @return a unique experiment Id
      */
     private synchronized String generateExperimentId() {
@@ -839,7 +839,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Generates an experiment URI using the given id and the experiment URI
      * namespace defined by {@link Constants#EXPERIMENT_URI_NS}.
-     * 
+     *
      * @param id
      *            the id of the experiment
      * @return the experiment URI

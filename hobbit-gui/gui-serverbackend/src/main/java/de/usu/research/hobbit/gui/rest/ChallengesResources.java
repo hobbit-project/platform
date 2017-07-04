@@ -104,7 +104,7 @@ public class ChallengesResources {
      * Adds benchmark and system labels and descriptions to the given challenge
      * bean. The given user info is used to check the access of the user
      * regarding this information.
-     * 
+     *
      * @param challenge
      *            the challenge bean that should be updated with the retrieved
      *            information

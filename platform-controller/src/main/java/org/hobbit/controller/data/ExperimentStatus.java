@@ -19,6 +19,7 @@ package org.hobbit.controller.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
 
@@ -31,6 +32,7 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
+import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Constants;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -41,7 +43,7 @@ import org.slf4j.LoggerFactory;
 /**
  * This class is used to store all the information that are needed to controle a
  * running experiment.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -49,7 +51,7 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Typical states of a benchmark.
-     * 
+     *
      * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
      *
      */
@@ -199,7 +201,7 @@ public class ExperimentStatus implements Closeable {
      * The method sets a flag that (depending on the given flag) the system or
      * the benchmark is ready and returns <code>true</code> if internally both
      * have the state of being ready.
-     * 
+     *
      * @param systemReportedReady
      *            <code>true</code> if the system is ready or <code>false</code>
      *            if the benchmark is ready
@@ -221,11 +223,11 @@ public class ExperimentStatus implements Closeable {
     /**
      * Sets the result model if there is no model present. Otherwise, the given
      * model is merged with the existing model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param resultModel
      *            the new result model
      */
@@ -250,11 +252,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Sets the result model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param resultModel
      *            the new result model
      */
@@ -276,11 +278,11 @@ public class ExperimentStatus implements Closeable {
     /**
      * Adds the given error to the result model if it does not already contain
      * an error.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -307,11 +309,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds the given error to the result model.
-     * 
+     *
      * <p>
      * This method is thread-safe.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -334,11 +336,11 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds the given error to the result model.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>
-     * 
+     *
      * @param error
      *            the error that should be added to the result model
      */
@@ -352,7 +354,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Initializes the result model and adds basic information using
      * {@link #addBasicInformation_Unsecured()}.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>
@@ -364,7 +366,7 @@ public class ExperimentStatus implements Closeable {
 
     /**
      * Adds basic information to the result model.
-     * 
+     *
      * <p>
      * This method is <b>not thread-safe</b>.
      * </p>
@@ -403,6 +405,53 @@ public class ExperimentStatus implements Closeable {
         }
         if (config.challengeTaskUri != null) {
             resultModel.add(experiment, HOBBIT.isPartOf, resultModel.getResource(config.challengeTaskUri));
+        }
+    }
+
+    /**
+     * Uses the given {@link ImageManager} instance to add additional meta data
+     * regarding the benchmark and the system to the experiment result model.
+     * 
+     * @param imageManager
+     *            used to get RDF models for the benchmark and the system of
+     *            this experiment
+     */
+    public void addMetaDataToResult(ImageManager imageManager) {
+        try {
+            modelMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error("Interrupted while waiting for mutex of result model. Returning.");
+            return;
+        }
+        try {
+            // If there is no result model, create it
+            if (resultModel == null) {
+                initModel_Unsecured();
+            }
+            // Add basic information about the benchmark and the system
+            if (config.benchmarkUri != null) {
+                Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);
+                if (benchmarkModel != null) {
+                    LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
+                    resultModel.add(benchmarkModel);
+                }
+            }
+            if (config.systemUri != null) {
+                Model systemModel = imageManager.getSystemModel(config.systemUri);
+                if (systemModel != null) {
+                    resultModel.add(systemModel);
+                }
+            }
+
+            // Remove statements that shouldn't be part of the result model.
+            List<Statement> removableStatements = resultModel.listStatements(null, HOBBIT.imageName, (RDFNode) null)
+                    .toList();
+            removableStatements.addAll(resultModel.listStatements(null, HOBBIT.usesImage, (RDFNode) null).toList());
+            System.out.print("stmts to remove: ");
+            System.out.println(removableStatements.toString());
+            resultModel.remove(removableStatements);
+        } finally {
+            modelMutex.release();
         }
     }
 

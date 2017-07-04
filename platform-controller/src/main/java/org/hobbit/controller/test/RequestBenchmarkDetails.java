@@ -45,7 +45,7 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
     public static final String USER_NAME_KEY = "USERNAME";
 
     private static final long REQUEST_TIMEOUT = 60000;
-    
+
     private static final String NEWLINE = String.format("%n") + String.format("%n");
 
     protected Channel frontEnd2Controller;
@@ -77,7 +77,7 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
             LOGGER.error("Couldn't get value of " + BENCHMARK_URI_KEY + ". Aborting.");
             throw new Exception("Couldn't get value of " + BENCHMARK_URI_KEY + ". Aborting.");
         }
-	String userName =  env.getOrDefault(USER_NAME_KEY, null);
+    String userName =  env.getOrDefault(USER_NAME_KEY, null);
         LOGGER.info("Sending request...");
         BasicProperties props = new BasicProperties.Builder().deliveryMode(2)
                 .replyTo(Constants.CONTROLLER_2_FRONT_END_QUEUE_NAME).build();

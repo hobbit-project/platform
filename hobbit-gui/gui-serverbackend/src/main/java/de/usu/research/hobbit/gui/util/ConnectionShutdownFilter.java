@@ -29,18 +29,18 @@ import de.usu.research.hobbit.gui.rabbitmq.RabbitMQConnectionSingleton;
 
 public class ConnectionShutdownFilter implements Filter {
 
-	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
-			throws IOException, ServletException {
-		filterChain.doFilter(request, response);
-	}
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
+        filterChain.doFilter(request, response);
+    }
 
-	@Override
-	public void destroy() {
-		RabbitMQConnectionSingleton.shutdown();
-	}
+    @Override
+    public void destroy() {
+        RabbitMQConnectionSingleton.shutdown();
+    }
 
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
 }

@@ -7,6 +7,7 @@
       1. [Details of the user management](https://github.com/hobbit-project/platform#details-of-the-user-management)
    1. [Using Benchmarks from the HOBBIT Git](https://github.com/hobbit-project/platform#using-benchmarks-from-the-hobbit-git)
 1. [Running](https://github.com/hobbit-project/platform#running)
+1. [Related projects](https://github.com/hobbit-project/platform#related-projects)
 
 If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
 
@@ -169,3 +170,17 @@ Available services
 * :8181 Keycloak GUI
 * :8890 Virtuoso GUI (including a SPARQL endpoint)
 * :5672 RabbitMQ communication port for adding additional components to the platform, e.g., for testing scenarios
+
+### Running controller without docker
+
+1. Start the platform components by running: `docker-compose -f docker-compose-local.yml up`
+2. Start the platform-controller by running: `make local-controller`
+
+# Related projects
+
+There are some projects related to the platform
+
+* [Core](https://github.com/hobbit-project/core} - Library containing core functionalities that ease the integration into the platform.
+* [Evaluation storage](https://github.com/hobbit-project/evaluation-storage) - A default implementation of a benchmark component.
+* [Platform](https://github.com/hobbit-project/platform) & The HOBBIT platform and a wiki containing tutorials.
+* [Ontology](https://github.com/hobbit-project/ontology) & The HOBBIT ontology used to store data and described in D2.2.1 of the HOBBIT project.

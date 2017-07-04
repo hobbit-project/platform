@@ -40,7 +40,7 @@ public class VersionTagIdentificationTest {
         testConfigs.add(new Object[] {"git.project-hobbit.eu:4567/gitadmin/platform-benchmark-system", false});
         testConfigs.add(new Object[] {"git.project-hobbit.eu:4567/gitadmin/platform-benchmark-system:latest", true});
         testConfigs.add(new Object[] {"jboss/keycloak:2.5.1.Final", true});
-        
+
         return testConfigs;
     }
 

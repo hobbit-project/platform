@@ -10,7 +10,7 @@
       <form>
         <div class="form-group">
           <label for="benchmark">Benchmark</label>
-          <select *ngIf="benchmarksLoaded" class="form-control" id="benchmark" required 
+          <select *ngIf="benchmarksLoaded" class="form-control" id="benchmark" required
             [title]="selectedBenchmark ? selectedBenchmark.description : ''"
             [ngModel]="model.benchmark" (ngModelChange)="onChangeBenchmark($event)"
             name="benchmark">
@@ -38,7 +38,7 @@
         <button type="submit" [disabled]="!model.benchmark || !model.system || successfullySubmitted" class="btn btn-default">Submit</button>
       </div>
     </div>
-  </form>  
+  </form>
 </div>
 
 <p-dialog header="Submission" [(visible)]="displaySubmitting" appendTo="body">

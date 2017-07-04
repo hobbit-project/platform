@@ -2,6 +2,7 @@ package org.hobbit.controller;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
@@ -20,19 +21,17 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
  * A simple test that uses a dummy {@link PlatformController} to simulate an
  * experiment that does not terminate and needs to be terminated by the
  * {@link ExperimentManager}.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -40,18 +39,23 @@ public class ExperimentTimeoutTest {
 
     private static final String EXPERIMENT_ID = "123";
     private static final String BENCHMARK_NAME = "benchmark";
+    private static final String SYSTEM_URI = "systemUri";
 
     private ExperimentManager manager;
     private PlatformController controller;
     private Semaphore benchmarkControllerTerminated = new Semaphore(0);
 
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
     @Before
     public void init() {
+        // set max execution time to 1s
+        environmentVariables.set("MAX_EXECUTION_TIME", "1000");
         controller = new DummyPlatformController(benchmarkControllerTerminated);
-        controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", "systemUri"));
+        controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", SYSTEM_URI));
         manager = new ExperimentManager(controller, 1000, 1000);
         controller.expManager = manager;
-        manager.setMaxExecutionTime(1000);
     }
 
     @Test /* (timeout = 10000) */
@@ -144,6 +148,33 @@ public class ExperimentTimeoutTest {
             return systemUri;
         }
 
+        @Override
+        public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
+            BenchmarkMetaData meta = new BenchmarkMetaData();
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("benchmarkImage1");
+            meta.usedImages.add("benchmarkImage2");
+            return meta;
+        }
+
+        @Override
+        public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+            List<SystemMetaData> result = new ArrayList<>();
+            SystemMetaData meta = new SystemMetaData();
+            meta.systemUri = SYSTEM_URI;
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("SystemImage1");
+            meta.usedImages.add("SystemImage2");
+            result.add(meta);
+            meta = new SystemMetaData();
+            meta.systemUri = "wrong_" + SYSTEM_URI;
+            meta.usedImages = new HashSet<>();
+            meta.usedImages.add("wrong_SystemImage1");
+            meta.usedImages.add("wrong_SystemImage2");
+            result.add(meta);
+            return new ArrayList<>(0);
+        }
+
     }
 
     private static class DummyContainerManager implements ContainerManager {
@@ -233,6 +264,13 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void addContainerObserver(ContainerStateObserver containerObserver) {
+        }
+
+        @Override
+        public void pullImage(String imageName) {
+            System.out.print("Pulling Image ");
+            System.out.print(imageName);
+            System.out.println("...");
         }
 
     }

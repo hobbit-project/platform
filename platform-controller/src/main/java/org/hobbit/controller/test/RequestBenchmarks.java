@@ -38,7 +38,7 @@ public class RequestBenchmarks extends AbstractCommandReceivingComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestBenchmarks.class);
 
     private static final long REQUEST_TIMEOUT = 60000;
-    
+
     private static final String NEWLINE = String.format("%n%n");
 
     protected Channel frontEnd2Controller;

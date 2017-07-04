@@ -28,30 +28,30 @@ import javax.servlet.http.HttpServletResponse;
 
 public class CorsFilter implements Filter {
 
-	@Override
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
-			throws IOException, ServletException {
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain filterChain)
+            throws IOException, ServletException {
 
-		if (response instanceof HttpServletResponse) {
-			HttpServletResponse alteredResponse = ((HttpServletResponse) response);
-			addCorsHeader(alteredResponse);
-		}
+        if (response instanceof HttpServletResponse) {
+            HttpServletResponse alteredResponse = ((HttpServletResponse) response);
+            addCorsHeader(alteredResponse);
+        }
 
-		filterChain.doFilter(request, response);
-	}
+        filterChain.doFilter(request, response);
+    }
 
-	private void addCorsHeader(HttpServletResponse response) {
-		response.addHeader("Access-Control-Allow-Origin", "*");
-		response.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD");
-		response.addHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, X-XSRF-TOKEN");
+    private void addCorsHeader(HttpServletResponse response) {
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD");
+        response.addHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, X-XSRF-TOKEN");
         response.addHeader("Access-Control-Max-Age", "3600");
-	}
+    }
 
-	@Override
-	public void destroy() {
-	}
+    @Override
+    public void destroy() {
+    }
 
-	@Override
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+    }
 }

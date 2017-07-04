@@ -31,12 +31,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Start the storage service docker container, connect to the container using
  * <pre>
- * {@code docker exec -it <container-id> bash } 
+ * {@code docker exec -it <container-id> bash }
  * </pre>
  * and start this class as
  * simple main with the graph name as first and the file name as second
  * argument.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */

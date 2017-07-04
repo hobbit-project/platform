@@ -22,30 +22,30 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class SubmitResponseBean {
-	private String id;
-	private Date timestamp;
-	
-	public SubmitResponseBean() {		
-	}
+    private String id;
+    private Date timestamp;
 
-	public SubmitResponseBean(String id) {
-		this.id = id;
-		this.timestamp = new Date();
-	}
+    public SubmitResponseBean() {
+    }
 
-	public String getId() {
-		return id;
-	}
+    public SubmitResponseBean(String id) {
+        this.id = id;
+        this.timestamp = new Date();
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public Date getTimestamp() {
-		return timestamp;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public void setTimestamp(Date timestamp) {
-		this.timestamp = timestamp;
-	}
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
 }

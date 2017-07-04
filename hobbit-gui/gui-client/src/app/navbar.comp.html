@@ -15,26 +15,26 @@
    <div class="collapse navbar-collapse bs-navbar-collapse" bs-navbar>
      <ul class="nav navbar-nav">
        <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">Upload <b class="caret"></b></a>
-		    <ul class="dropdown-menu">
-			    <li sg-app-menuitem role="system-provider" [x-routerLink]="['/upload/benchmarks']" label="Upload Benchmark"></li>
-			    <li sg-app-menuitem role="system-provider" [x-routerLink]="['/upload/systems']" label="Upload System"></li>
-		    </ul>
+        <ul class="dropdown-menu">
+          <li sg-app-menuitem role="system-provider" [x-routerLink]="['/upload/benchmarks']" label="Upload Benchmark"></li>
+          <li sg-app-menuitem role="system-provider" [x-routerLink]="['/upload/systems']" label="Upload System"></li>
+        </ul>
        </li>
        <li><a [routerLink]="['/benchmarks/submit']">Benchmarks</a></li>
        <li><a [routerLink]="['/challenges']">Challenges</a></li>
        <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">Experiments<b class="caret"></b></a>
-		    <ul class="dropdown-menu">
-			    <li><a [routerLink]="['/experiments']">Experiment Results</a></li>
+        <ul class="dropdown-menu">
+          <li><a [routerLink]="['/experiments']">Experiment Results</a></li>
           <li role="separator" class="divider"></li>
-			    <li><a [routerLink]="['/benchmarks/validate']">Experiment Status</a></li>
-		    </ul>
+          <li><a [routerLink]="['/benchmarks/validate']">Experiment Status</a></li>
+        </ul>
        </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
        <li><a href="#" class="dropdown-toggle" data-toggle="dropdown">{{userInfo?.name}} <b class="caret"></b></a>
-		    <ul class="dropdown-menu">
-			    <li><a href='#' (click)="logout()">Logout</a></li>
-		    </ul>
+        <ul class="dropdown-menu">
+          <li><a href='#' (click)="logout()">Logout</a></li>
+        </ul>
        </li>
       </ul>
     </div>

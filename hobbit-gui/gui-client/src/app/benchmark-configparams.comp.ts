@@ -54,7 +54,7 @@ export class BenchmarkConfigParamsComponent implements OnInit, OnChanges {
       for (let param of this.configurationParams) {
         this.configurationParamId2Index[param.id] = i;
         i += 1;
-      }       
+      }
     }
   }
 

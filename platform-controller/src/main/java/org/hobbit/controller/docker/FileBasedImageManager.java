@@ -85,8 +85,7 @@ public class FileBasedImageManager implements ImageManager {
 
                 try {
                     // Get a list of *.ttl files
-                    Collection<File> files = FileUtils.listFiles(new File(inputFolder), new String[] { "ttl" },
-                            false);
+                    Collection<File> files = FileUtils.listFiles(new File(inputFolder), new String[] { "ttl" }, false);
                     // Go through the list and try to read the files
                     for (File f : files) {
                         readFile(f, newBenchmarks, newSystems);
@@ -119,7 +118,7 @@ public class FileBasedImageManager implements ImageManager {
         }, 0, repeatInterval);
     }
 
-    protected static void readFile(File f, Map<String, ExtBenchmarkMetaData> newBenchmarks,
+    protected void readFile(File f, Map<String, ExtBenchmarkMetaData> newBenchmarks,
             Map<String, ExtSystemMetaData> newSystems) {
         String fileContent = null;
         try {
@@ -167,9 +166,9 @@ public class FileBasedImageManager implements ImageManager {
                 return;
             } else {
                 try {
-                    List<ExtSystemMetaData> metaData = modelToSystemMetaData(model);
-                    for (ExtSystemMetaData system : metaData) {
-                        newSystems.put(system.systemUri, system);
+                    List<SystemMetaData> metaData = modelToSystemMetaData(model);
+                    for (SystemMetaData system : metaData) {
+                        newSystems.put(system.systemUri, (ExtSystemMetaData) system);
                     }
                 } catch (Exception e) {
                     LOGGER.error("Couldn't process the model in " + f.getAbsolutePath() + ". It will be ignored.", e);
@@ -204,13 +203,13 @@ public class FileBasedImageManager implements ImageManager {
         return result;
     }
 
-    public static List<ExtSystemMetaData> modelToSystemMetaData(String modelString) throws Exception {
+    public List<SystemMetaData> modelToSystemMetaData(String modelString) throws Exception {
         // execute default method on new model
         return modelToSystemMetaData(stringToModel(modelString));
     }
 
-    public static List<ExtSystemMetaData> modelToSystemMetaData(Model model) throws Exception {
-        List<ExtSystemMetaData> results = new ArrayList<>();
+    public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+        List<SystemMetaData> results = new ArrayList<>();
 
         // find all system subjects
         List<Resource> systems = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.SystemInstance);
@@ -229,6 +228,8 @@ public class FileBasedImageManager implements ImageManager {
             // FIXME We should query the part of the model that is important for
             // the system instead of adding everything
             result.model = model;
+            // find used images
+            result.usedImages = getUsedImages(model, system);
             // append to results
             results.add(result);
         }
@@ -369,5 +370,39 @@ public class FileBasedImageManager implements ImageManager {
     @Override
     public List<SystemMetaData> getSystemsOfUser(String userName) {
         return getSystems();
+    }
+
+    protected Set<String> getUsedImages(Model model, Resource resource) {
+        Set<String> images = new HashSet<>();
+        NodeIterator imagesList = model.listObjectsOfProperty(resource, HOBBIT.usesImage);
+        while (imagesList.hasNext()) {
+            RDFNode n = imagesList.next();
+            images.add(n.toString());
+        }
+        return images;
+    }
+
+    @Override
+    public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
+        BenchmarkMetaData result = new BenchmarkMetaData();
+
+        // find benchmark subject
+        List<Resource> benchmarks = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.Benchmark);
+        if (benchmarks.size() == 0) {
+            return null;
+        }
+        Resource benchmark = benchmarks.get(0);
+        // set URI
+        result.benchmarkUri = benchmark.getURI();
+        // find name
+        result.benchmarkName = getName(model, benchmark);
+        // find description
+        result.benchmarkDescription = getDescription(model, benchmark);
+        // find APIs
+        result.implementedApis = getAPIs(model, benchmark, true);
+        // find used images
+        result.usedImages = getUsedImages(model, benchmark);
+
+        return result;
     }
 }

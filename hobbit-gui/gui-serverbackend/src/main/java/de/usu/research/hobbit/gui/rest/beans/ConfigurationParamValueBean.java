@@ -24,37 +24,37 @@ import de.usu.research.hobbit.gui.rest.Datatype;
 
 @XmlRootElement
 public class ConfigurationParamValueBean extends NamedEntityBean {
-	private Datatype datatype;
-	private String value;
-	private String range;
-	
-	public Datatype getDatatype() {
-		return datatype;
-	}
+    private Datatype datatype;
+    private String value;
+    private String range;
 
-	public void setDatatype(Datatype datatype) {
-		this.datatype = datatype;
-	}
-	
-	@Override
-	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
-	}
+    public Datatype getDatatype() {
+        return datatype;
+    }
 
-	public String getValue() {
-		return value;
-	}
+    public void setDatatype(Datatype datatype) {
+        this.datatype = datatype;
+    }
 
-	public void setValue(String value) {
-		this.value = value;
-	}
-	
-	public String getRange() {
-		return range;
-	}
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
 
-	public void setRange(String range) {
-		this.range = range;
-	}
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public String getRange() {
+        return range;
+    }
+
+    public void setRange(String range) {
+        this.range = range;
+    }
 
 }

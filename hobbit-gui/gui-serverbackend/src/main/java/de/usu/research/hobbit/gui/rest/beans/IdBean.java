@@ -24,14 +24,14 @@ public class IdBean {
    * The challenge id or in OWL speak URI
    */
   private String id;
-  
-  public IdBean() {    
+
+  public IdBean() {
   }
-  
+
   public IdBean(String id) {
     this.id = id;
   }
-  
+
   public String getId() {
     return id;
   }

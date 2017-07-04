@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * This interface is implemented by classes that can be used to manage Docker
  * containers.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
@@ -88,7 +88,7 @@ public interface ContainerManager {
      *            id of the parent container
      * @param command
      *            commands that should be executed
-     * 
+     *
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] command);
@@ -106,7 +106,7 @@ public interface ContainerManager {
      *            environment variables of the schema "key=value"
      * @param command
      *            commands that should be executed
-     * 
+     *
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
@@ -114,7 +114,7 @@ public interface ContainerManager {
 
     /**
      * Stops the container with the given container Id.
-     * 
+     *
      * @param containerId
      *            id of the container that should be stopped
      */
@@ -122,7 +122,7 @@ public interface ContainerManager {
 
     /**
      * Removes the already terminated container with the given container Id.
-     * 
+     *
      * @param containerId
      *            id of the container that should be removed
      */
@@ -146,7 +146,7 @@ public interface ContainerManager {
 
     /**
      * Returns container info
-     * 
+     *
      * @param containerId
      */
     public ContainerInfo getContainerInfo(String containerId);
@@ -165,4 +165,12 @@ public interface ContainerManager {
     public String getContainerName(String containerId);
 
     public void addContainerObserver(ContainerStateObserver containerObserver);
+
+    /**
+     * Pulls the image with the given name.
+     *
+     * @param imageName
+     *            the name of the image that should be pulled
+     */
+    public void pullImage(String imageName);
 }

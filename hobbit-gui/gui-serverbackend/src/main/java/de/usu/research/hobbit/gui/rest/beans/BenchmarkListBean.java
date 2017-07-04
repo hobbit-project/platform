@@ -24,21 +24,21 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @XmlRootElement
 public class BenchmarkListBean {
-	private List<BenchmarkBean> benchmarks;
-	
-	public BenchmarkListBean() {		
-	}
+    private List<BenchmarkBean> benchmarks;
 
-	public List<BenchmarkBean> getBenchmarks() {
-		return benchmarks;
-	}
+    public BenchmarkListBean() {
+    }
 
-	public void setBenchmarks(List<BenchmarkBean> benchmarks) {
-		this.benchmarks = benchmarks;
-	}
-	
-	@Override
-	public String toString() {
-		return ToStringBuilder.reflectionToString(this);
-	}
+    public List<BenchmarkBean> getBenchmarks() {
+        return benchmarks;
+    }
+
+    public void setBenchmarks(List<BenchmarkBean> benchmarks) {
+        this.benchmarks = benchmarks;
+    }
+
+    @Override
+    public String toString() {
+        return ToStringBuilder.reflectionToString(this);
+    }
 }

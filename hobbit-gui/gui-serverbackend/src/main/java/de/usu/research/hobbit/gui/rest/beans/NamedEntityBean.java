@@ -20,58 +20,58 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class NamedEntityBean {
-	/**
-	 * The challenge task id or in OWL speak URI
-	 */
-	protected String id;
+    /**
+     * The challenge task id or in OWL speak URI
+     */
+    protected String id;
 
-	/**
-	 * The challenge task name/ rdfs:label
-	 */
-	protected String name;
+    /**
+     * The challenge task name/ rdfs:label
+     */
+    protected String name;
 
-	/**
-	 * The description of the challenge task / rdfs:comment
-	 */
-	protected String description;
+    /**
+     * The description of the challenge task / rdfs:comment
+     */
+    protected String description;
 
-	public NamedEntityBean() {
-	}
+    public NamedEntityBean() {
+    }
 
-	public NamedEntityBean(String id, String name, String description) {
-		this.id = id;
-		this.name = name;
-		this.description = description;
-	}
+    public NamedEntityBean(String id, String name, String description) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+    }
 
-	public String getId() {
-		return id;
-	}
+    public String getId() {
+        return id;
+    }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+    public void setId(String id) {
+        this.id = id;
+    }
 
-	public String getName() {
-		return name;
-	}
+    public String getName() {
+        return name;
+    }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+    public void setName(String name) {
+        this.name = name;
+    }
 
-	public String getDescription() {
-		return description;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
-	
-	@Override
-	public String toString() {
-		return getClass().getName() + ",id=" + id + ",name=" + name;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + ",id=" + id + ",name=" + name;
+    }
 
     @Override
     public int hashCode() {

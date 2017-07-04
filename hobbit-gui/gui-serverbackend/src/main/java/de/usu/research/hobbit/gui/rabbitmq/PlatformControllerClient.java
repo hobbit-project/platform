@@ -59,7 +59,7 @@ import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
  * Managing the connection to the HOBBIT RabbitMQ instance (partly based on
  * org.hobbit.controller.test.RequestBenchmarkDetails and
  * org.hobbit.controller.test.RequestBenchmarks)
- * 
+ *
  * @author Roman Korf
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
@@ -92,7 +92,7 @@ public class PlatformControllerClient implements Closeable {
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see de.usu.research.hobbit.gui.rabbitmq.IRabbitMQConnection#close()
      */
     @Override
@@ -107,7 +107,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Retrieves the benchmarks registered at the HOBBIT PlatformController
-     * 
+     *
      * @return A list of benchmarks
      * @throws IOException
      * @throws InterruptedException
@@ -147,7 +147,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Retrieves the benchmark details from the HOBBIT PlatformControler
-     * 
+     *
      * @param benchmarkUri
      *            the URI of the benchmark for which the details should be
      *            retrieved
@@ -248,7 +248,12 @@ public class PlatformControllerClient implements Closeable {
         model.add(benchmarkInstanceResource, HOBBIT.involvesBenchmark, model.createResource(benchmarkUri));
         model.add(benchmarkInstanceResource, HOBBIT.involvesSystemInstance, model.createResource(systemUri));
 
-        model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
+        try {
+            model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
+        } catch (Exception e) {
+            LOGGER.error("Got an exception while processing the parameters.",e);
+            throw new GUIBackendException("Please check your parameter definitions.");
+        }
 
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),

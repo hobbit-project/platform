@@ -42,7 +42,7 @@ public class StartBenchmarkRequest extends AbstractCommandReceivingComponent {
     public static final String BENCHMARK_URI_KEY = "BENCHMARK";
     public static final String SYSTEM_URI_KEY = "SYSTEM";
     public static final String BENCHMARK_PARAM_FILE_KEY = "BENCHMARK_PARAM_FILE";
-    
+
     private static final long REQUEST_TIMEOUT = 60000;
 
     protected Channel frontEnd2Controller;

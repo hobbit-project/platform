@@ -29,7 +29,7 @@ import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
  * This JUnit tests handles the special case in which the flags inside the given
  * RDF model are replaced by either "0" or "1" values. Simulates the problem
  * described in {@link https://github.com/hobbit-project/platform/issues/34}.
- * 
+ *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
