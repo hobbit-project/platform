@@ -51,7 +51,188 @@
       "benchmark": {
         "id": "http://w3id.org/bench#lance",
         "name": "Lance Benchmark",
-        "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema."
+        "description": "LANCE is a benchmark for the assessment of Instance Matching techniques and systems for Linked Data data that are accompanied by a schema.",
+			"configurationParamNames": ["Window size", "Machine count.1-uses 1 machine metadata,otherwise 1000 machines metadata", "seed", "Amount of messages", "Interval between measurements (nanos)", "Transitions count", "Output format.0-RDF, otherwise CSV", "Benchmark mode. 'static' or 'dynamic:x:y' only", "Max. clustering iterations", "Timeout (min.) -1 meaning no timeout", "Probability threshold"],
+			"configurationParams": [{
+					"description": "Window size",
+					"id": "http://www.debs2017.org/gc/windowSize",
+					"name": "Window size",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "10",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Machine count.1-uses 1 machine metadata,otherwise 1000 machines metadata",
+					"id": "http://www.debs2017.org/gc/machineCount",
+					"name": "Machine count.1-uses 1 machine metadata,otherwise 1000 machines metadata",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "1000",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "seed",
+					"id": "http://www.debs2017.org/gc/seed",
+					"name": "seed",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "123",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Amount of messages",
+					"id": "http://www.debs2017.org/gc/dataPointCount",
+					"name": "Amount of messages",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "63",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Interval between measurements (nanos)",
+					"id": "http://www.debs2017.org/gc/interval",
+					"name": "Interval between measurements (nanos)",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "10",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Transitions count",
+					"id": "http://www.debs2017.org/gc/transitionsCount",
+					"name": "Transitions count",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "5",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Output format.0-RDF, otherwise CSV",
+					"id": "http://www.debs2017.org/gc/format",
+					"name": "Output format.0-RDF, otherwise CSV",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "0",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Benchmark mode. Changed for challenge only",
+					"id": "http://www.debs2017.org/gc/benchmarkMode",
+					"name": "Benchmark mode. 'static' or 'dynamic:x:y' only",
+					"datatype": "xsd:string",
+					"defaultValue": "dynamic:500:1",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#string",
+					"required": false
+				}, {
+					"description": "Max. clustering iterations",
+					"id": "http://www.debs2017.org/gc/maxClusterIterations",
+					"name": "Max. clustering iterations",
+					"datatype": "xsd:unsignedInt",
+					"defaultValue": "50",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"required": false
+				}, {
+					"description": "Timeout (min.) -1 meaning no timeout",
+					"id": "http://www.debs2017.org/gc/timeoutMinutes",
+					"name": "Timeout (min.) -1 meaning no timeout",
+					"datatype": "xsd:integer",
+					"defaultValue": "55",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#int",
+					"required": false
+				}, {
+					"description": "Probability threshold",
+					"id": "http://www.debs2017.org/gc/probabilityThreshold",
+					"name": "Probability threshold",
+					"datatype": "xsd:double",
+					"defaultValue": "0.0050000000000000001041",
+					"feature": true,
+					"range": "http://www.w3.org/2001/XMLSchema#double",
+					"required": false
+				}
+			],
+			"configurationParamValues": [{
+					"description": "Output format.0-RDF, otherwise CSV",
+					"id": "http://www.debs2017.org/gc/format",
+					"name": "Output format.0-RDF, otherwise CSV",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "0"
+				}, {
+					"description": "Benchmark mode. Changed for challenge only",
+					"id": "http://www.debs2017.org/gc/benchmarkMode",
+					"name": "Benchmark mode. 'static' or 'dynamic:x:y' only",
+					"datatype": "xsd:string",
+					"range": "http://www.w3.org/2001/XMLSchema#string",
+					"value": "static"
+				}, {
+					"description": "Window size",
+					"id": "http://www.debs2017.org/gc/windowSize",
+					"name": "Window size",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "10"
+				}, {
+					"description": "seed",
+					"id": "http://www.debs2017.org/gc/seed",
+					"name": "seed",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "123"
+				}, {
+					"description": "Amount of messages",
+					"id": "http://www.debs2017.org/gc/dataPointCount",
+					"name": "Amount of messages",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "63"
+				}, {
+					"description": "Transitions count",
+					"id": "http://www.debs2017.org/gc/transitionsCount",
+					"name": "Transitions count",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "5"
+				}, {
+					"description": "Machine count.1-uses 1 machine metadata,otherwise 1000 machines metadata",
+					"id": "http://www.debs2017.org/gc/machineCount",
+					"name": "Machine count.1-uses 1 machine metadata,otherwise 1000 machines metadata",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "1"
+				}, {
+					"description": "Timeout (min.) -1 meaning no timeout",
+					"id": "http://www.debs2017.org/gc/timeoutMinutes",
+					"name": "Timeout (min.) -1 meaning no timeout",
+					"datatype": "xsd:integer",
+					"range": "http://www.w3.org/2001/XMLSchema#int",
+					"value": "-1"
+				}, {
+					"description": "Probability threshold",
+					"id": "http://www.debs2017.org/gc/probabilityThreshold",
+					"name": "Probability threshold",
+					"datatype": "xsd:double",
+					"range": "http://www.w3.org/2001/XMLSchema#double",
+					"value": "0.0050000000000000001041"
+				}, {
+					"description": "Max. clustering iterations",
+					"id": "http://www.debs2017.org/gc/maxClusterIterations",
+					"name": "Max. clustering iterations",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "50"
+				}, {
+					"description": "Interval between measurements (nanos)",
+					"id": "http://www.debs2017.org/gc/interval",
+					"name": "Interval between measurements (nanos)",
+					"datatype": "xsd:unsignedInt",
+					"range": "http://www.w3.org/2001/XMLSchema#unsignedInt",
+					"value": "10"
+				}
+			]        
       },
       "system": {
         "id": "http://w3id.org/system#limesV1",
