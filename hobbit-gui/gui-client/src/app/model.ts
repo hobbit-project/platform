@@ -26,7 +26,9 @@ export class System extends NamedEntity {
 }
 
 export class Benchmark {
-  constructor(public id: string, public name: string, public systems?: System[], public configurationParams?: ConfigurationParameter[], public description?:string) {}
+  constructor(public id: string, public name: string, public systems?: System[], 
+              public configurationParams?: ConfigurationParameter[], public description?:string,
+              public configurationParamValues?: ConfigurationParameterValue[]) {}
 }
 
 export class ChallengeTask {
@@ -53,7 +55,7 @@ export class ChallengeRegistration {
 }
 
 export class Experiment {
-  constructor(public id: string, public kpis: ConfigurationParameterValue[], public benchmark: NamedEntity,
+  constructor(public id: string, public kpis: ConfigurationParameterValue[], public benchmark: Benchmark,
     public system: NamedEntity, public challengeTask: NamedEntity, public error?: string) {}
 }
 

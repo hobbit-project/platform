@@ -14,17 +14,17 @@
           <p-column [style]="{'width':'38px'}" selectionMode="multiple"></p-column>
           <p-column field="id" header="Id" [sortable]="true"  [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
           <p-column field="benchmark.name" header="Benchmark" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
-            <template let-col let-experiment="rowData" pTemplate type="body">
+            <template let-col let-experiment="rowData" pTemplate="body">
               <span *ngIf="experiment.benchmark" [title]="experiment.benchmark.description ? experiment.benchmark.description : ''">{{experiment.benchmark.name}}</span>
             </template>
           </p-column>
           <p-column field="system.name" header="System" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
-            <template let-col let-experiment="rowData" pTemplate type="body">
+            <template let-col let-experiment="rowData" pTemplate="body">
               <span *ngIf="experiment.system" [title]="experiment.system.description ? experiment.system.description : ''">{{experiment.system.name}}</span>
             </template>
           </p-column>
           <p-column field="challengeTask.name" header="ChallengeTask" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
-            <template let-col let-experiment="rowData" pTemplate type="body">
+            <template let-col let-experiment="rowData" pTemplate="body">
               <span *ngIf="experiment.challengeTask" [title]="experiment.challengeTask.description ? experiment.challengeTask.description : ''">{{experiment.challengeTask.name}}</span>
             </template>
           </p-column>
