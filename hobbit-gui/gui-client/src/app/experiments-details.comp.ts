@@ -42,7 +42,7 @@ export class ExperimentsDetailsComponent implements OnChanges {
       for (let bp of ex.benchmark.configurationParamValues) {
         if (!mapExpr[bp.id]) {
           experimentParameterSamples.push(bp);
-          mapKpis[bp.id] = true;
+          mapExpr[bp.id] = true;
         }
       }
       for (let kpi of ex.kpis) {
