@@ -180,7 +180,7 @@ public class StorageService extends AbstractComponent {
         username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
         password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
 
-        queue = createDefaultRabbitQueue(QUEUE_NAME);
+        queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
         queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
 
         consumer = new QueueingConsumer(queue.channel);

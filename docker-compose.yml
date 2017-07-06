@@ -12,6 +12,7 @@ services:
 #      - GITLAB_USER=
 #      - GITLAB_EMAIL=
 #      - GITLAB_TOKEN=
+#      - CONTAINER_PARENT_CHECK=0
     depends_on:
       - rabbit
       - redis

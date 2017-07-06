@@ -40,7 +40,7 @@ public class AnalysisComponent extends AbstractComponent {
     private static final Logger LOGGER = LoggerFactory.getLogger(AnalysisComponent.class);
     private static final String GRAPH_URI = Constants.PUBLIC_RESULT_GRAPH_URI;
     protected RabbitQueue controller2AnalysisQueue;
-    protected RabbitQueue analysisQueue;
+//    protected RabbitQueue analysisQueue;
     protected QueueingConsumer consumer;
 
     private Model experimentModel = null;
@@ -51,12 +51,12 @@ public class AnalysisComponent extends AbstractComponent {
     public void init() throws Exception {
         super.init();
         //initialize the controller_to_analysis queue
-        controller2AnalysisQueue = createDefaultRabbitQueue(Constants.RABBIT_MQ_HOST_NAME_KEY);
-        analysisQueue = createDefaultRabbitQueue(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME);
+        controller2AnalysisQueue =  incomingDataQueueFactory.createDefaultRabbitQueue(Constants.RABBIT_MQ_HOST_NAME_KEY);
+//        analysisQueue = createDefaultRabbitQueue(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME);
         consumer = new QueueingConsumer(controller2AnalysisQueue.channel);
         controller2AnalysisQueue.channel.basicConsume(controller2AnalysisQueue.name, false, consumer);
         controller2AnalysisQueue.channel.basicConsume(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, consumer);
-        storage = StorageServiceClient.create(dataConnection);
+        storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
         LOGGER.debug("Analysis Component Initialized!");
     }
 
@@ -107,7 +107,7 @@ public class AnalysisComponent extends AbstractComponent {
     @Override
     public void close() throws IOException {
         IOUtils.closeQuietly(controller2AnalysisQueue);
-        IOUtils.closeQuietly(analysisQueue);
+//        IOUtils.closeQuietly(analysisQueue);
         IOUtils.closeQuietly(storage);
         super.close();
     }
