@@ -101,7 +101,7 @@ public class StorageService extends AbstractComponent {
 
         String endpointURL = sparqlEndpointUrl + "-auth";
         LOGGER.info("Received a request to call the SPARQL Endpoint at {} and execute the following query: {}",
-                endpointURL, queryString);
+                endpointURL, queryString.replace("\n", " "));
 
         // TODO: Fix this with something better
         String queryKeywords = reduceQueryToKeyWords(queryString);
