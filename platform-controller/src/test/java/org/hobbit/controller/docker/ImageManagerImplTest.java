@@ -96,7 +96,7 @@ public class ImageManagerImplTest {
 
             // make sure that the retrieved model contains only one single
             // system instance
-            Model systemModel = imageManager.getSystemModel("http://adel.eurecom.fr/SystemTask1");
+            Model systemModel = imageManager.getSystemModel("http://gerbil.org/systems/AgdistisWS");
             Assert.assertNotNull(systemModel);
             Assert.assertEquals(1, RdfHelper.getSubjectResources(systemModel, RDF.type, HOBBIT.SystemInstance).size());
 
