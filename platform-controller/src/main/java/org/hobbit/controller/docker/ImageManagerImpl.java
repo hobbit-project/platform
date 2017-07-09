@@ -80,6 +80,11 @@ public class ImageManagerImpl implements ImageManager {
 
         // find benchmark subject
         Resource benchmark = getResource(model, HOBBIT.Benchmark);
+        // if there is no benchmark resource
+        if(benchmark == null){
+            LOGGER.error("Couldn't find a benchmark resource in the given benchmark meta data model. Returning null.");
+            return null;
+        }
         // set URI
         result.benchmarkUri = benchmark.getURI();
         // find name
@@ -134,7 +139,9 @@ public class ImageManagerImpl implements ImageManager {
             if (p.benchmarkMetadata != null) {
                 try {
                     BenchmarkMetaData bench = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                    results.add(bench);
+                    if (bench != null) {
+                        results.add(bench);
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Error parsing benchmark metadata of project \"" + p.name + "\".", e);
                 }
@@ -207,8 +214,12 @@ public class ImageManagerImpl implements ImageManager {
             if (p.benchmarkMetadata != null) {
                 try {
                     BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                    if (meta.benchmarkUri.equals(benchmarkUri)) {
-                        return stringToModel(p.benchmarkMetadata);
+                    if (meta != null){
+                        if (meta.benchmarkUri.equals(benchmarkUri)) {
+                            return stringToModel(p.benchmarkMetadata);
+                        }
+                    } else {
+                        LOGGER.error("Couldn't get benchmark meta data from \"" + p.name + "\".");
                     }
                 } catch (Exception e) {
                     LOGGER.error("Error parsing benchmark metadata:", e);

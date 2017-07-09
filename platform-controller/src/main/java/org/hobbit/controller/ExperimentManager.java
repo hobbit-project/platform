@@ -252,7 +252,9 @@ public class ExperimentManager implements Closeable {
         Model model = controller.imageManager().getBenchmarkModel(config.benchmarkUri);
         if (model != null) {
             BenchmarkMetaData benchMeta = controller.imageManager().modelToBenchmarkMetaData(model);
-            usedImages.addAll(benchMeta.usedImages);
+            if(benchMeta != null) {
+                usedImages.addAll(benchMeta.usedImages);
+            }
         } else {
             LOGGER.warn("Couldn't get model of benchmark {}. Won't prefetch its images.", config.benchmarkUri);
         }
