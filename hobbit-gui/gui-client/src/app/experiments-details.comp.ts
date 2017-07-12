@@ -4,7 +4,8 @@ import { ConfigurationParameterValue, NamedEntity, Experiment } from './model';
 import { BackendService } from './services/backend.service';
 
 class TableRow {
-  constructor(public kpiSample: ConfigurationParameterValue, public values: Map<String, String>, public descriptions: Map<String, String>) {}
+  constructor(public group: string, public kpiSample: ConfigurationParameterValue, 
+              public values: Map<String, String>, public descriptions: Map<String, String>) {}
 }
 
 @Component({
@@ -16,6 +17,7 @@ export class ExperimentsDetailsComponent implements OnChanges {
   @Input() challengeTaskId: string;
   experiments: Experiment[];
   rows: TableRow[];
+  rowGroups: string[];
   loaded: boolean = false;
 
   constructor(private bs: BackendService) {
@@ -32,41 +34,70 @@ export class ExperimentsDetailsComponent implements OnChanges {
   }
 
   private buildTableRows() {
-    let map = {};
+    let mapKpis = {};
+    let mapExpr = {};
     let kpiSamples: ConfigurationParameterValue[] = [];
+    let experimentParameterSamples: ConfigurationParameterValue[] = [];
     for (let ex of this.experiments) {
+      for (let bp of ex.benchmark.configurationParamValues) {
+        if (!mapExpr[bp.id]) {
+          experimentParameterSamples.push(bp);
+          mapExpr[bp.id] = true;
+        }
+      }
       for (let kpi of ex.kpis) {
-        if (!map[kpi.id]) {
+        if (!mapKpis[kpi.id]) {
           kpiSamples.push(kpi);
-          map[kpi.id] = true;
+          mapKpis[kpi.id] = true;
         }
       }
     }
 
+    this.rowGroups = ['Experiment', 'Experiment Parameter', 'KPIs'];
     this.rows = [];
-    let benchmarkRow = this.buildRow('Benchmark', 'The benchmark performed', t => ExperimentsDetailsComponent.safeNameAndDescription(t.benchmark));
-    let systemRow = this.buildRow('System', 'The system evaluated' , t => ExperimentsDetailsComponent.safeNameAndDescription(t.system));
-    let challengeTaskRow = this.buildRow('Challenge Task', 'The challenge task performed', t => ExperimentsDetailsComponent.safeNameAndDescription(t.challengeTask));
-    let errorRow = this.buildRow('Error', 'The error message, if an error occured', t => [t.error, '']);
+    let benchmarkRow = this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => ExperimentsDetailsComponent.safeNameAndDescription(t.benchmark));
+    let systemRow = this.buildRow('Experiment', 'System', 'The system evaluated' , t => ExperimentsDetailsComponent.safeNameAndDescription(t.system));
+    let challengeTaskRow = this.buildRow('Experiment', 'Challenge Task', 'The challenge task performed', t => ExperimentsDetailsComponent.safeNameAndDescription(t.challengeTask));
+    let errorRow = this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']);
     this.rows.push(benchmarkRow);
     this.rows.push(systemRow);
     this.rows.push(challengeTaskRow);
     this.rows.push(errorRow);
+    for (let bp of experimentParameterSamples) {
+      let row = this.buildRowKpi('Experiment Parameter', bp, ex => {
+        let exbp = ex.benchmark.configurationParamValues.find(k => k.id === bp.id);
+        return ExperimentsDetailsComponent.safeValueAndDescription(exbp);
+      });
+      this.rows.push(row);
+    }
     for (let kpi of kpiSamples) {
-      let row = this.buildRowKpi(kpi, ex => {
+      let row = this.buildRowKpi('KPIs', kpi, ex => {
         let exkpi = ex.kpis.find(k => k.id === kpi.id);
         return ExperimentsDetailsComponent.safeValueAndDescription(exkpi);
       });
       this.rows.push(row);
     }
+    this.rows.sort( (a,b) => {
+      if (a.group < b.group) {
+        return -1;
+      } else if (a.group > b.group) {
+        return 1;
+      } else if (a.kpiSample.name < b.kpiSample.name) {
+        return -1;
+      } else if (a.kpiSample.name > b.kpiSample.name) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
   }
 
-  private buildRow(name: string, description: string, selector: (ex: Experiment) => [string, string]): TableRow {
+  private buildRow(group: string, name: string, description: string, selector: (ex: Experiment) => [string, string]): TableRow {
     let kpi = new ConfigurationParameterValue('', name, 'xsd.string', '', description);
-    return this.buildRowKpi(kpi, selector);
+    return this.buildRowKpi(group, kpi, selector);
   }
 
-  private buildRowKpi(kpi: ConfigurationParameterValue, selector: (ex: Experiment) => [string, string]): TableRow {
+  private buildRowKpi(group: string, kpi: ConfigurationParameterValue, selector: (ex: Experiment) => [string, string]): TableRow {
     let values = new Map<String, String>();
     let descriptions = new Map<String, String>();
     for (let i in this.experiments) {
@@ -74,7 +105,7 @@ export class ExperimentsDetailsComponent implements OnChanges {
       values['' + i] = name;
       descriptions['' + i] = description;
     }
-    return new TableRow(kpi, values, descriptions);
+    return new TableRow(group, kpi, values, descriptions);
   }
 
   static safeNameAndDescription(entity: NamedEntity): [string, string] {

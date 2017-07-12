@@ -101,7 +101,7 @@ public class StorageService extends AbstractComponent {
 
         String endpointURL = sparqlEndpointUrl + "-auth";
         LOGGER.info("Received a request to call the SPARQL Endpoint at {} and execute the following query: {}",
-                endpointURL, queryString);
+                endpointURL, queryString.replace("\n", " "));
 
         // TODO: Fix this with something better
         String queryKeywords = reduceQueryToKeyWords(queryString);
@@ -180,7 +180,7 @@ public class StorageService extends AbstractComponent {
         username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
         password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
 
-        queue = createDefaultRabbitQueue(QUEUE_NAME);
+        queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
         queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
 
         consumer = new QueueingConsumer(queue.channel);

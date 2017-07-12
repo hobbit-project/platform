@@ -66,7 +66,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public long MAX_EXECUTION_TIME = DEFAULT_MAX_EXECUTION_TIME;
+    public long defaultMaxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
     /**
      * The controller this manager belongs to.
      */
@@ -95,7 +95,8 @@ public class ExperimentManager implements Closeable {
         this.controller = controller;
 
         try {
-            MAX_EXECUTION_TIME = Long.parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+            defaultMaxExecutionTime = Long
+                    .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
         } catch (Exception e) {
             LOGGER.debug("Could not get execution time from env, using default value..");
         }
@@ -108,7 +109,12 @@ public class ExperimentManager implements Closeable {
                     // trigger the creation of the next benchmark
                     createNextExperiment();
                 } catch (Throwable e) {
-                    LOGGER.error("The experiment starting timer got an unexpected exception.", e);
+                    LOGGER.error(
+                            "The experiment starting timer got an unexpected exception. Trying to handle the corrupted experiment if there is one.",
+                            e);
+                    // If there is an experiment status, it will be handled in
+                    // this method
+                    handleExperimentTermination();
                 }
             }
         }, checkForFirstExperiment, checkForNewExperiment);
@@ -140,12 +146,16 @@ public class ExperimentManager implements Closeable {
 
                 String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
                 if (benchImageName == null) {
+                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                            this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
                     throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
                 }
 
                 String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
                 if (sysImageName == null) {
+                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                            this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.SystemImageMissing);
                     throw new Exception("Couldn't find image name for system " + config.systemUri);
                 }
@@ -153,7 +163,7 @@ public class ExperimentManager implements Closeable {
                 prefetchImages(config, benchImageName, sysImageName);
 
                 // time an experiment has to terminate after it has been started
-                long maxExecutionTime = MAX_EXECUTION_TIME;
+                long maxExecutionTime = defaultMaxExecutionTime;
 
                 // try to load benchmark timeouts from config file
                 try {
@@ -179,7 +189,9 @@ public class ExperimentManager implements Closeable {
                         LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Could not load timeouts config, using default values:", e.toString());
+                    LOGGER.error(
+                            "Could not load timeouts config, using default value " + defaultMaxExecutionTime + "ms.",
+                            e);
                 }
 
                 // start experiment timer/status
@@ -240,7 +252,9 @@ public class ExperimentManager implements Closeable {
         Model model = controller.imageManager().getBenchmarkModel(config.benchmarkUri);
         if (model != null) {
             BenchmarkMetaData benchMeta = controller.imageManager().modelToBenchmarkMetaData(model);
-            usedImages.addAll(benchMeta.usedImages);
+            if(benchMeta != null) {
+                usedImages.addAll(benchMeta.usedImages);
+            }
         } else {
             LOGGER.warn("Couldn't get model of benchmark {}. Won't prefetch its images.", config.benchmarkUri);
         }
@@ -373,6 +387,7 @@ public class ExperimentManager implements Closeable {
      *            exit code of the termination
      */
     public void notifyTermination(String containerId, int exitCode) {
+        boolean consumed = false;
         try {
             experimentMutex.acquire();
         } catch (InterruptedException e) {
@@ -395,36 +410,39 @@ public class ExperimentManager implements Closeable {
                     handleExperimentTermination_unsecured();
                     // If this is the system container and benchmark and
                     // system are not running
+                    consumed = true;
                 } else if (containerId.equals(experimentStatus.getSystemContainer())
                         && (experimentStatus.getState() == ExperimentStatus.States.INIT)) {
                     LOGGER.info("The system has been stopped before the benchmark has been started. Aborting.");
                     // Cancel the experiment
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCrashed);
-                } else {
-                    LOGGER.info("Sending broadcast message...");
-                    // send a message using sendToCmdQueue(command,
-                    // data) comprising a command that indicates that a
-                    // container terminated and the container name
-                    String containerName = controller.containerManager.getContainerName(containerId);
-                    if (containerName != null) {
-                        try {
-                            controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
-                                    Commands.DOCKER_CONTAINER_TERMINATED,
-                                    RabbitMQUtils.writeByteArrays(null,
-                                            new byte[][] { RabbitMQUtils.writeString(containerName) },
-                                            new byte[] { (byte) exitCode }),
-                                    null);
-                        } catch (IOException e) {
-                            LOGGER.error("Couldn't send the " + Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS
-                                    + " message for container " + containerName + " to the command queue.", e);
-                        }
-                    } else {
-                        LOGGER.info("Unknown container " + containerId + " stopped with exitCode=" + exitCode);
-                    }
+                    consumed = true;
                 }
             }
         } finally {
             experimentMutex.release();
+        }
+        if(!consumed) {
+            LOGGER.info("Sending broadcast message...");
+            // send a message using sendToCmdQueue(command,
+            // data) comprising a command that indicates that a
+            // container terminated and the container name
+            String containerName = controller.containerManager.getContainerName(containerId);
+            if (containerName != null) {
+                try {
+                    controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
+                            Commands.DOCKER_CONTAINER_TERMINATED,
+                            RabbitMQUtils.writeByteArrays(null,
+                                    new byte[][] { RabbitMQUtils.writeString(containerName) },
+                                    new byte[] { (byte) exitCode }),
+                            null);
+                } catch (IOException e) {
+                    LOGGER.error("Couldn't send the " + Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS
+                            + " message for container " + containerName + " to the command queue.", e);
+                }
+            } else {
+                LOGGER.info("Unknown container " + containerId + " stopped with exitCode=" + exitCode);
+            }
         }
     }
 

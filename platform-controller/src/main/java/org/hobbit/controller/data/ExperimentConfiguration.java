@@ -48,6 +48,7 @@ public class ExperimentConfiguration {
     public ExperimentConfiguration(String id, String benchmarkUri, String serializedBenchParams, String systemUri,
             String challengeUri, String challengeTaskUri, Calendar executionDate) {
         this.id = id;
+        this.executionDate = executionDate;
         this.benchmarkUri = benchmarkUri;
         this.serializedBenchParams = serializedBenchParams;
         this.systemUri = systemUri;

@@ -20,12 +20,12 @@
       <p-column field="publishDate" header="Publish Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
       <p-column field="executionDate" header="Execution Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
       <p-column *ngIf="editPermission" field="visible" header="Visible" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">
-        <template let-col let-challenge="rowData" pTemplate type="body">
+        <template let-col let-challenge="rowData" pTemplate="body">
           <sg-checkbox [value]="challenge.visible"></sg-checkbox>
         </template>
       </p-column>
       <p-column field="closed" header="Closed" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">
-        <template let-col let-challenge="rowData" pTemplate type="body">
+        <template let-col let-challenge="rowData" pTemplate="body">
           <sg-checkbox [value]="challenge.closed"></sg-checkbox>
         </template>
       </p-column>

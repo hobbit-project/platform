@@ -38,6 +38,7 @@ import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.gitlab.Project;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,6 +81,11 @@ public class ImageManagerImpl implements ImageManager {
 
         // find benchmark subject
         Resource benchmark = getResource(model, HOBBIT.Benchmark);
+        // if there is no benchmark resource
+        if(benchmark == null){
+            LOGGER.error("Couldn't find a benchmark resource in the given benchmark meta data model. Returning null.");
+            return null;
+        }
         // set URI
         result.benchmarkUri = benchmark.getURI();
         // find name
@@ -134,7 +140,9 @@ public class ImageManagerImpl implements ImageManager {
             if (p.benchmarkMetadata != null) {
                 try {
                     BenchmarkMetaData bench = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                    results.add(bench);
+                    if (bench != null) {
+                        results.add(bench);
+                    }
                 } catch (Exception e) {
                     LOGGER.error("Error parsing benchmark metadata of project \"" + p.name + "\".", e);
                 }
@@ -207,8 +215,12 @@ public class ImageManagerImpl implements ImageManager {
             if (p.benchmarkMetadata != null) {
                 try {
                     BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                    if (meta.benchmarkUri.equals(benchmarkUri)) {
-                        return stringToModel(p.benchmarkMetadata);
+                    if (meta != null){
+                        if (meta.benchmarkUri.equals(benchmarkUri)) {
+                            return stringToModel(p.benchmarkMetadata);
+                        }
+                    } else {
+                        LOGGER.error("Couldn't get benchmark meta data from \"" + p.name + "\".");
                     }
                 } catch (Exception e) {
                     LOGGER.error("Error parsing benchmark metadata:", e);
@@ -225,10 +237,14 @@ public class ImageManagerImpl implements ImageManager {
         for (Project p : projects) {
             if (p.systemMetadata != null) {
                 try {
-                    List<SystemMetaData> metas = modelToSystemMetaData(p.systemMetadata);
+                    Model model = stringToModel(p.systemMetadata);
+                    List<SystemMetaData> metas = modelToSystemMetaData(model);
                     for (SystemMetaData meta : metas) {
                         if (meta.systemUri.equals(systemUri)) {
-                            return stringToModel(p.systemMetadata);
+                            // We have to remove all other systems that have not
+                            // been requested
+                            removeOtherSystems(model, systemUri);
+                            return model;
                         }
                     }
                 } catch (Exception e) {
@@ -236,8 +252,29 @@ public class ImageManagerImpl implements ImageManager {
                 }
             }
         }
-
         return null;
+    }
+
+    /**
+     * Removes all other systems from the given mdoel which do not have the
+     * given system URI. Removing a system means that all triples are removed
+     * that have a system URI as subject. A system URI is a URI of a resource
+     * {@code s} for which a triple {@code s rdf:type hobbit:SystemInstance} can
+     * be found in the given model.
+     * 
+     * @param model
+     *            the model from which the systems will be removed
+     * @param systemUri
+     *            the URI of the only system which is not removed from the
+     *            system
+     */
+    protected void removeOtherSystems(Model model, String systemUri) {
+        List<Resource> systems = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.SystemInstance);
+        for (Resource system : systems) {
+            if (!system.getURI().equals(systemUri)) {
+                model.remove(model.listStatements(system, null, (RDFNode) null));
+            }
+        }
     }
 
     @Override

@@ -94,10 +94,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "1.0.9";
+    public static final String PLATFORM_VERSION = "1.0.11";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
+    private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
+            ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1" : true;
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -179,7 +182,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         imageManager = new ImageManagerImpl();
         LOGGER.debug("Image manager initialized.");
 
-        frontEnd2Controller = dataConnection.createChannel();
+        frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
         frontEndApiHandler = new DefaultConsumer(frontEnd2Controller) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
@@ -195,12 +198,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
         frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
         frontEnd2Controller.basicConsume(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, true, frontEndApiHandler);
 
-        controller2Analysis = dataConnection.createChannel();
+        controller2Analysis = cmdQueueFactory.getConnection().createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
 
         queue = new ExperimentQueueImpl();
 
-        storage = StorageServiceClient.create(dataConnection);
+        storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
@@ -325,7 +328,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     private String createContainer(StartCommandData data) {
         String parentId = containerManager.getContainerId(data.parent);
-        if (parentId == null) {
+        if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }

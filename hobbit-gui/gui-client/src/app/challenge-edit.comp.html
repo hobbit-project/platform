@@ -89,7 +89,7 @@
             <p-column field="name" header="Name" [sortable]="true"></p-column>
             <p-column field="description" header="Description" [sortable]="false"></p-column>
             <p-column header="Benchmark" [sortable]="true">
-              <template let-col let-task="rowData" pTemplate type="body">
+              <template let-col let-task="rowData" pTemplate="body">
                 <span *ngIf="task.benchmark" [title]="task.benchmark.description ? task.benchmark.description : ''">{{task.benchmark?.name}}</span>
               </template>
             </p-column>

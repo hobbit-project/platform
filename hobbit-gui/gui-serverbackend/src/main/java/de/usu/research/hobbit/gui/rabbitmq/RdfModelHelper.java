@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jena.datatypes.DatatypeFormatException;
-import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -100,19 +99,17 @@ public class RdfModelHelper {
         return createBenchmarkBean(model, benchmarkResource, bean);
     }
 
-    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource) {
+    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource, Resource experimentResource) {
         ConfiguredBenchmarkBean bean = new ConfiguredBenchmarkBean();
-
         createBenchmarkBean(model, benchmarkResource, bean);
 
-        // TODO fill ConfigurationParamValues
-        // Map<String, ConfigurationParamValueBean> configuredParams = new
-        // HashMap<String, ConfigurationParamValueBean>();
-        // createParamValueBeans(model, benchmarkResource,
-        // model.listResourcesWithProperty(RDF.type, HOBBIT.KPI),
-        // configuredParams);
-        // bean.setConfigurationParamValues(new
-        // ArrayList<>(configuredParams.values()));
+        // fill ConfigurationParamValues
+        Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
+        createParamValueBeans(model, experimentResource,
+                model.listResourcesWithProperty(RDF.type, HOBBIT.ConfigurableParameter), configuredParams);
+        createParamValueBeans(model, experimentResource,
+                model.listResourcesWithProperty(RDF.type, HOBBIT.Parameter), configuredParams);
+        bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
 
         return bean;
     }
@@ -457,7 +454,7 @@ public class RdfModelHelper {
     /**
      * Extracts configuration parameters of the given challenge task from the
      * given model.
-     *
+     * 
      * @param model
      *            the model containing the triples
      * @param taskResource
@@ -520,7 +517,6 @@ public class RdfModelHelper {
                         }
                     }
                 }
-
                 parameters.put(parameterUri, paramBean);
             }
         }
@@ -581,7 +577,7 @@ public class RdfModelHelper {
         bean.setId(experiment.getURI().substring(Constants.EXPERIMENT_URI_NS.length()));
         Resource benchmarkResource = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesBenchmark);
         if (benchmarkResource != null) {
-            bean.setBenchmark(createConfiguredBenchmarkBean(model, benchmarkResource));
+            bean.setBenchmark(createConfiguredBenchmarkBean(model, benchmarkResource, experiment));
         }
         Resource systemResource = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesSystemInstance);
         if (systemResource != null) {

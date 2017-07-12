@@ -4,9 +4,12 @@
   <div *ngIf="loaded">
     <div class="row">
       <div class="col-md-12">
-        <p-dataTable [value]="rows" resizableColumns="true">
-          <p-column header="Parameter" [sortable]="true" styleClass="dataTableWrapping">
-            <template let-row="rowData" pTemplate type="body">
+        <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true"
+          rowGroupMode="subheader" groupField="group" expandableRowGroups="true" [expandedRowsGroups]="rowGroups"
+          [sortableRowGroup]="false">
+          <template pTemplate="rowgroupheader" let-rowData><strong>{{rowData.group}}</strong></template>
+          <p-column header="Parameter" styleClass="dataTableWrapping">
+            <template let-row="rowData" pTemplate="body">
               <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
             </template>
           </p-column>
