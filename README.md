@@ -78,7 +78,7 @@ In any case proceed as follows
   gui:
     ...
     environment:
-      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
+      - KEYCLOAK_AUTH_URL=http://<myipaddress>:8181/auth
 ```
 
 Give write access to the keycloak database by performing
@@ -88,7 +88,7 @@ Give write access to the keycloak database by performing
 ```
 in the platforms project directory.
 
-If the address of the GUI will be *different* from `http://localhost:8080` (e.g., because of the reason explained above) you have to configure this address in Keycloak
+If the address of the GUI will be *different* from `http://<myipaddress>:8080` (e.g., because of the reason explained above) you have to configure this address in Keycloak
 * Start Keycloak by running
 ```bash
 docker-compose up keycloak
