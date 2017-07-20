@@ -59,7 +59,7 @@ These steps have to be done only once before starting the platform the first tim
 ```bash
 docker-compose up virtuoso
 ```
-* Execute the `run_storage_init.sh` script
+* Execute the `run-storage-init.sh` script
 
 ### Configure Keycloak
 
