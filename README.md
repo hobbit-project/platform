@@ -30,18 +30,17 @@ These steps have to be done only once before starting the platform the first tim
 4. Build and pull required docker containers by running: 
     `docker-compose build`
 5. Configure Virtuoso
-   1. Setting passwords for Virtuoso users (optional)
-   1. Initialize Virtuoso
+   1. Change passwords (optional)
+   1. Run initialization script (required)
 6. Configure Keycloak
 7. Add your personal Gitlab token
 
 ### Configure Virtuoso
 
+#### Change passwords (optional)
 The Virtuoso store has two users - the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`. By default, both have the word `Password` as password. If you want to use different passwords, you can change them during the initialization of the Virtuoso. Note, that while you can run the initialization script only once, you still can change the Virtuoso user credentials using the Virtuoso GUI, later on.
 
-#### Setting passwords for Virtuoso users (optional)
-
-* Write down two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
+* Generate two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
 * Open `config/db/storage-init.sh` and put the passwords into the following two lines
 ```bash
 # Setup the HOBBIT Platform user
@@ -62,13 +61,13 @@ The Virtuoso store has two users - the Virtuoso super user `dba` and a second us
       - SPARQL_ENDPOINT_PASSWORD=Password
 ```
 
-#### Initialize Virtuoso
+#### Run initialization script (required)
 
 * Start the Virtuoso of the platform by running 
 ```bash
 docker-compose up virtuoso
 ```
-* Execute the `run_storage_init.sh` script
+* Execute the `run-storage-init.sh` script
 
 ### Configure Keycloak
 
@@ -118,7 +117,7 @@ If you get something like
     link/ether 02:42:22:50:d4:8c brd ff:ff:ff:ff:ff:ff
     inet 172.19.0.1/16 scope global br-5c9d73b080ad
 ```
-the network device name is `br-5c9d73b080ad`. If you have iptablesas firewall use:
+the network device name is `br-5c9d73b080ad`. If you have iptables as firewall use:
 ```bash
 iptables -A INPUT -i br-5c9d73b080ad -j ACCEPT
 ```
