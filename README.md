@@ -114,7 +114,7 @@ If you get something like
     link/ether 02:42:22:50:d4:8c brd ff:ff:ff:ff:ff:ff
     inet 172.19.0.1/16 scope global br-5c9d73b080ad
 ```
-the network device name is `br-5c9d73b080ad`. If you have iptablesas firewall use:
+the network device name is `br-5c9d73b080ad`. If you have iptables as firewall use:
 ```bash
 iptables -A INPUT -i br-5c9d73b080ad -j ACCEPT
 ```
