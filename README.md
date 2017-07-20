@@ -35,7 +35,9 @@ These steps have to be done only once before starting the platform the first tim
 
 ### Configure Virtuoso
 
-* Write down two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
+#### Change passwords (optional)
+
+* Generate two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
 * Open `config/db/storage-init.sh` and put the passwords into the following two lines
 ```bash
 # Setup the HOBBIT Platform user
@@ -55,6 +57,9 @@ These steps have to be done only once before starting the platform the first tim
       - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
       - SPARQL_ENDPOINT_PASSWORD=Password
 ```
+
+#### Run initialization script (required)
+
 * Start the Virtuoso of the platform by running 
 ```bash
 docker-compose up virtuoso
