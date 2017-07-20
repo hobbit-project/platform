@@ -30,10 +30,16 @@ These steps have to be done only once before starting the platform the first tim
 4. Build and pull required docker containers by running: 
     `docker-compose build`
 5. Configure Virtuoso
+   1. Setting passwords for Virtuoso users (optional)
+   1. Initialize Virtuoso
 6. Configure Keycloak
 7. Add your personal Gitlab token
 
 ### Configure Virtuoso
+
+The Virtuoso store has two users - the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`. By default, both have the word `Password` as password. If you want to use different passwords, you can change them during the initialization of the Virtuoso. Note, that while you can run the initialization script only once, you still can change the Virtuoso user credentials using the Virtuoso GUI, later on.
+
+#### Setting passwords for Virtuoso users (optional)
 
 * Write down two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
 * Open `config/db/storage-init.sh` and put the passwords into the following two lines
@@ -55,6 +61,9 @@ These steps have to be done only once before starting the platform the first tim
       - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
       - SPARQL_ENDPOINT_PASSWORD=Password
 ```
+
+#### Initialize Virtuoso
+
 * Start the Virtuoso of the platform by running 
 ```bash
 docker-compose up virtuoso
@@ -180,7 +189,7 @@ Available services
 
 There are some projects related to the platform
 
-* [Core](https://github.com/hobbit-project/core} - Library containing core functionalities that ease the integration into the platform.
+* [Core](https://github.com/hobbit-project/core) - Library containing core functionalities that ease the integration into the platform.
 * [Evaluation storage](https://github.com/hobbit-project/evaluation-storage) - A default implementation of a benchmark component.
 * [Platform](https://github.com/hobbit-project/platform) & The HOBBIT platform and a wiki containing tutorials.
 * [Ontology](https://github.com/hobbit-project/ontology) & The HOBBIT ontology used to store data and described in D2.2.1 of the HOBBIT project.
