@@ -154,6 +154,7 @@ public class InternalResources {
 
         KeycloakConfigBean bean = new KeycloakConfigBean();
         Node child = elem.getFirstChild();
+        String keycloakUrlUsedByJetty = null;
         while (child != null) {
             if (child instanceof Element && child.getNodeName().equals("Set")) {
                 String name = child.getAttributes().getNamedItem("name").getNodeValue();
@@ -163,7 +164,7 @@ public class InternalResources {
                     bean.setRealm(value);
                     break;
                 case "authServerUrl":
-                    bean.setUrl(value);
+                    keycloakUrlUsedByJetty = value;
                     break;
                 case "resource":
                     bean.setClientId(value.replace("REST", "GUI"));
@@ -172,6 +173,13 @@ public class InternalResources {
             }
 
             child = child.getNextSibling();
+        }
+        if (System.getenv().containsKey("KEYCLOAK_REDIRECT_URL")) {
+            bean.setUrl(System.getenv().get("KEYCLOAK_REDIRECT_URL"));
+        } else {
+            LOGGER.warn(
+                    "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");
+            bean.setUrl(keycloakUrlUsedByJetty);
         }
         return bean;
     }
