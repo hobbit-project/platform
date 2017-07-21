@@ -13,9 +13,17 @@ If you encounter problems setting up the platform, please have a look at our [FA
 
 ## Requirements
 
-- Maven for building java projects
-- Node.js and NPM for building GUI
-- Docker and docker-compose for building and running all projects
+* For building java projects
+  * [Java](https://www.java.com) 1.8
+  * [Apache Maven](http://maven.apache.org/) 3.0.5
+* For building the GUI
+  * [Node.js](https://nodejs.org) v6.9.1
+  * [npm](https://www.npmjs.com/) 4.0.2
+* For building and running project components
+  * [Docker](https://www.docker.com/) 1.12.2 
+  * [Docker Compose](https://docs.docker.com/compose/) 1.8.1
+  
+(Newer versions should work as well)
 
 ## Preparing
 
@@ -59,7 +67,10 @@ These steps have to be done only once before starting the platform the first tim
 ```bash
 docker-compose up virtuoso
 ```
-* Execute the `run_storage_init.sh` script
+* Execute the init script
+```bash
+run-storage-init.sh
+```
 
 ### Configure Keycloak
 
