@@ -38,12 +38,17 @@ These steps have to be done only once before starting the platform the first tim
 4. Build and pull required docker containers by running: 
     `docker-compose build`
 5. Configure Virtuoso
+   1. Change passwords (optional)
+   1. Run initialization script (required)
 6. Configure Keycloak
 7. Add your personal Gitlab token
 
 ### Configure Virtuoso
 
-* Write down two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
+#### Change passwords (optional)
+The Virtuoso store has two users - the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`. By default, both have the word `Password` as password. If you want to use different passwords, you can change them during the initialization of the Virtuoso. Note, that while you can run the initialization script only once, you still can change the Virtuoso user credentials using the Virtuoso GUI, later on.
+
+* Generate two passwords for the Virtuoso super user `dba` and a second user that is used by the platform called `HobbitPlatform`
 * Open `config/db/storage-init.sh` and put the passwords into the following two lines
 ```bash
 # Setup the HOBBIT Platform user
@@ -63,6 +68,9 @@ These steps have to be done only once before starting the platform the first tim
       - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
       - SPARQL_ENDPOINT_PASSWORD=Password
 ```
+
+#### Run initialization script (required)
+
 * Start the Virtuoso of the platform by running 
 ```bash
 docker-compose up virtuoso
@@ -120,7 +128,7 @@ If you get something like
     link/ether 02:42:22:50:d4:8c brd ff:ff:ff:ff:ff:ff
     inet 172.19.0.1/16 scope global br-5c9d73b080ad
 ```
-the network device name is `br-5c9d73b080ad`. If you have iptablesas firewall use:
+the network device name is `br-5c9d73b080ad`. If you have iptables as firewall use:
 ```bash
 iptables -A INPUT -i br-5c9d73b080ad -j ACCEPT
 ```
@@ -191,7 +199,7 @@ Available services
 
 There are some projects related to the platform
 
-* [Core](https://github.com/hobbit-project/core} - Library containing core functionalities that ease the integration into the platform.
+* [Core](https://github.com/hobbit-project/core) - Library containing core functionalities that ease the integration into the platform.
 * [Evaluation storage](https://github.com/hobbit-project/evaluation-storage) - A default implementation of a benchmark component.
 * [Platform](https://github.com/hobbit-project/platform) & The HOBBIT platform and a wiki containing tutorials.
 * [Ontology](https://github.com/hobbit-project/ontology) & The HOBBIT ontology used to store data and described in D2.2.1 of the HOBBIT project.
