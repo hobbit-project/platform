@@ -174,8 +174,8 @@ public class InternalResources {
 
             child = child.getNextSibling();
         }
-        if (System.getenv().containsKey("KEYCLOAK_REDIRECT_URL")) {
-            bean.setUrl(System.getenv().get("KEYCLOAK_REDIRECT_URL"));
+        if (System.getenv().containsKey("KEYCLOAK_AUTH_URL")) {
+            bean.setUrl(System.getenv().get("KEYCLOAK_AUTH_URL"));
         } else {
             LOGGER.warn(
                     "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");

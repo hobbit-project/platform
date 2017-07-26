@@ -34,9 +34,9 @@ services:
       - virtuoso
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
-      - KEYCLOAK_AUTH_URL=http://keycloak:8080/auth
+      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
       - CHECK_REALM_URL=false
-      - KEYCLOAK_REDIRECT_URL=http://192.168.99.100:8181/auth
+      - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
 
   # Keycloak user management (used by the GUI)
   keycloak:

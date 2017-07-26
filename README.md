@@ -65,13 +65,13 @@ docker-compose up virtuoso
 
 To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser. Unfortunately, even in a local setup this address can differ depending on the Docker installation you might have. For Linux users, the address is in most cases `http://localhost:8181/auth` while for MS Windows users it depends on the VM that might be used to execute the Docker engine, e.g., `http://192.168.99.100:8181/auth`.
 
-* Determine this address and put it in the `docker-compose.yml` file into the `KEYCLOAK_REDIRECT_URL` line of the GUI:
+* Determine this address and put it in the `docker-compose.yml` file into the `KEYCLOAK_AUTH_URL` line of the GUI:
 ```yml
   # HOBBIT GUI
   gui:
     ...
     environment:
-      - KEYCLOAK_REDIRECT_URL=http://localhost:8181/auth
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
 ```
 
 Give write access to the keycloak database by performing
