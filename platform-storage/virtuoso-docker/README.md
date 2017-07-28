@@ -34,11 +34,11 @@ The image created by Dockerfile.vos runs Virtuoso in the foreground and assumes 
 
 ### Initializing a new database
 
-In order to retain changes to the Virtuoso database, the database should be held in the host file system. The database location on the host should reflect the installation directory used by the base image. Create directory /opt/virtuoso-opensource/var/lib/virtuoso/db in the host file system and provide a virtuoso.ini configuration file.
+In order to retain changes to the Virtuoso database, the database should be held in the host file system. The database location on the host should reflect the installation directory used by the base image. Create directory /opt/virtuoso-opensource/database in the host file system and provide a virtuoso.ini configuration file.
 
-    sudo mkdir -p /opt/virtuoso-opensource/var/lib/virtuoso/db
-    sudo cp ./virtuoso.ini.template /opt/virtuoso-opensource/var/lib/virtuoso/db/virtuoso.ini
-    sudo chmod +w /opt/virtuoso-opensource/var/lib/virtuoso/db
+    sudo mkdir -p /opt/virtuoso-opensource/database
+    sudo cp ./virtuoso.ini.template /opt/virtuoso-opensource/database/virtuoso.ini
+    sudo chmod +w /opt/virtuoso-opensource/database
     
 virtuoso.ini.template assumes the installation directory is /opt/virtuoso-opensource, with the Virtuoso HTTP server listening on port 8890 and SQL client connections made through port 1111.
 
@@ -46,7 +46,7 @@ virtuoso.ini.template assumes the installation directory is /opt/virtuoso-openso
 
 Start a VOS container by running:
 
-    sudo docker run --name vos -d -v /opt/virtuoso-opensource/var/lib/virtuoso/db:/opt/virtuoso-opensource/var/lib/virtuoso/db -t -p 1111:1111 -p 8890:8890 -i openlink/virtuoso_opensource:vos
+    sudo docker run --name vos -d -v /opt/virtuoso-opensource/database:/opt/virtuoso-opensource/database -t -p 1111:1111 -p 8890:8890 -i openlink/virtuoso_opensource:vos
     
 If the db directory contains only a virtuoso.ini file, a new database will be created when the container is started for the first time. All subsequent changes to the database will be persisted to the host file system.
 
