@@ -4,7 +4,7 @@ ENV VIRT_HOME /opt/virtuoso-opensource
 
 ENV VIRT_BUILD_OPTS "--with-readline --with-layout=openlink"
 
-ENV VIRT_DB /var/lib/virtuoso/db
+ENV VIRT_DB /opt/virtuoso-opensource/database
 
 RUN apt-get -y update && \
   apt-get -y clean && \
