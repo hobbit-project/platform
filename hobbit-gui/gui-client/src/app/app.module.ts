@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { CommonModule, LocationStrategy, HashLocationStrategy } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { XHRBackend, Http, RequestOptions, HttpModule } from '@angular/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -43,14 +43,12 @@ const httpProvide = { provide: Http,
         useFactory: (backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService) => new CustomHttp(backend, defaultOptions, keycloakService),
         deps: [XHRBackend, RequestOptions, KeycloakService] };
 
-const hashStrategyProvide = { provide: LocationStrategy, useClass: HashLocationStrategy };
-
 @NgModule({
   imports:      [ BrowserModule, CommonModule, FormsModule, ReactiveFormsModule,
                   HttpModule, RouterModule.forRoot(rootRouterConfig),
                   DynamicFormsCoreModule.forRoot(),
                   DynamicFormsBootstrapUIModule, DataTableModule, ConfirmDialogModule, CalendarModule, TooltipModule, DialogModule ],
-  providers:    [ BackendService, KeycloakService, httpProvide, hashStrategyProvide, ConfirmationService ],
+  providers:    [ BackendService, KeycloakService, httpProvide, ConfirmationService ],
   declarations: [ AppComponent, MenuItemComponent, NavbarComponent, HomeComponent,
                   UploadBenchmarkComponent, UploadSystemComponent,
                   PageHeaderComponent, WaitLoadingComponent, ShowErrorComponent, CheckboxComponent,
