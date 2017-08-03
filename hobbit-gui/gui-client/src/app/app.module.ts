@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-import { CommonModule } from '@angular/common';
+import { CommonModule, LocationStrategy, PathLocationStrategy, LocationChangeListener } from '@angular/common';
 import { XHRBackend, Http, RequestOptions, HttpModule } from '@angular/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -43,12 +43,27 @@ const httpProvide = { provide: Http,
         useFactory: (backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService) => new CustomHttp(backend, defaultOptions, keycloakService),
         deps: [XHRBackend, RequestOptions, KeycloakService] };
 
+// merge initial path and hash (if it looks suitable)
+class MergeLocationStrategy extends PathLocationStrategy {
+    onPopState(fn: LocationChangeListener): void {
+        const oldURL = this.path(true);
+        // merge "#/..." into path
+        const newURL = oldURL.replace(/#\/(.*)$/, '$1');
+        if (newURL !== oldURL) {
+            this.replaceState(null, '', newURL, '');
+        }
+        super.onPopState(fn);
+    }
+}
+
+const mergeStrategyProvide = { provide: LocationStrategy, useClass: MergeLocationStrategy };
+
 @NgModule({
   imports:      [ BrowserModule, CommonModule, FormsModule, ReactiveFormsModule,
                   HttpModule, RouterModule.forRoot(rootRouterConfig),
                   DynamicFormsCoreModule.forRoot(),
                   DynamicFormsBootstrapUIModule, DataTableModule, ConfirmDialogModule, CalendarModule, TooltipModule, DialogModule ],
-  providers:    [ BackendService, KeycloakService, httpProvide, ConfirmationService ],
+  providers:    [ BackendService, KeycloakService, httpProvide, mergeStrategyProvide, ConfirmationService ],
   declarations: [ AppComponent, MenuItemComponent, NavbarComponent, HomeComponent,
                   UploadBenchmarkComponent, UploadSystemComponent,
                   PageHeaderComponent, WaitLoadingComponent, ShowErrorComponent, CheckboxComponent,
