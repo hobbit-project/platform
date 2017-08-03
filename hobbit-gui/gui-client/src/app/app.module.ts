@@ -47,8 +47,8 @@ const httpProvide = { provide: Http,
 class MergeLocationStrategy extends PathLocationStrategy {
     onPopState(fn: LocationChangeListener): void {
         const oldURL = this.path(true);
-        // merge "#/..." into path
-        const newURL = oldURL.replace(/#\/(.*)$/, '$1');
+        // merge "#/..." and "#<UUID>" into path
+        const newURL = oldURL.replace(/#(?:\/(.*)|(\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))$/, '$1$2');
         if (newURL !== oldURL) {
             this.replaceState(null, '', newURL, '');
         }
