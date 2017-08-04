@@ -13,12 +13,12 @@
   <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
 
   <div *ngIf="loaded">
-    <p-dataTable *ngIf="!!challenges" [value]="challenges" selectionMode="single" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)" resizableColumns="true">
-      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal','width':'130px'}" field="name" header="Name" [sortable]="true" [style]="{'width':'20%'}"></p-column>
-      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal'}" field="description" header="Description" [sortable]="false" [style]="{'width':'36%'}"></p-column>
-      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal','width':'110px'}" field="organizer" header="Organizer" [sortable]="true" [style]="{'width':'10%'}"></p-column>
-      <p-column [style]="{'width':'135px'}" field="publishDate" header="Publish Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
-      <p-column [style]="{'width':'135px'}" field="executionDate" header="Execution Date" [sortable]="true" [style]="{'width':'10%'}"></p-column>
+    <p-dataTable *ngIf="!!challenges" [value]="challenges" selectionMode="single" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)" resizableColumns="true" sortField="name" [rows]="20" [paginator]="true" >
+      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal','width':'130px'}" field="name" header="Name" [sortable]="true"  [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
+      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal'}" field="description" header="Description" [sortable]="false"   [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
+      <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal','width':'110px'}" field="organizer" header="Organizer" [sortable]="true"  [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
+      <p-column [style]="{'width':'135px'}" field="publishDate" header="Publish Date" [sortable]="true"></p-column>
+      <p-column [style]="{'width':'135px'}" field="executionDate" header="Execution Date" [sortable]="true"></p-column>
       <p-column *ngIf="editPermission" field="visible" header="Visible" [sortable]="true" [style]="{'width':'7%', 'text-align': 'center'}">
         <template let-col let-challenge="rowData" pTemplate="body">
           <sg-checkbox [value]="challenge.visible"></sg-checkbox>
