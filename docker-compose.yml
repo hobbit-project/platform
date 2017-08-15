@@ -77,7 +77,7 @@ services:
 
   # Triple store
   virtuoso:
-    image: openlink/virtuoso_opensource:vos
+    image: openlink/virtuoso_opensource:v07.20.3217
     container_name: vos
     hostname: vos
     volumes:
