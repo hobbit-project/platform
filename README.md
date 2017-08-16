@@ -63,7 +63,14 @@ docker-compose up virtuoso
 
 ### Configure Keycloak
 
-To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser. Unfortunately, even in a local setup this address can differ depending on the Docker installation you might have. For Linux users, the address is in most cases `http://localhost:8181/auth` while for MS Windows users it depends on the VM that might be used to execute the Docker engine, e.g., `http://192.168.99.100:8181/auth`.
+To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser. 
+* If you are accessing it locally on the machine the Docker is running, find out the address of the Keycloak container
+
+```docker inspect --format='{{.NetworkSettings.Networks.hobbit.IPAddress}}' platform2_keycloak_1```
+
+* If you want to access the GUI from a different machine, use the host address of the computer keycloak container is running on. You then need to make sure the access to the docker container is allowed. Using Linux this is done as described below in the firewall adjustments.
+
+In any case proceed as follows
 
 * Determine this address and put it in the `docker-compose.yml` file into the `KEYCLOAK_AUTH_URL` line of the GUI:
 ```yml
@@ -71,7 +78,7 @@ To be able to use the graphical user interface the Keycloak user management is n
   gui:
     ...
     environment:
-      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
+      - KEYCLOAK_AUTH_URL=http://<myipaddress>:8181/auth
 ```
 
 Give write access to the keycloak database by performing
@@ -81,7 +88,7 @@ Give write access to the keycloak database by performing
 ```
 in the platforms project directory.
 
-If the address of the GUI will be *different* from `http://localhost:8080` (e.g., because of the reason explained above) you have to configure this address in Keycloak
+If the address of the GUI will be *different* from `http://<myipaddress>:8080` (e.g., because of the reason explained above) you have to configure this address in Keycloak
 * Start Keycloak by running
 ```bash
 docker-compose up keycloak
