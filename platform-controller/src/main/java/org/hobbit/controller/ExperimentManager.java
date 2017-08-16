@@ -173,7 +173,7 @@ public class ExperimentManager implements Closeable {
                         if (config.challengeUri != null) {
                             if (timeouts.challengeTimeout != -1) {
                                 maxExecutionTime = timeouts.challengeTimeout;
-                                LOGGER.info("Using challenge timeout:", maxExecutionTime);
+                                LOGGER.info("Using challenge timeout: {}", maxExecutionTime);
                             } else {
                                 LOGGER.error("Challenge timeout for given benchmark is not set, using default value..");
                             }
@@ -259,7 +259,7 @@ public class ExperimentManager implements Closeable {
             LOGGER.warn("Couldn't get model of benchmark {}. Won't prefetch its images.", config.benchmarkUri);
         }
         // Get the list of images used by the system
-        model = controller.imageManager().getBenchmarkModel(config.systemUri);
+        model = controller.imageManager().getSystemModel(config.systemUri);
         if (model != null) {
             List<SystemMetaData> sysMetas = controller.imageManager().modelToSystemMetaData(model);
             for (SystemMetaData s : sysMetas) {
