@@ -1,36 +1,30 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnChanges, Input } from '@angular/core';
 import { Router, NavigationExtras } from '@angular/router';
 
 import { ConfigurationParameterValue, NamedEntity, Experiment } from './model';
-import { BackendService } from './services/backend.service';
 
 
 @Component({
   selector: 'sg-experiments',
   template: require('./experiments.comp.html')
 })
-export class ExperimentsComponent implements OnInit {
-  experiments: Experiment[];
+export class ExperimentsComponent implements OnChanges {
+  @Input() experiments: Experiment[];
   distinctTasks: NamedEntity[];
   selectedExperiments: Experiment[];
-  loaded: boolean = false;
 
-  constructor(private bs: BackendService, private router: Router) {
+  constructor(private router: Router) {
   }
 
-  ngOnInit() {
-    this.bs.queryExperiments().subscribe(data => {
-      this.experiments = data;
-      this.distinctTasks = [];
-      let map = {};
-      for (let ex of this.experiments) {
-        if (ex.challengeTask && ex.challengeTask.name && !map[ex.challengeTask.id]) {
-          this.distinctTasks.push(ex.challengeTask);
-          map[ex.challengeTask.id] = true;
-        }
+  ngOnChanges() {
+    this.distinctTasks = [];
+    let map = {};
+    for (let ex of this.experiments) {
+      if (ex.challengeTask && ex.challengeTask.name && !map[ex.challengeTask.id]) {
+        this.distinctTasks.push(ex.challengeTask);
+        map[ex.challengeTask.id] = true;
       }
-      this.loaded = true;
-    });
+    }
   }
 
   showDetails() {

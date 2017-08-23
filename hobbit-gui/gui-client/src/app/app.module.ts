@@ -24,6 +24,7 @@ import { ChallengesListComponent } from './challenges-list.comp';
 import { ChallengeEditComponent } from './challenge-edit.comp';
 import { ChallengeTaskEditComponent } from './challenge-task-edit.comp';
 import { ExperimentsComponent } from './experiments.comp';
+import { ExperimentsWrapperComponent } from './experiments-wrapper.comp';
 import { ExperimentsDetailsComponent } from './experiments-details.comp';
 import { ExperimentsDetailsWrapperComponent } from './experiments-details-wrapper.comp';
 import { ChallengeRegisterSystemsComponent } from './challenge-register-systems.comp';
@@ -58,7 +59,10 @@ const hashStrategyProvide = { provide: LocationStrategy, useClass: HashLocationS
                   BenchmarkConfigParamsComponent,
                   BenchmarkStatusComponent, BenchmarkResultDisplayComponent, SubmissionDetailsComponent,
                   ChallengesListComponent, ChallengeEditComponent, ChallengeTaskEditComponent,
-                  ExperimentsComponent, ExperimentsDetailsComponent, ExperimentsDetailsWrapperComponent,
+                  ExperimentsComponent,
+                  ExperimentsWrapperComponent,
+                  ExperimentsDetailsComponent,
+                  ExperimentsDetailsWrapperComponent,
                   ChallengeRegisterSystemsComponent, ChallengeShowRegistrationsComponent,
                   ChallengeTasksExperimentsComponent ],
   bootstrap:    [ AppComponent ]
