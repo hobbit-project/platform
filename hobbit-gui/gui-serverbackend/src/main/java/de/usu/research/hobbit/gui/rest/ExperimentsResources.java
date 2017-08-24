@@ -119,6 +119,16 @@ public class ExperimentsResources {
                                 }
                             }
                         }
+                        else {
+                        	ExperimentBean exp = new ExperimentBean();
+                        	exp.setId(id);
+                        	exp.setError("Could not find experiment.");
+                        	ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
+                        	benchmark.setConfigurationParamValues(new ArrayList<>());
+                        	exp.setBenchmark(benchmark);
+                        	exp.setKpis(new ArrayList<>());
+                        	results.add(exp);
+                        }
                     }
                 }
             } else if (challengeTaskId != null) {
