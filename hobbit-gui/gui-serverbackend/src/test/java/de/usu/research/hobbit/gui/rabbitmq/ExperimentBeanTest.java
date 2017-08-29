@@ -30,6 +30,7 @@ import de.usu.research.hobbit.gui.rest.Datatype;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 
 public class ExperimentBeanTest {
@@ -129,37 +130,37 @@ public class ExperimentBeanTest {
         checkConfigurationParameters(expectedParameters, benchmark.getConfigurationParams());
 
         // Check KPIs
-        Map<String, ConfigurationParamValueBean> expectedKpis = new HashMap<>();
-        ConfigurationParamValueBean kpiBean;
-        kpiBean = new ConfigurationParamValueBean();
+        Map<String, KeyPerformanceIndicatorBean> expectedKpis = new HashMap<>();
+        KeyPerformanceIndicatorBean kpiBean;
+        kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Queries per second");
         kpiBean.setDatatype(Datatype.DOUBLE);
         kpiBean.setDescription("Average number of processed queries (=result sets) that are received by the evaluation storage per second.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#responsesPerSecond");
         kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
         expectedKpis.put(kpiBean.getId(), kpiBean);
-        kpiBean = new ConfigurationParamValueBean();
+        kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Average query runtime (in ms)");
         kpiBean.setDatatype(Datatype.DOUBLE);
         kpiBean.setDescription("The average time from the moment a query is sent to the benchmarked system until its response is received.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#msPerQuery");
         kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
         expectedKpis.put(kpiBean.getId(), kpiBean);
-        kpiBean = new ConfigurationParamValueBean();
+        kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Query runtime standard deviation");
         kpiBean.setDatatype(Datatype.DOUBLE);
         kpiBean.setDescription("The standard deviation of the time between the moment a query is sent to the benchmarked system and the point in time at which its response is received.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#queryRuntimeStdDev");
         kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
         expectedKpis.put(kpiBean.getId(), kpiBean);
-        kpiBean = new ConfigurationParamValueBean();
+        kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Error count");
         kpiBean.setDatatype(Datatype.INTEGER);
         kpiBean.setDescription("The number of errors identified by either missing expected responses or missing result sets or both.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#errorCount");
         kpiBean.setRange("http://www.w3.org/2001/XMLSchema#int");
         expectedKpis.put(kpiBean.getId(), kpiBean);
-        kpiBean = new ConfigurationParamValueBean();
+        kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Runtime");
         kpiBean.setDatatype(Datatype.STRING);
         kpiBean.setDescription("The overall runtime, i.e., the time from the first query sent to the last response received.");
@@ -191,10 +192,10 @@ public class ExperimentBeanTest {
         Assert.assertEquals(expectedParameters.size(), configurationParams.size());
     }
 
-    private void checkKpis(Map<String, ConfigurationParamValueBean> expectedKpis,
-            List<ConfigurationParamValueBean> kpis) {
-        ConfigurationParamValueBean expected;
-        for (ConfigurationParamValueBean paramBean : kpis) {
+    private void checkKpis(Map<String, KeyPerformanceIndicatorBean> expectedKpis,
+            List<KeyPerformanceIndicatorBean> kpis) {
+        KeyPerformanceIndicatorBean expected;
+        for (KeyPerformanceIndicatorBean paramBean : kpis) {
             Assert.assertTrue(
                     paramBean.getId() + " could not be found inside " + expectedKpis.keySet().toString(),
                     expectedKpis.containsKey(paramBean.getId()));
@@ -204,6 +205,7 @@ public class ExperimentBeanTest {
             Assert.assertEquals(paramBean.getId(), expected.getName(), paramBean.getName());
             Assert.assertEquals(paramBean.getId(), expected.getRange(), paramBean.getRange());
             Assert.assertEquals(paramBean.getId(), expected.getDatatype(), paramBean.getDatatype());
+            Assert.assertEquals(paramBean.getId(), expected.getRanking(), paramBean.getRanking());
         }
         Assert.assertEquals(expectedKpis.size(), kpis.size());
     }
