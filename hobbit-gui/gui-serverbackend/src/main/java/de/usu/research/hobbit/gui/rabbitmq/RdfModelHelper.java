@@ -34,6 +34,8 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.impl.ModelCom;
+import org.apache.jena.rdf.model.impl.SeqImpl;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -422,6 +424,21 @@ public class RdfModelHelper {
         }
         task.setConfigurationParams(createParamValueBeans(model, taskResource, benchmarkResource));
         task.setId(taskResource.getURI());
+
+        List<String> rankingKPIs = new ArrayList<>();
+        Resource rankingKPIsSequence = RdfHelper.getObjectResource(model, taskResource, HOBBIT.rankingKPIs);
+        if (rankingKPIsSequence != null) {
+            SeqImpl sequence = new SeqImpl(rankingKPIsSequence, (ModelCom) model);
+            NodeIterator sequenceIterator = sequence.iterator();
+            while (sequenceIterator.hasNext()) {
+                RDFNode node = sequenceIterator.next();
+                if (node.isResource()) {
+                    rankingKPIs.add(node.asResource().toString());
+                }
+            }
+        }
+        task.setRankingKPIs(rankingKPIs);
+
         return task;
     }
 
