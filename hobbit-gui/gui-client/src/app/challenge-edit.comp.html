@@ -77,6 +77,7 @@
         <div class="col-md-7">
           <div class="pull-right">
             <button type="button" class="btn btn-default btn-sm" (click)="showExperiments()">Show<br>Experiments</button>
+            <button type="button" class="btn btn-default btn-sm" (click)="showLeaderboards()">Show<br>Leaderboards</button>
             <button *ngIf="canEdit()" type="button" class="btn btn-default btn-sm" (click)="showSystemRegistration()">Show System<br>Registration</button>
             <button *ngIf="canRegister()" type="button" class="btn btn-warning btn-sm" (click)="registerSystems()">Register Systems</button>
             <button *ngIf="canEdit()" type="button" class="btn btn-primary btn-sm" (click)="addTask()">Add Task</button>

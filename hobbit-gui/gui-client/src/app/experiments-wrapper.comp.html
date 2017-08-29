@@ -8,7 +8,7 @@
   <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
 
   <div *ngIf="loaded">
-    <sg-experiments [experiments]="experiments">
+    <sg-experiments [experiments]="experiments" [displayIDs]="true" [displayChallengeTasks]="true">
     </sg-experiments>
   </div>
 

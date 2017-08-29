@@ -169,4 +169,8 @@ export class ChallengeEditComponent implements OnInit {
   showExperiments() {
     this.router.navigate(['challenges', this.challenge.id, 'experiments']);
   }
+
+  showLeaderboards() {
+    this.router.navigate(['challenges', this.challenge.id, 'leaderboards']);
+  }
 }

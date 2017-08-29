@@ -30,6 +30,8 @@ import { ExperimentsDetailsWrapperComponent } from './experiments-details-wrappe
 import { ChallengeRegisterSystemsComponent } from './challenge-register-systems.comp';
 import { ChallengeShowRegistrationsComponent } from './challenge-show-registrations.comp';
 import { ChallengeTasksExperimentsComponent } from './challenge-tasks-experiments.comp';
+import { ChallengeTasksLeaderboardsComponent } from './challenge-tasks-leaderboards.comp';
+import { LeaderboardComponent } from './leaderboard.comp';
 
 import { PageHeaderComponent } from './shared/pageHeader.comp';
 import { WaitLoadingComponent } from './shared/waitLoading.comp';
@@ -64,7 +66,10 @@ const hashStrategyProvide = { provide: LocationStrategy, useClass: HashLocationS
                   ExperimentsDetailsComponent,
                   ExperimentsDetailsWrapperComponent,
                   ChallengeRegisterSystemsComponent, ChallengeShowRegistrationsComponent,
-                  ChallengeTasksExperimentsComponent ],
+                  ChallengeTasksExperimentsComponent,
+                  ChallengeTasksLeaderboardsComponent,
+                  LeaderboardComponent,
+                ],
   bootstrap:    [ AppComponent ]
 })
 export class AppModule { }

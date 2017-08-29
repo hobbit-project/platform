@@ -10,6 +10,9 @@ import { ConfigurationParameterValue, NamedEntity, Experiment } from './model';
 })
 export class ExperimentsComponent implements OnChanges {
   @Input() experiments: Experiment[];
+  @Input() displayRanks: boolean;
+  @Input() displayIDs: boolean;
+  @Input() displayChallengeTasks: boolean;
   distinctTasks: NamedEntity[];
   selectedExperiments: Experiment[];
 
