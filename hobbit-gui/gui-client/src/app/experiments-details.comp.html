@@ -8,7 +8,7 @@
           rowGroupMode="subheader" groupField="group" expandableRowGroups="true" [expandedRowsGroups]="rowGroups"
           [sortableRowGroup]="false">
           <template pTemplate="rowgroupheader" let-rowData><strong>{{rowData.group}}</strong></template>
-          <p-column header="Parameter" styleClass="dataTableWrapping">
+          <p-column header="Experiment ID" styleClass="dataTableWrapping">
             <template let-row="rowData" pTemplate="body">
               <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
             </template>
