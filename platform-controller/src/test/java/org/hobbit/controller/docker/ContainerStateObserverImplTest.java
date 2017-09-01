@@ -16,28 +16,43 @@
  */
 package org.hobbit.controller.docker;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
+
+import java.util.concurrent.Semaphore;
+
+import org.hobbit.core.Constants;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
  */
 public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerStateObserverImplTest.class);
+    
     private ContainerStateObserverImpl observer;
+    private Throwable throwable = null;
+    private Semaphore termination = new Semaphore(0);
 
     @Before
     public void initObserver() {
-        observer = new ContainerStateObserverImpl(this.manager, 500); // poll every 500ms
+        // poll every 500ms
+        observer = new ContainerStateObserverImpl(this.manager, 500); 
         observer.startObserving();
     }
 
     @Test
     public void run() throws Exception {
         // create two containers
-        String containerOneId = manager.startContainer("busybox", sleepCommand);
-        String containerTwoId = manager.startContainer("busybox", sleepCommand);
+        LOGGER.info("Creating container one...");
+        String containerOneId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        LOGGER.info("Creating container two...");
+        String containerTwoId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
 
         // add containers to observer
         observer.addObservedContainer(containerOneId);
@@ -47,13 +62,19 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         ContainerTerminationCallbackImpl cb2 = new ContainerTerminationCallbackImpl() {
             @Override
             public void notifyTermination(String containerId, int exitCode) {
-                // check that correct values were set
-                assertEquals(containerId, containerTwoId);
-                assertEquals(exitCode, 0);
-
-                // cleanup
-                manager.removeContainer(containerOneId);
-                manager.removeContainer(containerTwoId);
+                try {
+                    // check that correct values were set
+                    assertEquals(containerId, containerTwoId);
+                    assertEquals(0, exitCode);
+    
+                    // cleanup
+                    LOGGER.info("Removing stopped container two...");
+                    observer.removedObservedContainer(containerTwoId);
+                    manager.removeContainer(containerTwoId);
+                } catch (Throwable t) {
+                    throwable = t;
+                }
+                termination.release();
             }
         };
 
@@ -61,18 +82,38 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         ContainerTerminationCallbackImpl cb1 = new ContainerTerminationCallbackImpl() {
             @Override
             public void notifyTermination(String containerId, int exitCode) {
-                // check that correct values were set
-                assertEquals(containerId, containerOneId);
-                assertEquals(exitCode, 137);
-                observer.removeTerminationCallback(this);
-                observer.addTerminationCallback(cb2);
-
-                manager.stopContainer(containerTwoId);
+                try {
+                    // check that correct values were set
+                    assertEquals(containerOneId, containerId);
+                    assertEquals(137, exitCode);
+                    observer.removeTerminationCallback(this);
+    
+                    // cleanup
+                    LOGGER.info("Removing stopped container one...");
+                    observer.removedObservedContainer(containerOneId);
+                    manager.removeContainer(containerOneId);
+                    
+                    observer.addTerminationCallback(cb2);
+                    LOGGER.info("Waiting for container two to terminate...");
+                } catch (Throwable t) {
+                    throwable = t;
+                    termination.release();
+                }
             }
         };
         observer.addTerminationCallback(cb1);
 
         // stop container one
+        LOGGER.info("Stopping container one...");
         manager.stopContainer(containerOneId);
+        
+        // wait for the check to end
+        LOGGER.info("Waiting for the check to end...");
+        termination.acquire();
+        observer.stopObserving();
+        if(throwable != null){
+            throwable.printStackTrace();
+            Assert.fail(throwable.toString());
+        }
     }
 }
