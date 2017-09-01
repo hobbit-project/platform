@@ -252,7 +252,7 @@ public class ExperimentManager implements Closeable {
         Model model = controller.imageManager().getBenchmarkModel(config.benchmarkUri);
         if (model != null) {
             BenchmarkMetaData benchMeta = controller.imageManager().modelToBenchmarkMetaData(model);
-            if(benchMeta != null) {
+            if (benchMeta != null) {
                 usedImages.addAll(benchMeta.usedImages);
             }
         } else {
@@ -422,7 +422,7 @@ public class ExperimentManager implements Closeable {
         } finally {
             experimentMutex.release();
         }
-        if(!consumed) {
+        if (!consumed) {
             LOGGER.info("Sending broadcast message...");
             // send a message using sendToCmdQueue(command,
             // data) comprising a command that indicates that a
@@ -518,24 +518,23 @@ public class ExperimentManager implements Closeable {
      *            the status object to which the data should be added
      */
     public void addStatusInfo(ControllerStatus status) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning empty status.", e);
-            return;
-        }
-        try {
-            if (experimentStatus != null) {
-                status.currentBenchmarkName = experimentStatus.config.benchmarkName;
-                status.currentBenchmarkUri = experimentStatus.config.benchmarkUri;
-                status.currentSystemUri = experimentStatus.config.systemUri;
-                status.currentExperimentId = experimentStatus.config.id;
-                status.currentStatus = experimentStatus.getState().description;
+        // copy the pointer to the experiment status to make sure that we can
+        // read it even if another thread sets the pointer to null. This gives
+        // us the possibility to read the status without acquiring the
+        // experimentMutex.
+        ExperimentStatus currentStatus = experimentStatus;
+        if (currentStatus != null) {
+            ExperimentConfiguration config = currentStatus.getConfig();
+            if (config != null) {
+                status.currentBenchmarkName = config.benchmarkName;
+                status.currentBenchmarkUri = config.benchmarkUri;
+                status.currentSystemUri = config.systemUri;
+                status.currentExperimentId = config.id;
             }
-        } catch (Exception e) {
-            LOGGER.error("Exception while trying to generate controller status object.", e);
-        } finally {
-            experimentMutex.release();
+            States exState = currentStatus.getState();
+            if (exState != null) {
+                status.currentStatus = exState.description;
+            }
         }
     }
 
