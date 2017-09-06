@@ -208,10 +208,16 @@
             </jettyXml>
           </configuration>
           <dependencies>
+            <!-- The original dependency that was replaced by our workaround 
             <dependency>
               <groupId>org.keycloak</groupId>
               <artifactId>keycloak-jetty93-adapter</artifactId>
               <version>${keycloak.version}</version>
+            </dependency> -->
+            <dependency>
+              <groupId>org.hobbit</groupId>
+              <artifactId>keycloak-jetty-adapter-for-hobbit</artifactId>
+              <version>2.4.0.Final-SNAPSHOT</version>
             </dependency>
           </dependencies>
         </plugin>

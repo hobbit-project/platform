@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DefaultDockerClient.Builder;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
 import com.spotify.docker.client.messages.AuthConfig;
@@ -333,7 +334,8 @@ public class ContainerManagerImpl implements ContainerManager {
             Map<String, String> logOptions = new HashMap<String, String>();
             logOptions.put("gelf-address", gelfAddress);
             logOptions.put("tag", LOGGING_TAG);
-            cfgBuilder.hostConfig(HostConfig.builder().logConfig(LogConfig.create(LOGGING_DRIVER_GELF, logOptions)).build());
+            cfgBuilder.hostConfig(
+                    HostConfig.builder().logConfig(LogConfig.create(LOGGING_DRIVER_GELF, logOptions)).build());
         }
 
         // if command is present - execute it
@@ -468,11 +470,18 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public ContainerInfo getContainerInfo(String containerId) {
-        try {
-            return dockerClient.inspectContainer(containerId);
-        } catch (Exception e) {
+        if (containerId == null) {
             return null;
         }
+        ContainerInfo info = null;
+        try {
+            info = dockerClient.inspectContainer(containerId);
+        } catch (ContainerNotFoundException e) {
+            LOGGER.error("The container " + containerId + " is not known.", e);
+        } catch (Throwable e) {
+            LOGGER.error("Error while checking status of container " + containerId + ".", e);
+        }
+        return info;
     }
 
     @Override

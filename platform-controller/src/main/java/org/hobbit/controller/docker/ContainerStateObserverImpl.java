@@ -24,8 +24,8 @@ import java.util.TimerTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.ContainerState;
 
 /**
  * This class implements the {@link ContainerStateObserver} interface by
@@ -87,35 +87,32 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                List<Container> containers = null;
-                try {
-                    containers = manager.getContainers();
-                } catch (Throwable e) {
-                    LOGGER.error(
-                            "Error while retrieving list of containers. Aborting this try to get status updates for the observed containers.",
-                            e);
-                    return;
+                String containerIds[] = null;
+                // copy the list of containers so that we don't have to care for
+                // access conflicts with other threads after this point
+                synchronized (monitoredContainers) {
+                    containerIds = monitoredContainers.toArray(new String[monitoredContainers.size()]);
                 }
-                for (Container c : containers) {
-                    try {
-                        if (monitoredContainers.contains(c.id()) && c.status().contains("Exit")) {
+                ContainerInfo info;
+                for (String id : containerIds) {
+                    info = manager.getContainerInfo(id);
+                    if (info != null) {
+                        ContainerState state = info.state();
+                        if (!(state.running() || state.restarting() || state.paused())) {
                             // get exit code
-                            ContainerInfo containerInfo = manager.getContainerInfo(c.id());
-                            int exitStatus = containerInfo.state().exitCode();
+                            int exitStatus = info.state().exitCode();
                             // notify all callbacks
                             for (ContainerTerminationCallback cb : terminationCallbacks) {
                                 try {
-                                    cb.notifyTermination(c.id(), exitStatus);
+                                    cb.notifyTermination(id, exitStatus);
                                 } catch (Throwable e) {
                                     LOGGER.error("Error while calling container termination callback.", e);
                                 }
                             }
                         }
-                    } catch (Throwable e) {
-                        LOGGER.error(
-                                "Error while checking status of container " + c.id()
-                                        + "{}. It will be ignored during this run but will be checked again during the next run.",
-                                e);
+                    } else {
+                        LOGGER.error("Couldn't get the status of container " + id
+                                + ". It will be ignored during this run but will be checked again during the next run.");
                     }
                 }
             }
@@ -140,16 +137,20 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
 
     @Override
     public void addObservedContainer(String containerId) {
-        // check if it's already added
-        if (monitoredContainers.contains(containerId)) {
-            return;
+        synchronized (monitoredContainers) {
+            // check if it's already added
+            if (monitoredContainers.contains(containerId)) {
+                return;
+            }
+            // if not - add
+            monitoredContainers.add(containerId);
         }
-        // if not - add
-        monitoredContainers.add(containerId);
     }
 
     @Override
     public void removedObservedContainer(String containerId) {
-        monitoredContainers.remove(containerId);
+        synchronized (monitoredContainers) {
+            monitoredContainers.remove(containerId);
+        }
     }
 }
