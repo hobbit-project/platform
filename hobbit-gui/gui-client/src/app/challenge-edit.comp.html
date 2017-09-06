@@ -86,8 +86,8 @@
       <div class="row">
         <div class="col-md-8">
           <p-dataTable *ngIf="!!challenge.tasks" [value]="challenge.tasks" selectionMode="single" [(selection)]="selectedTask" (onRowSelect)="onSelect($event)">
-            <p-column field="name" header="Name" [sortable]="true"></p-column>
-            <p-column field="description" header="Description" [sortable]="false"></p-column>
+            <p-column field="name" header="Task Name" [sortable]="true"></p-column>
+            <p-column [style]="{'width':'360px'}" field="description" header="Description" [sortable]="false"></p-column>
             <p-column header="Benchmark" [sortable]="true">
               <template let-col let-task="rowData" pTemplate="body">
                 <span *ngIf="task.benchmark" [title]="task.benchmark.description ? task.benchmark.description : ''">{{task.benchmark?.name}}</span>
