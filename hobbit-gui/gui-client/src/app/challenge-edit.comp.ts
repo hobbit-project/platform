@@ -43,6 +43,10 @@ export class ChallengeEditComponent implements OnInit {
         this.challenge.organizer = userInfo.name;
       });
     } else {
+      if (id.indexOf('://') === -1) {
+        id = `http://w3id.org/hobbit/challenges#${id}`;
+      }
+
       this.bs.getChallenge(id).subscribe(data => {
         this.challenge = data;
         this.updateDatesFromChallenge();

@@ -31,7 +31,7 @@ export const rootRouterConfig: Routes = [
   {path: 'challenges/:id/experiments', component: ChallengeTasksExperimentsComponent},
   {path: 'experiments', component: ExperimentsComponent},
   {path: 'experiments/details', component: ExperimentsDetailsWrapperComponent},
+  {path: 'experiments/details/:id', component: ExperimentsDetailsWrapperComponent},
   {path: 'challenges/:id/register', component: ChallengeRegisterSystemsComponent},
   {path: 'challenges/:id/registrations', component: ChallengeShowRegistrationsComponent},
 ];
-
