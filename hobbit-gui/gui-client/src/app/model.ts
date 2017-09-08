@@ -1,76 +1,40 @@
-export class SelectOption {
-  constructor(public label: string, public value: string) {}
+
+export enum Role {
+    UNAUTHORIZED,
+    CHALLENGE_ORGANISER,
+    SYSTEM_PROVIDER,
+    GUEST
+}
+export function parseRole(value: string): Role {
+    if (value.toLowerCase() === 'challenge-organiser')
+        return Role.CHALLENGE_ORGANISER;
+    if (value.toLowerCase() === 'system-provider')
+        return Role.SYSTEM_PROVIDER;
+    if (value.toLowerCase() === 'guest')
+        return Role.GUEST;
+    return Role.UNAUTHORIZED;
 }
 
-export class ConfigurationParameter {
-  constructor(public id: string, public name: string, public datatype: string,
-    public description?: string,
-    public required?: boolean, public defaultValue?: string,
-    public min?: number, public max?: number, public options?: SelectOption[], public range?: string) {}
+export default Role;
+
+
+
+export class User {
+
+    static fromJson(json: any): User {
+        return new User(json.principalName, json.userName, json.name, json.email, json.roles);
+    }
+
+    public roles: Role[] = [];
+
+    constructor(public principalName: String, public userName: String,
+        public name: String, public email: String, roles: any[]) {
+        for (let i = 0; i < roles.length; i++)
+            this.roles.push(parseRole(roles[i]));
+    }
+
+    hasRole(role: Role): boolean {
+        return this.roles.includes(role);
+    }
 }
 
-export class ConfigurationParameterValue {
-  constructor(public id: string, public name: string, public datatype: string,
-    public value: string, public description: string, public range?: string) {}
-}
-
-export class BenchmarkLight {
-  constructor(public id: string, public name: string, public description: string) {}
-}
-
-export class NamedEntity {
-  constructor(public id: string, public name: string, public description?: string) {}
-}
-
-export class System extends NamedEntity {
-}
-
-export class Benchmark {
-  constructor(public id: string, public name: string, public systems?: System[], 
-              public configurationParams?: ConfigurationParameter[], public description?:string,
-              public configurationParamValues?: ConfigurationParameterValue[]) {}
-}
-
-export class ChallengeTask {
-  constructor(public id: string, public name: string, public description?: string, public benchmark?: Benchmark,
-    public configurationParams?: ConfigurationParameterValue[]) {}
-}
-
-export class Challenge {
-  constructor(public id: string, public name: string, public description?: string,
-   public organizer?: string,
-   public executionDate?: String, public publishDate?: String,
-   public visible?: boolean, public closed?: boolean,
-   public tasks?: ChallengeTask[]) {}
-}
-
-export class UserInfo {
-  constructor(public userPrincipalName: string, public preferredUsername: string,
-    public name: string, public email: string,
-    public roles: string[]) {}
-}
-
-export class ChallengeRegistration {
-  constructor(public challengeId: string, public taskId: string, public systemId: string) {}
-}
-
-export class Experiment {
-  constructor(public id: string, public kpis: ConfigurationParameterValue[], public benchmark: Benchmark,
-    public system: NamedEntity, public challengeTask: NamedEntity, public error?: string) {}
-}
-
-export class ExperimentCount {
-  constructor(public challengeTask: NamedEntity, public count: Number) {}
-}
-
-export function hasRole(user: UserInfo, role: string): boolean {
-    return user.roles.includes(role);
-}
-
-export function isChallengeOrganiser(user: UserInfo): boolean {
-    return hasRole(user, 'challenge-organiser');
-}
-
-export function isSystemProvider(user: UserInfo): boolean {
-    return hasRole(user, 'system-provider');
-}
