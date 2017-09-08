@@ -30,9 +30,14 @@ export class BenchmarkSubmitResponseComponent implements OnInit, OnChanges {
       this.error = undefined;
       this.bs.submitBenchmark(this.model).subscribe(
         data => {
-          this.model.submission = data;
-          this.submitted = true;
-          this.successfullySubmitted.emit(true);
+          if (!data.error) {
+            this.model.submission = data;
+            this.submitted = true;
+            this.successfullySubmitted.emit(true);
+          } else {
+            console.log(data.error);
+            this.error = data.error;
+          }
         },
         error => {
           console.log(error);

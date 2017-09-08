@@ -51,6 +51,8 @@ import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
+    
+    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
 
     private UserInfoBean getUserInfo(SecurityContext sc) {
         // get user
@@ -118,6 +120,16 @@ public class ExperimentsResources {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
                                 }
                             }
+                        }
+                        else {
+                        	ExperimentBean exp = new ExperimentBean();
+                        	exp.setId(id);
+                        	exp.setError(UNKNOWN_EXP_ERROR_MSG);
+                        	ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
+                        	benchmark.setConfigurationParamValues(new ArrayList<>());
+                        	exp.setBenchmark(benchmark);
+                        	exp.setKpis(new ArrayList<>());
+                        	results.add(exp);
                         }
                     }
                 }

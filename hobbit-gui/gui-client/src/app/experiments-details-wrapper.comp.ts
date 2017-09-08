@@ -13,8 +13,12 @@ export class ExperimentsDetailsWrapperComponent implements OnInit {
   }
 
   ngOnInit() {
-    let params = this.activatedRoute.snapshot.queryParams;
+    let params = {};
+    Object.assign(params, this.activatedRoute.snapshot.queryParams);
+    Object.assign(params, this.activatedRoute.snapshot.params);
+
     this.idsCommaSeparated = params['id'];
+
     this.challengeTaskId = params['challenge-task-id'];
   }
 }

@@ -23,7 +23,7 @@
 
   <groupId>org.hobbit</groupId>
   <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.11</version>
+  <version>1.0.12</version>
   <packaging>war</packaging>
   <name>gui-serverbackend</name>
 
@@ -94,7 +94,7 @@
     <dependency>
       <groupId>org.hobbit</groupId>
       <artifactId>core</artifactId>
-      <version>1.0.5</version>
+      <version>1.0.6</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
@@ -208,10 +208,16 @@
             </jettyXml>
           </configuration>
           <dependencies>
+            <!-- The original dependency that was replaced by our workaround 
             <dependency>
               <groupId>org.keycloak</groupId>
               <artifactId>keycloak-jetty93-adapter</artifactId>
               <version>${keycloak.version}</version>
+            </dependency> -->
+            <dependency>
+              <groupId>org.hobbit</groupId>
+              <artifactId>keycloak-jetty-adapter-for-hobbit</artifactId>
+              <version>2.4.0.Final-SNAPSHOT</version>
             </dependency>
           </dependencies>
         </plugin>
