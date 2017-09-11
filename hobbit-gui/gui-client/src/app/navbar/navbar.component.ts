@@ -17,6 +17,10 @@ export class NavbarComponent implements OnInit {
   constructor(private keycloak: KeycloakService, private backend: BackendService) {
     this.backend.userInfo().subscribe(data => {
       this.userInfo = data;
+    }, e => {
+      console.log('Encountered keycloak error ' + e);
+      this.logout();
+      return e;
     });
   }
 

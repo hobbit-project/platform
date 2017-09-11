@@ -38,3 +38,52 @@ export class User {
     }
 }
 
+
+
+
+export class NamedEntity {
+    constructor(public id: string, public name: string, public description?: string) {
+    }
+}
+
+export class SelectOption {
+    constructor(public label: string, public value: string) { }
+}
+
+export class ConfigurationParameter extends NamedEntity {
+    constructor(public id: string, public name: string, public datatype: string,
+        public description?: string, public required?: boolean, public defaultValue?: string, public min?: number, public max?: number,
+        public options?: SelectOption[], public range?: string) {
+        super(id, name, description);
+    }
+}
+
+export class ConfigurationParameterValue extends NamedEntity {
+    constructor(public id: string, public name: string, public datatype: string,
+        public value: string, public description?: string, public range?: string) {
+        super(id, name, description);
+    }
+}
+
+export class System extends NamedEntity {
+}
+
+export class BenchmarkOverview extends NamedEntity {
+
+    constructor(public id: string, public name: string, protected _description?: string) {
+        super(id, name, _description);
+    }
+
+    get description(): string {
+        return this.description ? this.description : '';
+    }
+
+}
+
+export class Benchmark extends BenchmarkOverview {
+    constructor(public id: string, public name: string, public systems?: System[],
+        public configurationParams?: ConfigurationParameter[], protected _description?: string,
+        public configurationParamValues?: ConfigurationParameterValue[]) {
+        super(id, name, _description);
+    }
+}

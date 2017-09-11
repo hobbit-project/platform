@@ -1,0 +1,36 @@
+<app-page-header>
+  <h1>Start Benchmarking</h1>
+</app-page-header>
+
+<form>
+  <div class="form-group">
+    <label for="benchmark">Benchmark</label>
+    <select *ngIf="benchmarks" class="form-control" id="benchmark" required [title]="selectedBenchmark ? selectedBenchmark.description : ''"
+      [ngModel]="model.benchmark" (ngModelChange)="onChangeBenchmark($event)" name="benchmark">
+      <option *ngFor="let b of benchmarks" [value]="b.id" [title]="b.description">{{b.name}}</option>
+    </select>
+  </div>
+
+  <div *ngIf="selectedBenchmark?.systems" class="form-group">
+    <label for="system">System</label>
+    <select class="form-control" id="system" required [ngModel]="model.system" (ngModelChange)="onChangeSystem($event)" name="system"
+      [title]="selectedSystem ? selectedSystem.description : ''">
+        <option *ngFor="let s of selectedBenchmark.systems" [value]="s.id" [title]="s.description">{{s.name}}</option>
+    </select>
+  </div>
+</form>
+
+<!-- <form (ngSubmit)="onSubmit()" [formGroup]="configFormGroup">
+  <sg-benchmark-configparams *ngIf="benchmarksLoaded && !!model.benchmark" [readonly]="false" [benchmark]="selectedBenchmark"
+    (onConfigFormGroup)="onConfigFormGroup($event)" #configparams>
+  </sg-benchmark-configparams>
+  <div *ngIf="model.benchmark" class="row">
+    <div class="col-md-4">
+      <button type="submit" [disabled]="!model.benchmark || !model.system || successfullySubmitted" class="btn btn-default">Submit</button>
+    </div>
+  </div>
+</form>
+
+<p-dialog header="Submission" [(visible)]="displaySubmitting" appendTo="body">
+  <sg-benchmark-submit-response [submitting]="displaySubmitting" [model]="model" (successfullySubmitted)="onSuccessfullySubmitted()"></sg-benchmark-submit-response>
+</p-dialog> -->
