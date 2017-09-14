@@ -18,10 +18,6 @@ package de.usu.research.hobbit.gui.rest.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
-import de.usu.research.hobbit.gui.rest.Datatype;
-
 @XmlRootElement
 public class KeyPerformanceIndicatorBean extends ConfigurationParamValueBean {
     private String ranking;
@@ -32,6 +28,21 @@ public class KeyPerformanceIndicatorBean extends ConfigurationParamValueBean {
 
     public void setRanking(String ranking) {
         this.ranking = ranking;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("KeyPerformanceIndicatorBean [ranking=");
+        builder.append(ranking);
+        builder.append(", id=");
+        builder.append(id);
+        builder.append(", name=");
+        builder.append(name);
+        builder.append(", description=");
+        builder.append(description);
+        builder.append("]");
+        return builder.toString();
     }
 
 }

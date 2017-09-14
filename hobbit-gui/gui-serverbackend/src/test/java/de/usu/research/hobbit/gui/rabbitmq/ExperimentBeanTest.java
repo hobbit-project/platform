@@ -29,9 +29,8 @@ import org.junit.Test;
 import de.usu.research.hobbit.gui.rest.Datatype;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
-import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
-import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 
 public class ExperimentBeanTest {
 
