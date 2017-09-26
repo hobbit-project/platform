@@ -19,7 +19,7 @@ export class NavbarComponent implements OnInit {
       this.userInfo = data;
     }, e => {
       console.log('Encountered keycloak error ' + e);
-      this.logout();
+      this.logout(null);
       return e;
     });
   }
@@ -27,9 +27,11 @@ export class NavbarComponent implements OnInit {
   ngOnInit() {
   }
 
-  logout() {
+  logout(event) {
     this.keycloak.logout();
     this.backend.flushCache();
+    if (event)
+      event.preventDefault();
   }
 
 }
