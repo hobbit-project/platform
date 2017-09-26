@@ -16,53 +16,67 @@ export class CustomHttp extends Http {
   get(url: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.get(x.url, x.options).finally(() => this.hideLoader());
+      return super.get(x.url, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   post(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.post(x.url, body, x.options).finally(() => this.hideLoader());
+      return super.post(x.url, body, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   put(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.put(x.url, body, x.options).finally(() => this.hideLoader());
+      return super.put(x.url, body, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   delete(url: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.delete(x.url, x.options).finally(() => this.hideLoader());
+      return super.delete(x.url, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   patch(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.patch(x.url, body, x.options).finally(() => this.hideLoader());
+      return super.patch(x.url, body, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   head(url: string, options?: RequestOptionsArgs): Observable<Response> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.head(x.url, x.options).finally(() => this.hideLoader());
+      return super.head(x.url, x.options).map((res) => this.hideLoader(res))
+        .catch((err) => this.errorLoader(err));
     });
   }
 
   private showLoader(): void {
-    console.log('Showing loader');
+    this.slimLoadingBarService.reset()
+    this.slimLoadingBarService.color = 'blue';
     this.slimLoadingBarService.start();
   }
 
-  private hideLoader(): void {
-    console.log('Showing loader');
+  private hideLoader(response: Response): Response {
     this.slimLoadingBarService.complete();
+    return response;
+  }
+
+  private errorLoader(error: Observable<Response>): Observable<Response> {
+    this.slimLoadingBarService.stop();
+    this.slimLoadingBarService.color = 'red';
+    this.slimLoadingBarService.progress = 100;
+    return Observable.throw(error);
   }
 
   private transform(url: string, options?: RequestOptionsArgs): Observable<any> {

@@ -1,3 +1,5 @@
+import { Type } from 'class-transformer';
+
 
 export enum Role {
     UNAUTHORIZED,
@@ -27,8 +29,8 @@ export class User {
 
     public roles: Role[] = [];
 
-    constructor(public principalName: String, public userName: String,
-        public name: String, public email: String, roles: any[]) {
+    constructor(public principalName: string, public userName: string,
+        public name: string, public email: string, roles: any[]) {
         for (let i = 0; i < roles.length; i++)
             this.roles.push(parseRole(roles[i]));
     }
@@ -50,18 +52,65 @@ export class SelectOption {
     constructor(public label: string, public value: string) { }
 }
 
-export class ConfigurationParameter extends NamedEntity {
-    constructor(public id: string, public name: string, public datatype: string,
-        public description?: string, public required?: boolean, public defaultValue?: string, public min?: number, public max?: number,
-        public options?: SelectOption[], public range?: string) {
+
+export class ConfigParam extends NamedEntity {
+    constructor(id: string, name: string, public datatype: string,
+        description?: string, public range?: string) {
         super(id, name, description);
+    }
+
+    isText(): boolean {
+        return this.datatype === 'xsd:string';
+    }
+
+    isFloatingPointNumber(): boolean {
+        return this.datatype === 'xsd:decimal' || this.datatype === 'xsd:float' || this.datatype === 'xsd:double';
+    }
+
+    isNumber(): boolean {
+        return this.datatype === 'xsd:integer' || this.isFloatingPointNumber() || this.datatype === 'xsd:unsignedInt';
+    }
+
+    isBoolean(): boolean {
+        return this.datatype === 'xsd:boolean';
+    }
+
+    getInputType(): string {
+        if (this.isNumber())
+            return 'number';
+        if (this.isText())
+            return 'text';
+        return undefined;
     }
 }
 
-export class ConfigurationParameterValue extends NamedEntity {
-    constructor(public id: string, public name: string, public datatype: string,
-        public value: string, public description?: string, public range?: string) {
-        super(id, name, description);
+export class ConfigParamDefinition extends ConfigParam {
+
+    @Type(() => SelectOption)
+    public options?: SelectOption[];
+
+    constructor(id: string, name: string, datatype: string, description?: string, range?: string,
+        public required?: boolean, public defaultValue?: string,
+        public min?: number, public max?: number) {
+        super(id, name, datatype, description, range);
+    }
+
+    getType() {
+        if (this.getInputType() !== undefined)
+            return 'input';
+        if (this.options !== undefined)
+            return 'dropdown';
+        if (this.isBoolean())
+            return 'boolean';
+        return '';
+    }
+
+}
+
+export class ConfigParamRealisation extends ConfigParam {
+    constructor(id: string, name: string, datatype: string,
+        public value: string, description?: string, range?: string) {
+        super(id, name, datatype, description, range);
     }
 }
 
@@ -70,20 +119,57 @@ export class System extends NamedEntity {
 
 export class BenchmarkOverview extends NamedEntity {
 
-    constructor(public id: string, public name: string, protected _description?: string) {
-        super(id, name, _description);
+    constructor(id: string, name: string, description?: string) {
+        super(id, name, description);
     }
 
-    get description(): string {
-        return this.description ? this.description : '';
-    }
 
 }
 
 export class Benchmark extends BenchmarkOverview {
-    constructor(public id: string, public name: string, public systems?: System[],
-        public configurationParams?: ConfigurationParameter[], protected _description?: string,
-        public configurationParamValues?: ConfigurationParameterValue[]) {
-        super(id, name, _description);
+
+    @Type(() => ConfigParamDefinition)
+    public configurationParams?: ConfigParamDefinition[];
+
+    @Type(() => ConfigParamRealisation)
+    public configParamValues?: ConfigParamRealisation[];
+
+    @Type(() => System)
+    public systems?: System[];
+
+    constructor(id: string, name: string, description?: string) {
+        super(id, name, description);
+    }
+
+    hasConfigParams() {
+        return this.configurationParams;
+    }
+}
+
+
+
+export class ChallengeTask extends NamedEntity {
+
+    @Type(() => ConfigParamRealisation)
+    public configurationParams?: ConfigParamRealisation[];
+
+    @Type(() => Benchmark)
+    public benchmark: Benchmark;
+
+    constructor(id: string, name: string, description?: string) {
+        super(id, name, description);
+    }
+}
+
+export class Challenge extends NamedEntity {
+
+    @Type(() => ChallengeTask)
+    public tasks: ChallengeTask[] = [];
+
+    constructor(id: string, name: string, description?: string,
+        public organizer?: string,
+        public executionDate?: string, public publishDate?: string,
+        public visible?: boolean, public closed?: boolean) {
+        super(id, name, description);
     }
 }

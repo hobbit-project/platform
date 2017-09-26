@@ -1,0 +1,98 @@
+<div class="container">
+  <app-page-header>
+    <div class="row">
+      <div class="col-md-8">
+        <h1>Challenges</h1>
+      </div>
+      <div class="col-md-4">
+        <div class="pull-right">
+          <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
+          <button type="button" class="btn" (click)="cancel()">Cancel</button>
+          <button type="button" class="btn btn-primary" (click)="save()">Save</button>
+        </div>
+      </div>
+    </div>
+  </app-page-header>
+
+
+  <div *ngIf="challenge">
+    <form>
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" [readonly]="!canEdit()" [(ngModel)]="challenge.name" class="form-control" placeholder="Name"
+        />
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4" [readonly]="!canEdit()" [(ngModel)]="challenge.description" class="form-control"
+          placeholder="Description"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="form-group col-md-6">
+          <label for="pubdate">Publish Date</label>
+          <div>
+            <p-calendar id="pubdate" name="pubdate" [disabled]="!canEdit()" [(ngModel)]="dates.publishDate" [showTime]="true" [showIcon]="true"
+              dateFormat="yy-mm-dd"></p-calendar>
+            <p><small *ngIf="dates.publishDate">{{dates.publishDate.toString()}}</small></p>
+          </div>
+        </div>
+        <div class="form-group col-md-6">
+          <label for="execdate">Execution Date</label>
+          <br>
+          <p-calendar id="execdate" name="execdate" [disabled]="!canEdit()" [(ngModel)]="dates.executionDate" [showTime]="true" [showIcon]="true"
+            dateFormat="yy-mm-dd"></p-calendar>
+          <p><small *ngIf="dates.executionDate">{{dates.executionDate.toString()}}</small></p>
+        </div>
+      </div>
+
+      <div class="checkbox">
+        <label>
+          <input type="checkbox" name="visible" [(ngModel)]="challenge.visible" [disabled]="!canEdit()"> Visible for everyone
+        </label>
+      </div>
+      <div class="form-group" *ngIf="challenge.id">
+        <span *ngIf="challenge.closed">Challenge is closed</span>
+        <div *ngIf="!challenge.closed">
+          <span *ngIf="!canEdit()">Challenge is open</span>
+          <button *ngIf="canEdit()" [disabled]="closeIsActive" type="button" class="btn btn-default" (click)="closeChallenge()">Close Challenge</button>
+        </div>
+      </div>
+    </form>
+
+    <div *ngIf="!challenge.id" class="alert alert-info" role="alert">
+      You need to save the new challenge before you can add tasks.
+    </div>
+
+    <div *ngIf="challenge.id">
+      <hr class="mt-4 mb-4">
+
+      <div class="row">
+        <div class="col-md-4">
+          <h2>Tasks</h2>
+        </div>
+        <div class="col-md-8">
+          <div class="pull-right">
+            <button type="button" class="btn btn-default btn-sm" (click)="showExperiments()">Experiments</button>
+            <button *ngIf="canEdit()" type="button" class="btn btn-default btn-sm" (click)="showSystemRegistration()">System Registration</button>
+            <button *ngIf="canRegister()" type="button" class="btn btn-warning btn-sm" (click)="registerSystems()">Register Systems</button>
+            <button *ngIf="canEdit()" type="button" class="btn btn-primary btn-sm" (click)="addTask()">Add Task</button>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <p-dataTable *ngIf="!!challenge.tasks" [value]="challenge.tasks" selectionMode="single" [(selection)]="selectedTask" (onRowSelect)="onSelect($event)">
+            <p-column field="name" header="Task Name" [sortable]="true"></p-column>
+            <p-column [style]="{'width':'360px'}" field="description" header="Description" [sortable]="false"></p-column>
+            <p-column header="Benchmark" [sortable]="true">
+              <template let-col let-task="rowData" pTemplate="body">
+                <span *ngIf="task.benchmark" [title]="task.benchmark.description ? task.benchmark.description : ''">{{task.benchmark?.name}}</span>
+              </template>
+            </p-column>
+          </p-dataTable>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
