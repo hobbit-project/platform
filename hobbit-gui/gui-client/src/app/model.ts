@@ -132,7 +132,7 @@ export class Benchmark extends BenchmarkOverview {
     public configurationParams?: ConfigParamDefinition[];
 
     @Type(() => ConfigParamRealisation)
-    public configParamValues?: ConfigParamRealisation[];
+    public configurationParamValues?: ConfigParamRealisation[];
 
     @Type(() => System)
     public systems?: System[];
@@ -172,4 +172,29 @@ export class Challenge extends NamedEntity {
         public visible?: boolean, public closed?: boolean) {
         super(id, name, description);
     }
+}
+
+export class Experiment {
+
+    @Type(() => ConfigParamRealisation)
+    public kpis: ConfigParamRealisation[];
+
+    @Type(() => Benchmark)
+    public benchmark: Benchmark;
+
+    @Type(() => System)
+    public system?: System;
+
+    @Type(() => ChallengeTask)
+    public challengeTask: ChallengeTask;
+
+    constructor(public id: string, public error?: string) { }
+}
+
+export class ExperimentCount {
+
+    @Type(() => ChallengeTask)
+    public challengeTask: ChallengeTask;
+
+    constructor(public count: Number) { }
 }

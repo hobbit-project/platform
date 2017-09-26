@@ -1,9 +1,9 @@
 import { BenchmarkComponent } from './upload/benchmark/benchmark.component';
 import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
-import { User, BenchmarkOverview, Benchmark, Challenge } from './model';
+import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment } from './model';
 import { Injectable } from '@angular/core';
-import { Http, Headers } from '@angular/http';
+import { Http, Headers, RequestOptions } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
 
 import 'rxjs/add/operator/map';
@@ -31,7 +31,7 @@ export class BackendService {
   }
 
   getBenchmarkDetails(benchmarkId: string): Observable<Benchmark> {
-    return this.http.get(environment.backendPrefix + `/rest/benchmarks/${encodeURIComponent(benchmarkId)}`).map(res => res.json());
+    return this.http.get(environment.backendPrefix + `/rest/benchmarks/${encodeURIComponent(benchmarkId)}`).map(res => plainToClass<Benchmark, Object>(Benchmark, res.json()));
   }
 
   submitBenchmark(model: any) {
@@ -44,8 +44,8 @@ export class BackendService {
     return this.http.get('BACKEND/rest/challenges').map(res => plainToClass(Challenge, res.json()));
   }
 
-  getChallenge(id: string) {
-    return this.http.get(`BACKEND/rest/challenges/${encodeURIComponent(id)}`).map(res => res.json());
+  getChallenge(id: string): Observable<Challenge> {
+    return this.http.get(`BACKEND/rest/challenges/${encodeURIComponent(id)}`).map(res => plainToClass<Challenge, Object>(Challenge, res.json()));
   }
 
   addChallenge(challenge: Challenge) {
@@ -56,5 +56,12 @@ export class BackendService {
     return this.http.put(`BACKEND/rest/challenges/${encodeURIComponent(challenge.id)}`, challenge).map(res => res.json());
   }
 
+  countExperiments(challengeId: string): Observable<ExperimentCount[]> {
+    return this.http.get(`BACKEND/rest/experiments/count-by-challenge/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ExperimentCount, res.json()));
+  }
+
+  queryExperiments(ids?: string, challengeTaskId?: string): Observable<Experiment[]> {
+    return this.http.get(`BACKEND/rest/experiments/query?challenge-task-id=${encodeURIComponent(challengeTaskId)}`).map(res => plainToClass(Experiment, res.json()));
+  }
 
 }

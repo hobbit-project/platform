@@ -24,6 +24,8 @@ import { ConfigComponent } from './benchmark/config/config.component';
 import { DynFormComponent } from './dyn-form/dyn-form.component';
 import { ChallengesComponent } from './challenges/challenges.component';
 import { EditComponent as ChallengesEditComponent } from './challenges/edit/edit.component';
+import { ExperimentsComponent } from './challenges/experiments/experiments.component';
+import { DetailsComponent } from './challenges/experiments/details/details.component';
 
 
 const appRoutes: Routes = [
@@ -34,6 +36,7 @@ const appRoutes: Routes = [
   { path: 'benchmarks', component: BenchmarkComponent, canActivate: [AuthGuardService] },
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
   { path: '**', component: NotFoundComponent }
 ];
 
@@ -62,6 +65,8 @@ export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOp
     DynFormComponent,
     ChallengesComponent,
     ChallengesEditComponent,
+    ExperimentsComponent,
+    DetailsComponent
   ],
   imports: [
     BrowserAnimationsModule,

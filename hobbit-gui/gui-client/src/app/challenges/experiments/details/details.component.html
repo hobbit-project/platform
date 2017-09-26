@@ -1,0 +1,24 @@
+<div *ngIf="rows">
+  <div class="row">
+    <div class="col-md-12">
+      <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true" rowGroupMode="subheader" groupField="group"
+        expandableRowGroups="true" [expandedRowsGroups]="rowGroups" [sortableRowGroup]="false">
+        <ng-template pTemplate="rowgroupheader" let-rowData><strong>{{rowData.group}}</strong></ng-template>
+        <p-column header="Experiment ID" styleClass="dataTableWrapping">
+          <ng-template let-row="rowData" pTemplate="body">
+            <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
+          </ng-template>
+        </p-column>
+        <p-column *ngFor="let ex of experiments; let i = index" styleClass="dataTableWrapping">
+          <ng-template pTemplate="header"><span title="Experiment ID">{{ex.id}}</span></ng-template>
+          <ng-template pTemplate="body" let-row="rowData">
+            <span *ngIf="row.kpiSample.name !== 'Error'" [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+            <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]" class="alert alert-danger" role="alert" [title]="row.values[i]">
+              {{row.values[i]}}
+            </div>
+          </ng-template>
+        </p-column>
+      </p-dataTable>
+    </div>
+  </div>
+</div>

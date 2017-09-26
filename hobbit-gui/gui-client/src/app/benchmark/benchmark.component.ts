@@ -46,9 +46,7 @@ export class BenchmarkComponent implements OnInit {
     const selectedBenchmarkOverview = this.benchmarks.find(b => b.id === event);
     if (selectedBenchmarkOverview) {
       this.bs.getBenchmarkDetails(event).subscribe(data => {
-        this.selectedBenchmark = plainToClass(Benchmark, data);
-      }, err => {
-        console.error(err);
+        this.selectedBenchmark = data;
       });
     }
   }
