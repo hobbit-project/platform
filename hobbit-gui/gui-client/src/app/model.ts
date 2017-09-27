@@ -174,6 +174,10 @@ export class Challenge extends NamedEntity {
     }
 }
 
+export class ChallengeRegistration {
+    constructor(public challengeId: string, public taskId: string, public systemId: string) { }
+}
+
 export class Experiment {
 
     @Type(() => ConfigParamRealisation)

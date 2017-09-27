@@ -5,5 +5,7 @@
   <div *ngFor="let c of config">
     <app-dyn-form [config]="c" [form]="formGroup"></app-dyn-form>
   </div>
-  <button type="submit" class="btn btn-primary" [disabled]="!benchmark || !system">Submit</button>
+  <div *ngIf="system">
+    <button type="submit" class="btn btn-primary" [disabled]="!benchmark || !system">Submit</button>
+  </div>
 </form>

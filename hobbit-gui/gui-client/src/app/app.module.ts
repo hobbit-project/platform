@@ -11,7 +11,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { Http, HttpModule, XHRBackend, RequestOptions } from '@angular/http';
 import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
 import { ModalModule } from 'ngx-bootstrap/modal';
-import { DataTableModule, CalendarModule } from 'primeng/primeng';
+import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule } from 'primeng/primeng';
 import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import { HomeComponent } from './home/home.component';
@@ -26,6 +26,8 @@ import { ChallengesComponent } from './challenges/challenges.component';
 import { EditComponent as ChallengesEditComponent } from './challenges/edit/edit.component';
 import { ExperimentsComponent } from './challenges/experiments/experiments.component';
 import { DetailsComponent } from './challenges/experiments/details/details.component';
+import { TaskComponent } from './challenges/task/task.component';
+import { RegistrationComponent } from './challenges/registration/registration.component';
 
 
 const appRoutes: Routes = [
@@ -37,6 +39,8 @@ const appRoutes: Routes = [
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
   { path: '**', component: NotFoundComponent }
 ];
 
@@ -66,7 +70,9 @@ export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOp
     ChallengesComponent,
     ChallengesEditComponent,
     ExperimentsComponent,
-    DetailsComponent
+    DetailsComponent,
+    TaskComponent,
+    RegistrationComponent
   ],
   imports: [
     BrowserAnimationsModule,
@@ -78,13 +84,15 @@ export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOp
     ModalModule.forRoot(),
     ReactiveFormsModule,
     DataTableModule,
-    CalendarModule
+    CalendarModule,
+    ConfirmDialogModule
   ],
   providers: [
     AuthGuardService,
     KeycloakService,
     BackendService,
-    httpProvide
+    httpProvide,
+    ConfirmationService
   ],
   bootstrap: [AppComponent]
 })

@@ -75,7 +75,6 @@
           <div class="pull-right">
             <button type="button" class="btn btn-default btn-sm" (click)="showExperiments()">Experiments</button>
             <button *ngIf="canEdit()" type="button" class="btn btn-default btn-sm" (click)="showSystemRegistration()">System Registration</button>
-            <button *ngIf="canRegister()" type="button" class="btn btn-warning btn-sm" (click)="registerSystems()">Register Systems</button>
             <button *ngIf="canEdit()" type="button" class="btn btn-primary btn-sm" (click)="addTask()">Add Task</button>
           </div>
         </div>
@@ -96,3 +95,5 @@
     </div>
   </div>
 </div>
+
+<p-confirmDialog width="425"></p-confirmDialog>

@@ -2,6 +2,7 @@ import { Challenge, User, Role, ChallengeTask } from './../../model';
 import { BackendService } from './../../backend.service';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
+import { ConfirmationService } from 'primeng/primeng';
 
 class ChallengeDates {
   private executionDate: Date;
@@ -44,7 +45,8 @@ export class EditComponent implements OnInit {
   private dates: ChallengeDates;
   private selectedTask: ChallengeTask;
 
-  constructor(private bs: BackendService, private route: ActivatedRoute, private router: Router) { }
+  constructor(private bs: BackendService, private route: ActivatedRoute, private router: Router,
+    private confirmationService: ConfirmationService) { }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -80,7 +82,16 @@ export class EditComponent implements OnInit {
   }
 
   delete() {
-    // TODO implement
+    this.confirmationService.confirm({
+      message: 'Do you want to delete this challenge?',
+      header: 'Delete Confirmation',
+      icon: 'fa fa-trash',
+      accept: () => {
+        this.bs.deleteChallenge(this.challenge.id).subscribe(ok => {
+          this.cancel();
+        });
+      }
+    });
   }
 
   save() {
@@ -104,16 +115,25 @@ export class EditComponent implements OnInit {
     this.router.navigate(['challenges', this.challenge.id, 'registrations']);
   }
 
-  registerSystems() {
-    this.router.navigate(['challenges', this.challenge.id, 'register']);
-  }
-
   showExperiments() {
     this.router.navigate(['challenges', this.challenge.id, 'experiments']);
   }
 
   onSelect(event) {
     this.router.navigate(['challenges', this.challenge.id, 'edit', this.selectedTask.id]);
+  }
+
+  closeChallenge() {
+    this.confirmationService.confirm({
+      message: 'Closing a challenge cannot be rolled back! Are you sure?',
+      header: 'Close Confirmation',
+      icon: 'fa fa-archive',
+      accept: () => {
+        this.bs.closeChallenge(this.challenge.id).subscribe(data => {
+          this.challenge.closed = true;
+        });
+      }
+    });
   }
 
 }
