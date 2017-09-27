@@ -1,3 +1,4 @@
+import { PathLocationStrategy, LocationChangeListener, LocationStrategy } from '@angular/common';
 import { EditComponent } from './challenges/edit/edit.component';
 import { CustomHttp } from './custom-http.service';
 import { BackendService } from './backend.service';
@@ -45,6 +46,7 @@ const appRoutes: Routes = [
 ];
 
 
+
 export const httpProvide = {
   provide: Http,
   useFactory: httpClientFactory,
@@ -53,6 +55,20 @@ export const httpProvide = {
 export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService, slimLoadingBarService: SlimLoadingBarService): Http {
   return new CustomHttp(backend, defaultOptions, keycloakService, slimLoadingBarService);
 }
+
+// merge initial path and hash (if it looks suitable)
+export class MergeLocationStrategy extends PathLocationStrategy {
+  onPopState(fn: LocationChangeListener): void {
+    const oldURL = this.path(true);
+    // merge "#/...", "#<ID>,<ID>..." and "#<UUID>" into path
+    const newURL = oldURL.replace(/#(?:\/(.*)|([\d,%C]+)|(\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))$/, '$1$2$3');
+    if (newURL !== oldURL) {
+      this.replaceState(null, '', newURL, '');
+    }
+    super.onPopState(fn);
+  }
+}
+export const mergeStrategyProvide = { provide: LocationStrategy, useClass: MergeLocationStrategy };
 
 
 @NgModule({
@@ -91,6 +107,7 @@ export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOp
     AuthGuardService,
     KeycloakService,
     BackendService,
+    mergeStrategyProvide,
     httpProvide,
     ConfirmationService
   ],
