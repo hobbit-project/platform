@@ -16,7 +16,11 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -28,14 +32,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.*;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.ResourceFactory;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -44,8 +45,15 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -92,7 +100,7 @@ public class ExperimentsResources {
 
 
             if (ids != null) {
-                System.out.println("Querying experiment results for " + Arrays.toString(ids));
+                LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
                 for (String id : ids) {
                     // create experiment URI
@@ -134,7 +142,7 @@ public class ExperimentsResources {
                     }
                 }
             } else if (challengeTaskId != null) {
-                System.out.println("Querying experiment results for challenge task " + challengeTaskId);
+                LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
                 String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
                 // get public experiment
@@ -148,19 +156,26 @@ public class ExperimentsResources {
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         // get challenge organizer
-                        Resource subj = model.getResource(challengeTaskId);
+                        Resource challengeTask = model.getResource(challengeTaskId);
                         // get challenge info
                         String challengeQuery = SparqlQueries.getChallengeTaskOrganizer(challengeTaskId, null);
                         Model challengeModel = StorageServiceClientSingleton.getInstance().sendConstructQuery(challengeQuery);
-                        Resource organizer = RdfHelper.getObjectResource(challengeModel, subj, HOBBIT.organizer);
-                        if (organizer != null) {
-                            // check if organizer is user
-                            // return whole thing if he is
+                        Resource challenge = RdfHelper.getObjectResource(challengeModel, challengeTask, HOBBIT.isTaskOf);
+                        if(challenge != null) {
+                            String organizer = RdfHelper.getStringValue(challengeModel, challenge, HOBBIT.organizer);
                             UserInfoBean userInfo = getUserInfo(sc);
-                            if (organizer.getURI() == userInfo.getPreferredUsername()) {
-                                results = RdfModelHelper.createExperimentBeans(model);
+                            if (organizer != null) {
+                                // check if organizer is user
+                                // return whole thing if he is
+                                if (organizer.equals(userInfo.getPreferredUsername())) {
+                                    results = RdfModelHelper.createExperimentBeans(model);
+                                }
                             } else {
-                                // if he is not, iterate over the beans and remove all beans that's now user owned
+                                LOGGER.error("Couldn't get organizer for task {}. Falling back to retrieving experiments that can be seen by the user in his role as system owner.",
+                                        challengeTaskId);
+                            }
+                            if(results == null) {
+                                // if the user is not the organizer, iterate over the beans and remove all beans that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
                                     Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
@@ -169,7 +184,12 @@ public class ExperimentsResources {
                                             .collect(Collectors.toList());
                                 }
                             }
+                        } else {
+                            LOGGER.error("Couldn't find the challenge of challenge task {}.", challengeTaskId);
                         }
+                    } else {
+                        LOGGER.info("Couldn't find experiments for task {}. Returning empty list.", challengeTaskId);
+                        results = new ArrayList<>(0);
                     }
                 }
             } else {
