@@ -3,7 +3,7 @@ import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
 import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration } from './model';
 import { Injectable } from '@angular/core';
-import { Http, Headers, RequestOptions } from '@angular/http';
+import { Http, Headers, RequestOptions, URLSearchParams } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
 
 import 'rxjs/add/operator/map';
@@ -24,6 +24,10 @@ export class BackendService {
 
   flushCache() {
     this.obsUserInfo = null;
+  }
+
+  getStatus() {
+    return this.http.get('BACKEND/rest/status').map(res => res.text());
   }
 
   listBenchmarks(): Observable<BenchmarkOverview[]> {
@@ -69,7 +73,12 @@ export class BackendService {
   }
 
   queryExperiments(ids?: string, challengeTaskId?: string): Observable<Experiment[]> {
-    return this.http.get(`BACKEND/rest/experiments/query?challenge-task-id=${encodeURIComponent(challengeTaskId)}`).map(res => plainToClass(Experiment, res.json()));
+    const params = new URLSearchParams();
+    if (ids)
+      params.set('id', ids);
+    if (challengeTaskId)
+      params.set('challenge-task-id', challengeTaskId);
+    return this.http.get('BACKEND/rest/experiments/query', { params: params }).map(res => plainToClass(Experiment, res.json()));
   }
 
   getAllChallengeRegistrations(challengeId: string): Observable<ChallengeRegistration[]> {
