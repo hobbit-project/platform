@@ -49,7 +49,7 @@ export class EditComponent implements OnInit {
     private confirmationService: ConfirmationService) { }
 
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
+    let id = this.route.snapshot.paramMap.get('id');
 
     this.bs.userInfo().subscribe(data => {
       this.userInfo = data;
@@ -62,6 +62,9 @@ export class EditComponent implements OnInit {
         this.challenge.organizer = userInfo.name;
       });
     } else {
+      if (id.indexOf('://') === -1)
+        id = `http://w3id.org/hobbit/challenges#${id}`;
+
       this.bs.getChallenge(id).subscribe(data => {
         this.challenge = data;
         this.dates = new ChallengeDates(this.challenge);

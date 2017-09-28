@@ -1,5 +1,5 @@
-import { BackendService } from './../../../backend.service';
-import { ConfigParamRealisation, Experiment, NamedEntity } from './../../../model';
+import { BackendService } from './../../backend.service';
+import { ConfigParamRealisation, Experiment, NamedEntity } from './../../model';
 import { Component, OnInit, Input, OnChanges } from '@angular/core';
 
 class TableRow {
@@ -8,9 +8,9 @@ class TableRow {
 }
 
 @Component({
-  selector: 'app-experiment-details',
+  selector: 'app-experiments-details',
   templateUrl: './details.component.html',
-  styleUrls: ['./details.component.css']
+  styleUrls: ['./details.component.less']
 })
 export class DetailsComponent implements OnInit, OnChanges {
 

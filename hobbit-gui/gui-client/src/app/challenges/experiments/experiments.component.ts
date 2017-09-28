@@ -18,7 +18,7 @@ export class ExperimentsComponent implements OnInit {
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.params['id'];
-    const taskId = this.activatedRoute.snapshot.queryParams['task-id'];
+    const taskId = this.activatedRoute.snapshot.queryParams['task'];
     this.bs.getChallenge(id).subscribe(data => {
       this.challenge = data;
     });
@@ -29,11 +29,6 @@ export class ExperimentsComponent implements OnInit {
         this.selectedCount = this.counts.find(value => value.challengeTask.id === taskId);
       }
     });
-  }
-
-  onSelect(event) {
-    const qparams = { 'task-id': this.selectedCount.challengeTask.id };
-    this.router.navigate(['challenges', this.challenge.id, 'experiments'], { queryParams: qparams });
   }
 
 }

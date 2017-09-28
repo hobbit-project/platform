@@ -1,3 +1,4 @@
+import { ExperimentsComponent } from './experiments/experiments.component';
 import { PathLocationStrategy, LocationChangeListener, LocationStrategy } from '@angular/common';
 import { EditComponent } from './challenges/edit/edit.component';
 import { CustomHttp } from './custom-http.service';
@@ -25,10 +26,12 @@ import { ConfigComponent } from './benchmark/config/config.component';
 import { DynFormComponent } from './dyn-form/dyn-form.component';
 import { ChallengesComponent } from './challenges/challenges.component';
 import { EditComponent as ChallengesEditComponent } from './challenges/edit/edit.component';
-import { ExperimentsComponent } from './challenges/experiments/experiments.component';
-import { DetailsComponent } from './challenges/experiments/details/details.component';
+import { ExperimentsComponent as ChallengeExperimentsComponent } from './challenges/experiments/experiments.component';
+import { DetailsComponent as ExperimentDetailsComponent } from './experiments/details/details.component';
 import { TaskComponent } from './challenges/task/task.component';
 import { RegistrationComponent } from './challenges/registration/registration.component';
+import { DetailsWrapperComponent } from './experiments/details-wrapper/details-wrapper.component';
+import { StatusComponent } from './benchmark/status/status.component';
 
 
 const appRoutes: Routes = [
@@ -37,11 +40,15 @@ const appRoutes: Routes = [
   { path: 'upload/benchmarks', component: UploadBenchmarkComponent, canActivate: [AuthGuardService] },
   { path: 'upload/systems', component: SystemComponent, canActivate: [AuthGuardService] },
   { path: 'benchmarks', component: BenchmarkComponent, canActivate: [AuthGuardService] },
+  { path: 'benchmarks/status', component: StatusComponent, canActivate: [AuthGuardService] },
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
-  { path: 'challenges/:id/experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/experiments', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments/:id', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments/task/:task', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
   { path: '**', component: NotFoundComponent }
 ];
 
@@ -85,10 +92,13 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     DynFormComponent,
     ChallengesComponent,
     ChallengesEditComponent,
+    ChallengeExperimentsComponent,
     ExperimentsComponent,
-    DetailsComponent,
+    ExperimentDetailsComponent,
     TaskComponent,
-    RegistrationComponent
+    RegistrationComponent,
+    DetailsWrapperComponent,
+    StatusComponent
   ],
   imports: [
     BrowserAnimationsModule,
