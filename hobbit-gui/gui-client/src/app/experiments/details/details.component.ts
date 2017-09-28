@@ -1,3 +1,4 @@
+import { Router } from '@angular/router';
 import { BackendService } from './../../backend.service';
 import { ConfigParamRealisation, Experiment, NamedEntity } from './../../model';
 import { Component, OnInit, Input, OnChanges } from '@angular/core';
@@ -24,7 +25,7 @@ export class DetailsComponent implements OnInit, OnChanges {
   rows: TableRow[];
   rowGroups: string[];
 
-  constructor(private bs: BackendService) { }
+  constructor(private bs: BackendService, private router: Router) { }
 
   ngOnInit() {
   }
@@ -34,6 +35,10 @@ export class DetailsComponent implements OnInit, OnChanges {
 
     this.bs.queryExperiments(this.idsCommaSeparated, this.challengeTaskId).subscribe(data => {
       this.experiments = data;
+
+      if (this.experiments == null)
+        this.router.navigateByUrl('404', { skipLocationChange: true });
+
       this.buildTableRows();
     });
   }

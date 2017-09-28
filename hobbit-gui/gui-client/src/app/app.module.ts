@@ -13,7 +13,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { Http, HttpModule, XHRBackend, RequestOptions } from '@angular/http';
 import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
 import { ModalModule } from 'ngx-bootstrap/modal';
-import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule } from 'primeng/primeng';
+import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule, MessagesModule } from 'primeng/primeng';
+import { MessageService } from 'primeng/components/common/messageservice';
 import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar/navbar.component';
 import { HomeComponent } from './home/home.component';
@@ -111,7 +112,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     ReactiveFormsModule,
     DataTableModule,
     CalendarModule,
-    ConfirmDialogModule
+    ConfirmDialogModule,
+    MessagesModule
   ],
   providers: [
     AuthGuardService,
@@ -119,7 +121,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     BackendService,
     mergeStrategyProvide,
     httpProvide,
-    ConfirmationService
+    ConfirmationService,
+    MessageService
   ],
   bootstrap: [AppComponent]
 })

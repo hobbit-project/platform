@@ -1,3 +1,4 @@
+import { MessageService } from 'primeng/components/common/messageservice';
 import { EditComponent } from './edit/edit.component';
 import { Router } from '@angular/router';
 import { Challenge, User, Role } from './../model';
@@ -17,7 +18,7 @@ export class ChallengesComponent implements OnInit {
   private selectedChallenge: Challenge;
 
 
-  constructor(private bs: BackendService, private router: Router) { }
+  constructor(private bs: BackendService, private router: Router, private messageService: MessageService) { }
 
   ngOnInit() {
     this.bs.userInfo().subscribe(data => {
@@ -26,6 +27,9 @@ export class ChallengesComponent implements OnInit {
 
     this.bs.listChallenges().subscribe(data => {
       this.challenges = data;
+
+      if (this.challenges.length === 0)
+        this.messageService.add({ severity: 'warn', summary: 'No Challenges', detail: 'Did not find any challenges.' });
     });
   }
 

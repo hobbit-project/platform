@@ -46,7 +46,7 @@ export class TaskComponent implements OnInit {
         this.loaded = true;
       } else {
         this.taskIdx = this.challenge.tasks.findIndex(t => t.id === taskId);
-        if (this.taskIdx !== undefined) {
+        if (this.taskIdx !== -1) {
           this.task = this.challenge.tasks[this.taskIdx];
           if (this.task.benchmark && this.task.benchmark.id) {
             this.selectedBenchmarkId = this.task.benchmark.id;
@@ -55,6 +55,8 @@ export class TaskComponent implements OnInit {
             }
           }
           this.loaded = true;
+        } else {
+          this.router.navigateByUrl('404', { skipLocationChange: true });
         }
       }
     });

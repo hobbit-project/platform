@@ -1,3 +1,4 @@
+import { MessageService } from 'primeng/components/common/messageservice';
 import { plainToClass } from 'class-transformer';
 import { System, Benchmark, BenchmarkOverview } from './../model';
 import { Router } from '@angular/router';
@@ -27,7 +28,8 @@ export class BenchmarkComponent implements OnInit {
   @ViewChild('submitModal')
   submitModal: any;
 
-  constructor(private bs: BackendService, private router: Router, private modalService: BsModalService) {
+  constructor(private bs: BackendService, private router: Router, private modalService: BsModalService,
+    private messageService: MessageService) {
   }
 
   ngOnInit() {
@@ -37,6 +39,9 @@ export class BenchmarkComponent implements OnInit {
     this.configFormGroup = new FormGroup({});
     this.bs.listBenchmarks().subscribe(data => {
       this.benchmarks = data;
+
+      if (this.benchmarks.length === 0)
+        this.messageService.add({ severity: 'warn', summary: 'No Benchmarks', detail: 'Did not find any benchmarks.' });
     });
   }
 
