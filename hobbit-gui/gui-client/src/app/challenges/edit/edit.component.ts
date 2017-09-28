@@ -34,7 +34,8 @@ class ChallengeDates {
 
 @Component({
   selector: 'app-edit',
-  templateUrl: './edit.component.html'
+  templateUrl: './edit.component.html',
+  styleUrls: ['./edit.component.less']
 })
 export class EditComponent implements OnInit {
 
