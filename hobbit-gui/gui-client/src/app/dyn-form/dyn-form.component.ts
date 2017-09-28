@@ -14,6 +14,8 @@ export class DynFormComponent implements OnInit {
   private form: FormGroup;
 
   ngOnInit() {
+    if (this.config.getType() === 'dropdown')
+      this.config.options.sort((a, b) => a.label > b.label ? 1 : (b.label > a.label ? -1 : 0));
   }
 
   get isValid() {
