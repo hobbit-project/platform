@@ -65,7 +65,9 @@ export class NavbarComponent implements OnInit {
     return true;
   }
 
-  logout() {
+  
+  logout(event) {
     this.keycloak.logout();
+    event.preventDefault();
   }
 }
