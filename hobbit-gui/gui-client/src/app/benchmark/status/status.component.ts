@@ -7,7 +7,7 @@ import { Component, OnInit } from '@angular/core';
 })
 export class StatusComponent implements OnInit {
 
-  private details: string;
+  public details: string;
 
   constructor(private bs: BackendService) { }
 

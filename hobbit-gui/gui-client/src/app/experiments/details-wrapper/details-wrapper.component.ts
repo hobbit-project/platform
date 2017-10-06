@@ -7,8 +7,8 @@ import { Component, OnInit } from '@angular/core';
 })
 export class DetailsWrapperComponent implements OnInit {
 
-  private idsCommaSeparated: string;
-  private challengeTaskId: string;
+  public idsCommaSeparated: string;
+  public challengeTaskId: string;
 
   constructor(private activatedRoute: ActivatedRoute, private router: Router) { }
 

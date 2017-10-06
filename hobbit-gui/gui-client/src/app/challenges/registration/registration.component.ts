@@ -10,7 +10,7 @@ import { Component, OnInit } from '@angular/core';
 })
 export class RegistrationComponent implements OnInit {
 
-  private challenge: Challenge;
+  public challenge: Challenge;
   private registrations: ChallengeRegistration[];
   private systems: System[];
   private display = {};
@@ -18,7 +18,7 @@ export class RegistrationComponent implements OnInit {
   private loadedChallenge = false;
   private loadedRegistrations = false;
   private loadedSystems = false;
-  private loaded = false;
+  public loaded = false;
 
   constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private router: Router) { }
 

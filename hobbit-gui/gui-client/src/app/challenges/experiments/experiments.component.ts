@@ -10,7 +10,7 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ExperimentsComponent implements OnInit {
 
-  private challenge: Challenge;
+  public challenge: Challenge;
   private counts: ExperimentCount[] = [];
   private selectedCount: ExperimentCount;
 

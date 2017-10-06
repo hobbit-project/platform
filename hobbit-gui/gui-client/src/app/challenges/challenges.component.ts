@@ -13,10 +13,9 @@ import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 export class ChallengesComponent implements OnInit {
 
   public Role = Role;
-  private challenges: Challenge[];
-  private user: User;
-  private selectedChallenge: Challenge;
-
+  public challenges: Challenge[];
+  public user: User;
+  public selectedChallenge: Challenge;
 
   constructor(private bs: BackendService, private router: Router, private messageService: MessageService) { }
 

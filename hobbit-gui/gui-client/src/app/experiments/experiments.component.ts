@@ -10,11 +10,11 @@ import { Component, OnInit } from '@angular/core';
 })
 export class ExperimentsComponent implements OnInit {
 
-  private distinctTasks: ChallengeTask[];
+  public distinctTasks: ChallengeTask[];
   private experiments: Experiment[];
-  private selectedExperiments: Experiment[];
+  public selectedExperiments: Experiment[];
 
-  private loaded = false;
+  public loaded = false;
 
   constructor(private bs: BackendService, private router: Router) { }
 

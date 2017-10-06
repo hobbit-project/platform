@@ -8,10 +8,10 @@ import { Component, Input, OnInit } from '@angular/core';
 })
 export class DynFormComponent implements OnInit {
   @Input()
-  private config: ConfigParamDefinition;
+  public config: ConfigParamDefinition;
 
   @Input()
-  private form: FormGroup;
+  public form: FormGroup;
 
   ngOnInit() {
     if (this.config.getType() === 'dropdown')

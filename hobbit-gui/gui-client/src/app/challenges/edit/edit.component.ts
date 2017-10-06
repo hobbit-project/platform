@@ -5,8 +5,8 @@ import { Component, OnInit } from '@angular/core';
 import { ConfirmationService } from 'primeng/primeng';
 
 class ChallengeDates {
-  private executionDate: Date;
-  private publishDate: Date;
+  public executionDate: Date;
+  public publishDate: Date;
 
   constructor(private challenge: Challenge) {
     this.executionDate = this.asDate(challenge.executionDate);
@@ -41,7 +41,7 @@ export class EditComponent implements OnInit {
 
   public static readonly ADD_CHALLENGE = 'add-challenge';
 
-  private challenge: Challenge;
+  public challenge: Challenge;
   private userInfo: User;
   private dates: ChallengeDates;
   private selectedTask: ChallengeTask;

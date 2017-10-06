@@ -11,8 +11,7 @@ import { Component, OnInit } from '@angular/core';
 export class NavbarComponent implements OnInit {
 
   public Role = Role;
-
-  private userInfo: User;
+  public userInfo: User;
 
   constructor(private keycloak: KeycloakService, private backend: BackendService) {
     this.backend.userInfo().subscribe(data => {

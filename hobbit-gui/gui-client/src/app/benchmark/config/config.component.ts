@@ -20,8 +20,8 @@ export class ConfigComponent implements OnInit, OnChanges {
   @Output()
   submitCallback = new EventEmitter<any>();
 
-  private formGroup: FormGroup;
-  private config: ConfigParamDefinition[] = [];
+  public formGroup: FormGroup;
+  public config: ConfigParamDefinition[] = [];
   private configMap: { [s: string]: ConfigParamDefinition } = {};
 
   constructor(private formBuilder: FormBuilder) { }
