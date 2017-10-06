@@ -1,30 +1,20 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
-
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
 
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkListBean;
@@ -35,6 +25,15 @@ import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentsListBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DevInMemoryDb {
     public static final DevInMemoryDb theInstance = new DevInMemoryDb();
@@ -58,7 +57,8 @@ public class DevInMemoryDb {
                     challenges.addAll(list);
                 }
             }
-        } catch (JAXBException e) {
+        }
+        catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }
@@ -87,7 +87,8 @@ public class DevInMemoryDb {
                     if (!item.isClosed()) {
                         item.setClosed(true);
                         return true;
-                    } else {
+                    }
+                    else {
                         return false;
                     }
                 }
@@ -130,7 +131,8 @@ public class DevInMemoryDb {
                     experiments.addAll(list);
                 }
             }
-        } catch (JAXBException e) {
+        }
+        catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }
@@ -150,7 +152,8 @@ public class DevInMemoryDb {
             AtomicInteger counter = results.get(id);
             if (counter == null) {
                 results.put(id, new AtomicInteger(1));
-            } else {
+            }
+            else {
                 counter.incrementAndGet();
             }
         }
@@ -159,7 +162,8 @@ public class DevInMemoryDb {
             AtomicInteger counter = results.get(id);
             if (counter == null) {
                 return 0;
-            } else {
+            }
+            else {
                 return counter.get();
             }
         }
@@ -178,7 +182,7 @@ public class DevInMemoryDb {
                 for (ChallengeTaskBean task : challenge.getTasks()) {
                     ExperimentCountBean countBean = new ExperimentCountBean();
                     countBean
-                            .setChallengeTask(new NamedEntityBean(task.getId(), task.getName(), task.getDescription()));
+                        .setChallengeTask(new NamedEntityBean(task.getId(), task.getName(), task.getDescription()));
                     countBean.setCount(counters.getCount(task.getId()));
                     results.add(countBean);
                 }
@@ -210,13 +214,15 @@ public class DevInMemoryDb {
                         }
                     }
                 }
-            } else if (challengeTaskId != null) {
+            }
+            else if (challengeTaskId != null) {
                 for (ExperimentBean bean : experiments) {
                     if (bean.getChallengeTask() != null && bean.getChallengeTask().getId().equals(challengeTaskId)) {
                         results.add(bean);
                     }
                 }
-            } else {
+            }
+            else {
                 results.addAll(experiments);
             }
         }
@@ -231,7 +237,8 @@ public class DevInMemoryDb {
                     benchmarks.addAll(list);
                 }
             }
-        } catch (JAXBException e) {
+        }
+        catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }

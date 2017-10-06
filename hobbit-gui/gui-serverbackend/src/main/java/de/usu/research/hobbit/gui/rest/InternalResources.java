@@ -1,29 +1,32 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
 import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
@@ -35,20 +38,14 @@ import javax.ws.rs.core.SecurityContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.xml.sax.SAXException;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
-import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
-import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
-import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.security.Principal;
+import java.util.Arrays;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @Path("internal")
 public class InternalResources {
@@ -56,7 +53,7 @@ public class InternalResources {
 
     private static volatile KeycloakConfigBean cachedBean;
     private static Cache<String, UserInfoBean> userInfoCache = CacheBuilder.newBuilder().maximumSize(100)
-            .expireAfterWrite(1, TimeUnit.HOURS).build();
+        .expireAfterWrite(1, TimeUnit.HOURS).build();
 
     @Path("keycloak-config")
     @GET
@@ -75,9 +72,11 @@ public class InternalResources {
             if (bean == null)
                 throw new GUIBackendException("Keycloak configuration not found");
             return bean;
-        } catch (GUIBackendException e) {
+        }
+        catch (GUIBackendException e) {
             throw e;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw new GUIBackendException("Error on retrieving Keycloak configuration: " + e, e);
         }
     }
@@ -111,7 +110,7 @@ public class InternalResources {
                         Principal userPrincipal = sc.getUserPrincipal();
                         bean.setUserPrincipalName(userPrincipal.getName());
                         Method getKeycloakSecurityContext = userPrincipal.getClass()
-                                .getMethod("getKeycloakSecurityContext");
+                            .getMethod("getKeycloakSecurityContext");
                         Object ksc = getKeycloakSecurityContext.invoke(userPrincipal);
                         Method getToken = ksc.getClass().getMethod("getToken");
                         Object accessToken = getToken.invoke(ksc);
@@ -127,7 +126,8 @@ public class InternalResources {
                         Method getEmail = accessToken.getClass().getMethod("getEmail");
                         Object email = getEmail.invoke(accessToken);
                         bean.setEmail((String) email);
-                    } catch (Exception e) {
+                    }
+                    catch (Exception e) {
                         LOGGER.warn("Name/email fetch failed with: " + e);
                         LOGGER.debug("stacktrace", e);
                     }
@@ -135,14 +135,15 @@ public class InternalResources {
                 }
             });
             return result;
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
             LOGGER.warn("Exception: " + e);
             throw new RuntimeException(e);
         }
     }
 
     static KeycloakConfigBean findKeycloakConfig(InputStream is)
-            throws ParserConfigurationException, SAXException, IOException {
+        throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(is);
@@ -160,15 +161,15 @@ public class InternalResources {
                 String name = child.getAttributes().getNamedItem("name").getNodeValue();
                 String value = extractValue(child);
                 switch (name) {
-                case "realm":
-                    bean.setRealm(value);
-                    break;
-                case "authServerUrl":
-                    keycloakUrlUsedByJetty = value;
-                    break;
-                case "resource":
-                    bean.setClientId(value.replace("REST", "GUI"));
-                    break;
+                    case "realm":
+                        bean.setRealm(value);
+                        break;
+                    case "authServerUrl":
+                        keycloakUrlUsedByJetty = value;
+                        break;
+                    case "resource":
+                        bean.setClientId(value.replace("REST", "GUI"));
+                        break;
                 }
             }
 
@@ -176,9 +177,10 @@ public class InternalResources {
         }
         if (System.getenv().containsKey("KEYCLOAK_AUTH_URL")) {
             bean.setUrl(System.getenv().get("KEYCLOAK_AUTH_URL"));
-        } else {
+        }
+        else {
             LOGGER.warn(
-                    "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");
+                "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");
             bean.setUrl(keycloakUrlUsedByJetty);
         }
         return bean;
@@ -192,32 +194,35 @@ public class InternalResources {
                 Element elem = (Element) node;
                 String tag = elem.getNodeName();
                 switch (tag) {
-                case "Env": {
-                    String name = elem.getAttribute("name");
-                    String defValue = elem.getAttribute("default");
-                    String value = System.getenv(name);
-                    if (value == null) {
-                        if (defValue != null)
-                            sb.append(defValue);
-                    } else {
-                        sb.append(value);
+                    case "Env": {
+                        String name = elem.getAttribute("name");
+                        String defValue = elem.getAttribute("default");
+                        String value = System.getenv(name);
+                        if (value == null) {
+                            if (defValue != null)
+                                sb.append(defValue);
+                        }
+                        else {
+                            sb.append(value);
+                        }
+                        break;
                     }
-                    break;
-                }
-                case "SystemProperty": {
-                    String name = elem.getAttribute("name");
-                    String defValue = elem.getAttribute("default");
-                    String value = System.getProperty(name);
-                    if (value == null) {
-                        if (defValue != null)
-                            sb.append(defValue);
-                    } else {
-                        sb.append(value);
+                    case "SystemProperty": {
+                        String name = elem.getAttribute("name");
+                        String defValue = elem.getAttribute("default");
+                        String value = System.getProperty(name);
+                        if (value == null) {
+                            if (defValue != null)
+                                sb.append(defValue);
+                        }
+                        else {
+                            sb.append(value);
+                        }
+                        break;
                     }
-                    break;
                 }
-                }
-            } else {
+            }
+            else {
                 sb.append(node.getTextContent());
             }
             node = node.getNextSibling();
@@ -231,7 +236,7 @@ public class InternalResources {
                 if (node.getNodeName().equals("New")) {
                     Node acls = node.getAttributes().getNamedItem("class");
                     if (acls != null && acls.getNodeValue()
-                            .equals("org.keycloak.representations.adapters.config.AdapterConfig")) {
+                        .equals("org.keycloak.representations.adapters.config.AdapterConfig")) {
                         return (Element) node;
                     }
                 }

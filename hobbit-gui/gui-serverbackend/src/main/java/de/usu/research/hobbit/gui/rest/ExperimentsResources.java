@@ -1,23 +1,42 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
+import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import org.apache.jena.query.QuerySolution;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ResIterator;
+import org.apache.jena.rdf.model.Resource;
+import org.hobbit.core.Constants;
+import org.hobbit.storage.client.StorageServiceClient;
+import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.HOBBIT;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -27,31 +46,18 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
-
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.*;
-import org.apache.jena.query.QuerySolution;
-import org.apache.jena.query.ResultSet;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.ResourceFactory;
-import org.hobbit.core.Constants;
-import org.hobbit.storage.client.StorageServiceClient;
-import org.hobbit.storage.queries.SparqlQueries;
-import org.hobbit.utils.rdf.RdfHelper;
-import org.hobbit.vocab.HOBBIT;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
-import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Path("experiments")
 public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
-    
+
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
 
     private UserInfoBean getUserInfo(SecurityContext sc) {
@@ -88,7 +94,8 @@ public class ExperimentsResources {
 
         if (Application.isUsingDevDb()) {
             return getDevDb().queryExperiments(ids, challengeTaskId);
-        } else {
+        }
+        else {
 
 
             if (ids != null) {
@@ -103,7 +110,8 @@ public class ExperimentsResources {
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
-                    } else {
+                    }
+                    else {
                         // if public experiment is not found
                         // try requesting model from private graph
                         query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PRIVATE_RESULT_GRAPH_URI);
@@ -122,18 +130,19 @@ public class ExperimentsResources {
                             }
                         }
                         else {
-                        	ExperimentBean exp = new ExperimentBean();
-                        	exp.setId(id);
-                        	exp.setError(UNKNOWN_EXP_ERROR_MSG);
-                        	ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
-                        	benchmark.setConfigurationParamValues(new ArrayList<>());
-                        	exp.setBenchmark(benchmark);
-                        	exp.setKpis(new ArrayList<>());
-                        	results.add(exp);
+                            ExperimentBean exp = new ExperimentBean();
+                            exp.setId(id);
+                            exp.setError(UNKNOWN_EXP_ERROR_MSG);
+                            ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
+                            benchmark.setConfigurationParamValues(new ArrayList<>());
+                            exp.setBenchmark(benchmark);
+                            exp.setKpis(new ArrayList<>());
+                            results.add(exp);
                         }
                     }
                 }
-            } else if (challengeTaskId != null) {
+            }
+            else if (challengeTaskId != null) {
                 System.out.println("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
                 String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
@@ -142,7 +151,8 @@ public class ExperimentsResources {
                 // if model is public and available - go with it
                 if (model != null && model.size() > 0) {
                     results = RdfModelHelper.createExperimentBeans(model);
-                } else {
+                }
+                else {
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
@@ -159,24 +169,26 @@ public class ExperimentsResources {
                             UserInfoBean userInfo = getUserInfo(sc);
                             if (organizer.getURI() == userInfo.getPreferredUsername()) {
                                 results = RdfModelHelper.createExperimentBeans(model);
-                            } else {
+                            }
+                            else {
                                 // if he is not, iterate over the beans and remove all beans that's now user owned
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
                                     Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
                                     results = experiments.stream()
-                                            .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
-                                            .collect(Collectors.toList());
+                                        .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
+                                        .collect(Collectors.toList());
                                 }
                             }
                         }
                     }
                 }
-            } else {
+            }
+            else {
                 // TODO make sure that the user is allowed to see the
                 // experiment!
                 results = RdfModelHelper.createExperimentBeans(StorageServiceClientSingleton.getInstance()
-                        .sendConstructQuery(SparqlQueries.getShallowExperimentGraphQuery(null, null)));
+                    .sendConstructQuery(SparqlQueries.getShallowExperimentGraphQuery(null, null)));
             }
         }
 
@@ -190,7 +202,8 @@ public class ExperimentsResources {
     public List<ExperimentCountBean> countByChallengeTaskIds(@PathParam("id") String challengeId) throws Exception {
         if (Application.isUsingDevDb()) {
             return getDevDb().countByChallengeTaskIds(challengeId);
-        } else {
+        }
+        else {
             /*
              * 1. retrieve the tasks of the given challenge
              *
@@ -207,7 +220,7 @@ public class ExperimentsResources {
                 try {
                     Model challengeTasksModel = storageClient.sendConstructQuery(query);
                     ResIterator iterator = challengeTasksModel.listSubjectsWithProperty(HOBBIT.isTaskOf,
-                            challengeTasksModel.getResource(challengeId));
+                        challengeTasksModel.getResource(challengeId));
                     Resource taskResource;
                     while (iterator.hasNext()) {
                         taskResource = iterator.next();
@@ -216,13 +229,14 @@ public class ExperimentsResources {
                         while (results.hasNext()) {
                             QuerySolution solution = results.next();
                             counts.add(new ExperimentCountBean(
-                                    new NamedEntityBean(taskResource.getURI(),
-                                            RdfHelper.getLabel(challengeTasksModel, taskResource),
-                                            RdfHelper.getDescription(challengeTasksModel, taskResource)),
-                                    solution.getLiteral("count").getInt()));
+                                new NamedEntityBean(taskResource.getURI(),
+                                    RdfHelper.getLabel(challengeTasksModel, taskResource),
+                                    RdfHelper.getDescription(challengeTasksModel, taskResource)),
+                                solution.getLiteral("count").getInt()));
                         }
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     LOGGER.error("Exception while executing ");
                 }
             }

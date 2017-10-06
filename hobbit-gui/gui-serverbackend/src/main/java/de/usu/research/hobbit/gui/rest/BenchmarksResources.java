@@ -1,22 +1,30 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.List;
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
+import de.usu.research.hobbit.gui.rest.beans.SubmitResponseBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -27,17 +35,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
-import de.usu.research.hobbit.gui.rest.beans.SubmitResponseBean;
-import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import java.util.List;
 
 @Path("benchmarks")
 public class BenchmarksResources {
@@ -54,8 +52,8 @@ public class BenchmarksResources {
         List<BenchmarkBean> benchmarks;
         if (Application.isUsingDevDb()) {
             benchmarks = getDevDb().getBenchmarks();
-        } else {
-
+        }
+        else {
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
             if (client == null) {
                 throw new GUIBackendException("Couldn't connect to platform controller.");
@@ -80,7 +78,8 @@ public class BenchmarksResources {
                     return benchmarkBean;
             }
             return null;
-        } else {
+        }
+        else {
             if (client == null) {
                 throw new GUIBackendException("Couldn't connect to platform controller.");
             }
@@ -95,19 +94,20 @@ public class BenchmarksResources {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public SubmitResponseBean submitBenchmark(SubmitModelBean model) throws Exception {
-    	try {
-	        LOGGER.info("Submit benchmark id = " + model.getBenchmark());
-	        LOGGER.info("Submit system id = " + model.getSystem());
-	        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-	        if (client == null) {
-	            throw new GUIBackendException("Couldn't connect to platform controller.");
-	        }
-	        String id = client.submitBenchmark(model);
-	        return new SubmitResponseBean(id);
-    	} catch (Exception e) {
-    		SubmitResponseBean error = new SubmitResponseBean();
-    		error.setError(e.getMessage());
-    		return error;
-    	}
+        try {
+            LOGGER.info("Submit benchmark id = " + model.getBenchmark());
+            LOGGER.info("Submit system id = " + model.getSystem());
+            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+            if (client == null) {
+                throw new GUIBackendException("Couldn't connect to platform controller.");
+            }
+            String id = client.submitBenchmark(model);
+            return new SubmitResponseBean(id);
+        }
+        catch (Exception e) {
+            SubmitResponseBean error = new SubmitResponseBean();
+            error.setError(e.getMessage());
+            return error;
+        }
     }
 }

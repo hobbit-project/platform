@@ -1,45 +1,20 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.SecurityContext;
-
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.jena.rdf.model.Model;
-import org.hobbit.core.Constants;
-import org.hobbit.storage.client.StorageServiceClient;
-import org.hobbit.storage.queries.SparqlQueries;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
@@ -53,6 +28,29 @@ import de.usu.research.hobbit.gui.rest.beans.EmptyBean;
 import de.usu.research.hobbit.gui.rest.beans.IdBean;
 import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.jena.rdf.model.Model;
+import org.hobbit.core.Constants;
+import org.hobbit.storage.client.StorageServiceClient;
+import org.hobbit.storage.queries.SparqlQueries;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.security.RolesAllowed;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.SecurityContext;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 @Path("challenges")
 public class ChallengesResources {
@@ -72,7 +70,8 @@ public class ChallengesResources {
 
         if (Application.isUsingDevDb()) {
             challenges = getDevDb().getChallenges();
-        } else {
+        }
+        else {
             // String query = SparqlQueries.getShallowChallengeGraphQuery(null,
             // Constants.CHALLENGE_DEFINITION_GRAPH_URI);
             String query = SparqlQueries.getShallowChallengeGraphQuery(null, null);
@@ -88,7 +87,8 @@ public class ChallengesResources {
         if (challenges != null) {
             if (userInfo.hasRole("challenge-organiser")) {
                 list.addAll(challenges);
-            } else {
+            }
+            else {
                 for (ChallengeBean b : challenges) {
                     if (b.isVisible()) {
                         list.add(b);
@@ -105,14 +105,11 @@ public class ChallengesResources {
      * bean. The given user info is used to check the access of the user
      * regarding this information.
      *
-     * @param challenge
-     *            the challenge bean that should be updated with the retrieved
-     *            information
-     * @param userInfo
-     *            the information about the requesting user
-     * @throws Exception
-     *             if the communication with the platform controller does not
-     *             work
+     * @param challenge the challenge bean that should be updated with the retrieved
+     *                  information
+     * @param userInfo  the information about the requesting user
+     * @throws Exception if the communication with the platform controller does not
+     *                   work
      */
     @Deprecated
     protected void addInfoFromController(ChallengeBean challenge, UserInfoBean userInfo) throws Exception {
@@ -121,16 +118,17 @@ public class ChallengesResources {
             BenchmarkBean requestedBenchmarkInfo;
             for (ChallengeTaskBean task : challenge.getTasks()) {
                 requestedBenchmarkInfo = client.requestBenchmarkDetails(task.getBenchmark().getId(),
-                        (userInfo.getPreferredUsername().equals(challenge.getOrganizer())) ? null : userInfo);
+                    (userInfo.getPreferredUsername().equals(challenge.getOrganizer())) ? null : userInfo);
                 // remove all systems that are not registered for the task from
                 // the retrieved benchmark bean
                 requestedBenchmarkInfo.getSystems().retainAll(CollectionUtils
-                        .intersection(task.getBenchmark().getSystems(), requestedBenchmarkInfo.getSystems()));
+                    .intersection(task.getBenchmark().getSystems(), requestedBenchmarkInfo.getSystems()));
                 // replace the benchmark bean with the retrieved one (which has
                 // more information)
                 task.setBenchmark(requestedBenchmarkInfo);
             }
-        } else {
+        }
+        else {
             throw new Exception("Couldn't get platform controller client.");
         }
     }
@@ -145,7 +143,8 @@ public class ChallengesResources {
                     return item;
                 }
             }
-        } else {
+        }
+        else {
             // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
             String query = SparqlQueries.getChallengeGraphQuery(id, null);
             if (query != null) {
@@ -172,7 +171,7 @@ public class ChallengesResources {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({ "challenge-organiser" })
+    @RolesAllowed({"challenge-organiser"})
     public IdBean add(ChallengeBean challenge, @Context SecurityContext sc) throws Exception {
         // FIXME this should be removed as soon as the gui-client sends
         // challenges containing the preferred user name as owner
@@ -180,12 +179,13 @@ public class ChallengesResources {
         challenge.setOrganizer(userInfo.getPreferredUsername());
         if (Application.isUsingDevDb()) {
             getDevDb().addChallenge(challenge);
-        } else {
+        }
+        else {
             Model model = RdfModelCreationHelper.createNewModel();
             challenge.setId(Constants.CHALLENGE_URI_NS + UUID.randomUUID().toString());
             RdfModelCreationHelper.addChallenge(challenge, model);
             StorageServiceClientSingleton.getInstance().sendInsertQuery(model,
-                    Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+                Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         }
         return new IdBean(challenge.getId());
     }
@@ -194,25 +194,29 @@ public class ChallengesResources {
     @Path("operation/close/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({ "challenge-organiser" })
+    @RolesAllowed({"challenge-organiser"})
     public InfoBean close(@PathParam("id") String id, EmptyBean dummy) throws Exception {
         if (Application.isUsingDevDb()) {
             Boolean justClosed = getDevDb().closeChallenge(id);
             if (justClosed != null) {
                 if (justClosed) {
                     return new InfoBean("Challenge has been closed");
-                } else {
+                }
+                else {
                     return new InfoBean("Challenge was already closed");
                 }
-            } else {
+            }
+            else {
                 throw new Exception("Challenge " + id + " not found");
             }
-        } else {
+        }
+        else {
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
             if (client != null) {
                 client.closeChallenge(id);
                 return new InfoBean("Challenge has been closed");
-            } else {
+            }
+            else {
                 throw new Exception("Couldn't get platform controller client.");
             }
         }
@@ -222,7 +226,7 @@ public class ChallengesResources {
     @Path("{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({ "challenge-organiser" })
+    @RolesAllowed({"challenge-organiser"})
     public IdBean update(@PathParam("id") String id, ChallengeBean challenge) throws Exception {
         // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
         challenge.setId(id);
@@ -231,24 +235,26 @@ public class ChallengesResources {
             if (updatedId != null) {
                 return new IdBean(updatedId);
             }
-        } else {
+        }
+        else {
             StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
             if (storageClient != null) {
                 // get challenge from storage
                 Model oldModel = storageClient.sendConstructQuery(
-                        SparqlQueries.getChallengeGraphQuery(id, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+                    SparqlQueries.getChallengeGraphQuery(id, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
                 // update the model only if it has been found
                 if (oldModel != null) {
                     Model newModel = RdfModelCreationHelper.createNewModel();
                     RdfModelCreationHelper.addChallenge(challenge, newModel);
                     // Create update query from difference
                     storageClient.sendUpdateQuery(SparqlQueries.getUpdateQueryFromDiff(oldModel, newModel,
-                            Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+                        Constants.CHALLENGE_DEFINITION_GRAPH_URI));
                     return new IdBean(id);
-                } else {
+                }
+                else {
                     LOGGER.error(
-                            "Couldn't update the challenge {} because it couldn't be loaded from storage. Update will be ignored.",
-                            id);
+                        "Couldn't update the challenge {} because it couldn't be loaded from storage. Update will be ignored.",
+                        id);
                 }
             }
             return new IdBean(id);
@@ -260,14 +266,15 @@ public class ChallengesResources {
     @DELETE
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({ "challenge-organiser" })
+    @RolesAllowed({"challenge-organiser"})
     public IdBean delete(@PathParam("id") String id) throws Exception {
         if (Application.isUsingDevDb()) {
             String deletedId = getDevDb().deleteChallenge(id);
             if (deletedId != null) {
                 return new IdBean(deletedId);
             }
-        } else {
+        }
+        else {
             // FIXME check whether the user is allowed to delete this challenge
             // delete challenge from storage
             String query = SparqlQueries.deleteChallengeGraphQuery(id, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
@@ -277,9 +284,9 @@ public class ChallengesResources {
                     if (storageClient.sendUpdateQuery(query)) {
                         // Clean up the remaining graph
                         String queries[] = SparqlQueries
-                                .cleanUpChallengeGraphQueries(Constants.CHALLENGE_DEFINITION_GRAPH_URI);
-                        for (int i = 0; i < queries.length; ++i) {
-                            storageClient.sendUpdateQuery(queries[i]);
+                            .cleanUpChallengeGraphQueries(Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+                        for (String query1 : queries) {
+                            storageClient.sendUpdateQuery(query1);
                         }
                         return new IdBean(id);
                     }

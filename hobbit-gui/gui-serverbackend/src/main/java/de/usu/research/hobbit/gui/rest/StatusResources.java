@@ -1,34 +1,32 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.Objects;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import org.hobbit.core.data.ConfiguredExperiment;
 import org.hobbit.core.data.ControllerStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import java.util.Objects;
 
 @Path("status")
 public class StatusResources {
@@ -53,7 +51,8 @@ public class StatusResources {
         if (status.currentExperimentId == null) {
             builder.append("    No experiment is executed at the moment.");
             builder.append(NEWLINE);
-        } else {
+        }
+        else {
             builder.append("    Id:        ");
             builder.append(status.currentExperimentId);
             builder.append(NEWLINE);
@@ -84,7 +83,8 @@ public class StatusResources {
         if ((status.queue == null) || (status.queue.length == 0)) {
             builder.append("    There is no experiment in the queue.");
             builder.append(NEWLINE);
-        } else {
+        }
+        else {
             ConfiguredExperiment queuedExp;
             for (int i = 0; i < status.queue.length; ++i) {
                 queuedExp = status.queue[i];
