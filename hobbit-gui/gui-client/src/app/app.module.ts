@@ -9,7 +9,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { RouterModule, Routes, Router } from '@angular/router';
 import { Http, HttpModule, XHRBackend, RequestOptions } from '@angular/http';
 import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
 import { ModalModule } from 'ngx-bootstrap/modal';
@@ -58,10 +58,11 @@ const appRoutes: Routes = [
 export const httpProvide = {
   provide: Http,
   useFactory: httpClientFactory,
-  deps: [XHRBackend, RequestOptions, KeycloakService, SlimLoadingBarService]
+  deps: [XHRBackend, RequestOptions, KeycloakService, SlimLoadingBarService, Router, MessageService]
 };
-export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService, slimLoadingBarService: SlimLoadingBarService): Http {
-  return new CustomHttp(backend, defaultOptions, keycloakService, slimLoadingBarService);
+export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService,
+  slimLoadingBarService: SlimLoadingBarService, router: Router, messageService: MessageService): Http {
+  return new CustomHttp(backend, defaultOptions, keycloakService, slimLoadingBarService, router, messageService);
 }
 
 // merge initial path and hash (if it looks suitable)

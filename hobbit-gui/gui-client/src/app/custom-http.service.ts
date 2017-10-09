@@ -1,3 +1,5 @@
+import { MessageService } from 'primeng/components/common/messageservice';
+import { Router, NavigationStart } from '@angular/router';
 import { environment } from './../environments/environment';
 import { Injectable, EventEmitter } from '@angular/core';
 import { Http, RequestOptions, Headers, ConnectionBackend, RequestOptionsArgs, Request, Response } from '@angular/http';
@@ -9,8 +11,15 @@ import { KeycloakService } from './auth/keycloak.service';
 @Injectable()
 export class CustomHttp extends Http {
   constructor(backend: ConnectionBackend, defaultOptions: RequestOptions, private keycloakService: KeycloakService,
-    private slimLoadingBarService: SlimLoadingBarService) {
+    private slimLoadingBarService: SlimLoadingBarService, private router: Router, private messageService: MessageService) {
     super(backend, defaultOptions);
+
+    router.events.subscribe(event => {
+      if (event instanceof NavigationStart) {
+        this.slimLoadingBarService.color = 'blue';
+        this.messageService.clear();
+      }
+    });
   }
 
   get(url: string, options?: RequestOptionsArgs): Observable<Response> {
@@ -62,8 +71,7 @@ export class CustomHttp extends Http {
   }
 
   private showLoader(): void {
-    this.slimLoadingBarService.reset()
-    this.slimLoadingBarService.color = 'blue';
+    this.slimLoadingBarService.reset();
     this.slimLoadingBarService.start();
   }
 
