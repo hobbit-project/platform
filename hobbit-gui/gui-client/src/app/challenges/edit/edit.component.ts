@@ -69,6 +69,8 @@ export class EditComponent implements OnInit {
       this.bs.getChallenge(id).subscribe(data => {
         this.challenge = data;
         this.dates = new ChallengeDates(this.challenge);
+      }, error => {
+        this.router.navigateByUrl('404', { skipLocationChange: true });
       });
     }
   }

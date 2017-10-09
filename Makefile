@@ -3,7 +3,7 @@ build:
 	cd platform-controller && make build
 	cd platform-storage/storage-service && mvn clean package -U
 	cd analysis-component && mvn clean package -U
-	cd hobbit-gui/gui-client && npm install && npm run build
+	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
 local-controller: lc-build lc-run
