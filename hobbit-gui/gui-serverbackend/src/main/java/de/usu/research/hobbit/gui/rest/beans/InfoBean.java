@@ -18,13 +18,15 @@ package de.usu.research.hobbit.gui.rest.beans;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
 public class InfoBean {
     private String message;
 
+    public static InfoBean withMessage(String message) {
+        return new InfoBean(message);
+    }
+
     public InfoBean() {
+        message = "";
     }
 
     public InfoBean(String message) {
@@ -33,10 +35,6 @@ public class InfoBean {
 
     public String getMessage() {
         return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
     }
 
     @Override

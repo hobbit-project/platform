@@ -44,7 +44,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,9 +85,9 @@ public class ExperimentsResources {
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentBean> query(@QueryParam("id") String idsCommaSep,
-                                      @QueryParam("challenge-task-id") String challengeTaskId,
-                                      @Context SecurityContext sc) throws Exception {
+    public Response query(@QueryParam("id") String idsCommaSep,
+                          @QueryParam("challenge-task-id") String challengeTaskId,
+                          @Context SecurityContext sc) throws Exception {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
@@ -93,11 +95,9 @@ public class ExperimentsResources {
         }
 
         if (Application.isUsingDevDb()) {
-            return getDevDb().queryExperiments(ids, challengeTaskId);
+            return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         }
         else {
-
-
             if (ids != null) {
                 System.out.println("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -167,7 +167,7 @@ public class ExperimentsResources {
                             // check if organizer is user
                             // return whole thing if he is
                             UserInfoBean userInfo = getUserInfo(sc);
-                            if (organizer.getURI() == userInfo.getPreferredUsername()) {
+                            if (organizer.getURI().equals(userInfo.getPreferredUsername())) {
                                 results = RdfModelHelper.createExperimentBeans(model);
                             }
                             else {
@@ -193,15 +193,15 @@ public class ExperimentsResources {
         }
 
         // addInfoFromController(results);
-        return results;
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results){}).build();
     }
 
     @GET
     @Path("count-by-challenge/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentCountBean> countByChallengeTaskIds(@PathParam("id") String challengeId) throws Exception {
+    public Response countByChallengeTaskIds(@PathParam("id") String challengeId) {
         if (Application.isUsingDevDb()) {
-            return getDevDb().countByChallengeTaskIds(challengeId);
+            return Response.ok(getDevDb().countByChallengeTaskIds(challengeId)).build();
         }
         else {
             /*
@@ -240,63 +240,10 @@ public class ExperimentsResources {
                     LOGGER.error("Exception while executing ");
                 }
             }
-            return counts;
+
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts){}).build();
         }
     }
-
-    // /**
-    // * Adds benchmark and system labels and descriptions to the given
-    // experiment
-    // * beans.
-    // *
-    // * @param experiments
-    // * the experiments beans that should be updated with the
-    // * retrieved information
-    // * @throws Exception
-    // * if the communication with the platform controller does not
-    // * work
-    // */
-    // protected void addInfoFromController(List<ExperimentBean> experiments)
-    // throws Exception {
-    // PlatformControllerClient client =
-    // PlatformControllerClientSingleton.getInstance();
-    // if (client != null) {
-    // // Go through the list of experiments and sort them regarding their
-    // // benchmark and system info
-    // Map<String, List<ExperimentBean>> benchmarksToExperiments = new
-    // HashMap<>();
-    // Map<String, List<ExperimentBean>> systemsToExperiments = new HashMap<>();
-    // List<ExperimentBean> experiments;
-    // for (ExperimentBean experiment : experiments) {
-    // if (benchmarksToExperiments.containsKey(experiment.benchmark.id)) {
-    // experiments = benchmarksToExperiments.get(experiment.benchmark.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // benchmarksToExperiments.put(experiment.benchmark.id, beans);
-    // }
-    // experiments.add(experiment);
-    // if (systemsToExperiments.containsKey(experiment.system.id)) {
-    // experiments = systemsToExperiments.get(experiment.system.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // systemsToExperiments.put(experiment.system.id, beans);
-    // }
-    // experiments.add(experiment);
-    // }
-    // BenchmarkBean requestedBenchmarkInfo;
-    // for (String benchmarkUri : benchmarksToExperiments.keySet()) {
-    // requestedBenchmarkInfo = client.requestBenchmarkDetails(benchmarkUri,
-    // null);
-    // // replace the benchmarks with the retrieved info
-    // experiments = benchmarksToExperiments.get(benchmarkUri);
-    // for (ExperimentBean experiment : experiments) {
-    // experiment.setBenchmark(requestedBenchmarkInfo);
-    // }
-    // }
-    // } else {
-    // throw new Exception("Couldn't get platform controller client.");
-    // }
-    // }
 
     private DevInMemoryDb getDevDb() {
         return DevInMemoryDb.theInstance;
