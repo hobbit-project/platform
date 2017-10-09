@@ -41,7 +41,7 @@
           </select>
         </div>
 
-        <app-config *ngIf="selectedBenchmark" [readOnly]="!canEdit()" [benchmark]="selectedBenchmark" #configparams></app-config>
+        <app-benchmark-config *ngIf="selectedBenchmark" [readOnly]="!canEdit()" [benchmark]="selectedBenchmark" #configparams></app-benchmark-config>
       </form>
     </div>
   </div>
