@@ -1,7 +1,7 @@
 import { BenchmarkComponent } from './upload/benchmark/benchmark.component';
 import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
-import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration } from './model';
+import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration, SystemMetaFile } from './model';
 import { Injectable } from '@angular/core';
 import { Http, Headers, RequestOptions, URLSearchParams } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
@@ -91,6 +91,10 @@ export class BackendService {
 
   getSystemProviderSystems() {
     return this.http.get('BACKEND/rest/system-provider/systems').map(res => res.json());
+  }
+
+  getSystemMetaFile(metaFile: SystemMetaFile): Observable<string> {
+    return this.http.post('BACKEND/rest/system-provider/metafile', metaFile).map(res => res.text());
   }
 
 }

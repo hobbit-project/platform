@@ -22,6 +22,7 @@ import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemMetaFileBean;
 import de.usu.research.hobbit.gui.rest.beans.TaskRegistrationBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 import org.apache.jena.rdf.model.Model;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -45,6 +47,8 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -62,7 +66,8 @@ public class SystemProviderResources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response processSystems(@Context SecurityContext sc) {
         List<SystemBean> list = getSystems(sc);
-        return Response.ok(new GenericEntity<List<SystemBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<SystemBean>>(list) {
+        }).build();
     }
 
     private List<SystemBean> getSystems(SecurityContext sc) {
@@ -98,7 +103,8 @@ public class SystemProviderResources {
         else {
             LOGGER.info("{} does not match the expected {}", userInfo.getPreferredUsername(), challenge.getOrganizer());
         }
-        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(list) {
+        }).build();
     }
 
     @GET
@@ -107,7 +113,8 @@ public class SystemProviderResources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response processChallengeRegistrations(@Context SecurityContext sc,
                                                   @PathParam("challengeId") String challengeId) {
-        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(getChallengeRegistrations(sc, challengeId)){}).build();
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(getChallengeRegistrations(sc, challengeId)) {
+        }).build();
     }
 
     private List<TaskRegistrationBean> getChallengeRegistrations(SecurityContext sc, String challengeId) {
@@ -201,6 +208,33 @@ public class SystemProviderResources {
         }
         doUpdateChallengeRegistrations(sc, challengeId, registrationsForTask, taskId);
         return Response.status(Response.Status.NO_CONTENT).build();
+    }
+
+    @POST
+    @Path("metafile")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
+    @SuppressWarnings("StringConcatenationInsideStringBufferAppend")
+    public Response generateMetaFile(SystemMetaFileBean bean) {
+        try {
+            URI uri = new URI(bean.getId());
+            //TODO check if uri is alre ady used
+        }
+        catch (URISyntaxException ex) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("URI is not valid").build();
+        }
+
+        StringBuilder sb = new StringBuilder("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n")
+            .append("@prefix hobbit: <http://w3id.org/hobbit/vocab#> .\n")
+            .append("\n")
+            .append("<" + bean.getId() + "> a hobbit:SystemInstance; \n")
+            .append("\trdfs:label\t\"" + bean.getName() + "\"@en;\n");
+        if (bean.getDescription() != null && bean.getDescription().trim().length() > 0)
+            sb.append("\trdfs:comment\t\"" + bean.getDescription().trim() + "\"@en;\n");
+        sb.append("\thobbit:imageName \"" + bean.getDockerImage() + "\";\n")
+            .append("\thobbit:implementsAPI <" + bean.getBenchmarkApi() + "> .");
+
+        return Response.ok(sb.toString()).build();
     }
 
 }

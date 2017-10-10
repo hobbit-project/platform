@@ -117,6 +117,12 @@ export class ConfigParamRealisation extends ConfigParam {
 export class System extends NamedEntity {
 }
 
+export class SystemMetaFile extends System {
+    constructor(id: string, name: string, public benchmarkApi: string, public dockerImage: string, description?: string) {
+        super(id, name, description);
+    }
+}
+
 export class BenchmarkOverview extends NamedEntity {
 
     constructor(id: string, name: string, description?: string) {
