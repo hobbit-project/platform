@@ -210,11 +210,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
         expManager = new ExperimentManager(this);
 
         // schedule challenges re-publishing
+        // TODO RC rename this timer
         challengePublishTimer = new Timer();
         PlatformController controller = this;
         challengePublishTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                checkRepeatableChallenges();
                 republishChallenges(storage, queue, controller);
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
@@ -646,6 +648,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     challengeUri);
             return;
         }
+        // TODO RC The following part can be reused for the execution of a repeatable challenge
         // get experiments from the challenge
         List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
         if (experiments == null) {
@@ -659,11 +662,20 @@ public class PlatformController extends AbstractCommandReceivingComponent
             queue.add(ex);
         }
     }
+    
+    protected synchronized void checkRepeatableChallenges() {
+        // TODO RC Get a list of repeatable challenges --> add SPARQL query to core library
+        // TODO RC check whether the registrationCutoffDate has been reached --> call closeChallenge method and thats all regarding this challenge
+        // TODO RC else check whether the dateOfNextExecution has been reached
+        // TODO RC create experiments for that challenge
+        // TODO RC move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
+        // TODO RC if (dateOfNextExecution + executionPeriod < registrationCutoffDateset) set dateOfNextExecution else delete this triple
+    }
 
     /*
      * The method is static for an easier JUnit test implementation
      */
-    protected synchronized static void republishChallenges(StorageServiceClient storage, ExperimentQueue queue,
+    protected static synchronized void republishChallenges(StorageServiceClient storage, ExperimentQueue queue,
             ExperimentAnalyzer analyzer) {
         LOGGER.info("Checking for challenges to publish...");
         // Get list of all UNPUBLISHED, closed challenges, their tasks and
