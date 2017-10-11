@@ -17,6 +17,7 @@
 package org.hobbit.controller.gitlab;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -26,6 +27,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.Charsets;
 import org.apache.jena.rdf.model.Model;
@@ -33,8 +37,13 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.GitlabBranch;
 import org.gitlab.api.models.GitlabProject;
+import org.gitlab.api.models.GitlabUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * Created by Timofey Ermilov on 17/10/2016.
@@ -55,6 +64,8 @@ public class GitlabControllerImpl implements GitlabController {
     private static final String BENCHMARK_CONFIG_FILENAME = "benchmark.ttl";
 
     private static final int MAX_PARSING_ERRORS = 50;
+    private static final int MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE = 50;
+    private static final int VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS = 30;
 
     // gitlab api
     private GitlabAPI api;
@@ -66,8 +77,10 @@ public class GitlabControllerImpl implements GitlabController {
     private List<Runnable> readyRunnable;
     // projects array
     private List<Project> projects;
+    private Set<String> projectUris; // TODO set
     private Set<String> parsingErrors = new HashSet<String>();
     private Deque<String> sortedParsingErrors = new LinkedList<String>();
+    private LoadingCache<String, Set<String>> visibleProjectsCache;
 
     public GitlabControllerImpl() {
         String token = GITLAB_TOKEN;
@@ -79,6 +92,17 @@ public class GitlabControllerImpl implements GitlabController {
         timer = new Timer();
         projects = new ArrayList<>();
         readyRunnable = new ArrayList<>();
+
+        visibleProjectsCache = CacheBuilder.newBuilder()
+                .expireAfterAccess(VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS, TimeUnit.SECONDS)
+                .maximumSize(MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE).build(new CacheLoader<String, Set<String>>() {
+
+                    @Override
+                    public Set<String> load(String username) throws Exception {
+                        return getProjectsOfUser(username);
+                    }
+
+                });
 
         // start fetching projects
         startFetchingProjects();
@@ -201,7 +225,7 @@ public class GitlabControllerImpl implements GitlabController {
         if ((benchmarkCfgContent != null) || (systemCfgContent != null)) {
             // get user
             String user = project.getOwner().getUsername();
-            Project p = new Project(benchmarkCfgContent, systemCfgContent, user, project.getName());
+            Project p = new Project(benchmarkCfgContent, systemCfgContent, user, project.getNameWithNamespace());
             return p;
         } else {
             return null;
@@ -239,5 +263,79 @@ public class GitlabControllerImpl implements GitlabController {
             }
         }
         return null;
+    }
+
+    /**
+     * If the Gitlab API is used with an admin account, this method returns the
+     * names of the projects that are visible for this user. Otherwise, it returns
+     * all project names that are known.
+     * 
+     * @param mail
+     *            the e-mail address of the user for which the project names should
+     *            be retrieved
+     * @return a set of project names (including the namespace)
+     * @throws IOException
+     *             If the Gitlab API throws an IOException
+     */
+    protected Set<String> getProjectsOfUser(String mail) throws IOException {
+        // If we have admin access
+        if (api.getUser().isAdmin()) {
+            GitlabUser user = getUserByMail(mail);
+            if (user == null) {
+                LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
+                return new TreeSet<>();
+            }
+            List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
+            Set<String> projectNames = new HashSet<String>();
+            for (GitlabProject p : gitProjects) {
+                projectNames.add(p.getNameWithNamespace());
+            }
+            return projectNames;
+        } else {
+            // We can not check the access of a single user. Simply return all known
+            // projects.
+            return projectUris;
+        }
+    }
+
+    /**
+     * Tries to find the GitlabUser with the given mail address.
+     * 
+     * @param mail
+     *            the mail address of the user
+     * @return the GitlabUser object for the user or {@code null} if it could not be
+     *         found.
+     * @throws IOException
+     *             If the Gitlab API throws an IOException
+     */
+    protected GitlabUser getUserByMail(String mail) throws IOException {
+        if (mail == null) {
+            return null;
+        }
+        List<GitlabUser> users = api.findUsers(mail);
+        for (GitlabUser user : users) {
+            if (user.getEmail().equals(mail)) {
+                return user;
+            }
+        }
+        return null;
+    }
+
+    public List<Project> getProjectsVisibleForUser(String mail) {
+        Set<String> projectNames;
+        try {
+            projectNames = visibleProjectsCache.get(mail);
+        } catch (ExecutionException e) {
+            LOGGER.error("Exception while trying to retrieve projects of the user with the mail \"" + mail
+                    + "\". Returning null.", e);
+            return null;
+        }
+        List<Project> userProjects = new ArrayList<Project>();
+        for (Project p : projects) {
+            if (projectNames.contains(p.name)) {
+                userProjects.add(p);
+            }
+        }
+        return userProjects;
     }
 }

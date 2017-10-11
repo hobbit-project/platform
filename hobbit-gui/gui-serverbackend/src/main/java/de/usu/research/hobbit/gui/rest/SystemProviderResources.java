@@ -63,7 +63,7 @@ public class SystemProviderResources {
     @Produces(MediaType.APPLICATION_JSON)
     public List<SystemBean> getSystems(@Context SecurityContext sc) {
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        LOGGER.info("getSystems for " + userInfo.getPreferredUsername());
+        LOGGER.info("getSystems for {} / {}.",userInfo.getPreferredUsername(), userInfo.getEmail());
         // LOGGER.info("getSystems for PreferredUsername=" +
         // userInfo.getPreferredUsername() + " name="
         // + userInfo.getName() + " PrincipalName=" + userInfo.userPrincipalName
@@ -71,7 +71,7 @@ public class SystemProviderResources {
 
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         if (client != null) {
-            return client.requestSystemsOfUser(userInfo.getPreferredUsername());
+            return client.requestSystemsOfUser(userInfo.getEmail());
         } else {
             LOGGER.error("Couldn't get platform controller client. Returning empty list.");
             return new ArrayList<>(0);
