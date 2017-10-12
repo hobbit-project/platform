@@ -149,12 +149,10 @@ public class PlatformControllerClient implements Closeable {
      * Retrieves the benchmark details from the HOBBIT PlatformControler
      *
      * @param benchmarkUri
-     *            the URI of the benchmark for which the details should be
-     *            retrieved
+     *            the URI of the benchmark for which the details should be retrieved
      * @param user
-     *            information about the requesting user which will be used to
-     *            filter the systems that can be used with the requested
-     *            benchmark.
+     *            information about the requesting user which will be used to filter
+     *            the systems that can be used with the requested benchmark.
      * @return
      * @throws GUIBackendException
      * @throws IOException
@@ -178,7 +176,7 @@ public class PlatformControllerClient implements Closeable {
             data = client
                     .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
                             new byte[][] { RabbitMQUtils.writeString(benchmarkUri),
-                                    RabbitMQUtils.writeString(user.getPreferredUsername()) },
+                                    RabbitMQUtils.writeString(user.getEmail()) },
                             null));
         } else {
             data = client
@@ -251,7 +249,7 @@ public class PlatformControllerClient implements Closeable {
         try {
             model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
         } catch (Exception e) {
-            LOGGER.error("Got an exception while processing the parameters.",e);
+            LOGGER.error("Got an exception while processing the parameters.", e);
             throw new GUIBackendException("Please check your parameter definitions.");
         }
 
@@ -327,12 +325,18 @@ public class PlatformControllerClient implements Closeable {
         byte[] response = client
                 .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_SYSTEMS_OF_USER },
                         new byte[][] { RabbitMQUtils.writeString(user) }, null));
+        if (response == null) {
+            LOGGER.info("Couldn't get the systems for user {}. Returning empty list.");
+            return new ArrayList<>(0);
+        }
         Collection<SystemMetaData> systems = gson.fromJson(RabbitMQUtils.readString(response),
                 new TypeToken<Collection<SystemMetaData>>() {
                 }.getType());
         List<SystemBean> systemBeans = new ArrayList<>();
-        for (SystemMetaData system : systems) {
-            systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+        if (systems != null) {
+            for (SystemMetaData system : systems) {
+                systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+            }
         }
         return systemBeans;
     }
@@ -368,6 +372,12 @@ public class PlatformControllerClient implements Closeable {
                                     }
                                     LOGGER.info("Request Systems for user GerbilBenchmark");
                                     systems = client.requestSystemsOfUser("GerbilBenchmark");
+                                    LOGGER.info("Found: {} systems", systems.size());
+                                    for (SystemBean system : systems) {
+                                        LOGGER.info("Found: {}, {}", system.getId(), system.getName());
+                                    }
+                                    LOGGER.info("Request Systems for user gerbil@informatik.uni-leipzig.de");
+                                    systems = client.requestSystemsOfUser("gerbil@informatik.uni-leipzig.de");
                                     LOGGER.info("Found: {} systems", systems.size());
                                     for (SystemBean system : systems) {
                                         LOGGER.info("Found: {}, {}", system.getId(), system.getName());

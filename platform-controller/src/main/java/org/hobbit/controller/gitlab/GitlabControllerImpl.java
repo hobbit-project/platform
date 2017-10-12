@@ -35,6 +35,7 @@ import org.apache.commons.io.Charsets;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.gitlab.api.GitlabAPI;
+import org.gitlab.api.Pagination;
 import org.gitlab.api.models.GitlabBranch;
 import org.gitlab.api.models.GitlabProject;
 import org.gitlab.api.models.GitlabUser;
@@ -67,6 +68,10 @@ public class GitlabControllerImpl implements GitlabController {
     private static final int MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE = 50;
     private static final int VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS = 30;
 
+    protected static final int GITLAB_VISIBILITY_PUBLIC_ID = 20;
+    protected static final int GITLAB_VISIBILITY_PROTECTED_ID = 10;
+    protected static final int GITLAB_VISIBILITY_PRIVATE_ID = 0;
+
     // gitlab api
     private GitlabAPI api;
     // projects refresh timer
@@ -77,7 +82,7 @@ public class GitlabControllerImpl implements GitlabController {
     private List<Runnable> readyRunnable;
     // projects array
     private List<Project> projects;
-    private Set<String> projectUris; // TODO set
+    private Set<String> projectUris;
     private Set<String> parsingErrors = new HashSet<String>();
     private Deque<String> sortedParsingErrors = new LinkedList<String>();
     private LoadingCache<String, Set<String>> visibleProjectsCache;
@@ -118,7 +123,7 @@ public class GitlabControllerImpl implements GitlabController {
             public void run() {
                 try {
                     List<Project> newProjects = new ArrayList<>();
-
+                    Set<String> newProjectUris = new HashSet<String>();
                     try {
                         // Get all projects visible to the user
                         List<GitlabProject> gitProjects;
@@ -138,6 +143,7 @@ public class GitlabControllerImpl implements GitlabController {
                                 Project p = gitlabToProject(project);
                                 if (p != null) {
                                     newProjects.add(p);
+                                    newProjectUris.add(p.name);
                                 }
                             } catch (Exception e) {
                                 LOGGER.error("Error getting project config files", e);
@@ -152,12 +158,14 @@ public class GitlabControllerImpl implements GitlabController {
                         // have
                         // to notify threads that are waiting for that
                         projects = newProjects;
+                        projectUris = newProjectUris;
                         synchronized (this) {
                             this.notifyAll();
                         }
                     } else {
                         // update cached version
                         projects = newProjects;
+                        projectUris = newProjectUris;
                     }
                     // indicate that projects were fetched
                     if (!projectsFetched) {
@@ -225,18 +233,25 @@ public class GitlabControllerImpl implements GitlabController {
         if ((benchmarkCfgContent != null) || (systemCfgContent != null)) {
             // get user
             String user = project.getOwner().getUsername();
-            Project p = new Project(benchmarkCfgContent, systemCfgContent, user, project.getNameWithNamespace());
+            Project p = new Project(benchmarkCfgContent, systemCfgContent, user, project.getNameWithNamespace(),
+                    project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
             return p;
         } else {
             return null;
         }
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
         GitlabControllerImpl c = new GitlabControllerImpl();
         Thread.sleep(3000);
         List<Project> projects = c.getAllProjects();
         for (Project p : projects) {
+            System.out.println(p);
+        }
+        LOGGER.info("Request Systems for user gerbil@informatik.uni-leipzig.de");
+        Set<String> userProjects = c.getProjectsOfUser("gerbil@informatik.uni-leipzig.de");
+        LOGGER.info("Found {} projects", userProjects.size());
+        for (String p : userProjects) {
             System.out.println(p);
         }
     }
@@ -285,7 +300,8 @@ public class GitlabControllerImpl implements GitlabController {
                 LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
                 return new TreeSet<>();
             }
-            List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
+            // List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
+            List<GitlabProject> gitProjects = getProjectsVisibleForUser(user);
             Set<String> projectNames = new HashSet<String>();
             for (GitlabProject p : gitProjects) {
                 projectNames.add(p.getNameWithNamespace());
@@ -294,7 +310,7 @@ public class GitlabControllerImpl implements GitlabController {
         } else {
             // We can not check the access of a single user. Simply return all known
             // projects.
-            return projectUris;
+            return (projectUris != null) ? projectUris : new TreeSet<>();
         }
     }
 
@@ -312,7 +328,7 @@ public class GitlabControllerImpl implements GitlabController {
         if (mail == null) {
             return null;
         }
-        List<GitlabUser> users = api.findUsers(mail);
+        List<GitlabUser> users = api.getUsers();
         for (GitlabUser user : users) {
             if (user.getEmail().equals(mail)) {
                 return user;
@@ -332,10 +348,23 @@ public class GitlabControllerImpl implements GitlabController {
         }
         List<Project> userProjects = new ArrayList<Project>();
         for (Project p : projects) {
-            if (projectNames.contains(p.name)) {
+            if ((!p.isPrivate) || projectNames.contains(p.name)) {
                 userProjects.add(p);
             }
         }
         return userProjects;
     }
+
+    protected List<GitlabProject> getProjectsVisibleForUser(GitlabUser user) throws IOException {
+        StringBuilder builder = new StringBuilder();
+        builder.append(GitlabUser.URL);
+        builder.append('/');
+        builder.append(user.getId());
+        builder.append("/projects");
+        builder.append(new Pagination().withPerPage(Pagination.MAX_ITEMS_PER_PAGE).toString());
+        builder.append("&simple=true");
+        System.out.println(builder.toString());
+        return api.retrieve().getAll(builder.toString(), GitlabProject[].class);
+    }
+
 }

@@ -69,7 +69,7 @@ public class ExperimentsResources {
     }
 
     private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
+        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getEmail());
         // create set of user owned system ids
         String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
         Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
