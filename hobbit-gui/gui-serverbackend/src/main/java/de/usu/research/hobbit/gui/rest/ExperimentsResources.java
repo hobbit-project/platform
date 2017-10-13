@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -59,7 +60,7 @@ import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
-    
+
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
 
     private UserInfoBean getUserInfo(SecurityContext sc) {
@@ -69,11 +70,17 @@ public class ExperimentsResources {
     }
 
     private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getEmail());
-        // create set of user owned system ids
-        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
-        return userOwnedSystemIds;
+        if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
+            List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
+                    .requestSystemsOfUser(userInfo.getEmail());
+            // create set of user owned system ids
+            String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+            Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+            return userOwnedSystemIds;
+        } else {
+            // Guests don't have systems
+            return new TreeSet<>();
+        }
     }
 
     private Set<String> getUserSystemIds(SecurityContext sc) {
@@ -86,8 +93,7 @@ public class ExperimentsResources {
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
     public List<ExperimentBean> query(@QueryParam("id") String idsCommaSep,
-                                      @QueryParam("challenge-task-id") String challengeTaskId,
-                                      @Context SecurityContext sc) throws Exception {
+            @QueryParam("challenge-task-id") String challengeTaskId, @Context SecurityContext sc) throws Exception {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
@@ -98,7 +104,6 @@ public class ExperimentsResources {
             return getDevDb().queryExperiments(ids, challengeTaskId);
         } else {
 
-
             if (ids != null) {
                 LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -106,7 +111,8 @@ public class ExperimentsResources {
                     // create experiment URI
                     String experimentUri = Constants.EXPERIMENT_URI_NS + id;
                     // construct public query
-                    String query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PUBLIC_RESULT_GRAPH_URI);
+                    String query = SparqlQueries.getExperimentGraphQuery(experimentUri,
+                            Constants.PUBLIC_RESULT_GRAPH_URI);
                     // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
@@ -114,7 +120,8 @@ public class ExperimentsResources {
                     } else {
                         // if public experiment is not found
                         // try requesting model from private graph
-                        query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PRIVATE_RESULT_GRAPH_URI);
+                        query = SparqlQueries.getExperimentGraphQuery(experimentUri,
+                                Constants.PRIVATE_RESULT_GRAPH_URI);
                         model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                         if (model != null && model.size() > 0) {
                             // get current experiment system
@@ -125,26 +132,27 @@ public class ExperimentsResources {
                                 Set<String> userOwnedSystemIds = getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
-                                    results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                                    results.add(RdfModelHelper.createExperimentBean(model,
+                                            model.getResource(experimentUri)));
                                 }
                             }
-                        }
-                        else {
-                        	ExperimentBean exp = new ExperimentBean();
-                        	exp.setId(id);
-                        	exp.setError(UNKNOWN_EXP_ERROR_MSG);
-                        	ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
-                        	benchmark.setConfigurationParamValues(new ArrayList<>());
-                        	exp.setBenchmark(benchmark);
-                        	exp.setKpis(new ArrayList<>());
-                        	results.add(exp);
+                        } else {
+                            ExperimentBean exp = new ExperimentBean();
+                            exp.setId(id);
+                            exp.setError(UNKNOWN_EXP_ERROR_MSG);
+                            ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
+                            benchmark.setConfigurationParamValues(new ArrayList<>());
+                            exp.setBenchmark(benchmark);
+                            exp.setKpis(new ArrayList<>());
+                            results.add(exp);
                         }
                     }
                 }
             } else if (challengeTaskId != null) {
                 LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
-                String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
+                String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId,
+                        Constants.PUBLIC_RESULT_GRAPH_URI);
                 // get public experiment
                 Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                 // if model is public and available - go with it
@@ -152,16 +160,19 @@ public class ExperimentsResources {
                     results = RdfModelHelper.createExperimentBeans(model);
                 } else {
                     // otherwise try to look in private graph
-                    query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
+                    query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId,
+                            Constants.PRIVATE_RESULT_GRAPH_URI);
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         // get challenge organizer
                         Resource challengeTask = model.getResource(challengeTaskId);
                         // get challenge info
                         String challengeQuery = SparqlQueries.getChallengeTaskOrganizer(challengeTaskId, null);
-                        Model challengeModel = StorageServiceClientSingleton.getInstance().sendConstructQuery(challengeQuery);
-                        Resource challenge = RdfHelper.getObjectResource(challengeModel, challengeTask, HOBBIT.isTaskOf);
-                        if(challenge != null) {
+                        Model challengeModel = StorageServiceClientSingleton.getInstance()
+                                .sendConstructQuery(challengeQuery);
+                        Resource challenge = RdfHelper.getObjectResource(challengeModel, challengeTask,
+                                HOBBIT.isTaskOf);
+                        if (challenge != null) {
                             String organizer = RdfHelper.getStringValue(challengeModel, challenge, HOBBIT.organizer);
                             UserInfoBean userInfo = getUserInfo(sc);
                             if (organizer != null) {
@@ -171,11 +182,13 @@ public class ExperimentsResources {
                                     results = RdfModelHelper.createExperimentBeans(model);
                                 }
                             } else {
-                                LOGGER.error("Couldn't get organizer for task {}. Falling back to retrieving experiments that can be seen by the user in his role as system owner.",
+                                LOGGER.error(
+                                        "Couldn't get organizer for task {}. Falling back to retrieving experiments that can be seen by the user in his role as system owner.",
                                         challengeTaskId);
                             }
-                            if(results == null) {
-                                // if the user is not the organizer, iterate over the beans and remove all beans that are not owned by the user
+                            if (results == null) {
+                                // if the user is not the organizer, iterate over the beans and remove all beans
+                                // that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
                                     Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
@@ -216,9 +229,9 @@ public class ExperimentsResources {
              *
              * 2. count the experiments for the single tasks
              *
-             * Note that we do not use a single, large query that selects all at
-             * once because the tasks and the experiment results can be located
-             * in different graphs.
+             * Note that we do not use a single, large query that selects all at once
+             * because the tasks and the experiment results can be located in different
+             * graphs.
              */
             List<ExperimentCountBean> counts = new ArrayList<>();
             String query = SparqlQueries.getChallengeTasksQuery(challengeId, null);

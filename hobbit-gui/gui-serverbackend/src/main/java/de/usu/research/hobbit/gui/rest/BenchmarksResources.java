@@ -16,6 +16,7 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -86,6 +87,10 @@ public class BenchmarksResources {
             }
             UserInfoBean user = InternalResources.getUserInfoBean(sc);
             benchmarkDetails = client.requestBenchmarkDetails(id, user);
+            // If a Guest is requesting details, he shouldn't see any systems
+            if ((!user.hasRole("system-provider")) && (!user.hasRole("challenge-organiser"))) {
+                benchmarkDetails.setSystems(new ArrayList<>(0));
+            }
             return benchmarkDetails;
         }
 
@@ -95,19 +100,19 @@ public class BenchmarksResources {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public SubmitResponseBean submitBenchmark(SubmitModelBean model) throws Exception {
-    	try {
-	        LOGGER.info("Submit benchmark id = " + model.getBenchmark());
-	        LOGGER.info("Submit system id = " + model.getSystem());
-	        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-	        if (client == null) {
-	            throw new GUIBackendException("Couldn't connect to platform controller.");
-	        }
-	        String id = client.submitBenchmark(model);
-	        return new SubmitResponseBean(id);
-    	} catch (Exception e) {
-    		SubmitResponseBean error = new SubmitResponseBean();
-    		error.setError(e.getMessage());
-    		return error;
-    	}
+        try {
+            LOGGER.info("Submit benchmark id = " + model.getBenchmark());
+            LOGGER.info("Submit system id = " + model.getSystem());
+            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+            if (client == null) {
+                throw new GUIBackendException("Couldn't connect to platform controller.");
+            }
+            String id = client.submitBenchmark(model);
+            return new SubmitResponseBean(id);
+        } catch (Exception e) {
+            SubmitResponseBean error = new SubmitResponseBean();
+            error.setError(e.getMessage());
+            return error;
+        }
     }
 }
