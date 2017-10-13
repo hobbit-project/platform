@@ -4,13 +4,13 @@
       <p-dataTable [value]="experiments" [(selection)]="selectedExperiments" resizableColumns="true" [rows]="20" [paginator]="true"  [sortField]="displayRanks ? 'rank' : 'id'" [sortOrder]="displayRanks ? 1 : -1">
         <p-column [style]="{'width':'38px'}" selectionMode="multiple"></p-column>
         <p-column *ngIf="displayRanks" field="rank" header="Rank" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"  [style]="{'width':'10%'}"></p-column>
-        <p-column *ngIf="displayIDs" field="id" header="Experiment" [sortable]="true"  [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
-        <p-column field="system.name" header="System" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
+        <p-column *ngIf="displayIDs" [style]="{'width':'130px'}" field="id" header="Experiment ID" [sortable]="true"  [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"></p-column>
+        <p-column [style]="{'text-overflow':'ellipsis','white-space':'normal'}" field="system.name" header="System" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
           <template let-col let-experiment="rowData" pTemplate="body">
             <span *ngIf="experiment.system" [title]="experiment.system.description ? experiment.system.description : ''">{{experiment.system.name}}</span>
           </template>
         </p-column>
-        <p-column *ngIf="displayChallengeTasks" field="challengeTask.name" header="ChallengeTask" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
+        <p-column *ngIf="displayChallengeTasks" [style]="{'text-overflow':'ellipsis','white-space':'normal'}" field="challengeTask.name" header="ChallengeTask" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains">
           <template let-col let-experiment="rowData" pTemplate="body">
             <span *ngIf="experiment.challengeTask" [title]="experiment.challengeTask.description ? experiment.challengeTask.description : ''">{{experiment.challengeTask.name}}</span>
           </template>

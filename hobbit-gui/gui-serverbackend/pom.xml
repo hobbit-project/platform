@@ -23,7 +23,7 @@
 
   <groupId>org.hobbit</groupId>
   <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.11</version>
+  <version>1.0.12</version>
   <packaging>war</packaging>
   <name>gui-serverbackend</name>
 
@@ -208,7 +208,7 @@
             </jettyXml>
           </configuration>
           <dependencies>
-            <!-- The original dependency that was replaced by our workaround 
+            <!-- The original dependency that was replaced by our workaround
             <dependency>
               <groupId>org.keycloak</groupId>
               <artifactId>keycloak-jetty93-adapter</artifactId>
