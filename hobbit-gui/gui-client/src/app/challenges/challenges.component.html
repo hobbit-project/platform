@@ -6,7 +6,7 @@
       </div>
       <div class="col-md-2">
         <div class="pull-right">
-          <button type="button" class="btn btn-primary" (click)="addChallenge()">Add Challenge</button>
+          <button type="button" class="btn btn-primary" *ngIf="user?.hasRole(Role.CHALLENGE_ORGANISER)" (click)="addChallenge()">Add Challenge</button>
         </div>
       </div>
     </div>
