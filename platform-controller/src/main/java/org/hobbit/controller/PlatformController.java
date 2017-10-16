@@ -627,6 +627,21 @@ public class PlatformController extends AbstractCommandReceivingComponent
         return experiments;
     }
 
+    private void executeChallengeExperiments(String challengeUri) {
+        // get experiments from the challenge
+        List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
+        if (experiments == null) {
+            LOGGER.error("Couldn't get experiments for challenge {} . Aborting.", challengeUri);
+            return;
+        }
+        // add to queue
+        for (ExperimentConfiguration ex : experiments) {
+            LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
+                    + ex.systemUri + " to the queue.");
+            queue.add(ex);
+        }
+    }
+
     /**
      * Closes the challenge with the given URI by adding the "closed" triple to
      * its graph and inserting the configured experiments into the queue.
@@ -648,19 +663,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     challengeUri);
             return;
         }
-        // TODO RC The following part can be reused for the execution of a repeatable challenge
-        // get experiments from the challenge
-        List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
-        if (experiments == null) {
-            LOGGER.error("Couldn't get experiments for challenge {} . Aborting.", challengeUri);
-            return;
-        }
-        // add to queue
-        for (ExperimentConfiguration ex : experiments) {
-            LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
-                    + ex.systemUri + " to the queue.");
-            queue.add(ex);
-        }
+        executeChallengeExperiments(challengeUri);
     }
     
     protected synchronized void checkRepeatableChallenges() {
