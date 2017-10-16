@@ -32,65 +32,21 @@ export class RegistrationComponent implements OnInit {
     this.bs.getAllChallengeRegistrations(id).subscribe(data => {
       this.registrations = data;
       this.loadedRegistrations = true;
-      this.updateSelectedSystems();
-      this.updateLoaded();
-    });
-    this.bs.getSystemProviderSystems().subscribe(data => {
-      this.systems = data;
-      this.loadedSystems = true;
-      this.updateSelectedSystems();
+      for (const reg of this.registrations) {
+        if (!(reg.taskId in this.display))
+          this.display[reg.taskId] = [];
+        this.display[reg.taskId].push({ id: reg.systemId, fixed: true, selected: true });
+      }
       this.updateLoaded();
     });
   }
 
   private updateLoaded() {
-    this.loaded = this.loadedChallenge && this.loadedSystems && this.loadedRegistrations;
-  }
-
-  private updateSelectedSystems() {
-    if (this.loadedRegistrations && this.loadedSystems) {
-      const map = {};
-
-      for (const system of this.systems) {
-        map[system.id] = system;
-
-        for (const task of this.challenge.tasks) {
-          if (!this.display[task.id])
-            this.display[task.id] = [];
-          this.display[task.id].push({ id: system.id, fixed: false, selected: false });
-        }
-      }
-
-      for (const reg of this.registrations) {
-        if (!this.getEntry(this.display[reg.taskId], reg.systemId))
-          this.display[reg.taskId].push({ id: reg.systemId, fixed: true, selected: true });
-        else
-          this.getEntry(this.display[reg.taskId], reg.systemId).selected = true;
-      }
-    }
-  }
-
-  private getEntry(list, id: string): any {
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id)
-        return list[i];
-    }
-    return null;
+    this.loaded = this.loadedChallenge && this.loadedRegistrations;
   }
 
   cancel() {
     this.router.navigate(['/challenges', this.challenge.id]);
   }
 
-  submit() {
-    const taskRegistrations: ChallengeRegistration[] = [];
-    for (const task of Object.keys(this.display)) {
-      for (const sel of this.display[task]) {
-        if (sel.selected)
-          taskRegistrations.push(new ChallengeRegistration(this.challenge.id, task, sel.id));
-      }
-      this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, taskRegistrations).subscribe();
-    }
-    this.cancel();
-  }
 }

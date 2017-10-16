@@ -1,3 +1,4 @@
+import { RegisterComponent } from './challenges/register/register.component';
 import { ExperimentsComponent } from './experiments/experiments.component';
 import { PathLocationStrategy, LocationChangeListener, LocationStrategy } from '@angular/common';
 import { EditComponent } from './challenges/edit/edit.component';
@@ -45,6 +46,7 @@ const appRoutes: Routes = [
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/experiments', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/register', component: RegisterComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
   { path: 'experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
@@ -98,6 +100,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     ExperimentsComponent,
     ExperimentDetailsComponent,
     TaskComponent,
+    RegisterComponent,
     RegistrationComponent,
     DetailsWrapperComponent,
     StatusComponent
