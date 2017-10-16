@@ -57,8 +57,7 @@ public class DevInMemoryDb {
                     challenges.addAll(list);
                 }
             }
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }
@@ -87,8 +86,7 @@ public class DevInMemoryDb {
                     if (!item.isClosed()) {
                         item.setClosed(true);
                         return true;
-                    }
-                    else {
+                    } else {
                         return false;
                     }
                 }
@@ -131,8 +129,7 @@ public class DevInMemoryDb {
                     experiments.addAll(list);
                 }
             }
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }
@@ -152,8 +149,7 @@ public class DevInMemoryDb {
             AtomicInteger counter = results.get(id);
             if (counter == null) {
                 results.put(id, new AtomicInteger(1));
-            }
-            else {
+            } else {
                 counter.incrementAndGet();
             }
         }
@@ -162,8 +158,7 @@ public class DevInMemoryDb {
             AtomicInteger counter = results.get(id);
             if (counter == null) {
                 return 0;
-            }
-            else {
+            } else {
                 return counter.get();
             }
         }
@@ -214,15 +209,13 @@ public class DevInMemoryDb {
                         }
                     }
                 }
-            }
-            else if (challengeTaskId != null) {
+            } else if (challengeTaskId != null) {
                 for (ExperimentBean bean : experiments) {
                     if (bean.getChallengeTask() != null && bean.getChallengeTask().getId().equals(challengeTaskId)) {
                         results.add(bean);
                     }
                 }
-            }
-            else {
+            } else {
                 results.addAll(experiments);
             }
         }
@@ -237,8 +230,7 @@ public class DevInMemoryDb {
                     benchmarks.addAll(list);
                 }
             }
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
     }

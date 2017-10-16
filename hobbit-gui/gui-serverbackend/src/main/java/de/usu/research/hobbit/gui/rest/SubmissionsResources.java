@@ -49,8 +49,7 @@ public class SubmissionsResources {
             StringWriter writer = new StringWriter();
             resultModel.write(writer, "TTL");
             return Response.ok(writer.toString()).build();
-        }
-        else {
+        } else {
             return Response.status(Response.Status.BAD_REQUEST).entity("ERROR").build();
         }
     }

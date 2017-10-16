@@ -66,8 +66,7 @@ public enum Datatype {
                         String name = annot.value();
                         map.put(name, d);
                     }
-                }
-                catch (IllegalArgumentException | IllegalAccessException e) {
+                } catch (IllegalArgumentException | IllegalAccessException e) {
                     throw new RuntimeException(e);
                 }
             }

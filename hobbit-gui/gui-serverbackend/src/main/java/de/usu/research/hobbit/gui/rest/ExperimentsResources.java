@@ -96,8 +96,7 @@ public class ExperimentsResources {
 
         if (Application.isUsingDevDb()) {
             return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
-        }
-        else {
+        } else {
             if (ids != null) {
                 System.out.println("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -110,8 +109,7 @@ public class ExperimentsResources {
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
-                    }
-                    else {
+                    } else {
                         // if public experiment is not found
                         // try requesting model from private graph
                         query = SparqlQueries.getExperimentGraphQuery(experimentUri, Constants.PRIVATE_RESULT_GRAPH_URI);
@@ -128,8 +126,7 @@ public class ExperimentsResources {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             ExperimentBean exp = new ExperimentBean();
                             exp.setId(id);
                             exp.setError(UNKNOWN_EXP_ERROR_MSG);
@@ -141,8 +138,7 @@ public class ExperimentsResources {
                         }
                     }
                 }
-            }
-            else if (challengeTaskId != null) {
+            } else if (challengeTaskId != null) {
                 System.out.println("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
                 String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
@@ -151,8 +147,7 @@ public class ExperimentsResources {
                 // if model is public and available - go with it
                 if (model != null && model.size() > 0) {
                     results = RdfModelHelper.createExperimentBeans(model);
-                }
-                else {
+                } else {
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PRIVATE_RESULT_GRAPH_URI);
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
@@ -169,8 +164,7 @@ public class ExperimentsResources {
                             UserInfoBean userInfo = getUserInfo(sc);
                             if (organizer.getURI().equals(userInfo.getPreferredUsername())) {
                                 results = RdfModelHelper.createExperimentBeans(model);
-                            }
-                            else {
+                            } else {
                                 // if he is not, iterate over the beans and remove all beans that's now user owned
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
@@ -183,8 +177,7 @@ public class ExperimentsResources {
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 // TODO make sure that the user is allowed to see the
                 // experiment!
                 results = RdfModelHelper.createExperimentBeans(StorageServiceClientSingleton.getInstance()
@@ -193,7 +186,8 @@ public class ExperimentsResources {
         }
 
         // addInfoFromController(results);
-        return Response.ok(new GenericEntity<List<ExperimentBean>>(results){}).build();
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results) {
+        }).build();
     }
 
     @GET
@@ -202,8 +196,7 @@ public class ExperimentsResources {
     public Response countByChallengeTaskIds(@PathParam("id") String challengeId) {
         if (Application.isUsingDevDb()) {
             return Response.ok(getDevDb().countByChallengeTaskIds(challengeId)).build();
-        }
-        else {
+        } else {
             /*
              * 1. retrieve the tasks of the given challenge
              *
@@ -235,13 +228,13 @@ public class ExperimentsResources {
                                 solution.getLiteral("count").getInt()));
                         }
                     }
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     LOGGER.error("Exception while executing ");
                 }
             }
 
-            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts){}).build();
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts) {
+            }).build();
         }
     }
 

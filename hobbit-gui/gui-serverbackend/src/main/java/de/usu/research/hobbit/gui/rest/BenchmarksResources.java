@@ -55,21 +55,20 @@ public class BenchmarksResources {
         List<BenchmarkBean> benchmarks;
         if (Application.isUsingDevDb()) {
             benchmarks = getDevDb().getBenchmarks();
-        }
-        else {
+        } else {
             try {
                 PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
                 if (client == null) {
                     throw new GUIBackendException("Couldn't connect to platform controller.");
                 }
                 benchmarks = client.requestBenchmarks();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
 
-        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks){}).build();
+        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks) {
+        }).build();
     }
 
     @GET
@@ -87,8 +86,7 @@ public class BenchmarksResources {
                     return Response.ok(benchmarkBean).build();
             }
             return null;
-        }
-        else {
+        } else {
             try {
                 if (client == null) {
                     throw new GUIBackendException("Couldn't connect to platform controller.");
@@ -96,8 +94,7 @@ public class BenchmarksResources {
                 UserInfoBean user = InternalResources.getUserInfoBean(sc);
                 benchmarkDetails = client.requestBenchmarkDetails(id, user);
                 return Response.ok(benchmarkDetails).build();
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
@@ -117,8 +114,7 @@ public class BenchmarksResources {
             }
             String id = client.submitBenchmark(model);
             return Response.ok(new SubmitResponseBean(id)).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             SubmitResponseBean error = new SubmitResponseBean();
             error.setError(e.getMessage());
             //TODO use error status code

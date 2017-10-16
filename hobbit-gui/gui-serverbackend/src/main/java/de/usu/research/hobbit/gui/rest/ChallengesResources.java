@@ -73,8 +73,7 @@ public class ChallengesResources {
 
         if (Application.isUsingDevDb()) {
             challenges = getDevDb().getChallenges();
-        }
-        else {
+        } else {
             // String query = SparqlQueries.getShallowChallengeGraphQuery(null,
             // Constants.CHALLENGE_DEFINITION_GRAPH_URI);
             String query = SparqlQueries.getShallowChallengeGraphQuery(null, null);
@@ -90,13 +89,13 @@ public class ChallengesResources {
         if (challenges != null) {
             if (userInfo.hasRole("challenge-organiser")) {
                 list.addAll(challenges);
-            }
-            else {
+            } else {
                 list.addAll(challenges.stream().filter(ChallengeBean::isVisible).collect(Collectors.toList()));
             }
         }
 
-        return Response.ok(new GenericEntity<List<ChallengeBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<ChallengeBean>>(list) {
+        }).build();
     }
 
     /**
@@ -126,8 +125,7 @@ public class ChallengesResources {
                 // more information)
                 task.setBenchmark(requestedBenchmarkInfo);
             }
-        }
-        else {
+        } else {
             throw new Exception("Couldn't get platform controller client.");
         }
     }
@@ -149,8 +147,7 @@ public class ChallengesResources {
                     return item;
                 }
             }
-        }
-        else {
+        } else {
             // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
             String query = SparqlQueries.getChallengeGraphQuery(id, null);
             if (query != null) {
@@ -171,7 +168,7 @@ public class ChallengesResources {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"challenge-organiser"})
+    @RolesAllowed({ "challenge-organiser" })
     public Response add(ChallengeBean challenge, @Context SecurityContext sc) {
         // FIXME this should be removed as soon as the gui-client sends
         // challenges containing the preferred user name as owner
@@ -179,8 +176,7 @@ public class ChallengesResources {
         challenge.setOrganizer(userInfo.getPreferredUsername());
         if (Application.isUsingDevDb()) {
             getDevDb().addChallenge(challenge);
-        }
-        else {
+        } else {
             Model model = RdfModelCreationHelper.createNewModel();
             challenge.setId(Constants.CHALLENGE_URI_NS + UUID.randomUUID().toString());
             RdfModelCreationHelper.addChallenge(challenge, model);
@@ -194,29 +190,25 @@ public class ChallengesResources {
     @Path("operation/close/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"challenge-organiser"})
+    @RolesAllowed({ "challenge-organiser" })
     public Response close(@PathParam("id") String id, EmptyBean dummy) {
         if (Application.isUsingDevDb()) {
             Boolean justClosed = getDevDb().closeChallenge(id);
             if (justClosed != null) {
                 if (justClosed) {
                     return Response.ok(InfoBean.withMessage("Challenge has been closed")).build();
-                }
-                else {
+                } else {
                     return Response.ok(InfoBean.withMessage("Challenge was already closed")).build();
                 }
-            }
-            else {
+            } else {
                 return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
             }
-        }
-        else {
+        } else {
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
             if (client != null) {
                 client.closeChallenge(id);
                 return Response.ok(InfoBean.withMessage("Challenge has been closed")).build();
-            }
-            else {
+            } else {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage("Couldn't get platform controller client.")).build();
             }
         }
@@ -226,7 +218,7 @@ public class ChallengesResources {
     @Path("{id}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"challenge-organiser"})
+    @RolesAllowed({ "challenge-organiser" })
     public Response update(@PathParam("id") String id, ChallengeBean challenge) {
         // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
         challenge.setId(id);
@@ -235,8 +227,7 @@ public class ChallengesResources {
             if (updatedId != null) {
                 return Response.ok(InfoBean.withMessage(updatedId)).build();
             }
-        }
-        else {
+        } else {
             StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
             if (storageClient != null) {
                 // get challenge from storage
@@ -250,8 +241,7 @@ public class ChallengesResources {
                     storageClient.sendUpdateQuery(SparqlQueries.getUpdateQueryFromDiff(oldModel, newModel,
                         Constants.CHALLENGE_DEFINITION_GRAPH_URI));
                     return Response.ok(new IdBean(id)).build();
-                }
-                else {
+                } else {
                     LOGGER.error(
                         "Couldn't update the challenge {} because it couldn't be loaded from storage. Update will be ignored.",
                         id);
@@ -265,15 +255,14 @@ public class ChallengesResources {
     @DELETE
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"challenge-organiser"})
+    @RolesAllowed({ "challenge-organiser" })
     public Response delete(@PathParam("id") String id) {
         if (Application.isUsingDevDb()) {
             String deletedId = getDevDb().deleteChallenge(id);
             if (deletedId != null) {
                 return Response.ok(new IdBean(deletedId)).build();
             }
-        }
-        else {
+        } else {
             // FIXME check whether the user is allowed to delete this challenge
             // delete challenge from storage
             String query = SparqlQueries.deleteChallengeGraphQuery(id, Constants.CHALLENGE_DEFINITION_GRAPH_URI);

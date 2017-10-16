@@ -50,8 +50,8 @@ public class Application extends ResourceConfig {
      * </security-role>}
      */
 
-    public static final String[] ROLE_NAMES = new String[]{"benchmark-provider", "system-provider",
-        "challenge-organiser", "guest"};
+    public static final String[] ROLE_NAMES = new String[]{ "benchmark-provider", "system-provider",
+        "challenge-organiser", "guest" };
 
     public static final String PROPERTIES_FILE = "config.properties";
     private static Properties properties = new Properties();
@@ -62,8 +62,7 @@ public class Application extends ResourceConfig {
         if (inputStream != null) {
             try {
                 properties.load(inputStream);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new RuntimeException("Cannot load " + PROPERTIES_FILE, e);
             }
         }

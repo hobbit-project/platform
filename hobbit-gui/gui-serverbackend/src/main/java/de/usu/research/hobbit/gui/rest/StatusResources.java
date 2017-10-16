@@ -51,8 +51,7 @@ public class StatusResources {
         if (status.currentExperimentId == null) {
             builder.append("    No experiment is executed at the moment.");
             builder.append(NEWLINE);
-        }
-        else {
+        } else {
             builder.append("    Id:        ");
             builder.append(status.currentExperimentId);
             builder.append(NEWLINE);
@@ -83,8 +82,7 @@ public class StatusResources {
         if ((status.queue == null) || (status.queue.length == 0)) {
             builder.append("    There is no experiment in the queue.");
             builder.append(NEWLINE);
-        }
-        else {
+        } else {
             ConfiguredExperiment queuedExp;
             for (int i = 0; i < status.queue.length; ++i) {
                 queuedExp = status.queue[i];

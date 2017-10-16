@@ -62,7 +62,8 @@ public class SystemProviderResources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response processSystems(@Context SecurityContext sc) {
         List<SystemBean> list = getSystems(sc);
-        return Response.ok(new GenericEntity<List<SystemBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<SystemBean>>(list) {
+        }).build();
     }
 
     private List<SystemBean> getSystems(SecurityContext sc) {
@@ -71,8 +72,7 @@ public class SystemProviderResources {
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         if (client != null) {
             return client.requestSystemsOfUser(userInfo.getPreferredUsername());
-        }
-        else {
+        } else {
             LOGGER.error("Couldn't get platform controller client. Returning empty list.");
             return Collections.EMPTY_LIST;
         }
@@ -94,11 +94,11 @@ public class SystemProviderResources {
             StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
             Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
             list = RdfModelHelper.listRegisteredSystems(challengeModel);
-        }
-        else {
+        } else {
             LOGGER.info("{} does not match the expected {}", userInfo.getPreferredUsername(), challenge.getOrganizer());
         }
-        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(list) {
+        }).build();
     }
 
     @GET
@@ -107,7 +107,8 @@ public class SystemProviderResources {
     @Produces(MediaType.APPLICATION_JSON)
     public Response processChallengeRegistrations(@Context SecurityContext sc,
                                                   @PathParam("challengeId") String challengeId) {
-        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(getChallengeRegistrations(sc, challengeId)){}).build();
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(getChallengeRegistrations(sc, challengeId)) {
+        }).build();
     }
 
     private List<TaskRegistrationBean> getChallengeRegistrations(SecurityContext sc, String challengeId) {

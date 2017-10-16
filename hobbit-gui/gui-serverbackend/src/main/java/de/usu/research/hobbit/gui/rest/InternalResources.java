@@ -74,8 +74,7 @@ public class InternalResources {
             if (bean == null)
                 throw new GUIBackendException("Keycloak configuration not found");
             return Response.ok(bean).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage())).build();
         }
     }
@@ -123,8 +122,7 @@ public class InternalResources {
                         Method getEmail = accessToken.getClass().getMethod("getEmail");
                         Object email = getEmail.invoke(accessToken);
                         bean.setEmail((String) email);
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         LOGGER.warn("Name/email fetch failed with: " + e);
                         LOGGER.debug("stacktrace", e);
                     }
@@ -132,8 +130,7 @@ public class InternalResources {
                 }
             });
             return result;
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             LOGGER.warn("Exception: " + e);
             throw new RuntimeException(e);
         }
@@ -174,8 +171,7 @@ public class InternalResources {
         }
         if (System.getenv().containsKey("KEYCLOAK_AUTH_URL")) {
             bean.setUrl(System.getenv().get("KEYCLOAK_AUTH_URL"));
-        }
-        else {
+        } else {
             LOGGER.warn(
                 "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");
             bean.setUrl(keycloakUrlUsedByJetty);
@@ -198,8 +194,7 @@ public class InternalResources {
                         if (value == null) {
                             if (defValue != null)
                                 sb.append(defValue);
-                        }
-                        else {
+                        } else {
                             sb.append(value);
                         }
                         break;
@@ -211,15 +206,13 @@ public class InternalResources {
                         if (value == null) {
                             if (defValue != null)
                                 sb.append(defValue);
-                        }
-                        else {
+                        } else {
                             sb.append(value);
                         }
                         break;
                     }
                 }
-            }
-            else {
+            } else {
                 sb.append(node.getTextContent());
             }
             node = node.getNextSibling();

@@ -87,11 +87,10 @@ public class MarshallerUtil {
         JAXBContext jc;
         try {
             jc = JAXBContext.newInstance(
-                new Class[]{BenchmarkBean.class, SystemBean.class, ConfigurationParamBean.class, BenchmarkListBean.class,
+                new Class[]{ BenchmarkBean.class, SystemBean.class, ConfigurationParamBean.class, BenchmarkListBean.class,
                     ChallengesListBean.class, ChallengeBean.class, ChallengeTaskBean.class,
-                    ExperimentBean.class, ExperimentsListBean.class}, jaxbProperties);
-        }
-        catch (JAXBException e) {
+                    ExperimentBean.class, ExperimentsListBean.class }, jaxbProperties);
+        } catch (JAXBException e) {
             throw new RuntimeException(e);
         }
         return jc;

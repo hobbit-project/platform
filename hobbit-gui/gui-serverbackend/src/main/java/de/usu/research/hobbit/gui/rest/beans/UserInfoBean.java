@@ -85,8 +85,7 @@ public class UserInfoBean {
                 }
             }
             return roleSet.contains(role);
-        }
-        else {
+        } else {
             return false;
         }
     }
