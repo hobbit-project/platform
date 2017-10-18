@@ -180,8 +180,7 @@ public class ExperimentsResources {
             }
         }
 
-        // addInfoFromController(results);
-        return results;
+        return results != null ? results : new ArrayList<>(0);
     }
 
     @GET
