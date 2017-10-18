@@ -32,23 +32,17 @@ export class RegisterComponent implements OnInit {
     this.bs.getAllChallengeRegistrations(id).subscribe(data => {
       this.registrations = data;
       this.loadedRegistrations = true;
-      this.updateSelectedSystems();
       this.updateLoaded();
     });
     this.bs.getSystemProviderSystems().subscribe(data => {
       this.systems = data;
       this.loadedSystems = true;
-      this.updateSelectedSystems();
       this.updateLoaded();
     });
   }
 
   private updateLoaded() {
-    this.loaded = this.loadedChallenge && this.loadedSystems && this.loadedRegistrations;
-  }
-
-  private updateSelectedSystems() {
-    if (this.loadedRegistrations && this.loadedSystems) {
+    if (this.loadedChallenge && this.loadedSystems && this.loadedRegistrations) {
       for (const system of this.systems) {
         for (const task of this.challenge.tasks) {
           if (!this.display[task.id])
@@ -61,6 +55,7 @@ export class RegisterComponent implements OnInit {
         if (this.getEntry(this.display[reg.taskId], reg.systemId))
           this.getEntry(this.display[reg.taskId], reg.systemId).selected = true;
       }
+      this.loaded = true;
     }
   }
 
