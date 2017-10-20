@@ -16,7 +16,10 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -28,14 +31,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.*;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.ResourceFactory;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -46,6 +46,11 @@ import org.slf4j.LoggerFactory;
 
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -54,25 +59,11 @@ public class ExperimentsResources {
     
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
 
-    private UserInfoBean getUserInfo(SecurityContext sc) {
-        // get user
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        return userInfo;
-    }
-
-    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
-        // create set of user owned system ids
-        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
-        return userOwnedSystemIds;
-    }
-
-    private Set<String> getUserSystemIds(SecurityContext sc) {
-        UserInfoBean userInfo = getUserInfo(sc);
-        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
-        return userOwnedSystemIds;
-    }
+//    private UserInfoBean getUserInfo(SecurityContext sc) {
+//        // get user
+//        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+//        return userInfo;
+//    }
 
     @GET
     @Path("query")
@@ -114,7 +105,7 @@ public class ExperimentsResources {
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
-                                Set<String> userOwnedSystemIds = getUserSystemIds(sc);
+                                Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
@@ -156,14 +147,14 @@ public class ExperimentsResources {
                         if (organizer != null) {
                             // check if organizer is user
                             // return whole thing if he is
-                            UserInfoBean userInfo = getUserInfo(sc);
+                            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
                             if (organizer.getURI() == userInfo.getPreferredUsername()) {
                                 results = RdfModelHelper.createExperimentBeans(model);
                             } else {
                                 // if he is not, iterate over the beans and remove all beans that's now user owned
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
-                                    Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+                                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                                     results = experiments.stream()
                                             .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
@@ -180,8 +171,7 @@ public class ExperimentsResources {
             }
         }
 
-        // addInfoFromController(results);
-        return results;
+        return results != null ? results : new ArrayList<>(0);
     }
 
     @GET
