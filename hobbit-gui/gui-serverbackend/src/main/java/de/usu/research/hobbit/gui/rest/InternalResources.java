@@ -19,8 +19,10 @@ package de.usu.research.hobbit.gui.rest;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,9 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -239,5 +244,36 @@ public class InternalResources {
             node = node.getNextSibling();
         }
         return null;
+    }
+
+    /**
+     * Retrieves the set of system URIs that are visible for the given user.
+     *
+     * @param userInfo
+     *            the bean describing the user for which the system URIs should be
+     *            returned
+     * @return the set of system URIs that are visible for the given user
+     */
+    public static Set<String> getUserSystemIds(UserInfoBean userInfo) {
+        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
+                .requestSystemsOfUser(userInfo.getPreferredUsername());
+        // create set of user owned system ids
+        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+        return userOwnedSystemIds;
+    }
+
+    /**
+     * Retrieves the set of system URIs that are visible for the given user.
+     *
+     * @param sc
+     *            the security context containing the user for which the system URIs
+     *            should be returned
+     * @return the set of system URIs that are visible for the given user
+     */
+    public static Set<String> getUserSystemIds(SecurityContext sc) {
+        UserInfoBean userInfo = getUserInfoBean(sc);
+        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+        return userOwnedSystemIds;
     }
 }

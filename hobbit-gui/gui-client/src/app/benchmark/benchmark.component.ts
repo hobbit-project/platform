@@ -39,7 +39,7 @@ export class BenchmarkComponent implements OnInit {
     this.configFormGroup = new FormGroup({});
     this.bs.listBenchmarks().subscribe(data => {
       this.benchmarks = data;
-      this.benchmarks.sort((a, b) => a.name > b.name ? 1 : (b.name > a.name ? -1 : 0));
+      this.benchmarks.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
       if (this.benchmarks.length === 0)
         this.messageService.add({ severity: 'warn', summary: 'No Benchmarks', detail: 'Did not find any benchmarks.' });
@@ -53,7 +53,7 @@ export class BenchmarkComponent implements OnInit {
     if (selectedBenchmarkOverview) {
       this.bs.getBenchmarkDetails(event).subscribe(data => {
         this.selectedBenchmark = data;
-        this.selectedBenchmark.systems.sort((a, b) => a.name > b.name ? 1 : (b.name > a.name ? -1 : 0));
+        this.selectedBenchmark.systems.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
       });
     }
   }

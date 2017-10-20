@@ -6,9 +6,14 @@
       </div>
       <div class="col-md-4">
         <div class="pull-right">
-          <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
-          <button type="button" class="btn" (click)="cancel()">Cancel</button>
-          <button type="button" class="btn btn-primary" (click)="save()">Save</button>
+          <div *ngIf="challenge && challenge.organizer === userInfo.name">
+            <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
+            <button type="button" class="btn" (click)="cancel()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="save()">Save</button>
+          </div>
+          <div *ngIf="!challenge || challenge.organizer !== userInfo.name">
+            <button type="button" class="btn" (click)="cancel()">Back</button>
+          </div>
         </div>
       </div>
     </div>
@@ -34,7 +39,9 @@
           <div>
             <p-calendar id="pubdate" name="pubdate" [disabled]="!canEdit()" [(ngModel)]="dates.publishDate" [showTime]="true" [showIcon]="true"
               dateFormat="yy-mm-dd"></p-calendar>
-            <p><small *ngIf="dates.publishDate">{{dates.publishDate.toString()}}</small></p>
+            <p>
+              <small *ngIf="dates.publishDate">{{dates.publishDate.toString()}}</small>
+            </p>
           </div>
         </div>
         <div class="form-group col-md-6">
@@ -42,7 +49,9 @@
           <br>
           <p-calendar id="execdate" name="execdate" [disabled]="!canEdit()" [(ngModel)]="dates.executionDate" [showTime]="true" [showIcon]="true"
             dateFormat="yy-mm-dd"></p-calendar>
-          <p><small *ngIf="dates.executionDate">{{dates.executionDate.toString()}}</small></p>
+          <p>
+            <small *ngIf="dates.executionDate">{{dates.executionDate.toString()}}</small>
+          </p>
         </div>
       </div>
 
@@ -74,7 +83,8 @@
         <div class="col-md-8">
           <div class="pull-right">
             <button type="button" class="btn btn-default btn-sm" (click)="showExperiments()">Experiments</button>
-            <button *ngIf="canEdit()" type="button" class="btn btn-default btn-sm" (click)="showSystemRegistration()">System Registration</button>
+            <button *ngIf="canEdit()" type="button" class="btn btn-default btn-sm" (click)="showSystemRegistration()">Show System Registrations</button>
+            <button *ngIf="canRegister()" type="button" class="btn btn-warning btn-sm" (click)="registerSystems()">Register System</button>
             <button *ngIf="canEdit()" type="button" class="btn btn-primary btn-sm" (click)="addTask()">Add Task</button>
           </div>
         </div>

@@ -117,6 +117,10 @@ export class EditComponent implements OnInit {
     this.router.navigate(['challenges', this.challenge.id, 'edit', 'add-task']);
   }
 
+  registerSystems() {
+    this.router.navigate(['challenges', this.challenge.id, 'register']);
+  }
+
   showSystemRegistration() {
     this.router.navigate(['challenges', this.challenge.id, 'registrations']);
   }

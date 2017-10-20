@@ -3,7 +3,7 @@ import { Benchmark, ConfigParamDefinition, ConfigParamRealisation, System } from
 import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
-  selector: 'app-config',
+  selector: 'app-benchmark-config',
   templateUrl: './config.component.html'
 })
 export class ConfigComponent implements OnInit, OnChanges {

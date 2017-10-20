@@ -39,7 +39,8 @@ export class DetailsComponent implements OnInit, OnChanges {
       if (this.experiments == null)
         this.router.navigateByUrl('404', { skipLocationChange: true });
 
-      this.buildTableRows();
+      if (this.experiments.length !== 0)
+        this.buildTableRows();
     });
   }
 

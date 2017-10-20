@@ -63,6 +63,7 @@ export class TaskComponent implements OnInit {
 
     this.bs.listBenchmarks().subscribe(data => {
       this.benchmarks = data;
+      this.benchmarks.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
       this.benchmarksLoaded = true;
       this.onChangeBenchmark();
     });
