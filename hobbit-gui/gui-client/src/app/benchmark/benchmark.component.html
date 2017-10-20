@@ -21,7 +21,8 @@
     </div>
   </form>
 
-  <app-benchmark-config *ngIf="selectedBenchmark" [readOnly]="false" [benchmark]="selectedBenchmark" [system]="selectedSystem" (submitCallback)="onSubmitConfig($event)"></app-benchmark-config>
+  <app-benchmark-config *ngIf="selectedBenchmark" [readOnly]="false" [benchmark]="selectedBenchmark" [system]="selectedSystem"
+    (submitCallback)="onSubmitConfig($event)"></app-benchmark-config>
 
 
   <div bsModal #submitModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="submitModalLabel" aria-hidden="true">
@@ -49,7 +50,10 @@
           </dl>
         </div>
         <div class="modal-footer">
-          <span>Successfully submitted HOBBIT ID {{configModel.response?.id}} at {{configModel.response?.timestamp}}</span>
+          <span>Successfully submitted
+            <a [routerLink]="['/experiments/details']" [queryParams]="{ id: configModel.response?.id }">HOBBIT ID {{configModel.response?.id}}</a>
+            at {{configModel.response?.timestamp}}
+          </span>
           <button type="button" class="btn btn-secondary" (click)="submitModal.hide()">Close</button>
         </div>
       </div>
