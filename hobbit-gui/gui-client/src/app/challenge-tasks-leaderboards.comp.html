@@ -1,0 +1,27 @@
+<sg-app-page-header>
+  <div class="col-md-8">
+    <h1>Leaderboards of Tasks for Challenge {{challenge?.name}}</h1>
+  </div>
+  <div class="col-md-4">
+    <div class="pull-right">
+    </div>
+  </div>
+</sg-app-page-header>
+
+<div class="container">
+  <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
+
+  <div *ngIf="loaded">
+    <p-dataTable *ngIf="challenge.tasks.length > 0" [value]="challenge.tasks" selectionMode="single" [(selection)]="selectedTask" (onRowSelect)="onSelect($event)" resizableColumns="true">
+      <p-column field="name" header="Task Name" [sortable]="true" [style]="{'width':'20%'}"></p-column>
+      <p-column field="description" header="Task Description" [sortable]="false" [style]="{'width':'36%'}"></p-column>
+    </p-dataTable>
+    <br>
+    <div *ngIf="selectedTask">
+      <h4>Leaderboard for Task {{selectedTask.name}}</h4>
+
+      <sg-leaderboard [challengeTaskId]="selectedTask.id" [rankingKPIs]="selectedTask.rankingKPIs">
+      </sg-leaderboard>
+    </div>
+  </div>
+</div>

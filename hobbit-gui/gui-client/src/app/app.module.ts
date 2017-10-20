@@ -24,11 +24,14 @@ import { ChallengesListComponent } from './challenges-list.comp';
 import { ChallengeEditComponent } from './challenge-edit.comp';
 import { ChallengeTaskEditComponent } from './challenge-task-edit.comp';
 import { ExperimentsComponent } from './experiments.comp';
+import { ExperimentsWrapperComponent } from './experiments-wrapper.comp';
 import { ExperimentsDetailsComponent } from './experiments-details.comp';
 import { ExperimentsDetailsWrapperComponent } from './experiments-details-wrapper.comp';
 import { ChallengeRegisterSystemsComponent } from './challenge-register-systems.comp';
 import { ChallengeShowRegistrationsComponent } from './challenge-show-registrations.comp';
 import { ChallengeTasksExperimentsComponent } from './challenge-tasks-experiments.comp';
+import { ChallengeTasksLeaderboardsComponent } from './challenge-tasks-leaderboards.comp';
+import { LeaderboardComponent } from './leaderboard.comp';
 
 import { PageHeaderComponent } from './shared/pageHeader.comp';
 import { WaitLoadingComponent } from './shared/waitLoading.comp';
@@ -71,9 +74,15 @@ const mergeStrategyProvide = { provide: LocationStrategy, useClass: MergeLocatio
                   BenchmarkConfigParamsComponent,
                   BenchmarkStatusComponent, BenchmarkResultDisplayComponent, SubmissionDetailsComponent,
                   ChallengesListComponent, ChallengeEditComponent, ChallengeTaskEditComponent,
-                  ExperimentsComponent, ExperimentsDetailsComponent, ExperimentsDetailsWrapperComponent,
+                  ExperimentsComponent,
+                  ExperimentsWrapperComponent,
+                  ExperimentsDetailsComponent,
+                  ExperimentsDetailsWrapperComponent,
                   ChallengeRegisterSystemsComponent, ChallengeShowRegistrationsComponent,
-                  ChallengeTasksExperimentsComponent ],
+                  ChallengeTasksExperimentsComponent,
+                  ChallengeTasksLeaderboardsComponent,
+                  LeaderboardComponent,
+                ],
   bootstrap:    [ AppComponent ]
 })
 export class AppModule { }

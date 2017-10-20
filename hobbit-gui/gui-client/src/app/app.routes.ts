@@ -10,11 +10,12 @@ import { SubmissionDetailsComponent } from './submission-details.comp';
 import { ChallengesListComponent } from './challenges-list.comp';
 import { ChallengeEditComponent } from './challenge-edit.comp';
 import { ChallengeTaskEditComponent } from './challenge-task-edit.comp';
-import { ExperimentsComponent } from './experiments.comp';
+import { ExperimentsWrapperComponent } from './experiments-wrapper.comp';
 import { ExperimentsDetailsWrapperComponent } from './experiments-details-wrapper.comp';
 import { ChallengeRegisterSystemsComponent } from './challenge-register-systems.comp';
 import { ChallengeShowRegistrationsComponent } from './challenge-show-registrations.comp';
 import { ChallengeTasksExperimentsComponent } from './challenge-tasks-experiments.comp';
+import { ChallengeTasksLeaderboardsComponent } from './challenge-tasks-leaderboards.comp';
 
 export const rootRouterConfig: Routes = [
   {path: '', redirectTo: 'home', pathMatch: 'full'},
@@ -29,7 +30,8 @@ export const rootRouterConfig: Routes = [
   {path: 'challenges/:id', component: ChallengeEditComponent},
   {path: 'challenges/:id/edit/:task', component: ChallengeTaskEditComponent},
   {path: 'challenges/:id/experiments', component: ChallengeTasksExperimentsComponent},
-  {path: 'experiments', component: ExperimentsComponent},
+  {path: 'challenges/:id/leaderboards', component: ChallengeTasksLeaderboardsComponent},
+  {path: 'experiments', component: ExperimentsWrapperComponent},
   {path: 'experiments/details', component: ExperimentsDetailsWrapperComponent},
   {path: 'experiments/details/:id', component: ExperimentsDetailsWrapperComponent},
   {path: 'challenges/:id/register', component: ChallengeRegisterSystemsComponent},
