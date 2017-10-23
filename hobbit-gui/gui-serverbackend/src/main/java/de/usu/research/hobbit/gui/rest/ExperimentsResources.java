@@ -18,7 +18,9 @@ package de.usu.research.hobbit.gui.rest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+
 import java.util.HashSet;
+
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -52,35 +54,17 @@ import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
+
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("experiments")
 public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
-    
+
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
-
-    private UserInfoBean getUserInfo(SecurityContext sc) {
-        // get user
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        return userInfo;
-    }
-
-    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
-        // create set of user owned system ids
-        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
-        return userOwnedSystemIds;
-    }
-
-    private Set<String> getUserSystemIds(SecurityContext sc) {
-        UserInfoBean userInfo = getUserInfo(sc);
-        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
-        return userOwnedSystemIds;
-    }
 
     @GET
     @Path("query")
@@ -122,7 +106,7 @@ public class ExperimentsResources {
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
-                                Set<String> userOwnedSystemIds = getUserSystemIds(sc);
+                                Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
@@ -163,7 +147,7 @@ public class ExperimentsResources {
                         Resource challenge = RdfHelper.getObjectResource(challengeModel, challengeTask, HOBBIT.isTaskOf);
                         if(challenge != null) {
                             String organizer = RdfHelper.getStringValue(challengeModel, challenge, HOBBIT.organizer);
-                            UserInfoBean userInfo = getUserInfo(sc);
+                            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
                             if (organizer != null) {
                                 // check if organizer is user
                                 // return whole thing if he is
@@ -178,7 +162,7 @@ public class ExperimentsResources {
                                 // if the user is not the organizer, iterate over the beans and remove all beans that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
-                                    Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+                                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                                     results = experiments.stream()
                                             .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
@@ -200,8 +184,7 @@ public class ExperimentsResources {
             }
         }
 
-        // addInfoFromController(results);
-        return results;
+        return results != null ? results : new ArrayList<>(0);
     }
 
     @GET

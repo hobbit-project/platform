@@ -1,23 +1,21 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
+
 <head>
   <base href="/">
   <meta charset="utf-8">
   <title>HOBBIT GUI</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="author"
-  content="Research Department, USU Software AG">
-  <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-  <link rel="stylesheet" type="text/css" href="assets/primeng/resources/themes/omega/theme.css">
-  <link rel="stylesheet" type="text/css" href="assets/primeng/resources/primeng.min.css">
-  <link rel="stylesheet" type="text/css" href="assets/stylesheets/main.css">
+  <meta name="author" content="Research Department, USU Software AG">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
-<body>
-  <sg-app>Loading...</sg-app>
 
-  <script src="/polyfills.bundle.js"></script>
-  <script src="/vendor.bundle.js"></script>
-  <script src="/main.bundle.js"></script>
+<body>
+  <script>
+    window.__theme = 'bs4';
+  </script>
+  <div id="rootError"></div>
+  <app-root></app-root>
 </body>
+
 </html>

@@ -1,0 +1,38 @@
+<div class="container">
+  <app-page-header>
+    <h1>Upload System</h1>
+  </app-page-header>
+
+
+  <p>
+    Every system that should be benchmarked on the Hobbit platform needs to be uploaded to it. This uploading comprises several
+    steps. Note that a <a href="https://github.com/hobbit-project/platform/wiki/User-registration" target="_blank">user profile</a>    is necessary to have the right to upload something to the platform.
+  </p>
+
+  <ol>
+    <li>
+      Before uploading something, an adapter for the system needs to be developed, so that the system fits into the platform and
+      is able to interact with the benchmark with which it should be benchmarked. The general development of the adapter
+      is
+      <a href="https://github.com/hobbit-project/platform/wiki/Develop-a-system-adapter" target="_blank"> described here</a>.
+    </li>
+    <li>
+      The second step is the creation of a project in the <a href="http://git.project-hobbit.eu/" target="_blank"> gitlab instance</a>      of the platform. For that you can use the same account as for the platform itself. (The project should have the same
+      name as the system. Please have a look at the <a href="https://github.com/hobbit-project/platform/wiki/Push-a-docker-image"
+        target="_blank"> image upload</a> and its hints regarding the project name.)
+    </li>
+    <li>
+      After creating a git project, you need to push the Docker image to the git project as <a href="https://github.com/hobbit-project/platform/wiki/Push-a-docker-image"
+        target="_blank">described here</a>.
+    </li>
+    <li>
+      The final step is to put the meta data describing your system into a file called system.ttl and push it to the git project.
+      The format of the file is <a href="https://github.com/hobbit-project/platform/wiki/System-meta-data-file" target="_blank">described here</a>.
+    </li>
+  </ol>
+
+  <p>
+    After uploading a system, starting an experiment including the uploaded system and the benchmark for which the adapter has
+    been implemented is recommended to make sure that the adapter is working as expected.
+  </p>
+</div>
