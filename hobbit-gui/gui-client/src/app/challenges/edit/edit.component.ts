@@ -129,6 +129,10 @@ export class EditComponent implements OnInit {
     this.router.navigate(['challenges', this.challenge.id, 'experiments']);
   }
 
+  showLeaderboard() {
+    this.router.navigate(['challenges', this.challenge.id, 'leaderboard']);
+  }
+
   onSelect(event) {
     this.router.navigate(['challenges', this.challenge.id, 'edit', this.selectedTask.id]);
   }

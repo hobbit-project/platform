@@ -34,7 +34,7 @@ import { TaskComponent } from './challenges/task/task.component';
 import { RegistrationComponent } from './challenges/registration/registration.component';
 import { DetailsWrapperComponent } from './experiments/details-wrapper/details-wrapper.component';
 import { StatusComponent } from './benchmark/status/status.component';
-
+import { LeaderboardComponent } from './challenges/leaderboard/leaderboard.component';
 
 const appRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -46,6 +46,7 @@ const appRoutes: Routes = [
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/experiments', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/leaderboard', component: LeaderboardComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/register', component: RegisterComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
@@ -103,7 +104,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     RegisterComponent,
     RegistrationComponent,
     DetailsWrapperComponent,
-    StatusComponent
+    StatusComponent,
+    LeaderboardComponent
   ],
   imports: [
     BrowserAnimationsModule,

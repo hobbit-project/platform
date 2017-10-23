@@ -23,7 +23,7 @@ import java.util.List;
 public class ExperimentBean {
     private String id;
 
-    private List<ConfigurationParamValueBean> kpis;
+    private List<KeyPerformanceIndicatorBean> kpis;
 
     private ConfiguredBenchmarkBean benchmark;
 
@@ -33,11 +33,11 @@ public class ExperimentBean {
 
     private String error;
 
-    public List<ConfigurationParamValueBean> getKpis() {
+    public List<KeyPerformanceIndicatorBean> getKpis() {
         return kpis;
     }
 
-    public void setKpis(List<ConfigurationParamValueBean> kpis) {
+    public void setKpis(List<KeyPerformanceIndicatorBean> kpis) {
         this.kpis = kpis;
     }
 

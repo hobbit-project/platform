@@ -75,7 +75,7 @@ public class ExperimentsResources {
             return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         } else {
             if (ids != null) {
-                System.out.println("Querying experiment results for " + Arrays.toString(ids));
+                LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
                 for (String id : ids) {
                     // create experiment URI
@@ -116,7 +116,7 @@ public class ExperimentsResources {
                     }
                 }
             } else if (challengeTaskId != null) {
-                System.out.println("Querying experiment results for challenge task " + challengeTaskId);
+                LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
                 String query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId, Constants.PUBLIC_RESULT_GRAPH_URI);
                 // get public experiment
@@ -130,19 +130,27 @@ public class ExperimentsResources {
                     model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         // get challenge organizer
-                        Resource subj = model.getResource(challengeTaskId);
+                        Resource challengeTask = model.getResource(challengeTaskId);
                         // get challenge info
                         String challengeQuery = SparqlQueries.getChallengeTaskOrganizer(challengeTaskId, null);
                         Model challengeModel = StorageServiceClientSingleton.getInstance().sendConstructQuery(challengeQuery);
-                        Resource organizer = RdfHelper.getObjectResource(challengeModel, subj, HOBBIT.organizer);
-                        if (organizer != null) {
-                            // check if organizer is user
-                            // return whole thing if he is
+
+                        Resource challenge = RdfHelper.getObjectResource(challengeModel, challengeTask, HOBBIT.isTaskOf);
+                        if(challenge != null) {
+                            String organizer = RdfHelper.getStringValue(challengeModel, challenge, HOBBIT.organizer);
                             UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-                            if (organizer.getURI().equals(userInfo.getPreferredUsername())) {
-                                results = RdfModelHelper.createExperimentBeans(model);
+                            if (organizer != null) {
+                                // check if organizer is user
+                                // return whole thing if he is
+                                if (organizer.equals(userInfo.getPreferredUsername())) {
+                                    results = RdfModelHelper.createExperimentBeans(model);
+                                }
                             } else {
-                                // if he is not, iterate over the beans and remove all beans that's now user owned
+                                LOGGER.error("Couldn't get organizer for task {}. Falling back to retrieving experiments that can be seen by the user in his role as system owner.",
+                                        challengeTaskId);
+                            }
+                            if(results == null) {
+                                // if the user is not the organizer, iterate over the beans and remove all beans that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
                                     Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
@@ -151,7 +159,12 @@ public class ExperimentsResources {
                                         .collect(Collectors.toList());
                                 }
                             }
+                        } else {
+                            LOGGER.error("Couldn't find the challenge of challenge task {}.", challengeTaskId);
                         }
+                    } else {
+                        LOGGER.info("Couldn't find experiments for task {}. Returning empty list.", challengeTaskId);
+                        results = new ArrayList<>(0);
                     }
                 }
             } else {

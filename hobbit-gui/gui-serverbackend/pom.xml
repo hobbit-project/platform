@@ -94,7 +94,7 @@
     <dependency>
       <groupId>org.hobbit</groupId>
       <artifactId>core</artifactId>
-      <version>1.0.6</version>
+      <version>1.0.7-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>commons-collections</groupId>
@@ -130,6 +130,15 @@
       <scope>test</scope>
     </dependency>
     <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+
+
+
+      <dependency>
+          <groupId>org.hobbit</groupId>
+          <artifactId>keycloak-adapter-core</artifactId>
+          <version>${keycloak.version}</version>
+      </dependency>
+
   </dependencies>
 
   <build>

@@ -4,7 +4,7 @@ import { BackendService } from './../../backend.service';
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-experiments',
+  selector: 'app-challenge-experiments',
   templateUrl: './experiments.component.html',
   styleUrls: ['./experiments.component.less']
 })

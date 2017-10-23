@@ -37,6 +37,8 @@ public class BenchmarkBean extends NamedEntityBean {
 
     private List<String> configurationParamNames = new ArrayList<>();
 
+    private List<KeyPerformanceIndicatorBean> kpis;
+
     public BenchmarkBean() {
     }
 
@@ -73,6 +75,14 @@ public class BenchmarkBean extends NamedEntityBean {
 
     public void setConfigurationParamNames(List<String> configurationParamNames) {
         this.configurationParamNames = configurationParamNames;
+    }
+
+    public List<KeyPerformanceIndicatorBean> getKpis() {
+        return kpis;
+    }
+
+    public void setKpis(List<KeyPerformanceIndicatorBean> kpis) {
+        this.kpis = kpis;
     }
 
     @Override

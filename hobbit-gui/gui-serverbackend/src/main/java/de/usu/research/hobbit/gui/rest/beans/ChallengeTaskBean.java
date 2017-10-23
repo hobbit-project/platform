@@ -28,6 +28,7 @@ public class ChallengeTaskBean extends NamedEntityBean {
 
     private List<ConfigurationParamValueBean> configurationParams;
 
+    private List<String> rankingKPIs;
 
     public List<ConfigurationParamValueBean> getConfigurationParams() {
         return configurationParams;
@@ -43,6 +44,14 @@ public class ChallengeTaskBean extends NamedEntityBean {
 
     public void setBenchmark(BenchmarkBean benchmark) {
         this.benchmark = benchmark;
+    }
+
+    public List<String> getRankingKPIs() {
+        return rankingKPIs;
+    }
+
+    public void setRankingKPIs(List<String> rankingKPIs) {
+        this.rankingKPIs = rankingKPIs;
     }
 
     @Override
