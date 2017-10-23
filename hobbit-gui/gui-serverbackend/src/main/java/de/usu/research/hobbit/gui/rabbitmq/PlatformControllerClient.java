@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -132,7 +133,7 @@ public class PlatformControllerClient implements Closeable {
 
         LOGGER.info("Preparing response for GUI...");
         // Create output
-        List<BenchmarkBean> benchmarkBeans = new ArrayList<BenchmarkBean>();
+        List<BenchmarkBean> benchmarkBeans = new LinkedList<>();
 
         for (BenchmarkMetaData benchmark : benchmarks) {
             benchmarkBeans.add(
@@ -210,7 +211,7 @@ public class PlatformControllerClient implements Closeable {
 
         // Parse Benchmark System Details
         LOGGER.info("Adding systems for GUI...");
-        benchmarkDetails.setSystems(new ArrayList<>());
+        benchmarkDetails.setSystems(new LinkedList<>());
         if (systems != null) {
             for (SystemMetaData system : systems) {
                 benchmarkDetails.getSystems()

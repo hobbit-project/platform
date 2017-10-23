@@ -130,6 +130,15 @@
       <scope>test</scope>
     </dependency>
     <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+
+
+
+      <dependency>
+          <groupId>org.hobbit</groupId>
+          <artifactId>keycloak-adapter-core</artifactId>
+          <version>${keycloak.version}</version>
+      </dependency>
+
   </dependencies>
 
   <build>
@@ -208,7 +217,7 @@
             </jettyXml>
           </configuration>
           <dependencies>
-            <!-- The original dependency that was replaced by our workaround
+            <!-- The original dependency that was replaced by our workaround 
             <dependency>
               <groupId>org.keycloak</groupId>
               <artifactId>keycloak-jetty93-adapter</artifactId>

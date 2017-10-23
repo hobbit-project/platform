@@ -1,39 +1,28 @@
 /**
  * This file is part of gui-serverbackend.
- *
+ * <p>
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
+ * <p>
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * <p>
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
-import java.util.HashSet;
-
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.SecurityContext;
-
+import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
+import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.rdf.model.Model;
@@ -47,17 +36,22 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
-import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
-import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import de.usu.research.hobbit.gui.rest.beans.SystemBean;
-
-import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -69,9 +63,9 @@ public class ExperimentsResources {
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentBean> query(@QueryParam("id") String idsCommaSep,
-                                      @QueryParam("challenge-task-id") String challengeTaskId,
-                                      @Context SecurityContext sc) throws Exception {
+    public Response query(@QueryParam("id") String idsCommaSep,
+                          @QueryParam("challenge-task-id") String challengeTaskId,
+                          @Context SecurityContext sc) throws Exception {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
@@ -79,10 +73,8 @@ public class ExperimentsResources {
         }
 
         if (Application.isUsingDevDb()) {
-            return getDevDb().queryExperiments(ids, challengeTaskId);
+            return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         } else {
-
-
             if (ids != null) {
                 LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -112,16 +104,15 @@ public class ExperimentsResources {
                                     results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
                                 }
                             }
-                        }
-                        else {
-                        	ExperimentBean exp = new ExperimentBean();
-                        	exp.setId(id);
-                        	exp.setError(UNKNOWN_EXP_ERROR_MSG);
-                        	ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
-                        	benchmark.setConfigurationParamValues(new ArrayList<>());
-                        	exp.setBenchmark(benchmark);
-                        	exp.setKpis(new ArrayList<>());
-                        	results.add(exp);
+                        } else {
+                            ExperimentBean exp = new ExperimentBean();
+                            exp.setId(id);
+                            exp.setError(UNKNOWN_EXP_ERROR_MSG);
+                            ConfiguredBenchmarkBean benchmark = new ConfiguredBenchmarkBean();
+                            benchmark.setConfigurationParamValues(new ArrayList<>());
+                            exp.setBenchmark(benchmark);
+                            exp.setKpis(new ArrayList<>());
+                            results.add(exp);
                         }
                     }
                 }
@@ -164,8 +155,8 @@ public class ExperimentsResources {
                                 if (experiments != null) {
                                     Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                                     results = experiments.stream()
-                                            .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
-                                            .collect(Collectors.toList());
+                                        .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
+                                        .collect(Collectors.toList());
                                 }
                             }
                         } else {
@@ -180,19 +171,21 @@ public class ExperimentsResources {
                 // TODO make sure that the user is allowed to see the
                 // experiment!
                 results = RdfModelHelper.createExperimentBeans(StorageServiceClientSingleton.getInstance()
-                        .sendConstructQuery(SparqlQueries.getShallowExperimentGraphQuery(null, null)));
+                    .sendConstructQuery(SparqlQueries.getShallowExperimentGraphQuery(null, null)));
             }
         }
-
-        return results != null ? results : new ArrayList<>(0);
+        if (results == null)
+            results = new ArrayList<>(0);
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results) {
+        }).build();
     }
 
     @GET
     @Path("count-by-challenge/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentCountBean> countByChallengeTaskIds(@PathParam("id") String challengeId) throws Exception {
+    public Response countByChallengeTaskIds(@PathParam("id") String challengeId) {
         if (Application.isUsingDevDb()) {
-            return getDevDb().countByChallengeTaskIds(challengeId);
+            return Response.ok(getDevDb().countByChallengeTaskIds(challengeId)).build();
         } else {
             /*
              * 1. retrieve the tasks of the given challenge
@@ -210,7 +203,7 @@ public class ExperimentsResources {
                 try {
                     Model challengeTasksModel = storageClient.sendConstructQuery(query);
                     ResIterator iterator = challengeTasksModel.listSubjectsWithProperty(HOBBIT.isTaskOf,
-                            challengeTasksModel.getResource(challengeId));
+                        challengeTasksModel.getResource(challengeId));
                     Resource taskResource;
                     while (iterator.hasNext()) {
                         taskResource = iterator.next();
@@ -219,73 +212,21 @@ public class ExperimentsResources {
                         while (results.hasNext()) {
                             QuerySolution solution = results.next();
                             counts.add(new ExperimentCountBean(
-                                    new NamedEntityBean(taskResource.getURI(),
-                                            RdfHelper.getLabel(challengeTasksModel, taskResource),
-                                            RdfHelper.getDescription(challengeTasksModel, taskResource)),
-                                    solution.getLiteral("count").getInt()));
+                                new NamedEntityBean(taskResource.getURI(),
+                                    RdfHelper.getLabel(challengeTasksModel, taskResource),
+                                    RdfHelper.getDescription(challengeTasksModel, taskResource)),
+                                solution.getLiteral("count").getInt()));
                         }
                     }
                 } catch (Exception e) {
                     LOGGER.error("Exception while executing ");
                 }
             }
-            return counts;
+
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts) {
+            }).build();
         }
     }
-
-    // /**
-    // * Adds benchmark and system labels and descriptions to the given
-    // experiment
-    // * beans.
-    // *
-    // * @param experiments
-    // * the experiments beans that should be updated with the
-    // * retrieved information
-    // * @throws Exception
-    // * if the communication with the platform controller does not
-    // * work
-    // */
-    // protected void addInfoFromController(List<ExperimentBean> experiments)
-    // throws Exception {
-    // PlatformControllerClient client =
-    // PlatformControllerClientSingleton.getInstance();
-    // if (client != null) {
-    // // Go through the list of experiments and sort them regarding their
-    // // benchmark and system info
-    // Map<String, List<ExperimentBean>> benchmarksToExperiments = new
-    // HashMap<>();
-    // Map<String, List<ExperimentBean>> systemsToExperiments = new HashMap<>();
-    // List<ExperimentBean> experiments;
-    // for (ExperimentBean experiment : experiments) {
-    // if (benchmarksToExperiments.containsKey(experiment.benchmark.id)) {
-    // experiments = benchmarksToExperiments.get(experiment.benchmark.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // benchmarksToExperiments.put(experiment.benchmark.id, beans);
-    // }
-    // experiments.add(experiment);
-    // if (systemsToExperiments.containsKey(experiment.system.id)) {
-    // experiments = systemsToExperiments.get(experiment.system.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // systemsToExperiments.put(experiment.system.id, beans);
-    // }
-    // experiments.add(experiment);
-    // }
-    // BenchmarkBean requestedBenchmarkInfo;
-    // for (String benchmarkUri : benchmarksToExperiments.keySet()) {
-    // requestedBenchmarkInfo = client.requestBenchmarkDetails(benchmarkUri,
-    // null);
-    // // replace the benchmarks with the retrieved info
-    // experiments = benchmarksToExperiments.get(benchmarkUri);
-    // for (ExperimentBean experiment : experiments) {
-    // experiment.setBenchmark(requestedBenchmarkInfo);
-    // }
-    // }
-    // } else {
-    // throw new Exception("Couldn't get platform controller client.");
-    // }
-    // }
 
     private DevInMemoryDb getDevDb() {
         return DevInMemoryDb.theInstance;
