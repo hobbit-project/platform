@@ -697,6 +697,22 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
+     * Copies the challenge from challenge definition graph to public graph.
+     *
+     * @param storage
+     *            storage
+     * @param challengeUri
+     *            challenge URI
+     */
+    protected static synchronized boolean copyChallengeToPublicResultGraph(StorageServiceClient storage, String challengeUri) {
+        // get the challenge model
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries
+                .getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        // insert the challenge into the public graph
+        return storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI);
+    }
+
+    /**
      * Closes the challenge with the given URI by adding the "closed" triple to
      * its graph and inserting the configured experiments into the queue.
      *
@@ -772,11 +788,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 // if there are no challenge experiments in the queue
                 if (count == 0) {
                     LOGGER.info("publishing challenge {}", challenge.getURI());
-                    // get the challenge model
-                    Model challengeModel = storage.sendConstructQuery(SparqlQueries
-                            .getChallengeGraphQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI));
-                    // insert the challenge into the public graph
-                    if (!storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
+                    // copy challenge to the public result graph
+                    if (!copyChallengeToPublicResultGraph(storage, challenge.getURI())) {
                         LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge.getURI());
                         return;
                     }
