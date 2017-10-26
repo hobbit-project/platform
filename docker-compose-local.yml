@@ -61,7 +61,7 @@ services:
 
   # Triple store
   virtuoso:
-    image: openlink/virtuoso_opensource:vos
+    image: openlink/virtuoso_opensource:vos-hobbit
     container_name: vos
     hostname: vos
     volumes:
