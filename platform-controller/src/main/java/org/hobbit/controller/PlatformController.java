@@ -579,7 +579,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.info("Finished handling of front end request.");
     }
 
-    private Model getChallengeFromUri(String challengeUri) {
+    protected Model getChallengeFromUri(String challengeUri) {
         // get experiments from the challenge
         String query = SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         if (query == null) {
