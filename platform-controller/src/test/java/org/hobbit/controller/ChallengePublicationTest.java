@@ -19,6 +19,7 @@ package org.hobbit.controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
 
@@ -67,6 +68,39 @@ public class ChallengePublicationTest {
         compareModels(expectedStorage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI),
                 storage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI));
         // make sure that the data has been removed from the other graphs
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI));
+    }
+
+    @Test
+    public void testRepeatableChallenge() {
+        // date should be added when there is no date
+        DummyStorage storage = new DummyStorage("org/hobbit/controller/InitialRepeatableChallengeConfigGraph.ttl",
+                "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
+        DummyStorage expectedStorage = new DummyStorage("org/hobbit/controller/ScheduledRepeatableChallengeConfigGraph.ttl",
+                "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
+
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        now.set(2016, Calendar.DECEMBER, 24, 0, 0, 0);
+        now.set(Calendar.MILLISECOND, 0);
+        PlatformController.scheduleDateOfNextExecution(storage, "http://example.org/Challenge1", now);
+
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI));
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI));
+
+        expectedStorage = new DummyStorage("org/hobbit/controller/FinishedRepeatableChallengeConfigGraph.ttl",
+                "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
+
+        PlatformController.scheduleDateOfNextExecution(storage, "http://example.org/Challenge1", null);
+
+        compareModels(expectedStorage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI),
+                storage.getDataset().getNamedModel(Constants.PUBLIC_RESULT_GRAPH_URI));
         compareModels(expectedStorage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI),
                 storage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         compareModels(expectedStorage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI),

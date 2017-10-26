@@ -19,6 +19,7 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -639,6 +640,59 @@ public class PlatformController extends AbstractCommandReceivingComponent
             LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
                     + ex.systemUri + " to the queue.");
             queue.add(ex);
+        }
+    }
+
+    /**
+     * Schedules the date of next execution for a repeatable challenge,
+     * or closes it.
+     *
+     * @param model
+     *            model
+     * @param challenge
+     *            challenge
+     * @param now
+     *            time to use as current when scheduling
+     */
+    protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri, Calendar now) {
+        String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model challengeModel = storage.sendConstructQuery(query);
+        ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        if (!challengeIterator.hasNext()) {
+            LOGGER.error("Couldn't retrieve challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Resource challenge = challengeIterator.next();
+        Calendar registrationCutoffDate = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.registrationCutoffDate);
+        if (registrationCutoffDate == null) {
+            LOGGER.error("Couldn't retrieve registration cutoff date for challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Duration executionPeriod = RdfHelper.getDurationValue(challengeModel, challenge, HOBBIT.executionPeriod);
+        if (executionPeriod == null) {
+            LOGGER.error(
+                    "Couldn't retrieve execution period for challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Calendar dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.dateOfNextExecution);
+        if (dateOfNextExecution == null) {
+            dateOfNextExecution = now;
+        }
+
+        dateOfNextExecution.add(Calendar.MILLISECOND, (int) executionPeriod.toMillis());
+        if (dateOfNextExecution.before(registrationCutoffDate)) {
+            // set dateOfNextExecution += executionPeriod
+            LOGGER.info("Setting next execution date for challenge " + challengeUri + ".");
+            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
+                    dateOfNextExecution, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        } else {
+            // delete dateOfNextExecution, since registration cutoff date will be reached already
+            LOGGER.info("Removing next execution date for challenge " + challengeUri + " due to cutoff.");
+            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
+                    null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         }
     }
 
