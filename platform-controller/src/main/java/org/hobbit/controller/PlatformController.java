@@ -628,6 +628,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
         return experiments;
     }
 
+    /**
+     * Inserts the configured experiments of a challenge into the queue.
+     *
+     * @param challengeUri
+     *            the URI of the challenge
+     */
     private void executeChallengeExperiments(String challengeUri) {
         // get experiments from the challenge
         List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
@@ -647,10 +653,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Schedules the date of next execution for a repeatable challenge,
      * or closes it.
      *
-     * @param model
-     *            model
-     * @param challenge
-     *            challenge
+     * @param storage
+     *            storage
+     * @param challengeUri
+     *            challenge URI
      * @param now
      *            time to use as current when scheduling
      */
