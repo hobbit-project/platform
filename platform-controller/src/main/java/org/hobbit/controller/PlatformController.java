@@ -726,6 +726,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            the URI of the challenge that should be closed
      */
     private void closeChallenge(String challengeUri) {
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
         // send SPARQL query to close the challenge
         String query = SparqlQueries.getCloseChallengeQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         if (query == null) {
@@ -739,16 +740,54 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     challengeUri);
             return;
         }
+
         executeChallengeExperiments(challengeUri);
+
+        String repeatableChallengeQuery = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model repeatableChallengeModel = storage.sendConstructQuery(repeatableChallengeQuery);
+        ResIterator repeatableChallengeIterator = repeatableChallengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        Resource repeatableChallenge = repeatableChallengeIterator.hasNext() ? repeatableChallengeIterator.next() : null;
+        if (repeatableChallenge != null) {
+            if (!copyChallengeToPublicResultGraph(storage, challengeUri)) {
+                LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challengeUri);
+                return;
+            }
+
+            scheduleDateOfNextExecution(storage, challengeUri, now);
+        }
     }
-    
+
     protected synchronized void checkRepeatableChallenges() {
-        // TODO RC Get a list of repeatable challenges --> add SPARQL query to core library
-        // TODO RC check whether the registrationCutoffDate has been reached --> call closeChallenge method and thats all regarding this challenge
-        // TODO RC else check whether the dateOfNextExecution has been reached
-        // TODO RC create experiments for that challenge
-        // TODO RC move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
-        // TODO RC if (dateOfNextExecution + executionPeriod < registrationCutoffDateset) set dateOfNextExecution else delete this triple
+        String query = SparqlQueries.getRepeatableChallengeInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model challengesModel = storage.sendConstructQuery(query);
+        ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        Resource challenge;
+        Calendar registrationCutoffDate;
+        Calendar dateOfNextExecution;
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        // go through the challenges
+        while (challengeIterator.hasNext()) {
+            challenge = challengeIterator.next();
+
+            registrationCutoffDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.registrationCutoffDate);
+            if ((registrationCutoffDate != null) && (now.after(registrationCutoffDate))) {
+                // registration cutoff date has been reached, close the challenge (it will run remaining experiments)
+                closeChallenge(challenge.getURI());
+                continue;
+            }
+
+            dateOfNextExecution = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.dateOfNextExecution);
+            if ((dateOfNextExecution != null) && (now.after(dateOfNextExecution))) {
+                // date of execution has been reached
+                executeChallengeExperiments(challenge.getURI());
+
+                // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
+                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
+                storage.sendUpdateQuery(moveQuery);
+
+                scheduleDateOfNextExecution(storage, challenge.getURI(), now);
+            }
+        }
     }
 
     /*
