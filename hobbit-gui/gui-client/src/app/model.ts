@@ -56,7 +56,7 @@ export class ChallengeRegistration {
 
 export class Experiment {
   constructor(public id: string, public kpis: ConfigurationParameterValue[], public benchmark: Benchmark,
-    public system: NamedEntity, public challengeTask: NamedEntity, public error?: string) {}
+    public system: NamedEntity, public challengeTask: NamedEntity, public error?: string, public rank?: number) {}
 }
 
 export class ExperimentCount {
