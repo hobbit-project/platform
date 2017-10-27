@@ -58,20 +58,14 @@ public class SystemProviderResources {
     // registrations = new ConcurrentHashMap<>();
 
     @GET()
-    @RolesAllowed("system-provider")
+    @RolesAllowed("system-provider") // Guests can not access this method
     @Path("systems")
     @Produces(MediaType.APPLICATION_JSON)
     public List<SystemBean> getSystems(@Context SecurityContext sc) {
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        LOGGER.info("getSystems for " + userInfo.getPreferredUsername());
-        // LOGGER.info("getSystems for PreferredUsername=" +
-        // userInfo.getPreferredUsername() + " name="
-        // + userInfo.getName() + " PrincipalName=" + userInfo.userPrincipalName
-        // + " email=" + userInfo.email);
-
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         if (client != null) {
-            return client.requestSystemsOfUser(userInfo.getPreferredUsername());
+            return client.requestSystemsOfUser(userInfo.getEmail());
         } else {
             LOGGER.error("Couldn't get platform controller client. Returning empty list.");
             return new ArrayList<>(0);
@@ -134,8 +128,8 @@ public class SystemProviderResources {
         doUpdateChallengeRegistrations(sc, challengeId, list, null);
     }
 
-    private void doUpdateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
-            List<TaskRegistrationBean> list, String taskIdToUpdate) {
+    private void doUpdateChallengeRegistrations(@Context SecurityContext sc,
+            @PathParam("challengeId") String challengeId, List<TaskRegistrationBean> list, String taskIdToUpdate) {
         // check whether the user is allowed to change the given registrations,
         // i.e., whether he is allowed to see the systems.
         List<SystemBean> systems = getSystems(sc);

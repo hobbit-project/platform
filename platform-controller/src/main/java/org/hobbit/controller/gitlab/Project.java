@@ -42,11 +42,14 @@ public class Project {
     public String user;
 
     public String name;
+    
+    public boolean isPrivate;
 
-    public Project(String benchmarkMetadata, String systemMetadata, String user, String name) {
+    public Project(String benchmarkMetadata, String systemMetadata, String user, String name, boolean isPrivate) {
         this.benchmarkMetadata = benchmarkMetadata;
         this.systemMetadata = systemMetadata;
         this.user = user;
         this.name = name;
+        this.isPrivate = isPrivate;
     }
 }

@@ -82,7 +82,7 @@ public class ImageManagerImpl implements ImageManager {
         // find benchmark subject
         Resource benchmark = getResource(model, HOBBIT.Benchmark);
         // if there is no benchmark resource
-        if(benchmark == null){
+        if (benchmark == null) {
             LOGGER.error("Couldn't find a benchmark resource in the given benchmark meta data model. Returning null.");
             return null;
         }
@@ -215,7 +215,7 @@ public class ImageManagerImpl implements ImageManager {
             if (p.benchmarkMetadata != null) {
                 try {
                     BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
-                    if (meta != null){
+                    if (meta != null) {
                         if (meta.benchmarkUri.equals(benchmarkUri)) {
                             return stringToModel(p.benchmarkMetadata);
                         }
@@ -256,17 +256,16 @@ public class ImageManagerImpl implements ImageManager {
     }
 
     /**
-     * Removes all other systems from the given mdoel which do not have the
-     * given system URI. Removing a system means that all triples are removed
-     * that have a system URI as subject. A system URI is a URI of a resource
-     * {@code s} for which a triple {@code s rdf:type hobbit:SystemInstance} can
-     * be found in the given model.
+     * Removes all other systems from the given mdoel which do not have the given
+     * system URI. Removing a system means that all triples are removed that have a
+     * system URI as subject. A system URI is a URI of a resource {@code s} for
+     * which a triple {@code s rdf:type hobbit:SystemInstance} can be found in the
+     * given model.
      * 
      * @param model
      *            the model from which the systems will be removed
      * @param systemUri
-     *            the URI of the only system which is not removed from the
-     *            system
+     *            the URI of the only system which is not removed from the system
      */
     protected void removeOtherSystems(Model model, String systemUri) {
         List<Resource> systems = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.SystemInstance);
@@ -393,10 +392,8 @@ public class ImageManagerImpl implements ImageManager {
 
     @Override
     public List<SystemMetaData> getSystemsOfUser(String userName) {
-        return gitlab.getAllProjects().stream()
-                // get all projects with required user
-                .filter(p -> p.user.equals(userName))
-                // ... which have system information
+        return gitlab.getProjectsVisibleForUser(userName).stream()
+                // get all projects which have system information
                 .filter(p -> p.systemMetadata != null)
                 // map them to SystemMetaData
                 .flatMap(p -> {
