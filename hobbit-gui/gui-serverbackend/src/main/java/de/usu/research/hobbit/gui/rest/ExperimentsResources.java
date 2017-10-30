@@ -16,21 +16,10 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-<<<<<<< HEAD
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-||||||| merged common ancestors
-import java.util.*;
-=======
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
->>>>>>> master
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -55,24 +44,13 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
-<<<<<<< HEAD
-import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
-import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
-import de.usu.research.hobbit.gui.rest.beans.SystemBean;
-import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
-||||||| merged common ancestors
-=======
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
->>>>>>> master
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -80,60 +58,6 @@ public class ExperimentsResources {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
 
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
-
-<<<<<<< HEAD
-    private UserInfoBean getUserInfo(SecurityContext sc) {
-        // get user
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        return userInfo;
-    }
-
-    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
-            List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
-                    .requestSystemsOfUser(userInfo.getEmail());
-            // create set of user owned system ids
-            String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-            Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
-            return userOwnedSystemIds;
-        } else {
-            // Guests don't have systems
-            return new TreeSet<>();
-        }
-    }
-
-    private Set<String> getUserSystemIds(SecurityContext sc) {
-        UserInfoBean userInfo = getUserInfo(sc);
-        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
-        return userOwnedSystemIds;
-    }
-||||||| merged common ancestors
-    private UserInfoBean getUserInfo(SecurityContext sc) {
-        // get user
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        return userInfo;
-    }
-
-    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
-        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
-        // create set of user owned system ids
-        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
-        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
-        return userOwnedSystemIds;
-    }
-
-    private Set<String> getUserSystemIds(SecurityContext sc) {
-        UserInfoBean userInfo = getUserInfo(sc);
-        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
-        return userOwnedSystemIds;
-    }
-=======
-//    private UserInfoBean getUserInfo(SecurityContext sc) {
-//        // get user
-//        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-//        return userInfo;
-//    }
->>>>>>> master
 
     @GET
     @Path("query")
@@ -220,7 +144,7 @@ public class ExperimentsResources {
                                 HOBBIT.isTaskOf);
                         if (challenge != null) {
                             String organizer = RdfHelper.getStringValue(challengeModel, challenge, HOBBIT.organizer);
-                            UserInfoBean userInfo = getUserInfo(sc);
+                            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
                             if (organizer != null) {
                                 // check if organizer is user
                                 // return whole thing if he is
@@ -307,60 +231,6 @@ public class ExperimentsResources {
             return counts;
         }
     }
-
-    // /**
-    // * Adds benchmark and system labels and descriptions to the given
-    // experiment
-    // * beans.
-    // *
-    // * @param experiments
-    // * the experiments beans that should be updated with the
-    // * retrieved information
-    // * @throws Exception
-    // * if the communication with the platform controller does not
-    // * work
-    // */
-    // protected void addInfoFromController(List<ExperimentBean> experiments)
-    // throws Exception {
-    // PlatformControllerClient client =
-    // PlatformControllerClientSingleton.getInstance();
-    // if (client != null) {
-    // // Go through the list of experiments and sort them regarding their
-    // // benchmark and system info
-    // Map<String, List<ExperimentBean>> benchmarksToExperiments = new
-    // HashMap<>();
-    // Map<String, List<ExperimentBean>> systemsToExperiments = new HashMap<>();
-    // List<ExperimentBean> experiments;
-    // for (ExperimentBean experiment : experiments) {
-    // if (benchmarksToExperiments.containsKey(experiment.benchmark.id)) {
-    // experiments = benchmarksToExperiments.get(experiment.benchmark.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // benchmarksToExperiments.put(experiment.benchmark.id, beans);
-    // }
-    // experiments.add(experiment);
-    // if (systemsToExperiments.containsKey(experiment.system.id)) {
-    // experiments = systemsToExperiments.get(experiment.system.id);
-    // } else {
-    // experiments = new ArrayList<>();
-    // systemsToExperiments.put(experiment.system.id, beans);
-    // }
-    // experiments.add(experiment);
-    // }
-    // BenchmarkBean requestedBenchmarkInfo;
-    // for (String benchmarkUri : benchmarksToExperiments.keySet()) {
-    // requestedBenchmarkInfo = client.requestBenchmarkDetails(benchmarkUri,
-    // null);
-    // // replace the benchmarks with the retrieved info
-    // experiments = benchmarksToExperiments.get(benchmarkUri);
-    // for (ExperimentBean experiment : experiments) {
-    // experiment.setBenchmark(requestedBenchmarkInfo);
-    // }
-    // }
-    // } else {
-    // throw new Exception("Couldn't get platform controller client.");
-    // }
-    // }
 
     private DevInMemoryDb getDevDb() {
         return DevInMemoryDb.theInstance;
