@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -46,6 +47,7 @@ import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.TaskRegistrationBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
@@ -78,19 +80,25 @@ public class SystemProviderResources {
     public List<TaskRegistrationBean> getAllChallengeRegistrations(@Context SecurityContext sc,
             @PathParam("challengeId") String challengeId) throws Exception {
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        LOGGER.info("get all registered systems for challenge {} and user {}.", challengeId,
+        LOGGER.info("get registered systems for challenge {} and user {}.", challengeId,
                 userInfo.getPreferredUsername());
 
+        // Retrieve the registrations
         ChallengeBean challenge = (new ChallengesResources()).getById(challengeId, sc);
+        StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
+        List<TaskRegistrationBean> result = RdfModelHelper.listRegisteredSystems(challengeModel);
         // make sure that the user is the owner of the challenge
-        if (userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
-            StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
-            Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
-            return RdfModelHelper.listRegisteredSystems(challengeModel);
-        } else {
-            LOGGER.info("{} does not match the expected {}", userInfo.getPreferredUsername(), challenge.getOrganizer());
-            return new ArrayList<>();
+        if (!userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
+                // if not, iterate over the beans and remove all beans that are not owned by the current user
+                if (result != null) {
+                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                    result = result.stream()
+                            .filter(reg -> userOwnedSystemIds.contains(reg.getSystemId()))
+                            .collect(Collectors.toList());
+                }
         }
+        return result;
     }
 
     @GET

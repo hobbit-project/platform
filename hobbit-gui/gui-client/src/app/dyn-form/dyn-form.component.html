@@ -1,0 +1,24 @@
+<div class="form-check" *ngIf="config.getType() === 'boolean'; else formgroup">
+    <label class="form-check-label" [attr.for]="config.id" [formControlName]="config.id" [id]="config.id">
+        <input type="checkbox" class="form-check-input">
+        {{config.name}}
+    </label>
+</div>
+
+<ng-template #formgroup>
+    <div class="form-group" [formGroup]="form">
+        <label [attr.for]="config.id">{{config.name}}</label>
+
+        <div [ngSwitch]="config.getType()">
+            <input *ngSwitchCase="'input'" [formControlName]="config.id" [id]="config.id" [type]="config.getInputType()" class="form-control">
+
+            <select *ngSwitchCase="'dropdown'" [formControlName]="config.id" [id]="config.id" class="form-control">
+            <option *ngFor="let value of config.options" [value]="value.value">{{value.label}}</option>
+        </select>
+
+            <p *ngSwitchDefault>
+                Unable to render input of type {{config.getType()}}.
+            </p>
+        </div>
+    </div>
+</ng-template>

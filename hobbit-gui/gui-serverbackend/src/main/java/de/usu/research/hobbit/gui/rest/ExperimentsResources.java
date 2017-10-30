@@ -16,12 +16,21 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
+<<<<<<< HEAD
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+||||||| merged common ancestors
+import java.util.*;
+=======
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+>>>>>>> master
 import java.util.stream.Collectors;
 
 import javax.ws.rs.GET;
@@ -49,12 +58,21 @@ import org.slf4j.LoggerFactory;
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+<<<<<<< HEAD
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+||||||| merged common ancestors
+=======
+import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
+>>>>>>> master
 
 @Path("experiments")
 public class ExperimentsResources {
@@ -63,6 +81,7 @@ public class ExperimentsResources {
 
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
 
+<<<<<<< HEAD
     private UserInfoBean getUserInfo(SecurityContext sc) {
         // get user
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
@@ -88,6 +107,33 @@ public class ExperimentsResources {
         Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
         return userOwnedSystemIds;
     }
+||||||| merged common ancestors
+    private UserInfoBean getUserInfo(SecurityContext sc) {
+        // get user
+        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+        return userInfo;
+    }
+
+    private Set<String> getUserSystemIds(UserInfoBean userInfo) {
+        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance().requestSystemsOfUser(userInfo.getPreferredUsername());
+        // create set of user owned system ids
+        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+        return userOwnedSystemIds;
+    }
+
+    private Set<String> getUserSystemIds(SecurityContext sc) {
+        UserInfoBean userInfo = getUserInfo(sc);
+        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+        return userOwnedSystemIds;
+    }
+=======
+//    private UserInfoBean getUserInfo(SecurityContext sc) {
+//        // get user
+//        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+//        return userInfo;
+//    }
+>>>>>>> master
 
     @GET
     @Path("query")
@@ -129,7 +175,7 @@ public class ExperimentsResources {
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
-                                Set<String> userOwnedSystemIds = getUserSystemIds(sc);
+                                Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model,
@@ -191,7 +237,7 @@ public class ExperimentsResources {
                                 // that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
-                                    Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+                                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                                     results = experiments.stream()
                                             .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
@@ -213,8 +259,7 @@ public class ExperimentsResources {
             }
         }
 
-        // addInfoFromController(results);
-        return results;
+        return results != null ? results : new ArrayList<>(0);
     }
 
     @GET

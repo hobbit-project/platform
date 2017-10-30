@@ -1,0 +1,37 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar-brand" routerLink="/" id="logo"><img alt="HOBBIT" src="assets/Hobbit_Logo_2015_rgb.png"></a>
+
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar" aria-controls="navbar" aria-expanded="false"
+    aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbar">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="" *ngIf="userInfo?.hasRole(Role.SYSTEM_PROVIDER)" data-toggle="dropdown">Upload</a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" routerLink="/upload/benchmarks">Upload Benchmark</a></li>
+          <li><a class="dropdown-item" routerLink="/upload/systems">Upload System</a></li>
+        </ul>
+      </li>
+
+      <li class="nav-item"><a class="nav-link" routerLink="/benchmarks">Benchmarks</a></li>
+      <li class="nav-item"><a class="nav-link" routerLink="/challenges">Challenges</a></li>
+
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="" data-toggle="dropdown">Experiments</a>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" routerLink="/experiments">Experiment Results</a></li>
+          <li><a class="dropdown-item" routerLink="/benchmarks/status">Experiment Status</a></li>
+        </ul>
+      </li>
+    </ul>
+
+    <div>
+      {{userInfo?.name}}
+      <a href="" (click)="logout($event)">
+          <i class="fa fa-sign-out" aria-hidden="true"></i>
+      </a>
+    </div>
+  </div>
+</nav>

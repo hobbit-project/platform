@@ -1,0 +1,62 @@
+<div class="container">
+  <app-page-header>
+    <h1>Start Benchmarking</h1>
+  </app-page-header>
+
+  <form>
+    <div class="form-group">
+      <label for="benchmark">Benchmark</label>
+      <select *ngIf="benchmarks" class="form-control" id="benchmark" required [title]="selectedBenchmark ? selectedBenchmark.description : ''"
+        [ngModel]="configModel.benchmark" (ngModelChange)="onChangeBenchmark($event)" name="benchmark">
+        <option *ngFor="let b of benchmarks" [value]="b.id" [title]="b.description">{{b.name}}</option>
+      </select>
+    </div>
+
+    <div *ngIf="selectedBenchmark?.systems" class="form-group">
+      <label for="system">System</label>
+      <select class="form-control" id="system" required name="system" [title]="selectedSystem ? selectedSystem.description : ''"
+        [ngModel]="configModel.system" (ngModelChange)="onChangeSystem($event)">
+        <option *ngFor="let s of selectedBenchmark.systems" [value]="s.id" [title]="s.description">{{s.name}}</option>
+      </select>
+    </div>
+  </form>
+
+  <app-benchmark-config *ngIf="selectedBenchmark" [readOnly]="false" [benchmark]="selectedBenchmark" [system]="selectedSystem"
+    (submitCallback)="onSubmitConfig($event)"></app-benchmark-config>
+
+
+  <div bsModal #submitModal="bs-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="submitModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="submitModalLabel">Benchmark</h5>
+          <button type="button" class="close" aria-label="Close" (click)="submitModal.hide()">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <h4>Benchmark</h4>
+          {{configModel.benchmark}} - {{configModel.benchmarkName}}
+
+          <h4>System</h4>
+          {{configModel.system}} - {{configModel.systemName}}
+
+          <h4>Configuration Parameters</h4>
+          <dl class="row">
+            <ng-container *ngFor="let param of configModel?.configurationParams">
+              <dt class="col-8">{{param.name}}</dt>
+              <dd class="col-4">{{param.value}}</dd>
+            </ng-container>
+          </dl>
+        </div>
+        <div class="modal-footer">
+          <span>Successfully submitted
+            <a [routerLink]="['/experiments/details']" [queryParams]="{ id: configModel.response?.id }">HOBBIT ID {{configModel.response?.id}}</a>
+            at {{configModel.response?.timestamp}}
+          </span>
+          <button type="button" class="btn btn-secondary" (click)="submitModal.hide()">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

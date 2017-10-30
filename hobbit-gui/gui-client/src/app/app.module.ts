@@ -1,88 +1,138 @@
-import { NgModule } from '@angular/core';
+import { RegisterComponent } from './challenges/register/register.component';
+import { ExperimentsComponent } from './experiments/experiments.component';
+import { PathLocationStrategy, LocationChangeListener, LocationStrategy } from '@angular/common';
+import { EditComponent } from './challenges/edit/edit.component';
+import { CustomHttp } from './custom-http.service';
+import { BackendService } from './backend.service';
+import { KeycloakService } from './auth/keycloak.service';
+import { AuthGuardService } from './auth/auth-guard.service';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { CommonModule, LocationStrategy, PathLocationStrategy, LocationChangeListener } from '@angular/common';
-import { XHRBackend, Http, RequestOptions, HttpModule } from '@angular/http';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { DataTableModule, ConfirmDialogModule, ConfirmationService, CalendarModule, TooltipModule, DialogModule } from 'primeng/primeng';
-import { DynamicFormsCoreModule } from '@ng2-dynamic-forms/core';
-import { DynamicFormsBootstrapUIModule } from './dyn-form/ui-bootstrap.module';
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes, Router } from '@angular/router';
+import { Http, HttpModule, XHRBackend, RequestOptions } from '@angular/http';
+import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
+import { ModalModule } from 'ngx-bootstrap/modal';
+import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule, MessagesModule } from 'primeng/primeng';
+import { MessageService } from 'primeng/components/common/messageservice';
+import { AppComponent } from './app.component';
+import { NavbarComponent } from './navbar/navbar.component';
+import { HomeComponent } from './home/home.component';
+import { NotFoundComponent } from './not-found/not-found.component';
+import { BenchmarkComponent } from './benchmark/benchmark.component';
+import { BenchmarkComponent as UploadBenchmarkComponent } from './upload/benchmark/benchmark.component';
+import { PageHeaderComponent } from './page-header/page-header.component';
+import { SystemComponent } from './upload/system/system.component';
+import { ConfigComponent } from './benchmark/config/config.component';
+import { DynFormComponent } from './dyn-form/dyn-form.component';
+import { ChallengesComponent } from './challenges/challenges.component';
+import { EditComponent as ChallengesEditComponent } from './challenges/edit/edit.component';
+import { ExperimentsComponent as ChallengeExperimentsComponent } from './challenges/experiments/experiments.component';
+import { DetailsComponent as ExperimentDetailsComponent } from './experiments/details/details.component';
+import { TaskComponent } from './challenges/task/task.component';
+import { RegistrationComponent } from './challenges/registration/registration.component';
+import { DetailsWrapperComponent } from './experiments/details-wrapper/details-wrapper.component';
+import { StatusComponent } from './benchmark/status/status.component';
+import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.component';
+import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
 
-import { rootRouterConfig } from './app.routes';
-import { AppComponent } from './app.comp';
-import { MenuItemComponent, NavbarComponent } from './navbar.comp';
-import { HomeComponent } from './home.comp';
-import { UploadBenchmarkComponent } from './upload-benchmark.comp';
-import { UploadSystemComponent } from './upload-system.comp';
-import { BenchmarkSubmitComponent } from './benchmark-submit.comp';
-import { BenchmarkSubmitResponseComponent } from './benchmark-submit-response.comp';
-import { BenchmarkStatusComponent } from './benchmark-status.comp';
-import { BenchmarkResultDisplayComponent } from './benchmark-result-display.comp';
-import { BenchmarkConfigParamsComponent } from './benchmark-configparams.comp';
-import { SubmissionDetailsComponent } from './submission-details.comp';
-import { ChallengesListComponent } from './challenges-list.comp';
-import { ChallengeEditComponent } from './challenge-edit.comp';
-import { ChallengeTaskEditComponent } from './challenge-task-edit.comp';
-import { ExperimentsComponent } from './experiments.comp';
-import { ExperimentsWrapperComponent } from './experiments-wrapper.comp';
-import { ExperimentsDetailsComponent } from './experiments-details.comp';
-import { ExperimentsDetailsWrapperComponent } from './experiments-details-wrapper.comp';
-import { ChallengeRegisterSystemsComponent } from './challenge-register-systems.comp';
-import { ChallengeShowRegistrationsComponent } from './challenge-show-registrations.comp';
-import { ChallengeTasksExperimentsComponent } from './challenge-tasks-experiments.comp';
-import { ChallengeTasksLeaderboardsComponent } from './challenge-tasks-leaderboards.comp';
-import { LeaderboardComponent } from './leaderboard.comp';
 
-import { PageHeaderComponent } from './shared/pageHeader.comp';
-import { WaitLoadingComponent } from './shared/waitLoading.comp';
-import { ShowErrorComponent } from './shared/showError.comp';
-import { CheckboxComponent } from './shared/checkbox.comp';
+const appRoutes: Routes = [
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'home', component: HomeComponent, canActivate: [AuthGuardService] },
+  { path: 'upload/benchmarks', component: UploadBenchmarkComponent, canActivate: [AuthGuardService] },
+  { path: 'upload/systems', component: SystemComponent, canActivate: [AuthGuardService] },
+  { path: 'benchmarks', component: BenchmarkComponent, canActivate: [AuthGuardService] },
+  { path: 'benchmarks/status', component: StatusComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/experiments', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/register', component: RegisterComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/leaderboards', component: LeaderboardsComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments/:id', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
+  { path: 'experiments/task/:task', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
+  { path: '**', component: NotFoundComponent }
+];
 
-import { BackendService } from './services/backend.service';
-import { CustomHttp } from './services/customHttp';
-import { KeycloakService } from './services/keycloakService';
 
-const httpProvide = { provide: Http,
-        useFactory: (backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService) => new CustomHttp(backend, defaultOptions, keycloakService),
-        deps: [XHRBackend, RequestOptions, KeycloakService] };
 
-// merge initial path and hash (if it looks suitable)
-class MergeLocationStrategy extends PathLocationStrategy {
-    onPopState(fn: LocationChangeListener): void {
-        const oldURL = this.path(true);
-        // merge "#/...", "#<ID>,<ID>..." and "#<UUID>" into path
-        const newURL = oldURL.replace(/#(?:\/(.*)|([\d,%C]+)|(\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))$/, '$1$2$3');
-        if (newURL !== oldURL) {
-            this.replaceState(null, '', newURL, '');
-        }
-        super.onPopState(fn);
-    }
+export const httpProvide = {
+  provide: Http,
+  useFactory: httpClientFactory,
+  deps: [XHRBackend, RequestOptions, KeycloakService, SlimLoadingBarService, Router, MessageService]
+};
+export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService,
+  slimLoadingBarService: SlimLoadingBarService, router: Router, messageService: MessageService): Http {
+  return new CustomHttp(backend, defaultOptions, keycloakService, slimLoadingBarService, router, messageService);
 }
 
-const mergeStrategyProvide = { provide: LocationStrategy, useClass: MergeLocationStrategy };
+// merge initial path and hash (if it looks suitable)
+export class MergeLocationStrategy extends PathLocationStrategy {
+  onPopState(fn: LocationChangeListener): void {
+    const oldURL = this.path(true);
+    // merge "#/...", "#<ID>,<ID>..." and "#<UUID>" into path
+    const newURL = oldURL.replace(/#(?:\/(.*)|([\d,%C]+)|(\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))$/, '$1$2$3');
+    if (newURL !== oldURL) {
+      this.replaceState(null, '', newURL, '');
+    }
+    super.onPopState(fn);
+  }
+}
+export const mergeStrategyProvide = { provide: LocationStrategy, useClass: MergeLocationStrategy };
+
 
 @NgModule({
-  imports:      [ BrowserModule, CommonModule, FormsModule, ReactiveFormsModule,
-                  HttpModule, RouterModule.forRoot(rootRouterConfig),
-                  DynamicFormsCoreModule.forRoot(),
-                  DynamicFormsBootstrapUIModule, DataTableModule, ConfirmDialogModule, CalendarModule, TooltipModule, DialogModule ],
-  providers:    [ BackendService, KeycloakService, httpProvide, mergeStrategyProvide, ConfirmationService ],
-  declarations: [ AppComponent, MenuItemComponent, NavbarComponent, HomeComponent,
-                  UploadBenchmarkComponent, UploadSystemComponent,
-                  PageHeaderComponent, WaitLoadingComponent, ShowErrorComponent, CheckboxComponent,
-                  BenchmarkSubmitComponent, BenchmarkSubmitResponseComponent,
-                  BenchmarkConfigParamsComponent,
-                  BenchmarkStatusComponent, BenchmarkResultDisplayComponent, SubmissionDetailsComponent,
-                  ChallengesListComponent, ChallengeEditComponent, ChallengeTaskEditComponent,
-                  ExperimentsComponent,
-                  ExperimentsWrapperComponent,
-                  ExperimentsDetailsComponent,
-                  ExperimentsDetailsWrapperComponent,
-                  ChallengeRegisterSystemsComponent, ChallengeShowRegistrationsComponent,
-                  ChallengeTasksExperimentsComponent,
-                  ChallengeTasksLeaderboardsComponent,
-                  LeaderboardComponent,
-                ],
-  bootstrap:    [ AppComponent ]
+  declarations: [
+    AppComponent,
+    NavbarComponent,
+    HomeComponent,
+    NotFoundComponent,
+    BenchmarkComponent,
+    UploadBenchmarkComponent,
+    PageHeaderComponent,
+    SystemComponent,
+    ConfigComponent,
+    DynFormComponent,
+    ChallengesComponent,
+    ChallengesEditComponent,
+    ChallengeExperimentsComponent,
+    ExperimentsComponent,
+    ExperimentDetailsComponent,
+    TaskComponent,
+    RegisterComponent,
+    RegistrationComponent,
+    DetailsWrapperComponent,
+    LeaderboardsComponent,
+    LeaderboardDetailsComponent,
+    StatusComponent
+  ],
+  imports: [
+    BrowserAnimationsModule,
+    RouterModule.forRoot(appRoutes),
+    BrowserModule,
+    HttpModule,
+    FormsModule,
+    SlimLoadingBarModule.forRoot(),
+    ModalModule.forRoot(),
+    ReactiveFormsModule,
+    DataTableModule,
+    CalendarModule,
+    ConfirmDialogModule,
+    MessagesModule
+  ],
+  providers: [
+    AuthGuardService,
+    KeycloakService,
+    BackendService,
+    mergeStrategyProvide,
+    httpProvide,
+    ConfirmationService,
+    MessageService
+  ],
+  bootstrap: [AppComponent]
 })
 export class AppModule { }

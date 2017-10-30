@@ -1,0 +1,11 @@
+<form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
+  <h4>Configuration Parameters</h4>
+  <p *ngIf="!benchmark || !benchmark.hasConfigParams()">This benchmark has no configuration</p>
+
+  <div *ngFor="let c of config">
+    <app-dyn-form [config]="c" [form]="formGroup"></app-dyn-form>
+  </div>
+  <div *ngIf="system">
+    <button type="submit" class="btn btn-primary" [disabled]="!benchmark || !system">Submit</button>
+  </div>
+</form>
