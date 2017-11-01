@@ -42,7 +42,7 @@ export class EditComponent implements OnInit {
   public static readonly ADD_CHALLENGE = 'add-challenge';
 
   public challenge: Challenge;
-  private userInfo: User;
+  public userInfo: User;
   private dates: ChallengeDates;
   private selectedTask: ChallengeTask;
 
