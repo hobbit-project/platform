@@ -28,7 +28,9 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import org.apache.jena.query.QuerySolution;
@@ -62,8 +64,8 @@ public class ExperimentsResources {
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentBean> query(@QueryParam("id") String idsCommaSep,
-            @QueryParam("challenge-task-id") String challengeTaskId, @Context SecurityContext sc) throws Exception {
+    public Response query(@QueryParam("id") String idsCommaSep,
+            @QueryParam("challenge-task-id") String challengeTaskId, @Context SecurityContext sc) {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
@@ -71,7 +73,7 @@ public class ExperimentsResources {
         }
 
         if (Application.isUsingDevDb()) {
-            return getDevDb().queryExperiments(ids, challengeTaskId);
+            return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         } else {
 
             if (ids != null) {
@@ -183,15 +185,17 @@ public class ExperimentsResources {
             }
         }
 
-        return results != null ? results : new ArrayList<>(0);
+        if (results == null)
+            results = new ArrayList<>(0);
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results){}).build();
     }
 
     @GET
     @Path("count-by-challenge/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ExperimentCountBean> countByChallengeTaskIds(@PathParam("id") String challengeId) throws Exception {
+    public Response countByChallengeTaskIds(@PathParam("id") String challengeId) {
         if (Application.isUsingDevDb()) {
-            return getDevDb().countByChallengeTaskIds(challengeId);
+            return Response.ok(getDevDb().countByChallengeTaskIds(challengeId)).build();
         } else {
             /*
              * 1. retrieve the tasks of the given challenge
@@ -228,7 +232,7 @@ public class ExperimentsResources {
                     LOGGER.error("Exception while executing ");
                 }
             }
-            return counts;
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts){}).build();
         }
     }
 

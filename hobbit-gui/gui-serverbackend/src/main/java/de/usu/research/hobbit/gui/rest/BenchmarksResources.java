@@ -26,9 +26,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,26 +53,30 @@ public class BenchmarksResources {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<BenchmarkBean> listAll() throws Exception {
+    public Response listAll() {
         LOGGER.info("List benchmarks ...");
         List<BenchmarkBean> benchmarks;
         if (Application.isUsingDevDb()) {
             benchmarks = getDevDb().getBenchmarks();
         } else {
-
-            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-            if (client == null) {
-                throw new GUIBackendException("Couldn't connect to platform controller.");
+            try {
+                PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+                if (client == null) {
+                    throw new GUIBackendException("Couldn't connect to platform controller.");
+                }
+                benchmarks = client.requestBenchmarks();
             }
-            benchmarks = client.requestBenchmarks();
+            catch (Exception ex) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
+            }
         }
-        return benchmarks;
+        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks){}).build();
     }
 
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public BenchmarkBean getById(@Context SecurityContext sc, @PathParam("id") String id) throws Exception {
+    public Response getById(@Context SecurityContext sc, @PathParam("id") String id) {
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         BenchmarkBean benchmarkDetails;
         List<BenchmarkBean> benchmarks;
@@ -78,28 +85,32 @@ public class BenchmarksResources {
             benchmarks = getDevDb().getBenchmarks();
             for (BenchmarkBean benchmarkBean : benchmarks) {
                 if (benchmarkBean.getId().equals(id))
-                    return benchmarkBean;
+                    return Response.ok(benchmarkBean).build();
             }
             return null;
         } else {
-            if (client == null) {
-                throw new GUIBackendException("Couldn't connect to platform controller.");
+            try {
+                if (client == null) {
+                    throw new GUIBackendException("Couldn't connect to platform controller.");
+                }
+                UserInfoBean user = InternalResources.getUserInfoBean(sc);
+                benchmarkDetails = client.requestBenchmarkDetails(id, user);
+                // If a Guest is requesting details, he shouldn't see any systems
+                if ((!user.hasRole("system-provider")) && (!user.hasRole("challenge-organiser"))) {
+                    benchmarkDetails.setSystems(new ArrayList<>(0));
+                }
+                return Response.ok(benchmarkDetails).build();
             }
-            UserInfoBean user = InternalResources.getUserInfoBean(sc);
-            benchmarkDetails = client.requestBenchmarkDetails(id, user);
-            // If a Guest is requesting details, he shouldn't see any systems
-            if ((!user.hasRole("system-provider")) && (!user.hasRole("challenge-organiser"))) {
-                benchmarkDetails.setSystems(new ArrayList<>(0));
+            catch (Exception ex) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
             }
-            return benchmarkDetails;
         }
-
     }
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public SubmitResponseBean submitBenchmark(SubmitModelBean model) throws Exception {
+    public Response submitBenchmark(SubmitModelBean model) {
         try {
             LOGGER.info("Submit benchmark id = " + model.getBenchmark());
             LOGGER.info("Submit system id = " + model.getSystem());
@@ -108,11 +119,12 @@ public class BenchmarksResources {
                 throw new GUIBackendException("Couldn't connect to platform controller.");
             }
             String id = client.submitBenchmark(model);
-            return new SubmitResponseBean(id);
+            return Response.ok(new SubmitResponseBean(id)).build();
         } catch (Exception e) {
             SubmitResponseBean error = new SubmitResponseBean();
             error.setError(e.getMessage());
-            return error;
+            //TODO use error status code
+            return Response.ok(error).build();
         }
     }
 }

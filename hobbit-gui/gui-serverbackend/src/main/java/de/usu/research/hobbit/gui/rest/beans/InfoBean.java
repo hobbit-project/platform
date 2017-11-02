@@ -43,4 +43,8 @@ public class InfoBean {
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
     }
+
+    public static InfoBean withMessage(String message) {
+        return new InfoBean(message);
+    }
 }

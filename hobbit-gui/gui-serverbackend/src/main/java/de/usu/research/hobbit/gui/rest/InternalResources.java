@@ -34,11 +34,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -66,9 +68,9 @@ public class InternalResources {
     @Path("keycloak-config")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public KeycloakConfigBean getKeycloakConfig(@Context ServletContext servletContext) throws Exception {
+    public Response getKeycloakConfig(@Context ServletContext servletContext) {
         if (cachedBean != null) {
-            return cachedBean;
+            return Response.ok(cachedBean).build();
         }
 
         try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/jetty-web.xml")) {
@@ -79,21 +81,19 @@ public class InternalResources {
             }
             if (bean == null)
                 throw new GUIBackendException("Keycloak configuration not found");
-            return bean;
-        } catch (GUIBackendException e) {
-            throw e;
+            return Response.ok(bean).build();
         } catch (Exception e) {
-            throw new GUIBackendException("Error on retrieving Keycloak configuration: " + e, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage("Error on retrieving Keycloak configuration: " + e.getMessage())).build();
         }
     }
 
     @GET
     @Path("user-info")
     @Produces(MediaType.APPLICATION_JSON)
-    public UserInfoBean userInfo(@Context SecurityContext sc) {
+    public Response userInfo(@Context SecurityContext sc) {
         UserInfoBean bean = getUserInfoBean(sc);
         LOGGER.info("User-info: " + bean);
-        return bean;
+        return Response.ok(bean).build();
     }
 
     public static UserInfoBean getUserInfoBean(SecurityContext sc) {
@@ -108,8 +108,7 @@ public class InternalResources {
                     String[] roleNames = Application.getRoleNames(sc);
                     bean.setRoles(Arrays.asList(roleNames));
 
-                    // as Keycloak adapter is not on classpath, get information
-                    // via
+                    // as Keycloak adapter is not on classpath, get information via
                     // reflection
                     // Security is a KeycloakSecurityContext
                     try {
@@ -253,7 +252,7 @@ public class InternalResources {
 
     /**
      * Retrieves the set of system URIs that are visible for the given user.
-     * 
+     *
      * @param userInfo
      *            the bean describing the user for which the system URIs should be
      *            returned
@@ -270,7 +269,7 @@ public class InternalResources {
 
     /**
      * Retrieves the set of system URIs that are visible for the given user.
-     * 
+     *
      * @param sc
      *            the security context containing the user for which the system URIs
      *            should be returned

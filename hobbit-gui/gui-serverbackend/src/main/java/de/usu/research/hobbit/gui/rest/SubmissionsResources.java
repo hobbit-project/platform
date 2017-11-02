@@ -21,6 +21,7 @@ import java.io.StringWriter;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Response;
 
 import org.apache.jena.rdf.model.Model;
 import org.hobbit.core.Constants;
@@ -38,7 +39,7 @@ public class SubmissionsResources {
 
     @GET
     @Path("{id}")
-    public String getSubmissionDetails(@PathParam("id") String id) throws Exception {
+    public Response getSubmissionDetails(@PathParam("id") String id) {
         LOGGER.info("Retrieve result for " + id);
         StorageServiceClient client = StorageServiceClientSingleton.getInstance();
         String query = SparqlQueries.getExperimentGraphQuery(Constants.EXPERIMENT_URI_NS + id,
@@ -49,9 +50,9 @@ public class SubmissionsResources {
             Model resultModel = client.sendConstructQuery(query);
             StringWriter writer = new StringWriter();
             resultModel.write(writer, "TTL");
-            return writer.toString();
+            return Response.ok(writer.toString()).build();
         } else {
-            return "ERROR";
+            return Response.status(Response.Status.BAD_REQUEST).entity("ERROR").build();
         }
     }
 
