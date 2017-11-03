@@ -42,7 +42,7 @@ export class TaskComponent implements OnInit {
       this.challenge = data;
       if (this.adding) {
         this.taskIdx = this.challenge.tasks.length;
-        this.task = new ChallengeTask(`${id}_task${this.taskIdx + 1}`, `task${this.taskIdx + 1}`);
+        this.task = new ChallengeTask(`${id}_task${this.taskIdx + 1}`, `Task ${this.taskIdx + 1}`);
         this.loaded = true;
       } else {
         this.taskIdx = this.challenge.tasks.findIndex(t => t.id === taskId);
