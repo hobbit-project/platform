@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -661,6 +662,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            time to use as current when scheduling
      */
     protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri, Calendar now) {
+        LOGGER.info("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
         ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
@@ -688,17 +690,30 @@ public class PlatformController extends AbstractCommandReceivingComponent
             dateOfNextExecution = now;
         }
 
-        dateOfNextExecution.add(Calendar.MILLISECOND, (int) executionPeriod.toMillis());
+        int skip = -1;
+        while (dateOfNextExecution.before(now)) {
+            dateOfNextExecution.add(Calendar.MILLISECOND, (int) executionPeriod.toMillis());
+            skip++;
+        }
+        if (skip > 0) {
+            LOGGER.info("Skipping {} executions of repeatable challenge {} due to running late", skip, challenge);
+        }
+
         if (dateOfNextExecution.before(registrationCutoffDate)) {
             // set dateOfNextExecution += executionPeriod
-            LOGGER.info("Setting next execution date for challenge " + challengeUri + ".");
-            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
-                    dateOfNextExecution, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+            LOGGER.info("Next execution date for challenge {} is now set to {}", challengeUri, dateFormat.format(dateOfNextExecution.getTime()));
+            if (!storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challengeUri,
+                    dateOfNextExecution, Constants.CHALLENGE_DEFINITION_GRAPH_URI))) {
+                LOGGER.error("Couldn't update dateOfNextExecution for challenge {}", challengeUri);
+            }
         } else {
             // delete dateOfNextExecution, since registration cutoff date will be reached already
-            LOGGER.info("Removing next execution date for challenge " + challengeUri + " due to cutoff.");
-            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
-                    null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+            LOGGER.info("Removing dateOfNextExecution for challenge {} because it reached cutoff date", challengeUri);
+            if (!storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challengeUri,
+                    null, Constants.CHALLENGE_DEFINITION_GRAPH_URI))) {
+                LOGGER.error("Couldn't remove dateOfNextExecution for challenge {}", challengeUri);
+            }
         }
     }
 
