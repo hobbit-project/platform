@@ -784,21 +784,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             }
 
             dateOfNextExecution = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.dateOfNextExecution);
-            if (dateOfNextExecution != null) {
-                if (now.after(dateOfNextExecution)) {
-                    // date of execution has been reached
-                    LOGGER.info("Execution date has been reached for repeatable challenge {}", challenge);
-                    executeChallengeExperiments(challenge.getURI());
-
-                    // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
-                    String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
-                    if (!storage.sendUpdateQuery(moveQuery)) {
-                        LOGGER.error("Couldn't move the [task :involvesSystem system] triple to the public graph", challenge);
-                    }
-
-                    scheduleDateOfNextExecution(storage, challenge.getURI(), now);
-                }
-            } else {
+            if (dateOfNextExecution == null) {
                 // executions didn't start yet
                 Calendar executionDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.executionDate);
                 if ((executionDate != null) && (now.after(executionDate))) {
@@ -808,11 +794,24 @@ public class PlatformController extends AbstractCommandReceivingComponent
                         LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge);
                         continue;
                     }
-
-                    scheduleDateOfNextExecution(storage, challenge.getURI(), now);
                 } else {
                     LOGGER.info("Repeatable challenge {} will start at {}", challenge, dateFormat.format(executionDate.getTime()));
+                    continue;
                 }
+            }
+
+            if (dateOfNextExecution == null || now.after(dateOfNextExecution)) {
+                // date of execution has been reached
+                LOGGER.info("Execution date has been reached for repeatable challenge {}", challenge);
+                executeChallengeExperiments(challenge.getURI());
+
+                // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
+                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
+                if (!storage.sendUpdateQuery(moveQuery)) {
+                    LOGGER.error("Couldn't move the [task :involvesSystem system] triple to the public graph", challenge);
+                }
+
+                scheduleDateOfNextExecution(storage, challenge.getURI(), now);
             }
         }
     }
