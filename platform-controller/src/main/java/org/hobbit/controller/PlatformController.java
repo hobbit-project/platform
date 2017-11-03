@@ -741,6 +741,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            the URI of the challenge that should be closed
      */
     private void closeChallenge(String challengeUri) {
+        LOGGER.info("Closing challenge {}...", challengeUri);
         Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
         // send SPARQL query to close the challenge
         String query = SparqlQueries.getCloseChallengeQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
@@ -757,32 +758,23 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }
 
         executeChallengeExperiments(challengeUri);
-
-        String repeatableChallengeQuery = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
-        Model repeatableChallengeModel = storage.sendConstructQuery(repeatableChallengeQuery);
-        ResIterator repeatableChallengeIterator = repeatableChallengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
-        Resource repeatableChallenge = repeatableChallengeIterator.hasNext() ? repeatableChallengeIterator.next() : null;
-        if (repeatableChallenge != null) {
-            if (!copyChallengeToPublicResultGraph(storage, challengeUri)) {
-                LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challengeUri);
-                return;
-            }
-
-            scheduleDateOfNextExecution(storage, challengeUri, now);
-        }
     }
 
     protected synchronized void checkRepeatableChallenges() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        LOGGER.info("Processing repeatable challenges at {}...", dateFormat.format(now.getTime()));
+
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengesModel = storage.sendConstructQuery(query);
         ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         Resource challenge;
         Calendar registrationCutoffDate;
         Calendar dateOfNextExecution;
-        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
         // go through the challenges
         while (challengeIterator.hasNext()) {
             challenge = challengeIterator.next();
+            LOGGER.info("Processing repeatable challenge {}...", challenge);
 
             registrationCutoffDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.registrationCutoffDate);
             if ((registrationCutoffDate != null) && (now.after(registrationCutoffDate))) {
@@ -792,15 +784,35 @@ public class PlatformController extends AbstractCommandReceivingComponent
             }
 
             dateOfNextExecution = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.dateOfNextExecution);
-            if ((dateOfNextExecution != null) && (now.after(dateOfNextExecution))) {
-                // date of execution has been reached
-                executeChallengeExperiments(challenge.getURI());
+            if (dateOfNextExecution != null) {
+                if (now.after(dateOfNextExecution)) {
+                    // date of execution has been reached
+                    LOGGER.info("Execution date has been reached for repeatable challenge {}", challenge);
+                    executeChallengeExperiments(challenge.getURI());
 
-                // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
-                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
-                storage.sendUpdateQuery(moveQuery);
+                    // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
+                    String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
+                    if (!storage.sendUpdateQuery(moveQuery)) {
+                        LOGGER.error("Couldn't move the [task :involvesSystem system] triple to the public graph", challenge);
+                    }
 
-                scheduleDateOfNextExecution(storage, challenge.getURI(), now);
+                    scheduleDateOfNextExecution(storage, challenge.getURI(), now);
+                }
+            } else {
+                // executions didn't start yet
+                Calendar executionDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.executionDate);
+                if ((executionDate != null) && (now.after(executionDate))) {
+                    LOGGER.info("Starting repeatable challenge {} with execution date {}...", challenge, dateFormat.format(executionDate.getTime()));
+                    // executionDate has been reached, copy challenge to public graph and set dateOfNextExecution
+                    if (!copyChallengeToPublicResultGraph(storage, challenge.getURI())) {
+                        LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge);
+                        continue;
+                    }
+
+                    scheduleDateOfNextExecution(storage, challenge.getURI(), now);
+                } else {
+                    LOGGER.info("Repeatable challenge {} will start at {}", challenge, dateFormat.format(executionDate.getTime()));
+                }
             }
         }
     }
