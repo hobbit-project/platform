@@ -1,32 +1,28 @@
 /**
  * This file is part of gui-serverbackend.
- * <p>
+ *
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.beans.BenchmarkListBean;
-import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
-import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
-import de.usu.research.hobbit.gui.rest.beans.ChallengesListBean;
-import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
-import de.usu.research.hobbit.gui.rest.beans.ExperimentsListBean;
-import de.usu.research.hobbit.gui.rest.beans.SystemBean;
-import org.eclipse.persistence.jaxb.JAXBContextProperties;
-import org.eclipse.persistence.oxm.json.JsonObjectBuilderResult;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.json.Json;
 import javax.json.JsonWriter;
@@ -37,13 +33,19 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.transform.stream.StreamSource;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+
+import org.eclipse.persistence.jaxb.JAXBContextProperties;
+import org.eclipse.persistence.oxm.json.JsonObjectBuilderResult;
+
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkListBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
+import de.usu.research.hobbit.gui.rest.beans.ChallengesListBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentsListBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 
 public class MarshallerUtil {
     public static final AtomicReference<JAXBContext> ref = new AtomicReference<>();
@@ -87,9 +89,9 @@ public class MarshallerUtil {
         JAXBContext jc;
         try {
             jc = JAXBContext.newInstance(
-                new Class[]{ BenchmarkBean.class, SystemBean.class, ConfigurationParamBean.class, BenchmarkListBean.class,
-                    ChallengesListBean.class, ChallengeBean.class, ChallengeTaskBean.class,
-                    ExperimentBean.class, ExperimentsListBean.class }, jaxbProperties);
+                    new Class[] { BenchmarkBean.class, SystemBean.class, ConfigurationParamBean.class, BenchmarkListBean.class,
+                        ChallengesListBean.class, ChallengeBean.class, ChallengeTaskBean.class,
+                        ExperimentBean.class, ExperimentsListBean.class}, jaxbProperties);
         } catch (JAXBException e) {
             throw new RuntimeException(e);
         }

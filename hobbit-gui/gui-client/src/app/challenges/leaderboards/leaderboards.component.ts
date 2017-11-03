@@ -1,18 +1,18 @@
-import { Challenge, ExperimentCount } from './../../model';
+import { Challenge, ChallengeTask } from './../../model';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BackendService } from './../../backend.service';
 import { Component, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'app-experiments',
-  templateUrl: './experiments.component.html',
-  styleUrls: ['./experiments.component.less']
+  selector: 'app-leaderboards',
+  templateUrl: './leaderboards.component.html',
+  styleUrls: ['./leaderboards.component.less']
 })
-export class ExperimentsComponent implements OnInit {
+export class LeaderboardsComponent implements OnInit {
 
   public challenge: Challenge;
-  private counts: ExperimentCount[] = [];
-  private selectedCount: ExperimentCount;
+  private tasks: ChallengeTask[] = [];
+  private selectedTask: ChallengeTask;
 
   constructor(private bs: BackendService, private activatedRoute: ActivatedRoute, private router: Router) { }
 
@@ -21,12 +21,8 @@ export class ExperimentsComponent implements OnInit {
     const taskId = this.activatedRoute.snapshot.queryParams['task'];
     this.bs.getChallenge(id).subscribe(data => {
       this.challenge = data;
-    });
-
-    this.bs.countExperiments(id).subscribe(data => {
-      this.counts = data;
       if (taskId) {
-        this.selectedCount = this.counts.find(value => value.challengeTask.id === taskId);
+        this.selectedTask = this.challenge.tasks.find(task => task.id === taskId);
       }
     });
   }

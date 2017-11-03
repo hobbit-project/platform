@@ -36,7 +36,9 @@ import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HobbitErrors;
+import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -326,8 +328,21 @@ public class ExperimentManager implements Closeable {
 
             // Store the result model in DB
             // choose the correct graph
-            String graphUri = experimentStatus.config.challengeUri != null ? Constants.PRIVATE_RESULT_GRAPH_URI
-                    : Constants.PUBLIC_RESULT_GRAPH_URI;
+            String graphUri = Constants.PUBLIC_RESULT_GRAPH_URI;
+            if (experimentStatus.config.challengeUri != null) {
+                // check if challenge is repeatable
+                boolean repeatable = false;
+                Model challengeModel = controller.getChallengeFromUri(experimentStatus.config.challengeUri);
+                if (challengeModel != null) {
+                    Resource challenge = challengeModel.getResource(experimentStatus.config.challengeUri);
+                    repeatable = RdfHelper.getLiteral(challengeModel, challenge, HOBBIT.registrationCutoffDate) != null;
+                }
+
+                if (!repeatable) {
+                    graphUri = Constants.PRIVATE_RESULT_GRAPH_URI;
+                }
+            }
+
             Model resultModel = experimentStatus.getResultModel();
             if (resultModel == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);

@@ -42,7 +42,7 @@ export class EditComponent implements OnInit {
   public static readonly ADD_CHALLENGE = 'add-challenge';
 
   public challenge: Challenge;
-  private userInfo: User;
+  public userInfo: User;
   private dates: ChallengeDates;
   private selectedTask: ChallengeTask;
 
@@ -129,8 +129,8 @@ export class EditComponent implements OnInit {
     this.router.navigate(['challenges', this.challenge.id, 'experiments']);
   }
 
-  showLeaderboard() {
-    this.router.navigate(['challenges', this.challenge.id, 'leaderboard']);
+  showLeaderboards() {
+    this.router.navigate(['challenges', this.challenge.id, 'leaderboards']);
   }
 
   onSelect(event) {

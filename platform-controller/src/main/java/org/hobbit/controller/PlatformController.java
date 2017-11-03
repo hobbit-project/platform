@@ -19,6 +19,7 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -210,11 +211,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
         expManager = new ExperimentManager(this);
 
         // schedule challenges re-publishing
+        // TODO RC rename this timer
         challengePublishTimer = new Timer();
         PlatformController controller = this;
         challengePublishTimer.schedule(new TimerTask() {
             @Override
             public void run() {
+                checkRepeatableChallenges();
                 republishChallenges(storage, queue, controller);
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
@@ -576,7 +579,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.info("Finished handling of front end request.");
     }
 
-    private Model getChallengeFromUri(String challengeUri) {
+    protected Model getChallengeFromUri(String challengeUri) {
         // get experiments from the challenge
         String query = SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         if (query == null) {
@@ -626,26 +629,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Closes the challenge with the given URI by adding the "closed" triple to
-     * its graph and inserting the configured experiments into the queue.
+     * Inserts the configured experiments of a challenge into the queue.
      *
      * @param challengeUri
-     *            the URI of the challenge that should be closed
+     *            the URI of the challenge
      */
-    private void closeChallenge(String challengeUri) {
-        // send SPARQL query to close the challenge
-        String query = SparqlQueries.getCloseChallengeQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
-        if (query == null) {
-            LOGGER.error(
-                    "Couldn't close the challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
-                    challengeUri);
-            return;
-        }
-        if (!storage.sendUpdateQuery(query)) {
-            LOGGER.error("Couldn't close the challenge {} because the SPARQL query didn't had any effect. Aborting.",
-                    challengeUri);
-            return;
-        }
+    private void executeChallengeExperiments(String challengeUri) {
         // get experiments from the challenge
         List<ExperimentConfiguration> experiments = getChallengeTasksFromUri(challengeUri);
         if (experiments == null) {
@@ -660,10 +649,151 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }
     }
 
+    /**
+     * Schedules the date of next execution for a repeatable challenge,
+     * or closes it.
+     *
+     * @param storage
+     *            storage
+     * @param challengeUri
+     *            challenge URI
+     * @param now
+     *            time to use as current when scheduling
+     */
+    protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri, Calendar now) {
+        String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model challengeModel = storage.sendConstructQuery(query);
+        ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        if (!challengeIterator.hasNext()) {
+            LOGGER.error("Couldn't retrieve challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Resource challenge = challengeIterator.next();
+        Calendar registrationCutoffDate = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.registrationCutoffDate);
+        if (registrationCutoffDate == null) {
+            LOGGER.error("Couldn't retrieve registration cutoff date for challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Duration executionPeriod = RdfHelper.getDurationValue(challengeModel, challenge, HOBBIT.executionPeriod);
+        if (executionPeriod == null) {
+            LOGGER.error(
+                    "Couldn't retrieve execution period for challenge " + challengeUri + ". Aborting.");
+            return;
+        }
+
+        Calendar dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.dateOfNextExecution);
+        if (dateOfNextExecution == null) {
+            dateOfNextExecution = now;
+        }
+
+        dateOfNextExecution.add(Calendar.MILLISECOND, (int) executionPeriod.toMillis());
+        if (dateOfNextExecution.before(registrationCutoffDate)) {
+            // set dateOfNextExecution += executionPeriod
+            LOGGER.info("Setting next execution date for challenge " + challengeUri + ".");
+            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
+                    dateOfNextExecution, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        } else {
+            // delete dateOfNextExecution, since registration cutoff date will be reached already
+            LOGGER.info("Removing next execution date for challenge " + challengeUri + " due to cutoff.");
+            storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challenge.getURI(),
+                    null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        }
+    }
+
+    /**
+     * Copies the challenge from challenge definition graph to public graph.
+     *
+     * @param storage
+     *            storage
+     * @param challengeUri
+     *            challenge URI
+     */
+    protected static synchronized boolean copyChallengeToPublicResultGraph(StorageServiceClient storage, String challengeUri) {
+        // get the challenge model
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries
+                .getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        // insert the challenge into the public graph
+        return storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI);
+    }
+
+    /**
+     * Closes the challenge with the given URI by adding the "closed" triple to
+     * its graph and inserting the configured experiments into the queue.
+     *
+     * @param challengeUri
+     *            the URI of the challenge that should be closed
+     */
+    private void closeChallenge(String challengeUri) {
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        // send SPARQL query to close the challenge
+        String query = SparqlQueries.getCloseChallengeQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        if (query == null) {
+            LOGGER.error(
+                    "Couldn't close the challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
+                    challengeUri);
+            return;
+        }
+        if (!storage.sendUpdateQuery(query)) {
+            LOGGER.error("Couldn't close the challenge {} because the SPARQL query didn't had any effect. Aborting.",
+                    challengeUri);
+            return;
+        }
+
+        executeChallengeExperiments(challengeUri);
+
+        String repeatableChallengeQuery = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model repeatableChallengeModel = storage.sendConstructQuery(repeatableChallengeQuery);
+        ResIterator repeatableChallengeIterator = repeatableChallengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        Resource repeatableChallenge = repeatableChallengeIterator.hasNext() ? repeatableChallengeIterator.next() : null;
+        if (repeatableChallenge != null) {
+            if (!copyChallengeToPublicResultGraph(storage, challengeUri)) {
+                LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challengeUri);
+                return;
+            }
+
+            scheduleDateOfNextExecution(storage, challengeUri, now);
+        }
+    }
+
+    protected synchronized void checkRepeatableChallenges() {
+        String query = SparqlQueries.getRepeatableChallengeInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        Model challengesModel = storage.sendConstructQuery(query);
+        ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
+        Resource challenge;
+        Calendar registrationCutoffDate;
+        Calendar dateOfNextExecution;
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        // go through the challenges
+        while (challengeIterator.hasNext()) {
+            challenge = challengeIterator.next();
+
+            registrationCutoffDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.registrationCutoffDate);
+            if ((registrationCutoffDate != null) && (now.after(registrationCutoffDate))) {
+                // registration cutoff date has been reached, close the challenge (it will run remaining experiments)
+                closeChallenge(challenge.getURI());
+                continue;
+            }
+
+            dateOfNextExecution = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.dateOfNextExecution);
+            if ((dateOfNextExecution != null) && (now.after(dateOfNextExecution))) {
+                // date of execution has been reached
+                executeChallengeExperiments(challenge.getURI());
+
+                // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
+                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
+                storage.sendUpdateQuery(moveQuery);
+
+                scheduleDateOfNextExecution(storage, challenge.getURI(), now);
+            }
+        }
+    }
+
     /*
      * The method is static for an easier JUnit test implementation
      */
-    protected synchronized static void republishChallenges(StorageServiceClient storage, ExperimentQueue queue,
+    protected static synchronized void republishChallenges(StorageServiceClient storage, ExperimentQueue queue,
             ExperimentAnalyzer analyzer) {
         LOGGER.info("Checking for challenges to publish...");
         // Get list of all UNPUBLISHED, closed challenges, their tasks and
@@ -703,11 +833,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 // if there are no challenge experiments in the queue
                 if (count == 0) {
                     LOGGER.info("publishing challenge {}", challenge.getURI());
-                    // get the challenge model
-                    Model challengeModel = storage.sendConstructQuery(SparqlQueries
-                            .getChallengeGraphQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI));
-                    // insert the challenge into the public graph
-                    if (!storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI)) {
+                    // copy challenge to the public result graph
+                    if (!copyChallengeToPublicResultGraph(storage, challenge.getURI())) {
                         LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge.getURI());
                         return;
                     }

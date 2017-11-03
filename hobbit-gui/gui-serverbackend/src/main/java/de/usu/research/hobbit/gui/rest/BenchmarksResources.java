@@ -1,31 +1,23 @@
 /**
  * This file is part of gui-serverbackend.
- * <p>
+ *
  * gui-serverbackend is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * gui-serverbackend is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
  */
 package de.usu.research.hobbit.gui.rest;
 
-import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
-import de.usu.research.hobbit.gui.rest.beans.InfoBean;
-import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
-import de.usu.research.hobbit.gui.rest.beans.SubmitResponseBean;
-import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -38,7 +30,18 @@ import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
-import java.util.List;
+
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
+import de.usu.research.hobbit.gui.rest.beans.SubmitResponseBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("benchmarks")
 public class BenchmarksResources {
@@ -62,13 +65,12 @@ public class BenchmarksResources {
                     throw new GUIBackendException("Couldn't connect to platform controller.");
                 }
                 benchmarks = client.requestBenchmarks();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
-
-        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks) {
-        }).build();
+        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks){}).build();
     }
 
     @GET
@@ -93,12 +95,16 @@ public class BenchmarksResources {
                 }
                 UserInfoBean user = InternalResources.getUserInfoBean(sc);
                 benchmarkDetails = client.requestBenchmarkDetails(id, user);
+                // If a Guest is requesting details, he shouldn't see any systems
+                if ((!user.hasRole("system-provider")) && (!user.hasRole("challenge-organiser"))) {
+                    benchmarkDetails.setSystems(new ArrayList<>(0));
+                }
                 return Response.ok(benchmarkDetails).build();
-            } catch (Exception ex) {
+            }
+            catch (Exception ex) {
                 return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
-
     }
 
     @POST
