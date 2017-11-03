@@ -676,8 +676,13 @@ public class RdfModelHelper {
         List<ChallengeBean> challenges = listChallenges(model);
         for (ChallengeBean challenge : challenges) {
             for (ChallengeTaskBean task : challenge.getTasks()) {
-                for (SystemBean system : task.getBenchmark().getSystems()) {
-                    registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                BenchmarkBean benchmark = task.getBenchmark();
+                if (benchmark != null) {
+                    for (SystemBean system : task.getBenchmark().getSystems()) {
+                        registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                    }
+                } else {
+                    LOGGER.info("Task {} does not have a benchmark.", task.getId());
                 }
             }
         }
