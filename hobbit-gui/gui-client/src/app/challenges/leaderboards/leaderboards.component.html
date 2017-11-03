@@ -4,7 +4,7 @@
   </app-page-header>
 
   <div *ngIf="challenge">
-    <p-dataTable [value]="challenge.tasks" selectionMode="single" [(selection)]="selectedTask" resizableColumns="true" [tableStyleClass]="'experiment-table'"
+    <p-dataTable [value]="challenge.tasks" selectionMode="single" (onRowSelect)="handleSelect($event)" resizableColumns="true" [tableStyleClass]="'experiment-table'"
       sortField="name">
       <p-column field="name" header="Task Name" [sortable]="true"></p-column>
     </p-dataTable>
