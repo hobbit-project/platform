@@ -1,6 +1,7 @@
+import { Location } from '@angular/common';
 import { Challenge, ChallengeRegistration, System } from './../../model';
 import { BackendService } from './../../backend.service';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
 
 @Component({
@@ -20,7 +21,7 @@ export class RegistrationComponent implements OnInit {
   private loadedSystems = false;
   public loaded = false;
 
-  constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private router: Router) { }
+  constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private location: Location) { }
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.params['id'];
@@ -46,7 +47,7 @@ export class RegistrationComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['/challenges', this.challenge.id]);
+    this.location.back();
   }
 
 }

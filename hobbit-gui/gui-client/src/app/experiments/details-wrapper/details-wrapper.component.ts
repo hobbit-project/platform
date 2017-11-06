@@ -1,5 +1,6 @@
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
+import { Location } from '@angular/common';
 
 @Component({
   selector: 'app-details-wrapper',
@@ -10,7 +11,7 @@ export class DetailsWrapperComponent implements OnInit {
   public idsCommaSeparated: string;
   public challengeTaskId: string;
 
-  constructor(private activatedRoute: ActivatedRoute, private router: Router) { }
+  constructor(private activatedRoute: ActivatedRoute, private location: Location) { }
 
   ngOnInit() {
     const params = {};
@@ -22,7 +23,7 @@ export class DetailsWrapperComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['experiments']);
+    this.location.back();
   }
 
 }
