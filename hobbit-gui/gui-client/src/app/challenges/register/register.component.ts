@@ -47,7 +47,7 @@ export class RegisterComponent implements OnInit {
         for (const task of this.challenge.tasks) {
           if (!this.display[task.id])
             this.display[task.id] = [];
-          this.display[task.id].push({ id: system.id, selected: false });
+          this.display[task.id].push({ id: system.id, name: system.name, description: system.description, selected: false });
         }
       }
 
