@@ -32,7 +32,8 @@ export class KeycloakService {
       };
       req.onerror = (e) => {
         console.error(`Error on fetching keycloak configuration: status = ${req.status} ${req.statusText}`);
-        document.getElementById('rootError').innerHTML = 'Failed to init user authentication. Please contact a system administrator.';
+        document.getElementById('rootError').innerHTML = 'Failed to init user authentication. This is probably ' +
+         'caused by a unsuccessfull communication with the UI backend. Please contact a system administrator.';
 
         reject('Unable to query keycloak config.');
       };
