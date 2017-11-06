@@ -117,6 +117,7 @@ export class TaskComponent implements OnInit {
     } else {
       this.task.configurationParams = [];
     }
+    this.task.benchmark.systems = [];
     this.doSave();
   }
 
