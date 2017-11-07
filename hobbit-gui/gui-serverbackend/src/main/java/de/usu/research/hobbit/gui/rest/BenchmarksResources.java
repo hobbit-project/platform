@@ -121,10 +121,8 @@ public class BenchmarksResources {
             String id = client.submitBenchmark(model);
             return Response.ok(new SubmitResponseBean(id)).build();
         } catch (Exception e) {
-            SubmitResponseBean error = new SubmitResponseBean();
-            error.setError(e.getMessage());
-            //TODO use error status code
-            return Response.ok(error).build();
+            LOGGER.warn("Failed to submit benchmark: " + e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage())).build();
         }
     }
 }

@@ -77,6 +77,8 @@ export class BenchmarkComponent implements OnInit {
     this.bs.submitBenchmark(this.configModel).subscribe(data => {
       this.configModel['response'] = data;
       this.submitModal.show();
+    }, error => {
+      this.messageService.add({ severity: 'warn', summary: 'Error', detail: 'Failed to submit benchmark: ' + error.json().message });
     });
   }
 }
