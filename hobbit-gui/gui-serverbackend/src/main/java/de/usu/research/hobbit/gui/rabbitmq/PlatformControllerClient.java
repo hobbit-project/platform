@@ -149,12 +149,10 @@ public class PlatformControllerClient implements Closeable {
      * Retrieves the benchmark details from the HOBBIT PlatformControler
      *
      * @param benchmarkUri
-     *            the URI of the benchmark for which the details should be
-     *            retrieved
+     *            the URI of the benchmark for which the details should be retrieved
      * @param user
-     *            information about the requesting user which will be used to
-     *            filter the systems that can be used with the requested
-     *            benchmark.
+     *            information about the requesting user which will be used to filter
+     *            the systems that can be used with the requested benchmark.
      * @return
      * @throws GUIBackendException
      * @throws IOException
@@ -175,11 +173,10 @@ public class PlatformControllerClient implements Closeable {
 
         byte[] data = null;
         if (user != null) {
-            data = client
-                    .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
-                            new byte[][] { RabbitMQUtils.writeString(benchmarkUri),
-                                    RabbitMQUtils.writeString(user.getPreferredUsername()) },
-                            null));
+            data = client.request(RabbitMQUtils.writeByteArrays(
+                    new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS }, new byte[][] {
+                            RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(user.getEmail()) },
+                    null));
         } else {
             data = client
                     .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
@@ -222,8 +219,21 @@ public class PlatformControllerClient implements Closeable {
         return benchmarkDetails;
     }
 
-    public String submitBenchmark(SubmitModelBean benchmarkConf) throws GUIBackendException, IOException,
-            ShutdownSignalException, ConsumerCancelledException, InterruptedException {
+    /**
+     * Sends the given benchmark configuration to the platform controller where an
+     * experiment will be started with the chosen system and benchmark
+     * configuration.
+     * 
+     * @param benchmarkConf
+     *            the benchmark configuration with which an experiment should be
+     *            started
+     * @return The ID of the created experiment
+     * @throws GUIBackendException
+     *             If the given benchmark configuration is not valid
+     * @throws IOException
+     *             If there is a problem during the receiving of the response
+     */
+    public String submitBenchmark(SubmitModelBean benchmarkConf) throws GUIBackendException, IOException {
         String benchmarkUri = benchmarkConf.getBenchmark();
         String systemUri = benchmarkConf.getSystem();
 
@@ -251,7 +261,7 @@ public class PlatformControllerClient implements Closeable {
         try {
             model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
         } catch (Exception e) {
-            LOGGER.error("Got an exception while processing the parameters.",e);
+            LOGGER.error("Got an exception while processing the parameters.", e);
             throw new GUIBackendException("Please check your parameter definitions.");
         }
 
@@ -273,6 +283,18 @@ public class PlatformControllerClient implements Closeable {
         return id;
     }
 
+    /**
+     * Adds the given list of parameters to the given RDF model by creating triples
+     * using the given benchmark resource.
+     * 
+     * @param model
+     *            the RDF model to which the parameter should be added
+     * @param benchmarkInstanceResource
+     *            the resource of the benchmark inside the given RDF model
+     * @param list
+     *            the list of parameters that should be added
+     * @return the updated model
+     */
     protected static Model addParameters(Model model, Resource benchmarkInstanceResource,
             List<ConfigurationParamValueBean> list) {
         for (ConfigurationParamValueBean paramValue : list) {
@@ -300,8 +322,14 @@ public class PlatformControllerClient implements Closeable {
         return model;
     }
 
-    public ControllerStatus requestStatus()
-            throws IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
+    /**
+     * Requests the status of the controller.
+     * 
+     * @return the status of the controller
+     * @throws IOException
+     *             If no response has been received
+     */
+    public ControllerStatus requestStatus() throws IOException {
         LOGGER.info("Sending request...");
         byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
         if (data == null) {
@@ -314,29 +342,57 @@ public class PlatformControllerClient implements Closeable {
         return status;
     }
 
-    public void closeChallenge(String challengeUri) {
+    /**
+     * Closes the challenge with the given URI.
+     * 
+     * @param challengeUri
+     *            the URI of the challenge that should be closed
+     * @throws IOException
+     *             If the controller does not responses
+     */
+    public void closeChallenge(String challengeUri) throws IOException {
         LOGGER.info("Sending request...");
         byte[] res = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.CLOSE_CHALLENGE },
                 new byte[][] { RabbitMQUtils.writeString(challengeUri) }, null));
-
+        if (res == null) {
+            throw new IOException("Didn't get a response when trying to close the challenge");
+        }
         String result = RabbitMQUtils.readString(res);
         LOGGER.info("Challenge " + challengeUri + " closed " + result);
     }
 
-    public List<SystemBean> requestSystemsOfUser(String user) {
+    /**
+     * Requests the systems for the user with the given user mail address. Returns
+     * an empty list if an error occurs.
+     * 
+     * @param userMail
+     *            the mail address of the user for which the systems should be
+     *            requested
+     * @return the systems for the given user or an empty list if an error occurred
+     */
+    public List<SystemBean> requestSystemsOfUser(String userMail) {
         byte[] response = client
                 .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_SYSTEMS_OF_USER },
-                        new byte[][] { RabbitMQUtils.writeString(user) }, null));
+                        new byte[][] { RabbitMQUtils.writeString(userMail) }, null));
+        if (response == null) {
+            LOGGER.info("Couldn't get the systems for user {}. Returning empty list.");
+            return new ArrayList<>(0);
+        }
         Collection<SystemMetaData> systems = gson.fromJson(RabbitMQUtils.readString(response),
                 new TypeToken<Collection<SystemMetaData>>() {
                 }.getType());
         List<SystemBean> systemBeans = new ArrayList<>();
-        for (SystemMetaData system : systems) {
-            systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+        if (systems != null) {
+            for (SystemMetaData system : systems) {
+                systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+            }
         }
         return systemBeans;
     }
 
+    /*
+     * Only for testing purposes.
+     */
     public static void main(String[] argv) throws Exception {
         try {
             final RabbitMQConnection connection = RabbitMQConnectionSingleton.getConnection();
@@ -368,6 +424,12 @@ public class PlatformControllerClient implements Closeable {
                                     }
                                     LOGGER.info("Request Systems for user GerbilBenchmark");
                                     systems = client.requestSystemsOfUser("GerbilBenchmark");
+                                    LOGGER.info("Found: {} systems", systems.size());
+                                    for (SystemBean system : systems) {
+                                        LOGGER.info("Found: {}, {}", system.getId(), system.getName());
+                                    }
+                                    LOGGER.info("Request Systems for user gerbil@informatik.uni-leipzig.de");
+                                    systems = client.requestSystemsOfUser("gerbil@informatik.uni-leipzig.de");
                                     LOGGER.info("Found: {} systems", systems.size());
                                     for (SystemBean system : systems) {
                                         LOGGER.info("Found: {}, {}", system.getId(), system.getName());

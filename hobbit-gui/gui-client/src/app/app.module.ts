@@ -34,6 +34,8 @@ import { TaskComponent } from './challenges/task/task.component';
 import { RegistrationComponent } from './challenges/registration/registration.component';
 import { DetailsWrapperComponent } from './experiments/details-wrapper/details-wrapper.component';
 import { StatusComponent } from './benchmark/status/status.component';
+import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.component';
+import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
 
 
 const appRoutes: Routes = [
@@ -46,9 +48,12 @@ const appRoutes: Routes = [
   { path: 'challenges', component: ChallengesComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id', component: ChallengesEditComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/experiments', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/experiments/:task', component: ChallengeExperimentsComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/register', component: RegisterComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/registrations', component: RegistrationComponent, canActivate: [AuthGuardService] },
   { path: 'challenges/:id/edit/:task', component: TaskComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/leaderboards', component: LeaderboardsComponent, canActivate: [AuthGuardService] },
+  { path: 'challenges/:id/leaderboards/:task', component: LeaderboardsComponent, canActivate: [AuthGuardService] },
   { path: 'experiments', component: ExperimentsComponent, canActivate: [AuthGuardService] },
   { path: 'experiments/:id', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
   { path: 'experiments/task/:task', component: DetailsWrapperComponent, canActivate: [AuthGuardService] },
@@ -103,6 +108,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     RegisterComponent,
     RegistrationComponent,
     DetailsWrapperComponent,
+    LeaderboardsComponent,
+    LeaderboardDetailsComponent,
     StatusComponent
   ],
   imports: [

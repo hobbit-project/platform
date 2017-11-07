@@ -1,0 +1,8 @@
+<div>
+  <sg-wait-loading [loaded]="loaded"></sg-wait-loading>
+
+  <div *ngIf="loaded">
+    <sg-experiments [experiments]="experiments" [displayRanks]="true">
+    </sg-experiments>
+  </div>
+</div>

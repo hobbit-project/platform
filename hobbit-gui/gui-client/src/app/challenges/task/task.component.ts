@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { ConfigComponent } from './../../benchmark/config/config.component';
 import { ConfirmationService } from 'primeng/primeng';
 import { FormGroup } from '@angular/forms';
@@ -31,7 +32,7 @@ export class TaskComponent implements OnInit {
   selectedBenchmark: Benchmark;
 
   constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private router: Router,
-    private confirmationService: ConfirmationService) { }
+    private confirmationService: ConfirmationService, private location: Location) { }
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.params['id'];
@@ -42,7 +43,7 @@ export class TaskComponent implements OnInit {
       this.challenge = data;
       if (this.adding) {
         this.taskIdx = this.challenge.tasks.length;
-        this.task = new ChallengeTask(`${id}_task${this.taskIdx + 1}`, `task${this.taskIdx + 1}`);
+        this.task = new ChallengeTask(`${id}_task${this.taskIdx + 1}`, `Task ${this.taskIdx + 1}`);
         this.loaded = true;
       } else {
         this.taskIdx = this.challenge.tasks.findIndex(t => t.id === taskId);
@@ -94,7 +95,7 @@ export class TaskComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['/challenges', this.activatedRoute.snapshot.params['id']]);
+    this.location.back();
   }
 
   deleteTask() {
@@ -117,6 +118,7 @@ export class TaskComponent implements OnInit {
     } else {
       this.task.configurationParams = [];
     }
+    this.task.benchmark.systems = [];
     this.doSave();
   }
 

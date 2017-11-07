@@ -1,3 +1,4 @@
+import { Location } from '@angular/common';
 import { Challenge, User, Role, ChallengeTask } from './../../model';
 import { BackendService } from './../../backend.service';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
@@ -42,12 +43,12 @@ export class EditComponent implements OnInit {
   public static readonly ADD_CHALLENGE = 'add-challenge';
 
   public challenge: Challenge;
-  private userInfo: User;
+  public userInfo: User;
   private dates: ChallengeDates;
   private selectedTask: ChallengeTask;
 
   constructor(private bs: BackendService, private route: ActivatedRoute, private router: Router,
-    private confirmationService: ConfirmationService) { }
+    private confirmationService: ConfirmationService, private location: Location) { }
 
   ngOnInit() {
     let id = this.route.snapshot.paramMap.get('id');
@@ -84,7 +85,7 @@ export class EditComponent implements OnInit {
   }
 
   cancel() {
-    this.router.navigate(['/challenges']);
+    this.location.back();
   }
 
   delete() {
@@ -127,6 +128,10 @@ export class EditComponent implements OnInit {
 
   showExperiments() {
     this.router.navigate(['challenges', this.challenge.id, 'experiments']);
+  }
+
+  showLeaderboards() {
+    this.router.navigate(['challenges', this.challenge.id, 'leaderboards']);
   }
 
   onSelect(event) {

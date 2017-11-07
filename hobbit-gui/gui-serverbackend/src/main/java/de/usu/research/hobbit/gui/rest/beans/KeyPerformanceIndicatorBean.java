@@ -18,33 +18,31 @@ package de.usu.research.hobbit.gui.rest.beans;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
 @XmlRootElement
-public class InfoBean {
-    private String message;
+public class KeyPerformanceIndicatorBean extends ConfigurationParamValueBean {
+    private String ranking;
 
-    public InfoBean() {
+    public String getRanking() {
+        return ranking;
     }
 
-    public InfoBean(String message) {
-        this.message = message;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
+    public void setRanking(String ranking) {
+        this.ranking = ranking;
     }
 
     @Override
     public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+        StringBuilder builder = new StringBuilder();
+        builder.append("KeyPerformanceIndicatorBean [ranking=");
+        builder.append(ranking);
+        builder.append(", id=");
+        builder.append(id);
+        builder.append(", name=");
+        builder.append(name);
+        builder.append(", description=");
+        builder.append(description);
+        builder.append("]");
+        return builder.toString();
     }
 
-    public static InfoBean withMessage(String message) {
-        return new InfoBean(message);
-    }
 }

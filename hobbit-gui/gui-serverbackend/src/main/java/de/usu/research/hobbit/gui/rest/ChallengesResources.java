@@ -16,9 +16,11 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -30,7 +32,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -59,13 +63,13 @@ public class ChallengesResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChallengesResources.class);
 
-    private DevInMemoryDb getDevDb() {
+    private static DevInMemoryDb getDevDb() {
         return DevInMemoryDb.theInstance;
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ChallengeBean> listAll(@Context SecurityContext sc) throws Exception {
+    public Response listAll(@Context SecurityContext sc) {
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
         LOGGER.info("List challenges for " + userInfo.getPreferredUsername() + " ...");
         List<ChallengeBean> challenges = null;
@@ -89,15 +93,10 @@ public class ChallengesResources {
             if (userInfo.hasRole("challenge-organiser")) {
                 list.addAll(challenges);
             } else {
-                for (ChallengeBean b : challenges) {
-                    if (b.isVisible()) {
-                        list.add(b);
-                    }
-                }
+                list.addAll(challenges.stream().filter(ChallengeBean::isVisible).collect(Collectors.toList()));
             }
         }
-
-        return list;
+        return Response.ok(new GenericEntity<List<ChallengeBean>>(list){}).build();
     }
 
     /**
@@ -138,7 +137,14 @@ public class ChallengesResources {
     @GET
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public ChallengeBean getById(@PathParam("id") String id, @Context SecurityContext sc) throws Exception {
+    public Response getById(@PathParam("id") String id, @Context SecurityContext sc) {
+        ChallengeBean bean = ChallengesResources.getChallenge(id, sc);
+        if (bean != null)
+            return Response.ok(bean).build();
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
+    }
+
+    static ChallengeBean getChallenge(String id, SecurityContext sc) {
         if (Application.isUsingDevDb()) {
             for (ChallengeBean item : getDevDb().getChallenges()) {
                 if (item.getId().equals(id)) {
@@ -173,7 +179,7 @@ public class ChallengesResources {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({ "challenge-organiser" })
-    public IdBean add(ChallengeBean challenge, @Context SecurityContext sc) throws Exception {
+    public Response add(ChallengeBean challenge, @Context SecurityContext sc) {
         // FIXME this should be removed as soon as the gui-client sends
         // challenges containing the preferred user name as owner
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
@@ -187,7 +193,7 @@ public class ChallengesResources {
             StorageServiceClientSingleton.getInstance().sendInsertQuery(model,
                     Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         }
-        return new IdBean(challenge.getId());
+        return Response.ok(new IdBean(challenge.getId())).build();
     }
 
     @PUT
@@ -195,25 +201,30 @@ public class ChallengesResources {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({ "challenge-organiser" })
-    public InfoBean close(@PathParam("id") String id, EmptyBean dummy) throws Exception {
+    public Response close(@PathParam("id") String id, EmptyBean dummy) {
         if (Application.isUsingDevDb()) {
             Boolean justClosed = getDevDb().closeChallenge(id);
             if (justClosed != null) {
                 if (justClosed) {
-                    return new InfoBean("Challenge has been closed");
+                    return Response.ok(InfoBean.withMessage("Challenge has been closed")).build();
                 } else {
-                    return new InfoBean("Challenge was already closed");
+                    return Response.ok(InfoBean.withMessage("Challenge was already closed")).build();
                 }
             } else {
-                throw new Exception("Challenge " + id + " not found");
+                return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
             }
         } else {
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
             if (client != null) {
-                client.closeChallenge(id);
-                return new InfoBean("Challenge has been closed");
+                try {
+                    client.closeChallenge(id);
+                    return Response.ok(InfoBean.withMessage("Challenge has been closed")).build();
+                }
+                catch (IOException ex) {
+                    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
+                }
             } else {
-                throw new Exception("Couldn't get platform controller client.");
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage("Couldn't get platform controller client.")).build();
             }
         }
     }
@@ -223,13 +234,13 @@ public class ChallengesResources {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({ "challenge-organiser" })
-    public IdBean update(@PathParam("id") String id, ChallengeBean challenge) throws Exception {
+    public Response update(@PathParam("id") String id, ChallengeBean challenge) {
         // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
         challenge.setId(id);
         if (Application.isUsingDevDb()) {
             String updatedId = getDevDb().updateChallenge(challenge);
             if (updatedId != null) {
-                return new IdBean(updatedId);
+                return Response.ok(new IdBean(updatedId)).build() ;
             }
         } else {
             StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
@@ -244,28 +255,27 @@ public class ChallengesResources {
                     // Create update query from difference
                     storageClient.sendUpdateQuery(SparqlQueries.getUpdateQueryFromDiff(oldModel, newModel,
                             Constants.CHALLENGE_DEFINITION_GRAPH_URI));
-                    return new IdBean(id);
+                    return Response.ok(new IdBean(id)).build();
                 } else {
                     LOGGER.error(
                             "Couldn't update the challenge {} because it couldn't be loaded from storage. Update will be ignored.",
                             id);
                 }
             }
-            return new IdBean(id);
+            return Response.ok(new IdBean(id)).build();
         }
-
-        throw new Exception("Challenge " + id + " not found");
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
     }
 
     @DELETE
     @Path("{id}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({ "challenge-organiser" })
-    public IdBean delete(@PathParam("id") String id) throws Exception {
+    public Response delete(@PathParam("id") String id) {
         if (Application.isUsingDevDb()) {
             String deletedId = getDevDb().deleteChallenge(id);
             if (deletedId != null) {
-                return new IdBean(deletedId);
+                return Response.ok(new IdBean(deletedId)).build();
             }
         } else {
             // FIXME check whether the user is allowed to delete this challenge
@@ -281,12 +291,11 @@ public class ChallengesResources {
                         for (int i = 0; i < queries.length; ++i) {
                             storageClient.sendUpdateQuery(queries[i]);
                         }
-                        return new IdBean(id);
+                        return Response.ok(new IdBean(id)).build();
                     }
                 }
             }
         }
-
-        throw new Exception("Challenge " + id + " not found");
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
     }
 }

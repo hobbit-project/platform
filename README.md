@@ -191,11 +191,11 @@ The local version uses plain text logging and connects the platform to your loca
 1. Start the platform by running: `docker-compose up`
 
 Available services
-* :8080 Graphical user interface of the platform
-* :8081 RabbitMQ GUI
-* :8181 Keycloak GUI
-* :8890 Virtuoso GUI (including a SPARQL endpoint)
-* :5672 RabbitMQ communication port for adding additional components to the platform, e.g., for testing scenarios
+* http://localhost:8080/ Graphical user interface of the platform
+* http://localhost:8081/ RabbitMQ GUI
+* http://localhost:8181/ Keycloak GUI
+* http://localhost:8890/ Virtuoso GUI (including a SPARQL endpoint)
+* `5672` RabbitMQ communication port for adding additional components to the platform, e.g., for testing scenarios
 
 ### Running controller without docker
 

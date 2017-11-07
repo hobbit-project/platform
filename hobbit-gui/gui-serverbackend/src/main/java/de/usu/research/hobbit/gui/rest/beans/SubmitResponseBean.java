@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SubmitResponseBean {
     private String id;
     private Date timestamp;
-    private String error;
 
     public SubmitResponseBean() {
     }
@@ -49,12 +48,4 @@ public class SubmitResponseBean {
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
-
-	public String getError() {
-		return error;
-	}
-
-	public void setError(String error) {
-		this.error = error;
-	}
 }
