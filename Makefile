@@ -6,6 +6,13 @@ build:
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
+test:
+	make --directory=platform-controller test
+	cd platform-storage/storage-service && mvn --update-snapshots clean test
+	cd analysis-component && mvn --update-snapshots clean test
+	cd hobbit-gui/gui-client && npm install && npm run lint
+	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
+
 local-controller: lc-build lc-run
 
 lc-build:
