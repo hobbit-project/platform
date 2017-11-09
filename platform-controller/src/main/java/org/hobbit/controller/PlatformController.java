@@ -687,14 +687,17 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         Calendar dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.dateOfNextExecution);
         if (dateOfNextExecution == null) {
-            dateOfNextExecution = now;
+            dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.executionDate);
+            if (dateOfNextExecution == null) {
+                dateOfNextExecution = now;
+            }
         }
 
         int skip = -1;
-        while (dateOfNextExecution.before(now)) {
+        do {
             dateOfNextExecution.add(Calendar.MILLISECOND, (int) executionPeriod.toMillis());
             skip++;
-        }
+        } while (dateOfNextExecution.before(now));
         if (skip > 0) {
             LOGGER.info("Skipping {} executions of repeatable challenge {} due to running late", skip, challenge);
         }

@@ -83,7 +83,7 @@ public class ChallengePublicationTest {
                 "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
 
         Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
-        now.set(2016, Calendar.DECEMBER, 24, 0, 0, 0);
+        now.set(2016, Calendar.DECEMBER, 24, 12, 0, 0);
         now.set(Calendar.MILLISECOND, 0);
         PlatformController.scheduleDateOfNextExecution(storage, "http://example.org/Challenge1", now);
 
