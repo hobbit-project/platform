@@ -93,6 +93,7 @@ public class PlatformControllerTest extends DockerBasedTest {
                     && gotType != null && gotType.equals(type)
                     && gotParent != null && gotParent.equals(parentId)) {
                 containerId = c.id();
+                break;
             }
         }
 
