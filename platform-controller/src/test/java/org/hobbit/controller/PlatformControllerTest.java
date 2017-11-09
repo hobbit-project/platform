@@ -97,9 +97,6 @@ public class PlatformControllerTest extends DockerBasedTest {
             }
         }
 
-        // check that container exists
-        assertNotNull(containerId);
-
         // cleanup
         try {
             dockerClient.stopContainer(containerId, 5);
@@ -113,5 +110,8 @@ public class PlatformControllerTest extends DockerBasedTest {
         try {
             dockerClient.removeContainer(parentId);
         } catch (Exception e) {}
+
+        // check that container exists
+        assertNotNull(containerId);
     }
 }
