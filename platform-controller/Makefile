@@ -18,7 +18,7 @@ run:
 test: deps
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
-	mvn test
+	mvn --update-snapshots clean test
 
 test-all: test
 
