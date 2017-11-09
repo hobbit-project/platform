@@ -97,6 +97,8 @@ public class ExperimentManager implements Closeable {
         this.controller = controller;
 
         try {
+            // TODO environment variable should have been used there
+            // TODO global static method in hobbit core for retrieving values like this
             defaultMaxExecutionTime = Long
                     .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
         } catch (Exception e) {
