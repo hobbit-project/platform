@@ -18,7 +18,7 @@ ex:Challenge1 a	hobbit:Challenge;
   hobbit:registrationCutoffDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
   hobbit:executionPeriod  "P1D"^^xsd:duration;
   hobbit:organizer "owner"@en;
-  hobbit:closed	"true"^^xsd:boolean;
+  hobbit:closed	"false"^^xsd:boolean;
   hobbit:visible	"true"^^xsd:boolean.
 
 ex:Challenge2 a	hobbit:Challenge;
