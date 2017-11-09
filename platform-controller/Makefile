@@ -15,21 +15,21 @@ run:
 		org.hobbit.core.run.ComponentStarter \
 		org.hobbit.controller.PlatformController
 
-test:
-	HOBBIT_RABBIT_HOST=localhost \
-	mvn test -Dtest=ContainerManagerImplTest
-
-test-all:
+test: deps
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
 	mvn test
 
+test-all: test
+
 deps: redis rabbit
 
 redis:
+	test -n "$$(docker ps -aq --filter name=hobbit-redis)" || \
 	docker run -d \
 		--name hobbit-redis \
 		-p 6379:6379 \
+		--rm \
 		redis
 
 rediscli:
@@ -39,8 +39,10 @@ rediscli:
 		redis redis-cli -h redis -p 6379
 
 rabbit:
+	test -n "$$(docker ps -aq --filter name=hobbit-rabbit)" || \
 	docker run -d \
 		--name hobbit-rabbit \
 		-p 5672:5672 \
 		-p 8080:15672 \
+		--rm \
 		rabbitmq:management
