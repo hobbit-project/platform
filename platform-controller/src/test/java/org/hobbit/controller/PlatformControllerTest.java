@@ -89,7 +89,9 @@ public class PlatformControllerTest extends DockerBasedTest {
             String gotImage = c.image();
             String gotType = c.labels().get(ContainerManagerImpl.LABEL_TYPE);
             String gotParent = c.labels().get(ContainerManagerImpl.LABEL_PARENT);
-            if (gotImage.equals(image) && gotType.equals(type) && gotParent.equals(parentId)) {
+            if (gotImage != null && gotImage.equals(image)
+                    && gotType != null && gotType.equals(type)
+                    && gotParent != null && gotParent.equals(parentId)) {
                 containerId = c.id();
             }
         }
