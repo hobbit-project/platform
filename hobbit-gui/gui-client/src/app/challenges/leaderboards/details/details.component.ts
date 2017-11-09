@@ -33,7 +33,7 @@ export class LeaderboardDetailsComponent implements OnChanges {
       const KPIVal = (experiment, id): number => {
         const kpi = experiment.kpis.find(k => k.id === id);
         if (kpi) {
-          let value = parseFloat(kpi.value);
+          const value = parseFloat(kpi.value);
           if (!isNaN(value)) {
             switch (kpi.ranking) {
               case 'http://w3id.org/hobbit/vocab#AscendingOrder':
@@ -55,7 +55,7 @@ export class LeaderboardDetailsComponent implements OnChanges {
         return a > b ? 1 : b > a ? -1 : 0;
       };
 
-      data.sort((a, b) => this.rankingKPIs.map(kpi => cmp(KPIVal(a, kpi), KPIVal(b, kpi))).find(cmp => cmp !== 0) || cmp(a.system.id, b.system.id));
+      data.sort((a, b) => this.rankingKPIs.map(kpi => cmp(KPIVal(a, kpi), KPIVal(b, kpi))).find(cmpVal => cmpVal !== 0) || cmp(a.system.id, b.system.id));
       for (let i = 0; i < data.length; i++) {
         if (!systems[data[i].system.id]) {
           systems[data[i].system.id] = true;
