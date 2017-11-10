@@ -39,7 +39,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
  */
 public class PlatformControllerTest extends DockerBasedTest {
 
-    private static final String RABBIT_HOST_NAME = "192.168.99.100";
+    private static final String RABBIT_HOST_NAME = getDockerHostFromEnv();
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
