@@ -31,6 +31,7 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,6 +62,10 @@ public class ImageManagerImplTest {
 
     @Test
     public void getBenchmarks() throws Exception {
+        Assume.assumeNotNull(System.getenv("GITLAB_USER"),
+                             System.getenv("GITLAB_EMAIL"),
+                             System.getenv("GITLAB_TOKEN"));
+
         // use future to make test wait for async stuff (sigh, java)
         CompletableFuture<String> future = new CompletableFuture<>();
 
