@@ -49,10 +49,10 @@
             </ng-container>
           </dl>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer" *ngIf="configModel.response">
           <span>Successfully submitted
-            <a [routerLink]="['/experiments/details']" [queryParams]="{ id: configModel.response?.id }">HOBBIT ID {{configModel.response?.id}}</a>
-            at {{configModel.response?.timestamp}}
+            <a [routerLink]="['/experiments/', configModel.response.id]">HOBBIT ID {{configModel.response.id}}</a>
+            at {{configModel.response.timestamp}}
           </span>
           <button type="button" class="btn btn-secondary" (click)="submitModal.hide()">Close</button>
         </div>
