@@ -6,6 +6,10 @@ build:
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
+install:
+	@docker network inspect hobbit >/dev/null || (docker network create hobbit && echo "Created network: hobbit")
+	@docker network inspect hobbit-core >/dev/null || (docker network create hobbit-core && echo "Created network: hobbit-core")
+
 test:
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
