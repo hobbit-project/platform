@@ -9,6 +9,8 @@ build:
 install:
 	@docker network inspect hobbit >/dev/null || (docker network create hobbit && echo "Created network: hobbit")
 	@docker network inspect hobbit-core >/dev/null || (docker network create hobbit-core && echo "Created network: hobbit-core")
+	@chmod --changes 777 config/keycloak
+	@chmod --changes 666 config/keycloak/keycloak.h2.db
 
 test:
 	make --directory=platform-controller test
