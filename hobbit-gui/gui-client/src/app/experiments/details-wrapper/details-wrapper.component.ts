@@ -14,12 +14,19 @@ export class DetailsWrapperComponent implements OnInit {
   constructor(private activatedRoute: ActivatedRoute, private location: Location) { }
 
   ngOnInit() {
-    const params = {};
-    Object.assign(params, this.activatedRoute.snapshot.queryParams);
-    Object.assign(params, this.activatedRoute.snapshot.params);
+    const {params, queryParams} = this.activatedRoute.snapshot;
 
-    this.idsCommaSeparated = params['id'];
-    this.challengeTaskId = params['task'];
+    if (params['id'] !== 'details') {
+      this.idsCommaSeparated = params['id'];
+      this.challengeTaskId = params['task'];
+
+    } else {
+      // handle old URLs
+      this.idsCommaSeparated = queryParams['id'];
+      this.challengeTaskId = queryParams['challenge-task-id'];
+    }
+
+    console.log(this.idsCommaSeparated, this.challengeTaskId);
   }
 
   cancel() {
