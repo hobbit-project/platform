@@ -7,9 +7,8 @@
       1. [Details of the user management](https://github.com/hobbit-project/platform#details-of-the-user-management)
    1. [Using Benchmarks from the HOBBIT Git](https://github.com/hobbit-project/platform#using-benchmarks-from-the-hobbit-git)
 1. [Running](https://github.com/hobbit-project/platform#running)
+1. [Troubleshooting](https://github.com/hobbit-project/platform#troubleshooting)
 1. [Related projects](https://github.com/hobbit-project/platform#related-projects)
-
-If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
 
 ## Requirements
 
@@ -201,6 +200,11 @@ Available services
 
 1. Start the platform components by running: `docker-compose -f docker-compose-local.yml up`
 2. Start the platform-controller by running: `make local-controller`
+
+## Troubleshooting
+
+If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
+
 
 # Related projects
 
