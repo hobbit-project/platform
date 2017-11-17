@@ -24,7 +24,9 @@ public class CacheFilter implements Filter {
     }
 
     private void addCorsHeader(HttpServletResponse response) {
-        response.addHeader("Cache-Control", "no-cache");
+        response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.addHeader("Pragma", "no-cache");
+        response.addHeader("Expires", "0");
     }
 
     @Override
