@@ -77,12 +77,13 @@
             <artifactId>amqp-client</artifactId>
             <version>3.6.0</version>
         </dependency>
-        <!-- Docker Client -->
+        <!-- Guava (there only to mitigate version conflicts) -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>23.4-jre</version>
+            <version>20.0</version>
         </dependency>
+        <!-- Docker Client -->
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>docker-client</artifactId>
