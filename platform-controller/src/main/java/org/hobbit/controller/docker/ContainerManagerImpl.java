@@ -36,7 +36,6 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
-import com.spotify.docker.client.messages.AuthConfig;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
@@ -46,6 +45,7 @@ import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.LogConfig;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.RegistryAuth;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
@@ -96,7 +96,7 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Authentication configuration for accessing private repositories.
      */
-    private final AuthConfig gitlabAuth;
+    private final RegistryAuth gitlabAuth;
     /**
      * Observers that should be notified if a container terminates.
      */
@@ -120,7 +120,7 @@ public class ContainerManagerImpl implements ContainerManager {
         String registryUrl = System.getenv().containsKey(REGISTRY_URL_KEY) ? System.getenv(REGISTRY_URL_KEY)
                 : "git.project-hobbit.eu:4567";
         if ((username != null) && (password != null)) {
-            gitlabAuth = AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
+            gitlabAuth = RegistryAuth.builder().serverAddress(registryUrl).username(username).password(password)
                     .email(email).build();
         } else {
             LOGGER.warn(
