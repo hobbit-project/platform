@@ -17,20 +17,11 @@
 package org.hobbit.controller.docker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.hobbit.controller.DockerBasedTest;
 import org.junit.After;
 import org.junit.Before;
-
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.messages.AttachedNetwork;
-import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.ContainerCreation;
-import com.spotify.docker.client.messages.ContainerInfo;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
