@@ -32,9 +32,9 @@ import org.hobbit.core.Constants;
  * Created by Timofey Ermilov on 01/09/16.
  */
 public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerStateObserverImplTest.class);
-    
+
     private ContainerStateObserverImpl observer;
     private Throwable throwable = null;
     private Semaphore termination = new Semaphore(0);
@@ -42,7 +42,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
     @Before
     public void initObserver() {
         // poll every 500ms
-        observer = new ContainerStateObserverImpl(this.manager, 500); 
+        observer = new ContainerStateObserverImpl(this.manager, 500);
         observer.startObserving();
     }
 
@@ -66,7 +66,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
                     // check that correct values were set
                     assertEquals(containerId, containerTwoId);
                     assertEquals(0, exitCode);
-    
+
                     // cleanup
                     LOGGER.info("Removing stopped container two...");
                     observer.removedObservedContainer(containerTwoId);
@@ -87,12 +87,12 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
                     assertEquals(containerOneId, containerId);
                     assertEquals(137, exitCode);
                     observer.removeTerminationCallback(this);
-    
+
                     // cleanup
                     LOGGER.info("Removing stopped container one...");
                     observer.removedObservedContainer(containerOneId);
                     manager.removeContainer(containerOneId);
-                    
+
                     observer.addTerminationCallback(cb2);
                     LOGGER.info("Waiting for container two to terminate...");
                 } catch (Throwable t) {
@@ -106,7 +106,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         // stop container one
         LOGGER.info("Stopping container one...");
         manager.stopContainer(containerOneId);
-        
+
         // wait for the check to end
         LOGGER.info("Waiting for the check to end...");
         termination.acquire();
