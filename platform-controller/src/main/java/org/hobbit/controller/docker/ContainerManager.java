@@ -16,8 +16,9 @@
  */
 package org.hobbit.controller.docker;
 
+import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.swarm.Task;
 
 import java.util.List;
 
@@ -118,10 +119,11 @@ public interface ContainerManager {
      * @param containerId
      *            id of the container that should be stopped
      */
+    @Deprecated
     public void stopContainer(String containerId);
 
     /**
-     * Removes the already terminated container with the given container Id.
+     * Removes the container with the given container Id.
      *
      * @param containerId
      *            id of the container that should be removed
@@ -149,7 +151,7 @@ public interface ContainerManager {
      *
      * @param containerId
      */
-    public ContainerInfo getContainerInfo(String containerId);
+    public Task getContainerInfo(String containerId) throws InterruptedException, DockerException;
 
     /**
      * Get a list of containers

@@ -24,7 +24,7 @@ import org.hobbit.vocab.HobbitErrors;
 import org.junit.*;
 
 import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerInfo;
+import com.spotify.docker.client.messages.swarm.Task;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
@@ -243,7 +243,7 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
-        public ContainerInfo getContainerInfo(String containerId) {
+        public Task getContainerInfo(String containerId) {
             return null;
         }
 

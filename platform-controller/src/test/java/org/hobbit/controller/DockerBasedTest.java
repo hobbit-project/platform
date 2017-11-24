@@ -31,7 +31,7 @@ import com.spotify.docker.client.messages.Image;
 public class DockerBasedTest {
     protected DockerClient dockerClient;
     protected static final String busyboxImageName = "busybox:latest";
-    protected static final String[] sleepCommand = { "sleep", "20s" };
+    protected static final String[] sleepCommand = { "sleep", "60s" };
 
     protected boolean findImageWithTag(final String id, final List<Image> images) {
         if (images != null) {
