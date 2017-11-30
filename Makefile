@@ -14,6 +14,7 @@ install:
 	docker-compose up -d virtuoso
 	./run-storage-init.sh; true
 	docker-compose stop virtuoso
+	[ -z "$$DOCKER_HOST" ] && cp --no-clobber docker-compose.override.localhost.yml docker-compose.override.yml; true
 
 test:
 	make --directory=platform-controller test

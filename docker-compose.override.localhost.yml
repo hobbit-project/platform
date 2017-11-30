@@ -1,0 +1,5 @@
+version: '2'
+services:
+  gui:
+    environment:
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
