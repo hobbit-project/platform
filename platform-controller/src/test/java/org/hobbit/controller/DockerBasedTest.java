@@ -33,30 +33,6 @@ public class DockerBasedTest {
     protected static final String busyboxImageName = "busybox:latest";
     protected static final String[] sleepCommand = { "sleep", "20s" };
 
-    protected static String getDockerHost(final String dockerURI) {
-        if (dockerURI == null) {
-            return "localhost";
-        }
-
-        String dockerHost = null;
-
-        try {
-            dockerHost = new URI(dockerURI).getHost();
-        } catch (java.net.URISyntaxException e) {
-            System.out.println("EXCEPTION: " + e);
-        }
-
-        if (dockerHost == null) {
-            dockerHost = dockerURI;
-        }
-
-        return dockerHost;
-    }
-
-    protected static String getDockerHostFromEnv() {
-        return getDockerHost(System.getenv("DOCKER_HOST"));
-    }
-
     protected boolean findImageWithTag(final String id, final List<Image> images) {
         if (images != null) {
             for (Image image : images) {

@@ -29,6 +29,7 @@ import com.spotify.docker.client.messages.ContainerConfig;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
+import org.hobbit.utils.docker.DockerHelper;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,7 +40,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
  */
 public class PlatformControllerTest extends DockerBasedTest {
 
-    private static final String RABBIT_HOST_NAME = getDockerHostFromEnv();
+    private static final String RABBIT_HOST_NAME = DockerHelper.getHost();
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
