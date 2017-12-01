@@ -529,7 +529,8 @@ public class ContainerManagerImpl implements ContainerManager {
 
             // If we are not in testing mode, remove all containers. In testing
             // mode, remove only those that have a non-zero status
-            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (taskInfo.status().containerStatus().exitCode() == 0)) {
+            Integer exitCode = taskInfo.status().containerStatus().exitCode();
+            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0)) {
                 dockerClient.removeService(serviceId);
 
                 // wait for service to disappear
