@@ -65,13 +65,15 @@ public class ContainerManagerImpl implements ContainerManager {
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
 
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
-            ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
+            ? System.getenv().get(DEPLOY_ENV_KEY)
+            : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
     private static final Boolean DOCKER_AUTOPULL = System.getenv().containsKey(DOCKER_AUTOPULL_ENV_KEY)
-            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1" : true;
+            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1"
+            : true;
 
     /**
      * Label that denotes container type
@@ -304,7 +306,10 @@ public class ContainerManagerImpl implements ContainerManager {
                         || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
             // defaultEnv.add("constraint:org.hobbit.workergroup==" +
             // Constants.CONTAINER_TYPE_DATABASE);
-            defaultEnv.add("constraint:org.hobbit.type==data");
+            // defaultEnv.add("constraint:org.hobbit.type==data");
+            // database containers have to be deployed on the benchmark nodes (see
+            // https://github.com/hobbit-project/platform/issues/170)
+            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
         } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
                 && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
             defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
