@@ -19,17 +19,20 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
@@ -44,8 +47,8 @@ import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
-import org.hobbit.vocab.HobbitErrors;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -256,21 +259,18 @@ public class ExperimentManager implements Closeable {
     // Static method for easier testing
     protected static String getSerializedSystemParams(ExperimentConfiguration config, ImageManager imageManager) {
         Model systemModel = imageManager.getSystemModel(config.systemUri);
-        Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);
-        // FIXME The param class should be replaced by a constant resource in the HOBBIT
-        // vocab
-        Resource paramClass = new ResourceImpl(HOBBIT.getURI() + "ForwardedParameter");
+        Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);;
         // Check the benchmark model for parameters that should be forwarded to the
         // system
         // if(benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
-        if (benchmarkModel.contains(null, RDF.type, paramClass)) {
+        if (benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
             Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
             Property parameter;
             NodeIterator objIterator;
             Resource system = systemModel.getResource(config.systemUri);
             Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
             // Get an iterator for all these parameters
-            ResIterator iterator = benchmarkModel.listResourcesWithProperty(RDF.type, paramClass);
+            ResIterator iterator = benchmarkModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
             while (iterator.hasNext()) {
                 // Get the parameter
                 parameter = benchmarkModel.getProperty(iterator.next().getURI());
