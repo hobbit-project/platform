@@ -200,9 +200,8 @@ public class ExperimentManager implements Closeable {
                         LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Could not load timeouts config, using default value " + defaultMaxExecutionTime + "ms.",
-                            e);
+                    LOGGER.error("Could not load timeouts config ({}). Using default value {}ms.", e.getMessage(),
+                            defaultMaxExecutionTime);
                 }
 
                 // start experiment timer/status
