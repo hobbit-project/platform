@@ -36,7 +36,6 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.AttachedNetwork;
-import com.spotify.docker.client.messages.AuthConfig;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
@@ -46,6 +45,7 @@ import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.LogConfig;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
+import com.spotify.docker.client.messages.RegistryAuth;
 
 /**
  * Created by Timofey Ermilov on 31/08/16
@@ -65,13 +65,15 @@ public class ContainerManagerImpl implements ContainerManager {
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
 
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
-            ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
+            ? System.getenv().get(DEPLOY_ENV_KEY)
+            : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
     private static final Boolean DOCKER_AUTOPULL = System.getenv().containsKey(DOCKER_AUTOPULL_ENV_KEY)
-            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1" : true;
+            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1"
+            : true;
 
     /**
      * Label that denotes container type
@@ -96,7 +98,7 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Authentication configuration for accessing private repositories.
      */
-    private final AuthConfig gitlabAuth;
+    private final RegistryAuth gitlabAuth;
     /**
      * Observers that should be notified if a container terminates.
      */
@@ -120,7 +122,7 @@ public class ContainerManagerImpl implements ContainerManager {
         String registryUrl = System.getenv().containsKey(REGISTRY_URL_KEY) ? System.getenv(REGISTRY_URL_KEY)
                 : "git.project-hobbit.eu:4567";
         if ((username != null) && (password != null)) {
-            gitlabAuth = AuthConfig.builder().serverAddress(registryUrl).username(username).password(password)
+            gitlabAuth = RegistryAuth.builder().serverAddress(registryUrl).username(username).password(password)
                     .email(email).build();
         } else {
             LOGGER.warn(
@@ -304,7 +306,10 @@ public class ContainerManagerImpl implements ContainerManager {
                         || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
             // defaultEnv.add("constraint:org.hobbit.workergroup==" +
             // Constants.CONTAINER_TYPE_DATABASE);
-            defaultEnv.add("constraint:org.hobbit.type==data");
+            // defaultEnv.add("constraint:org.hobbit.type==data");
+            // database containers have to be deployed on the benchmark nodes (see
+            // https://github.com/hobbit-project/platform/issues/170)
+            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
         } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
                 && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
             defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
