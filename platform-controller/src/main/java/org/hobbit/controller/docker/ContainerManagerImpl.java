@@ -358,7 +358,13 @@ public class ContainerManagerImpl implements ContainerManager {
             ContainerInfo info = getContainerInfo(containerId);
             Map<String, AttachedNetwork> networks = info.networkSettings().networks();
             for (String networkName : networks.keySet()) {
-                dockerClient.disconnectFromNetwork(containerId, networkName);
+                try {
+                    dockerClient.disconnectFromNetwork(containerId, networkName);
+                } catch (Exception e) {
+                    LOGGER.warn(
+                            "Couldn't disconnect the created container from the network although it was said that the container would be connected to it. This problem will be ignored.",
+                            e);
+                }
             }
             // connect to hobbit network
             dockerClient.connectToNetwork(resp.id(), HOBBIT_DOCKER_NETWORK);
