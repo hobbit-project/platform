@@ -19,7 +19,9 @@ package org.hobbit.controller.queue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import org.hobbit.controller.data.ExperimentConfiguration;
@@ -109,9 +111,12 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         // get a list
         List<ExperimentConfiguration> allThree = queue.listAll();
         assertEquals(allThree.size(), 3);
-        assertEquals(allThree.get(0).id, "2");
-        assertEquals(allThree.get(1).id, "1");
-        assertEquals(allThree.get(2).id, "3");
+        // queue.listAll() returns items with no specific order
+        List<String> gotIds = Arrays.asList(allThree.get(0).id, allThree.get(1).id, allThree.get(2).id);
+        Collections.sort(gotIds);
+        List<String> expectedIds = Arrays.asList(cfg.id, cfg2.id, cfg3.id);
+        Collections.sort(expectedIds);
+        assertEquals("List of all items in the queue", expectedIds, gotIds);
     }
 
     @Test

@@ -13,12 +13,12 @@
 ex:Challenge1 a	hobbit:Challenge;
   rdfs:label "Challenge 1 Label"@en;
   rdfs:comment	"Challenge 1 Desc."@en;
-  hobbit:executionDate "2016-12-24"^^xsd:date;
+  hobbit:executionDate "2016-12-24T00:00:00Z"^^xsd:dateTime;
   hobbit:publicationDate "2016-12-26"^^xsd:date;
   hobbit:registrationCutoffDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
   hobbit:executionPeriod  "P1D"^^xsd:duration;
   hobbit:organizer "owner"@en;
-  hobbit:closed	"true"^^xsd:boolean;
+  hobbit:closed	"false"^^xsd:boolean;
   hobbit:visible	"true"^^xsd:boolean.
 
 ex:Challenge2 a	hobbit:Challenge;

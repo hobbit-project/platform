@@ -36,7 +36,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void startContainer() throws Exception {
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0",
+        String parentId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
+                sleepCommand);
+        assertNotNull(parentId);
+        containers.add(parentId);
+
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, parentId,
                 sleepCommand);
         assertNotNull(containerId);
         containers.add(containerId);
@@ -46,13 +51,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertTrue(containerInfo.state().running());
         assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_TYPE),
                 Constants.CONTAINER_TYPE_SYSTEM);
-        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_PARENT), "0");
+        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_PARENT), parentId);
         assertTrue(Arrays.equals(containerInfo.config().cmd().toArray(), sleepCommand));
     }
 
     @Test
     public void startContainerWithoutCommand() throws Exception {
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0");
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
         containers.add(containerId);
         // make sure it was executed with default sleepCommand
@@ -64,7 +69,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     public void stopContainer() throws Exception {
         // start new test container
-        String containerId = manager.startContainer(busyboxImageName, sleepCommand);
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
         containers.add(containerId);
         // check that it's actually running
@@ -80,7 +85,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     public void removeContainer() throws Exception {
         // start new test container
-        String testContainer = manager.startContainer(busyboxImageName, sleepCommand);
+        String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
         containers.add(testContainer);
         // stop it immediately
@@ -105,7 +110,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // - child1
         // - subParent:
         // - subchild
-        String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, "0", sleepCommand);
+        String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(topParent);
         containers.add(topParent);
         String child1 = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
@@ -161,7 +166,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     public void getContainerInfo() throws Exception {
         // start new test container
-        String testContainer = manager.startContainer(busyboxImageName, sleepCommand);
+        String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
         containers.add(testContainer);
         // stop it immediately
@@ -177,7 +182,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     public void getContainerIdAndName() throws Exception {
         // start new test container
-        String containerId = manager.startContainer(busyboxImageName, sleepCommand);
+        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
         containers.add(containerId);
 

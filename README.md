@@ -7,9 +7,8 @@
       1. [Details of the user management](https://github.com/hobbit-project/platform#details-of-the-user-management)
    1. [Using Benchmarks from the HOBBIT Git](https://github.com/hobbit-project/platform#using-benchmarks-from-the-hobbit-git)
 1. [Running](https://github.com/hobbit-project/platform#running)
+1. [Troubleshooting](https://github.com/hobbit-project/platform#troubleshooting)
 1. [Related projects](https://github.com/hobbit-project/platform#related-projects)
-
-If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
 
 ## Requirements
 
@@ -20,9 +19,9 @@ If you encounter problems setting up the platform, please have a look at our [FA
   * [Node.js](https://nodejs.org) v6.9.1
   * [npm](https://www.npmjs.com/) 4.0.2
 * For building and running project components
-  * [Docker](https://www.docker.com/) 1.12.2 
+  * [Docker](https://www.docker.com/) 1.12.2
   * [Docker Compose](https://docs.docker.com/compose/) 1.8.1
-  
+
 (Newer versions should work as well)
 
 ## Preparing
@@ -30,12 +29,12 @@ If you encounter problems setting up the platform, please have a look at our [FA
 These steps have to be done only once before starting the platform the first time.
 
 1. Clone this repository
-2. Create new hobbit networks: 
-    `docker network create hobbit-core` and 
+2. Create new hobbit networks:
+    `docker network create hobbit-core` and
     `docker network create hobbit`
-3. Build platform components by running: 
+3. Build platform components by running:
     `make build`
-4. Build and pull required docker containers by running: 
+4. Build and pull required docker containers by running:
     `docker-compose build`
 5. Configure Virtuoso
    1. Change passwords (optional)
@@ -71,7 +70,7 @@ The Virtuoso store has two users - the Virtuoso super user `dba` and a second us
 
 #### Run initialization script (required)
 
-* Start the Virtuoso of the platform by running 
+* Start the Virtuoso of the platform by running
 ```bash
 docker-compose up virtuoso
 ```
@@ -82,7 +81,7 @@ run-storage-init.sh
 
 ### Configure Keycloak
 
-To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser. 
+To be able to use the graphical user interface the Keycloak user management is needed. Since a user has to communicate with the Keycloak instance, the GUI needs to know the *public* address of the Keycloak instance, i.e., the address that Keycloak has when connecting to it using a browser.
 * If you are accessing it locally on the machine the Docker is running, find out the address of the Keycloak container
 
 ```docker inspect --format='{{.NetworkSettings.Networks.hobbit.IPAddress}}' platform2_keycloak_1```
@@ -102,8 +101,8 @@ In any case proceed as follows
 
 Give write access to the keycloak database by performing
 ```bash
- chmod 777 config/keycloak 
- chmod 666 config/keycloak/* 
+ chmod 777 config/keycloak
+ chmod 666 config/keycloak/*
 ```
 in the platforms project directory.
 
@@ -201,6 +200,11 @@ Available services
 
 1. Start the platform components by running: `docker-compose -f docker-compose-local.yml up`
 2. Start the platform-controller by running: `make local-controller`
+
+## Troubleshooting
+
+If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
+
 
 # Related projects
 

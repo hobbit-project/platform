@@ -43,7 +43,7 @@ public class CorsFilter implements Filter {
     private void addCorsHeader(HttpServletResponse response) {
         response.addHeader("Access-Control-Allow-Origin", "*");
         response.addHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, HEAD");
-        response.addHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, X-XSRF-TOKEN");
+        response.addHeader("Access-Control-Allow-Headers", "origin, content-type, accept, authorization, X-XSRF-TOKEN, Cache-Control");
         response.addHeader("Access-Control-Max-Age", "3600");
     }
 

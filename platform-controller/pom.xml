@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.hobbit</groupId>
     <artifactId>platform-controller</artifactId>
-    <version>1.0.13</version>
+    <version>1.0.14</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.7</version>
+            <version>1.0.8</version>
         </dependency>
 
         <dependency>
@@ -77,11 +77,17 @@
             <artifactId>amqp-client</artifactId>
             <version>3.6.0</version>
         </dependency>
+        <!-- Guava (there only to mitigate version conflicts) -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>20.0</version>
+        </dependency>
         <!-- Docker Client -->
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>docker-client</artifactId>
-            <version>6.1.0</version>
+            <version>8.9.2</version>
         </dependency>
         <!-- JSON lib -->
         <dependency>

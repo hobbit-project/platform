@@ -19,16 +19,26 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.NodeIterator;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
+import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
@@ -37,8 +47,8 @@ import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
-import org.hobbit.vocab.HobbitErrors;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,13 +66,13 @@ public class ExperimentManager implements Closeable {
     /**
      * Time interval the experiment manager waits before it checks for the an
      * experiment to start. It is larger than {@link #CHECK_FOR_NEW_EXPERIMENT}
-     * since the system needs some time to initialize all components and we want
-     * to make sure that everything is up and running.
+     * since the system needs some time to initialize all components and we want to
+     * make sure that everything is up and running.
      */
     public static final long CHECK_FOR_FIRST_EXPERIMENT = 30000;
     /**
-     * Time interval with which the experiment manager checks for a new
-     * experiment to start.
+     * Time interval with which the experiment manager checks for a new experiment
+     * to start.
      */
     public static final long CHECK_FOR_NEW_EXPERIMENT = 10000;
     /**
@@ -97,6 +107,8 @@ public class ExperimentManager implements Closeable {
         this.controller = controller;
 
         try {
+            // TODO environment variable should have been used there
+            // TODO global static method in hobbit core for retrieving values like this
             defaultMaxExecutionTime = Long
                     .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
         } catch (Exception e) {
@@ -123,8 +135,8 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * Creates the next experiment if there is no experiment running and there
-     * is an experiment waiting in the queue.
+     * Creates the next experiment if there is no experiment running and there is an
+     * experiment waiting in the queue.
      */
     public void createNextExperiment() {
         try {
@@ -191,9 +203,8 @@ public class ExperimentManager implements Closeable {
                         LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                     }
                 } catch (Exception e) {
-                    LOGGER.error(
-                            "Could not load timeouts config, using default value " + defaultMaxExecutionTime + "ms.",
-                            e);
+                    LOGGER.error("Could not load timeouts config ({}). Using default value {}ms.", e.getMessage(),
+                            defaultMaxExecutionTime);
                 }
 
                 // start experiment timer/status
@@ -217,8 +228,7 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.setBenchmarkContainer(containerId);
 
                 LOGGER.info("Creating system " + sysImageName);
-                String serializedSystemParams = RabbitMQUtils
-                        .writeModel2String(controller.imageManager().getSystemModel(config.systemUri));
+                String serializedSystemParams = getSerializedSystemParams(config, controller.imageManager());
                 containerId = controller.containerManager.startContainer(sysImageName, Constants.CONTAINER_TYPE_SYSTEM,
                         experimentStatus.getBenchmarkContainer(),
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
@@ -243,6 +253,36 @@ public class ExperimentManager implements Closeable {
         } finally {
             experimentMutex.release();
         }
+    }
+
+    // FIXME add javadoc
+    // Static method for easier testing
+    protected static String getSerializedSystemParams(ExperimentConfiguration config, ImageManager imageManager) {
+        Model systemModel = imageManager.getSystemModel(config.systemUri);
+        Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);;
+        // Check the benchmark model for parameters that should be forwarded to the
+        // system
+        // if(benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
+        if (benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
+            Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
+            Property parameter;
+            NodeIterator objIterator;
+            Resource system = systemModel.getResource(config.systemUri);
+            Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
+            // Get an iterator for all these parameters
+            ResIterator iterator = benchmarkModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
+            while (iterator.hasNext()) {
+                // Get the parameter
+                parameter = benchmarkModel.getProperty(iterator.next().getURI());
+                // Get its value
+                objIterator = benchParams.listObjectsOfProperty(experiment, parameter);
+                // If there is a value, add it to the system model
+                while (objIterator.hasNext()) {
+                    systemModel.add(system, parameter, objIterator.next());
+                }
+            }
+        }
+        return RabbitMQUtils.writeModel2String(systemModel);
     }
 
     protected void prefetchImages(ExperimentConfiguration config, String benchImageName, String sysImageName)
@@ -304,9 +344,9 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * This method handles the storing of the experiment results in the
-     * database, the removing of the experiment from the queue and its closing
-     * in a synchronized way.
+     * This method handles the storing of the experiment results in the database,
+     * the removing of the experiment from the queue and its closing in a
+     * synchronized way.
      */
     public synchronized void handleExperimentTermination() {
         try {
@@ -375,9 +415,9 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * Forces the benchmark controller and its child containers to terminate. If
-     * the given error is not <code>null</code> it is added to the result model
-     * of the experiment.
+     * Forces the benchmark controller and its child containers to terminate. If the
+     * given error is not <code>null</code> it is added to the result model of the
+     * experiment.
      *
      * @param error
      *            error that is added to the result model of the experiment
@@ -393,8 +433,8 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * Handles the termination of the container with the given container Id and
-     * the given exit code.
+     * Handles the termination of the container with the given container Id and the
+     * given exit code.
      *
      * @param containerId
      *            Id of the terminated container
@@ -462,8 +502,8 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * Handles the messages that either the system or the benchmark controller
-     * are ready.
+     * Handles the messages that either the system or the benchmark controller are
+     * ready.
      *
      * @param systemReportedReady
      *            <code>true</code> if the message was sent by the system,
@@ -504,8 +544,8 @@ public class ExperimentManager implements Closeable {
      * Sends the start message to the benchmark controller.
      *
      * @throws IOException
-     *             if there is a communication problem or if the name of the
-     *             system container can not be retrieved from the docker daemon
+     *             if there is a communication problem or if the name of the system
+     *             container can not be retrieved from the docker daemon
      */
     private void startBenchmark_unsecured() throws IOException {
         String containerName = controller.containerManager.getContainerName(experimentStatus.getSystemContainer());
@@ -574,13 +614,13 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
-     * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of
-     * an experiment has been reached.
+     * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of an
+     * experiment has been reached.
      *
      * @param expiredState
-     *            the experiment status the timer was working on which is used
-     *            to make sure that the timer was started for the currently
-     *            running experiment.
+     *            the experiment status the timer was working on which is used to
+     *            make sure that the timer was started for the currently running
+     *            experiment.
      */
     public void notifyExpRuntimeExpired(ExperimentStatus expiredState) {
         Objects.requireNonNull(expiredState);

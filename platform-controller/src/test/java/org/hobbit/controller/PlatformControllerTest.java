@@ -20,12 +20,16 @@ import static org.junit.Assert.assertNotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
+import org.hobbit.utils.docker.DockerHelper;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,7 +40,7 @@ import org.junit.contrib.java.lang.system.EnvironmentVariables;
  */
 public class PlatformControllerTest extends DockerBasedTest {
 
-    private static final String RABBIT_HOST_NAME = "192.168.99.100";
+    private static final String RABBIT_HOST_NAME = DockerHelper.getHost();
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
@@ -61,25 +65,38 @@ public class PlatformControllerTest extends DockerBasedTest {
     @Test
     public void receiveCommand() throws Exception {
         byte command = Commands.DOCKER_CONTAINER_START;
-        byte[] data = "{\"image\": \"busybox\", \"type\": \"test\", \"parent\": \"test\"}".getBytes(StandardCharsets.UTF_8);
 
-        // execute
+        // create and execute parent container
+        Map<String,String> labels = new HashMap<String, String>();
+        labels.put(ContainerManagerImpl.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
+        final String parentId = dockerClient.createContainer(ContainerConfig.builder()
+                .image("busybox")
+                .cmd("sh", "-c", "while :; do sleep 1; done")
+                .labels(labels)
+                .build()).id();
+        dockerClient.startContainer(parentId);
+        final String parentName = dockerClient.inspectContainer(parentId).name();
+
+        // create and execute test container
+        final String image = "busybox:latest";
+        final String type = Constants.CONTAINER_TYPE_SYSTEM;
+        byte[] data = ("{\"image\": \"" + image + "\", \"type\": \"" + type + "\", \"parent\": \"" + parentName + "\"}").getBytes(StandardCharsets.UTF_8);
         controller.receiveCommand(command, data, "1", "");
 
         // get running containers
         String containerId = null;
         List<Container> containers = dockerClient.listContainers(DockerClient.ListContainersParam.allContainers());
         for(Container c : containers) {
-            String image = c.image();
-            String type = c.labels().get(ContainerManagerImpl.LABEL_TYPE);
-            String parent = c.labels().get(ContainerManagerImpl.LABEL_PARENT);
-            if (image.contains("busybox") && type.equals("test") && parent.equals("test")) {
+            String gotImage = c.image();
+            String gotType = c.labels().get(ContainerManagerImpl.LABEL_TYPE);
+            String gotParent = c.labels().get(ContainerManagerImpl.LABEL_PARENT);
+            if (gotImage != null && gotImage.equals(image)
+                    && gotType != null && gotType.equals(type)
+                    && gotParent != null && gotParent.equals(parentId)) {
                 containerId = c.id();
+                break;
             }
         }
-
-        // check that container exists
-        assertNotNull(containerId);
 
         // cleanup
         try {
@@ -88,5 +105,14 @@ public class PlatformControllerTest extends DockerBasedTest {
         try {
             dockerClient.removeContainer(containerId);
         } catch (Exception e) {}
+        try {
+            dockerClient.stopContainer(parentId, 5);
+        } catch (Exception e) {}
+        try {
+            dockerClient.removeContainer(parentId);
+        } catch (Exception e) {}
+
+        // check that container exists
+        assertNotNull(containerId);
     }
 }

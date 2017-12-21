@@ -51,7 +51,7 @@ public class ExperimentTimeoutTest {
     @Before
     public void init() {
         // set max execution time to 1s
-        environmentVariables.set("MAX_EXECUTION_TIME", "1000");
+        System.setProperty("MAX_EXECUTION_TIME", "1000");
         controller = new DummyPlatformController(benchmarkControllerTerminated);
         controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", SYSTEM_URI));
         manager = new ExperimentManager(controller, 1000, 1000);
