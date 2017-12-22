@@ -8,7 +8,6 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.ContainerStateObserver;
@@ -21,11 +20,15 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
  * A simple test that uses a dummy {@link PlatformController} to simulate an
@@ -110,71 +113,36 @@ public class ExperimentTimeoutTest {
 
         @Override
         public List<BenchmarkMetaData> getBenchmarks() {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsOfUser(String userName) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsForBenchmark(String benchmarkUri) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsForBenchmark(Model benchmarkModel) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public Model getBenchmarkModel(String benchmarkUri) {
-            return ModelFactory.createDefaultModel();
-        }
-
-        @Override
-        public Model getSystemModel(String systemUri) {
-            return ModelFactory.createDefaultModel();
-        }
-
-        @Override
-        public String getBenchmarkImageName(String benchmarkUri) {
-            return benchmarkUri;
-        }
-
-        @Override
-        public String getSystemImageName(String systemUri) {
-            return systemUri;
-        }
-
-        @Override
-        public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
+            List<BenchmarkMetaData> result = new ArrayList<>();
             BenchmarkMetaData meta = new BenchmarkMetaData();
+            meta.uri = BENCHMARK_NAME;
+            meta.name = BENCHMARK_NAME;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("benchmarkImage1");
             meta.usedImages.add("benchmarkImage2");
-            return meta;
+            result.add(meta);
+            return result;
         }
 
         @Override
-        public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+        public List<SystemMetaData> getSystems() {
             List<SystemMetaData> result = new ArrayList<>();
             SystemMetaData meta = new SystemMetaData();
-            meta.systemUri = SYSTEM_URI;
+            meta.uri = SYSTEM_URI;
+            meta.name = meta.uri;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("SystemImage1");
             meta.usedImages.add("SystemImage2");
             result.add(meta);
             meta = new SystemMetaData();
-            meta.systemUri = "wrong_" + SYSTEM_URI;
+            meta.uri = "wrong_" + SYSTEM_URI;
+            meta.name = meta.uri;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("wrong_SystemImage1");
             meta.usedImages.add("wrong_SystemImage2");
             result.add(meta);
-            return new ArrayList<>(0);
+            return result;
         }
-
     }
 
     private static class DummyContainerManager implements ContainerManager {

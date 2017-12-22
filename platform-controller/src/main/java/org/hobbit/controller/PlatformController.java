@@ -50,7 +50,7 @@ import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
 import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ImageManagerImpl;
+import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -181,7 +181,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
 
-        imageManager = new ImageManagerImpl();
+        imageManager = new GitlabBasedImageManager();
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();

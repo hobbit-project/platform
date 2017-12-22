@@ -20,7 +20,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -38,7 +37,7 @@ import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
-import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
@@ -158,23 +157,23 @@ public class ExperimentManager implements Closeable {
                 LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                         + " and system " + config.systemUri + " to the queue.");
 
-                String benchImageName = controller.imageManager().getBenchmarkImageName(config.benchmarkUri);
-                if (benchImageName == null) {
+                BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
+                if ((benchmark == null) || (benchmark.mainImage == null)) {
                     experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
                             this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
                     throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
                 }
 
-                String sysImageName = controller.imageManager().getSystemImageName(config.systemUri);
-                if (sysImageName == null) {
+                SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
+                if ((system == null) || (system.mainImage == null)) {
                     experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
                             this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.SystemImageMissing);
                     throw new Exception("Couldn't find image name for system " + config.systemUri);
                 }
 
-                prefetchImages(config, benchImageName, sysImageName);
+                prefetchImages(benchmark, system);
 
                 // time an experiment has to terminate after it has been started
                 long maxExecutionTime = defaultMaxExecutionTime;
@@ -211,8 +210,8 @@ public class ExperimentManager implements Closeable {
                 experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
                         this, maxExecutionTime);
 
-                LOGGER.info("Creating benchmark controller " + benchImageName);
-                String containerId = controller.containerManager.startContainer(benchImageName,
+                LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
+                String containerId = controller.containerManager.startContainer(benchmark.mainImage,
                         Constants.CONTAINER_TYPE_BENCHMARK, null,
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
@@ -227,10 +226,10 @@ public class ExperimentManager implements Closeable {
 
                 experimentStatus.setBenchmarkContainer(containerId);
 
-                LOGGER.info("Creating system " + sysImageName);
-                String serializedSystemParams = getSerializedSystemParams(config, controller.imageManager());
-                containerId = controller.containerManager.startContainer(sysImageName, Constants.CONTAINER_TYPE_SYSTEM,
-                        experimentStatus.getBenchmarkContainer(),
+                LOGGER.info("Creating system " + system.mainImage);
+                String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
+                containerId = controller.containerManager.startContainer(system.mainImage,
+                        Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
@@ -257,62 +256,39 @@ public class ExperimentManager implements Closeable {
 
     // FIXME add javadoc
     // Static method for easier testing
-    protected static String getSerializedSystemParams(ExperimentConfiguration config, ImageManager imageManager) {
-        Model systemModel = imageManager.getSystemModel(config.systemUri);
-        Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);;
+    protected static String getSerializedSystemParams(ExperimentConfiguration config, BenchmarkMetaData benchmark,
+            SystemMetaData system) {
+        Model systemModel = MetaDataFactory.getModelWithUniqueSystem(system.rdfModel, config.systemUri);
         // Check the benchmark model for parameters that should be forwarded to the
         // system
-        // if(benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
-        if (benchmarkModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
+        if (benchmark.rdfModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
             Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
             Property parameter;
             NodeIterator objIterator;
-            Resource system = systemModel.getResource(config.systemUri);
+            Resource systemResource = systemModel.getResource(config.systemUri);
             Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
             // Get an iterator for all these parameters
-            ResIterator iterator = benchmarkModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
+            ResIterator iterator = benchmark.rdfModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
             while (iterator.hasNext()) {
                 // Get the parameter
-                parameter = benchmarkModel.getProperty(iterator.next().getURI());
+                parameter = benchmark.rdfModel.getProperty(iterator.next().getURI());
                 // Get its value
                 objIterator = benchParams.listObjectsOfProperty(experiment, parameter);
                 // If there is a value, add it to the system model
                 while (objIterator.hasNext()) {
-                    systemModel.add(system, parameter, objIterator.next());
+                    systemModel.add(systemResource, parameter, objIterator.next());
                 }
             }
         }
         return RabbitMQUtils.writeModel2String(systemModel);
     }
 
-    protected void prefetchImages(ExperimentConfiguration config, String benchImageName, String sysImageName)
-            throws Exception {
+    protected void prefetchImages(BenchmarkMetaData benchmark, SystemMetaData system) throws Exception {
         Set<String> usedImages = new HashSet<String>();
-        usedImages.add(benchImageName);
-        usedImages.add(sysImageName);
-        // Get the list of images used by the benchmark
-        Model model = controller.imageManager().getBenchmarkModel(config.benchmarkUri);
-        if (model != null) {
-            BenchmarkMetaData benchMeta = controller.imageManager().modelToBenchmarkMetaData(model);
-            if (benchMeta != null) {
-                usedImages.addAll(benchMeta.usedImages);
-            }
-        } else {
-            LOGGER.warn("Couldn't get model of benchmark {}. Won't prefetch its images.", config.benchmarkUri);
-        }
-        // Get the list of images used by the system
-        model = controller.imageManager().getSystemModel(config.systemUri);
-        if (model != null) {
-            List<SystemMetaData> sysMetas = controller.imageManager().modelToSystemMetaData(model);
-            for (SystemMetaData s : sysMetas) {
-                if (s.systemUri == config.systemUri) {
-                    usedImages.addAll(s.usedImages);
-                    break;
-                }
-            }
-        } else {
-            LOGGER.warn("Couldn't get model of system {}. Won't prefetch its images.", config.systemUri);
-        }
+        usedImages.add(benchmark.mainImage);
+        usedImages.addAll(benchmark.usedImages);
+        usedImages.add(system.mainImage);
+        usedImages.addAll(benchmark.usedImages);
         // pull all used images
         for (String image : usedImages) {
             controller.containerManager.pullImage(image);
