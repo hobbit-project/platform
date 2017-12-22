@@ -117,6 +117,7 @@ public class ExperimentTimeoutTest {
             BenchmarkMetaData meta = new BenchmarkMetaData();
             meta.uri = BENCHMARK_NAME;
             meta.name = BENCHMARK_NAME;
+            meta.mainImage = "benchmarkImage";
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("benchmarkImage1");
             meta.usedImages.add("benchmarkImage2");
@@ -130,6 +131,7 @@ public class ExperimentTimeoutTest {
             SystemMetaData meta = new SystemMetaData();
             meta.uri = SYSTEM_URI;
             meta.name = meta.uri;
+            meta.mainImage = "SystemImage";
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("SystemImage1");
             meta.usedImages.add("SystemImage2");
@@ -137,6 +139,7 @@ public class ExperimentTimeoutTest {
             meta = new SystemMetaData();
             meta.uri = "wrong_" + SYSTEM_URI;
             meta.name = meta.uri;
+            meta.mainImage = "wrong_SystemImage";
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("wrong_SystemImage1");
             meta.usedImages.add("wrong_SystemImage2");

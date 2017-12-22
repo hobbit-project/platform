@@ -126,7 +126,13 @@ public class MetaDataFactory {
 
     protected static Model getModelWithUniqueResource(Model model, String uri, Resource type) {
         Model newModel = ModelFactory.createDefaultModel();
+        if (model == null) {
+            return newModel;
+        }
         newModel.add(model);
+        if (uri == null) {
+            return newModel;
+        }
         List<Resource> otherSystems = RdfHelper.getSubjectResources(model, RDF.type, type);
         for (Resource otherSystem : otherSystems) {
             if (!otherSystem.getURI().equals(uri)) {
