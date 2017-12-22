@@ -67,7 +67,7 @@ public class MetaDataFactory {
         // find description
         metadata.description = RdfHelper.getDescription(model, imageResource);
         // find image name
-        metadata.mainImage = RdfHelper.getStringValue(model, imageResource, HOBBIT.usesImage);
+        metadata.mainImage = RdfHelper.getStringValue(model, imageResource, HOBBIT.imageName);
         // find used images
         metadata.usedImages = new HashSet<>(RdfHelper.getStringValues(model, imageResource, HOBBIT.usesImage));
         metadata.date = date;

@@ -41,7 +41,7 @@ import com.google.gson.reflect.TypeToken;
 /**
  * Created by Timofey Ermilov on 22/09/16.
  */
-public class ImageManagerImplTest {
+public class GitlabBasedImageManagerTest {
     private GitlabBasedImageManager imageManager;
 
     @Before
