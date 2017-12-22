@@ -8,6 +8,7 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.ContainerStateObserver;
@@ -27,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
+import com.rabbitmq.client.AMQP.BasicProperties;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerInfo;
 
@@ -61,7 +63,7 @@ public class ExperimentTimeoutTest {
         controller.expManager = manager;
     }
 
-    @Test /* (timeout = 10000) */
+    @Test (timeout = 10000)
     public void test() throws Exception {
         benchmarkControllerTerminated.acquire();
         // Give the system some time to tidy up
@@ -107,6 +109,13 @@ public class ExperimentTimeoutTest {
         public void notifyTermination(String containerId, int exitCode) {
             expManager.notifyTermination(containerId, exitCode);
         }
+        
+        @Override
+        protected void sendToCmdQueue(String address, byte command, byte[] data, BasicProperties props)
+                throws IOException {
+            // nothing to do
+//            receiveCommand(command, data, address, null);
+        }
     }
 
     private static class DummyImageManager implements ImageManager {
@@ -117,10 +126,11 @@ public class ExperimentTimeoutTest {
             BenchmarkMetaData meta = new BenchmarkMetaData();
             meta.uri = BENCHMARK_NAME;
             meta.name = BENCHMARK_NAME;
-            meta.mainImage = "benchmarkImage";
+            meta.mainImage = BENCHMARK_NAME;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("benchmarkImage1");
             meta.usedImages.add("benchmarkImage2");
+            meta.rdfModel = ModelFactory.createDefaultModel();
             result.add(meta);
             return result;
         }
@@ -135,6 +145,7 @@ public class ExperimentTimeoutTest {
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("SystemImage1");
             meta.usedImages.add("SystemImage2");
+            meta.rdfModel = ModelFactory.createDefaultModel();
             result.add(meta);
             meta = new SystemMetaData();
             meta.uri = "wrong_" + SYSTEM_URI;
@@ -143,6 +154,7 @@ public class ExperimentTimeoutTest {
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("wrong_SystemImage1");
             meta.usedImages.add("wrong_SystemImage2");
+            meta.rdfModel = ModelFactory.createDefaultModel();
             result.add(meta);
             return result;
         }
@@ -239,7 +251,7 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void pullImage(String imageName) {
-            System.out.print("Pulling Image ");
+            System.out.print("Pulling Image (fake) ");
             System.out.print(imageName);
             System.out.println("...");
         }
