@@ -19,8 +19,8 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -49,8 +49,8 @@ import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.docker.GitlabBasedImageManager;
+import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -59,6 +59,7 @@ import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
+import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ConfiguredExperiment;
 import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.StartCommandData;
@@ -78,7 +79,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
-import com.spotify.docker.client.messages.Container;
 
 /**
  * This class implements the functionality of the central platform controller.
@@ -169,7 +169,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-
+        
         // create container manager
         containerManager = new ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
@@ -512,31 +512,27 @@ public class PlatformController extends AbstractCommandReceivingComponent
             case FrontEndApiCommands.GET_BENCHMARK_DETAILS: {
                 // get benchmarkUri
                 String benchmarkUri = RabbitMQUtils.readString(buffer);
-                LOGGER.info("Loading details for benchmark \"{}\"", benchmarkUri);
-                Model benchmarkModel = imageManager.getBenchmarkModel(benchmarkUri);
-                // If the model could be found
-                if (benchmarkModel != null) {
-                    List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
-                    // If there is a username based on that the systems should
-                    // be filtered
-                    if (buffer.hasRemaining()) {
-                        String userName = RabbitMQUtils.readString(buffer);
-                        LOGGER.info("Fitlering systems for user \"{}\"", userName);
-                        Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
-                                imageManager.getSystemsOfUser(userName));
-                        List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
-                        for (SystemMetaData s : systems4Benchmark) {
-                            if (userSystems.contains(s)) {
-                                filteredSystems.add(s);
-                            }
+                LOGGER.debug("Loading details for benchmark \"{}\"", benchmarkUri);
+                // Get the benchmark
+                BenchmarkMetaData benchmark = imageManager.getBenchmark(benchmarkUri);
+                List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkUri);
+                // If there is a username based on that the systems should
+                // be filtered
+                if (buffer.hasRemaining()) {
+                    String userName = RabbitMQUtils.readString(buffer);
+                    LOGGER.debug("Fitlering systems for user \"{}\"", userName);
+                    Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
+                            imageManager.getSystemsOfUser(userName));
+                    List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
+                    for (SystemMetaData s : systems4Benchmark) {
+                        if (userSystems.contains(s)) {
+                            filteredSystems.add(s);
                         }
-                        systems4Benchmark = filteredSystems;
                     }
-                    response = RabbitMQUtils.writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmarkModel),
-                            RabbitMQUtils.writeString(gson.toJson(systems4Benchmark)) });
-                } else {
-                    LOGGER.error("Couldn't find model of benchmark \"{}\".", benchmarkUri);
+                    systems4Benchmark = filteredSystems;
                 }
+                response = RabbitMQUtils.writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmark.rdfModel),
+                        RabbitMQUtils.writeString(gson.toJson(systems4Benchmark)) });
                 break;
             }
             case FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION: {
