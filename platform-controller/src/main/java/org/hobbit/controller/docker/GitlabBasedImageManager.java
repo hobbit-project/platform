@@ -17,11 +17,12 @@
 package org.hobbit.controller.docker;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.hobbit.controller.gitlab.GitlabController;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
+import org.hobbit.controller.gitlab.Project;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.slf4j.Logger;
@@ -34,7 +35,7 @@ import org.slf4j.LoggerFactory;
  * Created by Timofey Ermilov on 22/09/16.
  * 
  */
-public class GitlabBasedImageManager implements ImageManager {
+public class GitlabBasedImageManager extends AbstactImageManager implements ImageManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitlabBasedImageManager.class);
 
@@ -51,14 +52,14 @@ public class GitlabBasedImageManager implements ImageManager {
     }
 
     @Override
-    public List<BenchmarkMetaData> getBenchmarks() {
+    protected List<BenchmarkMetaData> getUncheckedBenchmarks() {
         return gitlab.getAllProjects().parallelStream().filter(p -> p.benchmarkModel != null)
                 .flatMap(p -> MetaDataFactory.modelToBenchmarkMetaData(p.benchmarkModel, p.name, p.createdAt).stream())
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<SystemMetaData> getSystems() {
+    protected List<SystemMetaData> getUncheckedSystems() {
         return gitlab.getAllProjects().parallelStream().filter(p -> p.systemModel != null)
                 .flatMap(p -> MetaDataFactory.modelToSystemMetaData(p.systemModel, p.name, p.createdAt).stream())
                 .collect(Collectors.toList());
@@ -66,31 +67,13 @@ public class GitlabBasedImageManager implements ImageManager {
 
     @Override
     public List<SystemMetaData> getSystemsOfUser(String userName) {
-        return gitlab.getProjectsVisibleForUser(userName).stream()
+        Set<String> visibleProjects = gitlab.getProjectsVisibleForUser(userName).stream()
                 // get all projects which have system information
                 .filter(p -> p.systemModel != null)
-                // map them to SystemMetaData
-                .flatMap(p -> {
-                    try {
-                        return MetaDataFactory.modelToSystemMetaData(p.systemModel).stream();
-                    } catch (Exception e) {
-                        LOGGER.error("Error parsing system metadata:", e);
-                        return Stream.empty();
-                    }
-                })
-                // filter out failed conversions
-                .collect(Collectors.toList());
+                // get the project names
+                .map(Project::getName)
+                // get
+                .collect(Collectors.toSet());
+        return getFilteredSystems(s -> visibleProjects.contains(s.source));
     }
-
-    // public void handleMetaData(List<BenchmarkMetaData> benchmarks,
-    // List<SystemMetaData> systems, String source) {
-    // // FIXME Make sure that when writing the maps, nobody is using them
-    // benchmarksByUri.clear();
-    // benchmarksBySource.put(source, benchmarks);
-    // // Get all projects that have overlapping benchmark or system URIs
-    // Map<String, List<Project>> projectsByModelUris =
-    // benchmarksBySource.parallelStream().flatMap(p -> listUris(p))
-    // .collect(Collectors.groupingBy(Pair::getKey,
-    // Collectors.mapping(Pair::getValue, Collectors.toList())));
-    // }
 }
