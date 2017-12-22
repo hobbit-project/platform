@@ -101,26 +101,25 @@ public class PlatformControllerTest extends DockerBasedTest {
                 break;
             }
         }
-
-        // cleanup
-        try {
-            dockerClient.stopContainer(containerId, 5);
-        } catch (Exception e) {
-        }
-        try {
-            dockerClient.removeContainer(containerId);
-        } catch (Exception e) {
-        }
-        try {
-            dockerClient.stopContainer(parentId, 5);
-        } catch (Exception e) {
-        }
-        try {
-            dockerClient.removeContainer(parentId);
-        } catch (Exception e) {
-        }
-
         // check that container exists
         assertNotNull(containerId);
+
+        // cleanup (no, will be done by the platform controller)
+        // try {
+        // dockerClient.stopContainer(containerId, 5);
+        // } catch (Exception e) {
+        // }
+        // try {
+        // dockerClient.removeContainer(containerId);
+        // } catch (Exception e) {
+        // }
+        // try {
+        // dockerClient.stopContainer(parentId, 5);
+        // } catch (Exception e) {
+        // }
+        // try {
+        // dockerClient.removeContainer(parentId);
+        // } catch (Exception e) {
+        // }
     }
 }
