@@ -313,7 +313,6 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.error("Couldn't retrieve list of swarm nodes!");
             return;
         }
-        // SWARM FIXME: remove file LoggingPullHandler
         try {
             ServiceCreateResponse resp;
             // If we have authentication credentials and the image name contains
