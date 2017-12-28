@@ -213,6 +213,18 @@ public class ContainerManagerImpl implements ContainerManager {
         return builder.toString();
     }
 
+    @FunctionalInterface
+    private interface ExceptionBooleanSupplier {
+        boolean getAsBoolean() throws Exception;
+    }
+
+    private static void waitFor(ExceptionBooleanSupplier checkSupplier, long interval) throws Exception {
+        while (!checkSupplier.getAsBoolean()) {
+            // TODO: can use some kind of inverval adjustion
+            Thread.sleep(interval);
+        }
+    }
+
     /**
      * Pulls the image with the given name if it does not appear in the list of
      * available images.
@@ -294,14 +306,13 @@ public class ContainerManagerImpl implements ContainerManager {
         taskCfgBuilder.containerSpec(cfg);
         serviceCfgBuilder.taskTemplate(taskCfgBuilder.build());
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
-        Integer totalNodes = 0;
+        Integer totalNodes;
         try {
             totalNodes = dockerClient.listNodes().size();
         } catch (Exception e) {
             LOGGER.error("Couldn't retrieve list of swarm nodes!");
             return;
         }
-        Integer alreadyPulled = 0;
         // SWARM FIXME: remove file LoggingPullHandler
         try {
             ServiceCreateResponse resp;
@@ -317,34 +328,29 @@ public class ContainerManagerImpl implements ContainerManager {
             String serviceId = resp.id();
 
             // FIXME wait for any container of that service to start
-            List<Task> pullingTasks;
-            do {
-                Thread.sleep(100);
-
-                pullingTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
-                Integer nowPulled = 0;
+            waitFor(() -> {
+                List<Task> pullingTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
+                Integer pulled = 0;
                 for (Task pullingTask : pullingTasks) {
                     String state = pullingTask.status().state();
                     if (!unfinishedTaskStates.contains(state)) {
                         if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
                             LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(), pullingTask.status().err());
-                            return;
+                            throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
                         }
 
-                        nowPulled++;
+                        pulled++;
                     }
                 }
 
-                if (nowPulled > alreadyPulled) {
-                    alreadyPulled = nowPulled;
-                    /*
-                    LOGGER.info("{}/{} swarm nodes pulled image '{}'", alreadyPulled, totalNodes, imageName);
-                    */
+                boolean done = pulled == totalNodes;
+                if (done) {
+                    LOGGER.info("{} swarm nodes pulled image '{}' with statuses: {}", totalNodes, imageName,
+                            pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
                 }
-            } while (alreadyPulled < totalNodes);
 
-            LOGGER.info("{} swarm nodes pulled image '{}' with statuses: {}", totalNodes, imageName,
-                    pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
+                return done;
+            }, 100);
 
             dockerClient.removeService(serviceId);
         } catch (Exception e) {
@@ -473,14 +479,15 @@ public class ContainerManagerImpl implements ContainerManager {
             ServiceCreateResponse resp = dockerClient.createService(serviceCfg);
             String containerId = resp.id();
             // FIXME wait for any container of that service to start
-            List<Task> serviceTasks;
-            do {
-                Thread.sleep(100);
-                serviceTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build());
-            } while (serviceTasks.isEmpty() || newTaskStates.contains(serviceTasks.get(0).status().state()));
-            containerId = serviceTasks.get(0).id();
+            List<Task> serviceTasks = new ArrayList<Task>();
+            waitFor(() -> {
+                serviceTasks.clear();
+                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build()));
+                return !serviceTasks.isEmpty() && !newTaskStates.contains(serviceTasks.get(0).status().state());
+            }, 100);
+            String taskId = serviceTasks.get(0).id();
             // return new container id
-            return containerId;
+            return taskId;
         } catch (Exception e) {
             LOGGER.error("Couldn't create Docker container. Returning null.", e);
             return null;
@@ -535,34 +542,14 @@ public class ContainerManagerImpl implements ContainerManager {
 
                 // wait for service to disappear
                 // FIXME SWARM
-                try {
-                    do {
-                        Thread.sleep(100);
-                        Object serviceInfo = dockerClient.inspectService(serviceId);
-
-                        if (serviceInfo != null) {
-                            while (serviceInfo != null) {
-                                try {
-                                    Thread.sleep(100);
-                                    serviceInfo = dockerClient.inspectService(serviceId);
-                                } catch (ServiceNotFoundException e) {
-                                }
-                                break;
-                            }
-                            /*
-                            List<Task> serviceTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
-
-                            if (serviceTasks.isEmpty()) {
-                                LOGGER.info("Looking for service's tasks, no tasks found");
-                            } else {
-                                LOGGER.info("Looking for service's tasks, {} tasks found, state: {}",
-                                        serviceTasks.size(), serviceTasks.get(0).status().state());
-                            }
-                            */
-                        }
-                    } while (true);
-                } catch (ServiceNotFoundException e) {
-                }
+                waitFor(() -> {
+                    Object serviceInfo = null;
+                    try {
+                        serviceInfo = dockerClient.inspectService(serviceId);
+                    } catch (ServiceNotFoundException e) {
+                    }
+                    return serviceInfo == null;
+                }, 100);
             } else {
                 LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", containerId);
             }
