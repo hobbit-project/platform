@@ -6,6 +6,16 @@ build:
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
+install:
+	@docker network inspect hobbit >/dev/null || (docker network create hobbit && echo "Created network: hobbit")
+	@docker network inspect hobbit-core >/dev/null || (docker network create hobbit-core && echo "Created network: hobbit-core")
+	@chmod --changes 777 config/keycloak
+	@chmod --changes 666 config/keycloak/keycloak.h2.db
+	docker-compose up -d virtuoso
+	./run-storage-init.sh; true
+	docker-compose stop virtuoso
+	[ -z "$$DOCKER_HOST" ] && cp --no-clobber docker-compose.override.localhost.yml docker-compose.override.yml; true
+
 test:
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
