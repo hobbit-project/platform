@@ -206,7 +206,15 @@ Available services
 If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
 
 ### Regular cleaning of dangling Docker images
-Regular clean up of docker images is required for HOBBIT platform. To perform clean up you need to install a cronjob as follows:
+Depending on the way the platform is used, it can download many Docker images over time. Note that Docker itself won't delete but keep all versions of these images. To save disk space, a regular cleaning of dangling images is helpful.
+
+#### Local machine
+
+If the platform is deployed on a local machine, executing `docker rmi $(docker images -q -f "dangling=true")` manually from time to time is already sufficient.
+
+#### Server
+
+If the HOBBIT platform is deployed on a server a regular clean up of docker images is necessary. To perform clean up you need to install a cronjob as follows:
 ```
 0 3 * * * docker rmi $(docker images -q -f "dangling=true") > /root/`date +\%Y\%m\%d\%H\%M\%S`-docker-rmi-dangling-cron.log
 ```
