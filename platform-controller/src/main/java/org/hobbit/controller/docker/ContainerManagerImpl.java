@@ -334,29 +334,28 @@ public class ContainerManagerImpl implements ContainerManager {
             }
             String serviceId = resp.id();
 
-            // FIXME wait for any container of that service to start
+            // wait for any container of that service to start on each node
             waitFor(() -> {
                 List<Task> pullingTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
-                Integer pulled = 0;
+                if (pullingTasks.size() < totalNodes) {
+                    return false;
+                }
                 for (Task pullingTask : pullingTasks) {
                     String state = pullingTask.status().state();
-                    if (!unfinishedTaskStates.contains(state)) {
-                        if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
-                            LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(), pullingTask.status().err());
-                            throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
-                        }
+                    if (unfinishedTaskStates.contains(state)) {
+                        return false;
+                    }
 
-                        pulled++;
+                    if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
+                        LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(), pullingTask.status().err());
+                        throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
                     }
                 }
 
-                boolean done = pulled == totalNodes;
-                if (done) {
-                    LOGGER.info("{} swarm nodes pulled image '{}' with statuses: {}", totalNodes, imageName,
-                            pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
-                }
+                LOGGER.info("Swarm pulled image '{}' ({})", imageName,
+                        pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
 
-                return done;
+                return true;
             }, 100);
 
             dockerClient.removeService(serviceId);
@@ -485,7 +484,7 @@ public class ContainerManagerImpl implements ContainerManager {
         try {
             ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
             String containerId = resp.id();
-            // FIXME wait for any container of that service to start
+            // wait for a container of that service to start
             List<Task> serviceTasks = new ArrayList<Task>();
             waitFor(() -> {
                 serviceTasks.clear();
@@ -547,15 +546,14 @@ public class ContainerManagerImpl implements ContainerManager {
             if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0)) {
                 dockerClient.removeService(serviceId);
 
-                // wait for service to disappear
-                // FIXME SWARM
+                // wait for the service to disappear
                 waitFor(() -> {
-                    Object serviceInfo = null;
                     try {
-                        serviceInfo = dockerClient.inspectService(serviceId);
+                        dockerClient.inspectService(serviceId);
+                        return false;
                     } catch (ServiceNotFoundException e) {
+                        return true;
                     }
-                    return serviceInfo == null;
                 }, 100);
             } else {
                 LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", containerId);
@@ -601,9 +599,7 @@ public class ContainerManagerImpl implements ContainerManager {
             String label = LABEL_PARENT + "=" + parentId;
             List<Task> containers = dockerClient.listTasks(Task.Criteria.builder().label(label).build());
             for (Task c : containers) {
-                // FIXME SWARM no labels?
-                if (c != null/* && c.labels().get(LABEL_PARENT) != null
-                        && c.labels().get(LABEL_PARENT).equals(parentId)*/) {
+                if (c != null) {
                     removeParentAndChildren(c.id());
                 }
             }
