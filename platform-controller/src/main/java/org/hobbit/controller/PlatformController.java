@@ -60,11 +60,12 @@ import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ConfiguredExperiment;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.StartCommandData;
 import org.hobbit.core.data.StopCommandData;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.QueuedExperiment;
+import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -169,7 +170,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-        
+
         // create container manager
         containerManager = new ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
@@ -501,7 +502,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
             // The first byte is the command
             switch (buffer.get()) {
             case FrontEndApiCommands.LIST_CURRENT_STATUS: {
-                ControllerStatus status = getStatus();
+                String userName = RabbitMQUtils.readString(buffer);
+                ControllerStatus status = getStatus(userName);
                 response = RabbitMQUtils.writeString(gson.toJson(status));
                 break;
             }
@@ -540,8 +542,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 String benchmarkUri = RabbitMQUtils.readString(buffer);
                 String systemUri = RabbitMQUtils.readString(buffer);
                 String serializedBenchParams = RabbitMQUtils.readString(buffer);
-                String experimentId = addExperimentToQueue(benchmarkUri, systemUri, serializedBenchParams, null, null,
-                        null);
+                String userName = RabbitMQUtils.readString(buffer);
+                String experimentId = addExperimentToQueue(benchmarkUri, systemUri, userName, serializedBenchParams,
+                        null, null, null);
                 response = RabbitMQUtils.writeString(experimentId);
                 break;
             }
@@ -557,6 +560,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 String challengeUri = RabbitMQUtils.readString(buffer);
                 closeChallenge(challengeUri);
                 break;
+            }
+            case FrontEndApiCommands.REMOVE_EXPERIMENT: {
+                // TODO get the experiment ID
+                // TODO get the user name
+                // TODO call the Experiment Manager to cancel the experiment
+                // TODO return true or false as response
+                throw new UnsupportedOperationException("Has not been implemented!");
             }
             default: {
                 LOGGER.error("Got a request from the front end with an unknown command code {}. It will be ignored.",
@@ -599,6 +609,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }
         Resource challengeResource = model.getResource(challengeUri);
         Calendar executionDate = RdfHelper.getDateValue(model, challengeResource, HOBBIT.executionDate);
+        String organizer = RdfHelper.getStringValue(model, challengeResource, HOBBIT.organizer);
         ResIterator taskIterator = model.listSubjectsWithProperty(HOBBIT.isTaskOf, challengeResource);
         List<ExperimentConfiguration> experiments = new ArrayList<>();
         while (taskIterator.hasNext()) {
@@ -619,7 +630,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     serializedBenchParams = RabbitMQUtils
                             .writeModel2String(createExpModelForChallengeTask(model, challengeTaskUri, systemUri));
                     experiments.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams,
-                            systemUri, challengeUri, challengeTaskUri, executionDate));
+                            systemUri, organizer, challengeUri, challengeTaskUri, executionDate));
                 } else {
                     LOGGER.error("Couldn't get the benchmark for challenge task \"{}\". This task will be ignored.",
                             challengeTaskUri);
@@ -943,6 +954,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            the URI of the benchmark
      * @param systemUri
      *            the URI of the system
+     * @param userName
+     *            the name of the user who requested the creation of the experiment
      * @param serializedBenchParams
      *            the serialized benchmark parameters
      * @param executionDate
@@ -951,13 +964,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            a challenge.
      * @return the Id of the created experiment
      */
-    protected String addExperimentToQueue(String benchmarkUri, String systemUri, String serializedBenchParams,
-            String challengUri, String challengTaskUri, Calendar executionDate) {
+    protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
+            String serializedBenchParams, String challengUri, String challengTaskUri, Calendar executionDate) {
         String experimentId = generateExperimentId();
         LOGGER.info("Adding experiment " + experimentId + " with benchmark " + benchmarkUri + " and system " + systemUri
                 + " to the queue.");
-        queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, challengUri,
-                challengTaskUri, executionDate));
+        queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
+                challengUri, challengTaskUri, executionDate));
         return experimentId;
     }
 
@@ -966,27 +979,38 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *
      * @return the status of this controller
      */
-    private ControllerStatus getStatus() {
+    private ControllerStatus getStatus(String userName) {
         ControllerStatus status = new ControllerStatus();
-        expManager.addStatusInfo(status);
-        if (status.currentSystemUri != null) {
-            Model model = imageManager.getSystemModel(status.currentSystemUri);
+        expManager.addStatusInfo(status, userName);
+        RunningExperiment runningExperiment = status.experiment;
+        if ((runningExperiment != null) && (runningExperiment.systemUri != null)) {
+            Model model = imageManager.getSystemModel(runningExperiment.systemUri);
             if (model != null) {
-                status.currentSystemName = RdfHelper.getLabel(model, model.getResource(status.currentSystemUri));
+                runningExperiment.systemName = RdfHelper.getLabel(model,
+                        model.getResource(runningExperiment.systemUri));
             }
         }
         List<ExperimentConfiguration> experiments = queue.listAll();
-        List<ConfiguredExperiment> tempQueue = new ArrayList<ConfiguredExperiment>(experiments.size());
-        ConfiguredExperiment queuedExp;
+        List<QueuedExperiment> tempQueue = new ArrayList<QueuedExperiment>(experiments.size());
+        QueuedExperiment queuedExp;
         for (ExperimentConfiguration experiment : experiments) {
-            if (!experiment.id.equals(status.currentExperimentId)) {
-                queuedExp = new ConfiguredExperiment();
+            if ((runningExperiment == null) || (!experiment.id.equals(runningExperiment.experimentId))) {
+                queuedExp = new QueuedExperiment();
+                queuedExp.experimentId = experiment.id;
                 queuedExp.benchmarkUri = experiment.benchmarkUri;
+                queuedExp.benchmarkName = experiment.benchmarkName;
                 queuedExp.systemUri = experiment.systemUri;
+                queuedExp.systemName = experiment.systemUri; // FIXME should be something different :/
+                queuedExp.challengeUri = experiment.challengeUri;
+                queuedExp.challengeTaskUri = experiment.challengeTaskUri;
+                queuedExp.dateOfExecution = experiment.executionDate != null
+                        ? experiment.executionDate.getTimeInMillis()
+                        : 0;
+                queuedExp.canBeCanceled = userName != null && userName.equals(experiment.userName);
                 tempQueue.add(queuedExp);
             }
         }
-        status.queue = tempQueue.toArray(new ConfiguredExperiment[tempQueue.size()]);
+        status.queuedExperiments = tempQueue.toArray(new QueuedExperiment[tempQueue.size()]);
         return status;
     }
 

@@ -42,8 +42,9 @@ import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
@@ -156,6 +157,7 @@ public class ExperimentManager implements Closeable {
                 }
                 LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                         + " and system " + config.systemUri + " to the queue.");
+                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id));
 
                 BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                 if ((benchmark == null) || (benchmark.mainImage == null)) {
@@ -207,8 +209,8 @@ public class ExperimentManager implements Closeable {
                 }
 
                 // start experiment timer/status
-                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                        this, maxExecutionTime);
+                experimentStatus.startAbortionTimer(this, maxExecutionTime);
+                experimentStatus.setState(States.INIT);
 
                 LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
                 String containerId = controller.containerManager.startContainer(benchmark.mainImage,
@@ -548,7 +550,7 @@ public class ExperimentManager implements Closeable {
      * @param status
      *            the status object to which the data should be added
      */
-    public void addStatusInfo(ControllerStatus status) {
+    public void addStatusInfo(ControllerStatus status, String userName) {
         // copy the pointer to the experiment status to make sure that we can
         // read it even if another thread sets the pointer to null. This gives
         // us the possibility to read the status without acquiring the
@@ -556,16 +558,24 @@ public class ExperimentManager implements Closeable {
         ExperimentStatus currentStatus = experimentStatus;
         if (currentStatus != null) {
             ExperimentConfiguration config = currentStatus.getConfig();
+            RunningExperiment experiment = new RunningExperiment();
             if (config != null) {
-                status.currentBenchmarkName = config.benchmarkName;
-                status.currentBenchmarkUri = config.benchmarkUri;
-                status.currentSystemUri = config.systemUri;
-                status.currentExperimentId = config.id;
+                experiment.benchmarkName = config.benchmarkName;
+                experiment.benchmarkUri = config.benchmarkUri;
+                experiment.systemUri = config.systemUri;
+                experiment.experimentId = config.id;
+                experiment.challengeUri = config.challengeUri;
+                experiment.challengeTaskUri = config.challengeTaskUri;
+                experiment.canBeCanceled = userName != null && userName.equals(config.userName);
+                experiment.dateOfExecution = config.executionDate != null ? config.executionDate.getTimeInMillis() : 0;
             }
+            experiment.startTimestamp = currentStatus.getStartTimeStamp();
+            experiment.timestampOfAbortion = currentStatus.getAbortionTimeStamp();
             States exState = currentStatus.getState();
             if (exState != null) {
-                status.currentStatus = exState.description;
+                experiment.status = exState.description;
             }
+            status.experiment = experiment;
         }
     }
 

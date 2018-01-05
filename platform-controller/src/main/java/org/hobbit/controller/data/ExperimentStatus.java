@@ -58,6 +58,10 @@ public class ExperimentStatus implements Closeable {
      */
     public static enum States {
         /**
+         * The platform is still preparing the experiment, e.g., pulling Docker images.
+         */
+        PREPARATION("The platform is preparing the experiment."),
+        /**
          * Benchmark and system are still initializing.
          */
         INIT("Benchmark and system are initializing."),
@@ -96,9 +100,14 @@ public class ExperimentStatus implements Closeable {
      */
     private final long startTimeStamp;
     /**
+     * The timestamp at which the experiment will be aborted by the
+     * {@link #abortTimer}.
+     */
+    private long abortionTimeStamp = 0;
+    /**
      * State of the benchmark.
      */
-    private States state = States.INIT;
+    private States state = States.PREPARATION;
     /**
      * Flag indicating whether the benchmark is ready.
      */
@@ -126,31 +135,89 @@ public class ExperimentStatus implements Closeable {
     /**
      * Timer used to abort the experiment if it takes too much time.
      */
-    private Timer abortTimer;
+    private final Timer abortTimer;
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI and the current system time as start time.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the given starting time and starts the abortion
+     * timer using the given maximum runtime of the experiment and the experiment
+     * manager which will be used to abort the experiment if the time is exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param startTimeStamp
+     *            the time stamp at which the experiment is started.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, long startTimeStamp) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the current system time as start time and starts
+     * the abortion timer using the given maximum runtime of the experiment and the
+     * experiment manager which will be used to abort the experiment if the time is
+     * exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting) {
         this(config, experimentUri, manager, timeUntilAborting, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the given starting time and starts the abortion
+     * timer using the given maximum runtime of the experiment and the experiment
+     * manager which will be used to abort the experiment if the time is exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     * @param startTimeStamp
+     *            the time stamp at which the experiment is started.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting, long startTimeStamp) {
         this.config = config;
         this.experimentUri = experimentUri;
         this.startTimeStamp = startTimeStamp;
-
+        this.abortTimer = new Timer();
+        // If a manager is provided, the abortion timer should be started directly
         if (manager != null) {
-            LOGGER.info("Creating abort timer for " + experimentUri + " with " + timeUntilAborting + "ms.");
-            abortTimer = new Timer();
-            abortTimer.schedule(new ExperimentAbortTimerTask(manager, this), timeUntilAborting);
+            startAbortionTimer(manager, timeUntilAborting);
         }
     }
 
@@ -196,6 +263,32 @@ public class ExperimentStatus implements Closeable {
 
     public void setSystemContainer(String systemContainer) {
         this.systemContainer = systemContainer;
+    }
+
+    public long getStartTimeStamp() {
+        return startTimeStamp;
+    }
+
+    public long getAbortionTimeStamp() {
+        return abortionTimeStamp;
+    }
+
+    /**
+     * Starts the abortion timer using the given maximum runtime of the experiment
+     * and the experiment manager which will be used to abort the experiment if the
+     * time is exceeded.
+     * 
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     */
+    public void startAbortionTimer(ExperimentManager manager, long timeUntilAborting) {
+        abortionTimeStamp = System.currentTimeMillis() + timeUntilAborting;
+        LOGGER.info("Creating abort timer for " + experimentUri + " with " + timeUntilAborting + "ms.");
+        abortTimer.schedule(new ExperimentAbortTimerTask(manager, this), timeUntilAborting);
     }
 
     /**
