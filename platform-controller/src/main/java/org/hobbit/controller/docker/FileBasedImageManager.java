@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileBasedImageManager implements ImageManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GitlabBasedImageManager.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedImageManager.class);
 
     private static final String DEFAULT_DEF_FOLDER = "metadata";
     private static final Date DEFAULT_DATE = new Date(0);

@@ -103,10 +103,25 @@ public abstract class AbstactImageManager implements ImageManager {
      *            the list of image meta data objects that have the same URI
      */
     protected <T extends ImageMetaData> void addErrorToDuplicates(List<T> images) {
-        Collections.sort(images, comparator);
-        String originalSource = images.get(0).source;
-        images.forEach(i -> i.defError = "This image is a duplicate of " + originalSource);
-        images.get(0).defError = null; // mark the first one as original
+        if (images.size() > 1) {
+            Collections.sort(images, comparator);
+            String errorMsg = null;
+            for (T image : images) {
+                if (errorMsg == null) {
+                    StringBuilder builder = new StringBuilder();
+                    builder.append("This image has the same URI as ");
+                    builder.append(image.name);
+                    builder.append(" (");
+                    builder.append(image.uri);
+                    builder.append(") from ");
+                    builder.append(image.source);
+                    builder.append(".");
+                    errorMsg = builder.toString();
+                } else {
+                    image.defError = errorMsg;
+                }
+            }
+        }
     }
 
     /**
