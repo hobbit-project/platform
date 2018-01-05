@@ -19,6 +19,7 @@ package org.hobbit.controller.docker;
 import com.spotify.docker.client.messages.ContainerInfo;
 
 import org.hobbit.core.Constants;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -38,6 +39,12 @@ import static org.junit.Assert.*;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+    // FIXME
+    @Before
+    public void fixupAddressAlreadyInUse() throws InterruptedException {
+        Thread.sleep(10000); // FIXME "starting container failed: Address already in use" without that
+    }
+
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
@@ -109,7 +116,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     @SuppressWarnings("deprecation")
     public void stopContainer() throws Exception {
-        Thread.sleep(5000); // FIXME "starting container failed: Address already in use" without that
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
@@ -259,7 +265,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void pullPublicImage() throws Exception {
-        System.out.println("Running test: " + Thread.currentThread().getStackTrace()[1].getMethodName());
         final String testImage = "hello-world";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
 
@@ -272,7 +277,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void pullPrivateImage() throws Exception {
-        System.out.println("Running test: " + Thread.currentThread().getStackTrace()[1].getMethodName());
         final String testImage = "git.project-hobbit.eu:4567/gitadmin/docker-test";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
 
