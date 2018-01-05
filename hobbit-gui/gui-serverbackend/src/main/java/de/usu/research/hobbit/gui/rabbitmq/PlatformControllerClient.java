@@ -136,7 +136,7 @@ public class PlatformControllerClient implements Closeable {
 
         for (BenchmarkMetaData benchmark : benchmarks) {
             benchmarkBeans.add(
-                    new BenchmarkBean(benchmark.benchmarkUri, benchmark.benchmarkName, benchmark.benchmarkDescription));
+                    new BenchmarkBean(benchmark.uri, benchmark.name, benchmark.description));
         }
 
         LOGGER.debug(Arrays.toString(benchmarkBeans.toArray()));
@@ -211,7 +211,7 @@ public class PlatformControllerClient implements Closeable {
         if (systems != null) {
             for (SystemMetaData system : systems) {
                 benchmarkDetails.getSystems()
-                        .add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+                        .add(new SystemBean(system.uri, system.name, system.description));
             }
         }
 
@@ -384,7 +384,7 @@ public class PlatformControllerClient implements Closeable {
         List<SystemBean> systemBeans = new ArrayList<>();
         if (systems != null) {
             for (SystemMetaData system : systems) {
-                systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+                systemBeans.add(new SystemBean(system.uri, system.name, system.description));
             }
         }
         return systemBeans;
