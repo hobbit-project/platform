@@ -560,14 +560,14 @@ public class ContainerManagerImpl implements ContainerManager {
     @Deprecated
     @Override
     public void stopContainer(String containerId) {
-        LOGGER.error("stopContainer() is deprecated! Will remove container instead");
+        LOGGER.error("ContainerManager.stopContainer() is deprecated! Will remove container instead");
         removeContainer(containerId);
     }
 
     @Override
     public void stopParentAndChildren(String parentId) {
         // stop parent
-        stopContainer(parentId);
+        removeContainer(parentId);
 
         // find children
         try {

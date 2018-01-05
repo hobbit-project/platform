@@ -354,7 +354,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     public void stopContainer(String containerName) {
         String containerId = containerManager.getContainerId(containerName);
         if (containerId != null) {
-            containerManager.stopContainer(containerId);
+            containerManager.removeContainer(containerId);
         }
     }
 
@@ -395,7 +395,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
         try {
             List<Container> containers = containerManager.getContainers();
             for (Container c : containers) {
-                containerManager.stopContainer(c.id());
                 containerManager.removeContainer(c.id());
             }
         } catch (Exception e) {
