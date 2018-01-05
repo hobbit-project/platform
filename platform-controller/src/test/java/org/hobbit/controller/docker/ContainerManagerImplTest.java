@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.Image;
@@ -58,12 +59,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private void assertContainerIsNotRunning(String message, String containerId) throws Exception {
         try {
             Task taskInfo = dockerClient.inspectTask(containerId);
+            Service serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
 
             fail(message
                     + " expected an TaskNotFoundException to be thrown, got a task with state="
                     + taskInfo.status().state());
-        } catch (TaskNotFoundException e) {
-            assertNotNull(message + " expected TaskNotFoundException", e);
+        } catch (TaskNotFoundException | ServiceNotFoundException e) {
+            assertNotNull(message + " expected TaskNotFoundException | ServiceNotFoundException", e);
         }
     }
 
