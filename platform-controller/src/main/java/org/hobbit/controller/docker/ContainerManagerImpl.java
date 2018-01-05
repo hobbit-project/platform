@@ -185,7 +185,8 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         // if not found - create new one
         if (hobbitNetwork == null) {
-            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).build();
+            LOGGER.warn("Could not find hobbit docker network, creating a new one");
+            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).driver("overlay").build();
             dockerClient.createNetwork(networkConfig);
         }
     }
