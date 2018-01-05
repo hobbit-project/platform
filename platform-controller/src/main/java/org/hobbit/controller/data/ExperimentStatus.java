@@ -33,6 +33,7 @@ import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Constants;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -198,13 +199,13 @@ public class ExperimentStatus implements Closeable {
     }
 
     /**
-     * The method sets a flag that (depending on the given flag) the system or
-     * the benchmark is ready and returns <code>true</code> if internally both
-     * have the state of being ready.
+     * The method sets a flag that (depending on the given flag) the system or the
+     * benchmark is ready and returns <code>true</code> if internally both have the
+     * state of being ready.
      *
      * @param systemReportedReady
-     *            <code>true</code> if the system is ready or <code>false</code>
-     *            if the benchmark is ready
+     *            <code>true</code> if the system is ready or <code>false</code> if
+     *            the benchmark is ready
      * @return <code>true</code> if system and benchmark are ready
      */
     public synchronized boolean setReadyAndCheck(boolean systemReportedReady) {
@@ -276,8 +277,8 @@ public class ExperimentStatus implements Closeable {
     }
 
     /**
-     * Adds the given error to the result model if it does not already contain
-     * an error.
+     * Adds the given error to the result model if it does not already contain an
+     * error.
      *
      * <p>
      * This method is thread-safe.
@@ -413,8 +414,8 @@ public class ExperimentStatus implements Closeable {
      * regarding the benchmark and the system to the experiment result model.
      * 
      * @param imageManager
-     *            used to get RDF models for the benchmark and the system of
-     *            this experiment
+     *            used to get RDF models for the benchmark and the system of this
+     *            experiment
      */
     public void addMetaDataToResult(ImageManager imageManager) {
         try {
@@ -430,14 +431,16 @@ public class ExperimentStatus implements Closeable {
             }
             // Add basic information about the benchmark and the system
             if (config.benchmarkUri != null) {
-                Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);
+                Model benchmarkModel = MetaDataFactory.getModelWithUniqueBenchmark(
+                        imageManager.getBenchmarkModel(config.benchmarkUri), config.benchmarkUri);
                 if (benchmarkModel != null) {
                     LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
                     resultModel.add(benchmarkModel);
                 }
             }
             if (config.systemUri != null) {
-                Model systemModel = imageManager.getSystemModel(config.systemUri);
+                Model systemModel = MetaDataFactory
+                        .getModelWithUniqueSystem(imageManager.getSystemModel(config.systemUri), config.systemUri);
                 if (systemModel != null) {
                     resultModel.add(systemModel);
                 }

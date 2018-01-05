@@ -19,8 +19,8 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
@@ -49,8 +49,8 @@ import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ImageManagerImpl;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -59,6 +59,7 @@ import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
+import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ConfiguredExperiment;
 import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.StartCommandData;
@@ -78,7 +79,6 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
-import com.spotify.docker.client.messages.Container;
 
 /**
  * This class implements the functionality of the central platform controller.
@@ -102,7 +102,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
-            ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1" : true;
+            ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
+            : true;
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -168,7 +169,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-
+        
         // create container manager
         containerManager = new ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
@@ -181,7 +182,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
 
-        imageManager = new ImageManagerImpl();
+        imageManager = new GitlabBasedImageManager();
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
@@ -323,8 +324,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Creates and starts a container based on the given
-     * {@link StartCommandData} instance.
+     * Creates and starts a container based on the given {@link StartCommandData}
+     * instance.
      *
      * @param data
      *            the data needed to start the container
@@ -390,16 +391,19 @@ public class PlatformController extends AbstractCommandReceivingComponent
         } catch (Exception e) {
             LOGGER.error("Couldn't stop the container observer.", e);
         }
-        // get all remaining containers from the container manager,
-        // terminate and remove them
-        try {
-            List<Container> containers = containerManager.getContainers();
-            for (Container c : containers) {
-                containerManager.stopContainer(c.id());
-                containerManager.removeContainer(c.id());
+        // get all remaining containers from the observer, terminate and remove them. Do
+        // not try to get the list from the container manager since he will return all
+        // containers regardless whether the platform created them or not.
+        if (containerObserver != null) {
+            List<String> containers = containerObserver.getObservedContainers();
+            for (String containerId : containers) {
+                try {
+                    containerManager.stopContainer(containerId);
+                    containerManager.removeContainer(containerId);
+                } catch (Exception e) {
+                    LOGGER.error("Couldn't stop running containers.", e);
+                }
             }
-        } catch (Exception e) {
-            LOGGER.error("Couldn't stop running containers.", e);
         }
         // Close the storage client
         IOUtils.closeQuietly(storage);
@@ -433,8 +437,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Sends the given command to the command queue with the given data appended
-     * and using the given properties.
+     * Sends the given command to the command queue with the given data appended and
+     * using the given properties.
      *
      * @param address
      *            address for the message
@@ -466,8 +470,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * The controller overrides the super method because it does not need to
-     * check for the leading hobbit id and delegates the command handling to the
+     * The controller overrides the super method because it does not need to check
+     * for the leading hobbit id and delegates the command handling to the
      * {@link #receiveCommand(byte, byte[], String, String)} method.
      */
     protected void handleCmd(byte bytes[], String replyTo) {
@@ -508,31 +512,27 @@ public class PlatformController extends AbstractCommandReceivingComponent
             case FrontEndApiCommands.GET_BENCHMARK_DETAILS: {
                 // get benchmarkUri
                 String benchmarkUri = RabbitMQUtils.readString(buffer);
-                LOGGER.info("Loading details for benchmark \"{}\"", benchmarkUri);
-                Model benchmarkModel = imageManager.getBenchmarkModel(benchmarkUri);
-                // If the model could be found
-                if (benchmarkModel != null) {
-                    List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
-                    // If there is a username based on that the systems should
-                    // be filtered
-                    if (buffer.hasRemaining()) {
-                        String userName = RabbitMQUtils.readString(buffer);
-                        LOGGER.info("Fitlering systems for user \"{}\"", userName);
-                        Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
-                                imageManager.getSystemsOfUser(userName));
-                        List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
-                        for (SystemMetaData s : systems4Benchmark) {
-                            if (userSystems.contains(s)) {
-                                filteredSystems.add(s);
-                            }
+                LOGGER.debug("Loading details for benchmark \"{}\"", benchmarkUri);
+                // Get the benchmark
+                BenchmarkMetaData benchmark = imageManager.getBenchmark(benchmarkUri);
+                List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkUri);
+                // If there is a username based on that the systems should
+                // be filtered
+                if (buffer.hasRemaining()) {
+                    String userName = RabbitMQUtils.readString(buffer);
+                    LOGGER.debug("Fitlering systems for user \"{}\"", userName);
+                    Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(
+                            imageManager.getSystemsOfUser(userName));
+                    List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());
+                    for (SystemMetaData s : systems4Benchmark) {
+                        if (userSystems.contains(s)) {
+                            filteredSystems.add(s);
                         }
-                        systems4Benchmark = filteredSystems;
                     }
-                    response = RabbitMQUtils.writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmarkModel),
-                            RabbitMQUtils.writeString(gson.toJson(systems4Benchmark)) });
-                } else {
-                    LOGGER.error("Couldn't find model of benchmark \"{}\".", benchmarkUri);
+                    systems4Benchmark = filteredSystems;
                 }
+                response = RabbitMQUtils.writeByteArrays(new byte[][] { RabbitMQUtils.writeModel(benchmark.rdfModel),
+                        RabbitMQUtils.writeString(gson.toJson(systems4Benchmark)) });
                 break;
             }
             case FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION: {
@@ -651,8 +651,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Schedules the date of next execution for a repeatable challenge,
-     * or closes it.
+     * Schedules the date of next execution for a repeatable challenge, or closes
+     * it.
      *
      * @param storage
      *            storage
@@ -661,9 +661,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * @param now
      *            time to use as current when scheduling
      */
-    protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri, Calendar now) {
+    protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri,
+            Calendar now) {
         LOGGER.info("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
-        String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+        String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri,
+                Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
         ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         if (!challengeIterator.hasNext()) {
@@ -672,7 +674,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }
 
         Resource challenge = challengeIterator.next();
-        Calendar registrationCutoffDate = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.registrationCutoffDate);
+        Calendar registrationCutoffDate = RdfHelper.getDateTimeValue(challengeModel, challenge,
+                HOBBIT.registrationCutoffDate);
         if (registrationCutoffDate == null) {
             LOGGER.error("Couldn't retrieve registration cutoff date for challenge " + challengeUri + ". Aborting.");
             return;
@@ -680,12 +683,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         Duration executionPeriod = RdfHelper.getDurationValue(challengeModel, challenge, HOBBIT.executionPeriod);
         if (executionPeriod == null) {
-            LOGGER.error(
-                    "Couldn't retrieve execution period for challenge " + challengeUri + ". Aborting.");
+            LOGGER.error("Couldn't retrieve execution period for challenge " + challengeUri + ". Aborting.");
             return;
         }
 
-        Calendar dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.dateOfNextExecution);
+        Calendar dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge,
+                HOBBIT.dateOfNextExecution);
         if (dateOfNextExecution == null) {
             dateOfNextExecution = RdfHelper.getDateTimeValue(challengeModel, challenge, HOBBIT.executionDate);
             if (dateOfNextExecution == null) {
@@ -705,16 +708,18 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (dateOfNextExecution.before(registrationCutoffDate)) {
             // set dateOfNextExecution += executionPeriod
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-            LOGGER.info("Next execution date for challenge {} is now set to {}", challengeUri, dateFormat.format(dateOfNextExecution.getTime()));
+            LOGGER.info("Next execution date for challenge {} is now set to {}", challengeUri,
+                    dateFormat.format(dateOfNextExecution.getTime()));
             if (!storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challengeUri,
                     dateOfNextExecution, Constants.CHALLENGE_DEFINITION_GRAPH_URI))) {
                 LOGGER.error("Couldn't update dateOfNextExecution for challenge {}", challengeUri);
             }
         } else {
-            // delete dateOfNextExecution, since registration cutoff date will be reached already
+            // delete dateOfNextExecution, since registration cutoff date will be reached
+            // already
             LOGGER.info("Removing dateOfNextExecution for challenge {} because it reached cutoff date", challengeUri);
-            if (!storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challengeUri,
-                    null, Constants.CHALLENGE_DEFINITION_GRAPH_URI))) {
+            if (!storage.sendUpdateQuery(SparqlQueries.getUpdateDateOfNextExecutionQuery(challengeUri, null,
+                    Constants.CHALLENGE_DEFINITION_GRAPH_URI))) {
                 LOGGER.error("Couldn't remove dateOfNextExecution for challenge {}", challengeUri);
             }
         }
@@ -728,17 +733,18 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * @param challengeUri
      *            challenge URI
      */
-    protected static synchronized boolean copyChallengeToPublicResultGraph(StorageServiceClient storage, String challengeUri) {
+    protected static synchronized boolean copyChallengeToPublicResultGraph(StorageServiceClient storage,
+            String challengeUri) {
         // get the challenge model
-        Model challengeModel = storage.sendConstructQuery(SparqlQueries
-                .getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        Model challengeModel = storage.sendConstructQuery(
+                SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         // insert the challenge into the public graph
         return storage.sendInsertQuery(challengeModel, Constants.PUBLIC_RESULT_GRAPH_URI);
     }
 
     /**
-     * Closes the challenge with the given URI by adding the "closed" triple to
-     * its graph and inserting the configured experiments into the queue.
+     * Closes the challenge with the given URI by adding the "closed" triple to its
+     * graph and inserting the configured experiments into the queue.
      *
      * @param challengeUri
      *            the URI of the challenge that should be closed
@@ -777,9 +783,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
             challenge = challengeIterator.next();
             LOGGER.info("Processing repeatable challenge {}...", challenge);
 
-            registrationCutoffDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.registrationCutoffDate);
+            registrationCutoffDate = RdfHelper.getDateTimeValue(challengesModel, challenge,
+                    HOBBIT.registrationCutoffDate);
             if ((registrationCutoffDate != null) && (now.after(registrationCutoffDate))) {
-                // registration cutoff date has been reached, close the challenge (it will run remaining experiments)
+                // registration cutoff date has been reached, close the challenge (it will run
+                // remaining experiments)
                 closeChallenge(challenge.getURI());
                 continue;
             }
@@ -789,14 +797,17 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 // executions didn't start yet
                 Calendar executionDate = RdfHelper.getDateTimeValue(challengesModel, challenge, HOBBIT.executionDate);
                 if ((executionDate != null) && (now.after(executionDate))) {
-                    LOGGER.info("Starting repeatable challenge {} with execution date {}...", challenge, dateFormat.format(executionDate.getTime()));
-                    // executionDate has been reached, copy challenge to public graph and set dateOfNextExecution
+                    LOGGER.info("Starting repeatable challenge {} with execution date {}...", challenge,
+                            dateFormat.format(executionDate.getTime()));
+                    // executionDate has been reached, copy challenge to public graph and set
+                    // dateOfNextExecution
                     if (!copyChallengeToPublicResultGraph(storage, challenge.getURI())) {
                         LOGGER.error("Couldn't copy the graph of the challenge \"{}\". Aborting.", challenge);
                         continue;
                     }
                 } else {
-                    LOGGER.info("Repeatable challenge {} will start at {}", challenge, dateFormat.format(executionDate.getTime()));
+                    LOGGER.info("Repeatable challenge {} will start at {}", challenge,
+                            dateFormat.format(executionDate.getTime()));
                     continue;
                 }
             }
@@ -806,10 +817,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 LOGGER.info("Execution date has been reached for repeatable challenge {}", challenge);
                 executeChallengeExperiments(challenge.getURI());
 
-                // move the [challengeTask hobbit:involvesSystem system] triples from the challenge def graph to the public result graph
-                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(), Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
+                // move the [challengeTask hobbit:involvesSystem system] triples from the
+                // challenge def graph to the public result graph
+                String moveQuery = SparqlQueries.getMoveChallengeSystemQuery(challenge.getURI(),
+                        Constants.CHALLENGE_DEFINITION_GRAPH_URI, Constants.PUBLIC_RESULT_GRAPH_URI);
                 if (!storage.sendUpdateQuery(moveQuery)) {
-                    LOGGER.error("Couldn't move the [task :involvesSystem system] triple to the public graph", challenge);
+                    LOGGER.error("Couldn't move the [task :involvesSystem system] triple to the public graph",
+                            challenge);
                 }
 
                 scheduleDateOfNextExecution(storage, challenge.getURI(), now);
@@ -846,10 +860,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     tasks.add(taskResource.getURI());
                 }
                 /*
-                 * Check that all experiments that belong to the challenge have
-                 * been finished. Note that we don't have to check the
-                 * experiment that is running at the moment, since it is part of
-                 * the queue.
+                 * Check that all experiments that belong to the challenge have been finished.
+                 * Note that we don't have to check the experiment that is running at the
+                 * moment, since it is part of the queue.
                  */
                 int count = 0;
                 for (ExperimentConfiguration config : queue.listAll()) {
@@ -933,9 +946,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * @param serializedBenchParams
      *            the serialized benchmark parameters
      * @param executionDate
-     *            the date at which this experiment should be executed as part
-     *            of a challenge. Should be set to <code>null</code> if it is
-     *            not part of a challenge.
+     *            the date at which this experiment should be executed as part of a
+     *            challenge. Should be set to <code>null</code> if it is not part of
+     *            a challenge.
      * @return the Id of the created experiment
      */
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String serializedBenchParams,
@@ -949,8 +962,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Creates a status object summarizing the current status of this
-     * controller.
+     * Creates a status object summarizing the current status of this controller.
      *
      * @return the status of this controller
      */
@@ -979,8 +991,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Generates a unique experiment Id based on the current time stamp and the
-     * last Id ({@link #lastIdTime}) that has been created.
+     * Generates a unique experiment Id based on the current time stamp and the last
+     * Id ({@link #lastIdTime}) that has been created.
      *
      * @return a unique experiment Id
      */
@@ -1022,8 +1034,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * @deprecated Not used inside the controller. Use
-     *             {@link #receiveCommand(byte, byte[], String, String)}
-     *             instead.
+     *             {@link #receiveCommand(byte, byte[], String, String)} instead.
      */
     @Deprecated
     @Override
