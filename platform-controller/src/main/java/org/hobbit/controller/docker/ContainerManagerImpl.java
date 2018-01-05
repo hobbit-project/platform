@@ -131,6 +131,13 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private final RegistryAuth gitlabAuth;
     /**
+     * Empty authentication configuration.
+     * Docker client's createService() uses ConfigFileRegistryAuthSupplier by default
+     * (if auth is omitted)
+     * and warns about not being able to use it with swarm each time.
+     */
+    private final RegistryAuth nullAuth = RegistryAuth.builder().build();
+    /**
      * Observers that should be notified if a container terminates.
      */
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
@@ -322,7 +329,7 @@ public class ContainerManagerImpl implements ContainerManager {
                 resp = dockerClient.createService(serviceCfg, gitlabAuth);
             } else {
                 // pull image and wait for the pull to finish
-                resp = dockerClient.createService(serviceCfg);
+                resp = dockerClient.createService(serviceCfg, nullAuth);
             }
             String serviceId = resp.id();
 
@@ -475,7 +482,7 @@ public class ContainerManagerImpl implements ContainerManager {
         serviceCfgBuilder.name(containerName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         try {
-            ServiceCreateResponse resp = dockerClient.createService(serviceCfg);
+            ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
             String containerId = resp.id();
             // FIXME wait for any container of that service to start
             List<Task> serviceTasks = new ArrayList<Task>();
