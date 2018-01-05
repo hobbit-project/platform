@@ -68,6 +68,7 @@ public class ContainerManagerImpl implements ContainerManager {
             ? System.getenv().get(DEPLOY_ENV_KEY)
             : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
@@ -419,9 +420,10 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void removeContainer(String containerId) {
         try {
-            // If we are not in testing mode, remove all containers. In testing
+            // If we are not in develop or testing mode, remove all containers. In testing
             // mode, remove only those that have a non-zero status
-            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (getContainerInfo(containerId).state().exitCode() == 0)) {
+            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) && ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING))
+                    || (getContainerInfo(containerId).state().exitCode() == 0))) {
                 dockerClient.removeContainer(containerId);
             }
         } catch (Exception e) {
