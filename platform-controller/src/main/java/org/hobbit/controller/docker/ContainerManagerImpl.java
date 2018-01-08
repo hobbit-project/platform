@@ -105,6 +105,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     private String gelfAddress = null;
+    private String experimentId = null;
 
     /**
      * Constructor that creates new docker client instance
@@ -338,7 +339,11 @@ public class ContainerManagerImpl implements ContainerManager {
         if (gelfAddress != null) {
             Map<String, String> logOptions = new HashMap<String, String>();
             logOptions.put("gelf-address", gelfAddress);
-            logOptions.put("tag", LOGGING_TAG);
+            String tag = LOGGING_TAG;
+            if (experimentId != null) {
+                tag = experimentId + "#" + LOGGING_TAG;
+            }
+            logOptions.put("tag", tag);
             cfgBuilder.hostConfig(
                     HostConfig.builder().logConfig(LogConfig.create(LOGGING_DRIVER_GELF, logOptions)).build());
         }
@@ -415,6 +420,14 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         return null;
     }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId) {
+        this.experimentId = experimentId;
+        return startContainer(imageName, containerType, parentId, env, command);
+    }
+
 
     @Override
     public void removeContainer(String containerId) {

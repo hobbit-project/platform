@@ -211,6 +211,8 @@ public class ExperimentManager implements Closeable {
                 experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
                         this, maxExecutionTime);
 
+                String experimentId = config.id;
+
                 LOGGER.info("Creating benchmark controller " + benchImageName);
                 String containerId = controller.containerManager.startContainer(benchImageName,
                         Constants.CONTAINER_TYPE_BENCHMARK, null,
@@ -219,7 +221,7 @@ public class ExperimentManager implements Closeable {
                                 Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
                                 Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
                                 Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                        null);
+                        null, experimentId);
                 if (containerId == null) {
                     experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
                     throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
@@ -234,7 +236,7 @@ public class ExperimentManager implements Closeable {
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                        null);
+                        null, experimentId);
                 if (containerId == null) {
                     LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
