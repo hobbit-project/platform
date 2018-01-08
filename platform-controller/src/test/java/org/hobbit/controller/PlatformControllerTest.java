@@ -19,6 +19,8 @@ package org.hobbit.controller;
 import static org.junit.Assert.*;
 
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.List;
 
 import com.spotify.docker.client.messages.swarm.Service;
@@ -44,6 +46,12 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     private PlatformController controller;
+
+    private void assertDockerImageEquals(String message, String expected, String got) throws Exception {
+        final Matcher matcher = Pattern.compile("^(.*?)(?:@.*)?$").matcher(got);
+        assertTrue("Image name matches pattern", matcher.find());
+        assertEquals(message, expected, matcher.group(1));
+    }
 
     @Before
     public void init() throws Exception {
@@ -111,6 +119,6 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         assertEquals("Amount of child containers of the test parent container", 1, containers.size());
         assertEquals("Type of created container",
                 Constants.CONTAINER_TYPE_SYSTEM, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE));
-        assertEquals("Image of created container", taskInfo.spec().containerSpec().image(), image);
+        assertDockerImageEquals("Image of created container", image, taskInfo.spec().containerSpec().image());
     }
 }
