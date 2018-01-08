@@ -24,6 +24,10 @@ setup-virtuoso:
 install: create-networks set-keycloak-permissions setup-virtuoso
 	[ -z "$$DOCKER_HOST" ] && cp --no-clobber docker-compose.override.localhost.yml docker-compose.override.yml; true
 
+run-platform-elk:
+	docker-compose -f docker-compose-elk.yml up -d
+	docker-compose up
+
 test:
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
