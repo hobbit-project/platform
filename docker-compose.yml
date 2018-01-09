@@ -22,7 +22,8 @@ services:
 
   # HOBBIT GUI
   gui:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+    #image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+    build: ./hobbit-gui/gui-serverbackend
     ports:
       - "8080:8080"
     networks:
