@@ -341,7 +341,7 @@ public class ContainerManagerImpl implements ContainerManager {
             logOptions.put("gelf-address", gelfAddress);
             String tag = LOGGING_TAG;
             if (experimentId != null) {
-                tag = experimentId + "#" + LOGGING_TAG;
+                tag = containerType + "#" + experimentId + "#" + LOGGING_TAG;
             }
             logOptions.put("tag", tag);
             cfgBuilder.hostConfig(
