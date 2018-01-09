@@ -3,8 +3,8 @@ build:
 	cd platform-controller && make build
 	cd platform-storage/storage-service && mvn clean package -U
 	cd analysis-component && mvn clean package -U
-	#cd hobbit-gui/gui-client && npm install && npm run build-prod
-	#cd hobbit-gui/gui-serverbackend && mvn clean package
+	cd hobbit-gui/gui-client && npm install && npm run build-prod
+	cd hobbit-gui/gui-serverbackend && mvn clean package
 
 create-networks:
 	@docker network inspect hobbit >/dev/null || (docker network create --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
