@@ -1,4 +1,10 @@
 # build platform components
+redeploy: build start
+
+start:
+	docker-compose build
+	docker-compose up
+
 build:
 	cd platform-controller && make build
 	cd platform-storage/storage-service && mvn clean package -U
