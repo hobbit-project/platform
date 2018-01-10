@@ -41,9 +41,7 @@ import java.util.Collections;
 public class LogsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
-
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
-
     private static final String benchmarkQueryBase = "" +
         "{" +
         "%s" + // placeholder for _source or other extensions
@@ -95,6 +93,10 @@ public class LogsResources {
             LOGGER.error("Error occured during request to elasticsearch: "+e.getStackTrace());
         }
 
+        if(logs == null) {
+            Response.ok(UNKNOWN_EXP_ERROR_MSG).build();
+        }
+
         return Response.ok(logs).build();
     }
 
@@ -112,7 +114,7 @@ public class LogsResources {
         return mergeJSONArrays(benchmarkLogs, systemLogs).toString();
     }
 
-    public JSONArray getLogsByType(String experimentId, String type) throws Exception {
+    private JSONArray getLogsByType(String experimentId, String type) throws Exception {
         String countQuery = createCountQuery(experimentId, type);
         String countJsonString = fireQuery(countQuery, "count");
         JSONObject jsonObject = new JSONObject(countJsonString);
@@ -133,7 +135,7 @@ public class LogsResources {
         return results;
     }
 
-    public JSONArray mergeJSONArrays(JSONArray array_1, JSONArray array_2) {
+    private JSONArray mergeJSONArrays(JSONArray array_1, JSONArray array_2) {
         JSONArray result = new JSONArray();
         for (int i = 0; i < array_1.length(); i++) {
             result.put(array_1.getJSONObject(i));
@@ -144,7 +146,7 @@ public class LogsResources {
         return result;
     }
 
-    public String createQuery(String extension, String experimentId, String type) throws Exception {
+    private String createQuery(String extension, String experimentId, String type) throws Exception {
         if(type.equals("benchmark")) {
             return String.format(benchmarkQueryBase, extension, experimentId, experimentId);
         } else if(type.equals("system")) {
@@ -153,17 +155,17 @@ public class LogsResources {
         throw new Exception("Can not generate query of type " + type);
     }
 
-    public String createCountQuery(String experimentId, String type) throws Exception {
+    private String createCountQuery(String experimentId, String type) throws Exception {
         return createQuery("", experimentId, type);
     }
 
-    public String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
+    private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"from\":"+from.toString()+",\"size\":"+size.toString()+",";
         return createQuery(extension, experimentId, type);
     }
 
-    public String fireQuery(String query, String type) throws IOException {
+    private String fireQuery(String query, String type) throws IOException {
         HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         org.elasticsearch.client.Response response = restClient.performRequest(
                 "GET",

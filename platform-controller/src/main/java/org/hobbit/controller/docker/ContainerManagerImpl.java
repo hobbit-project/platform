@@ -92,6 +92,10 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     public static final String LOGGING_TAG = "{{.ImageName}}/{{.Name}}/{{.ID}}";
     /**
+     * Logging separator for type/experiment id.
+     */
+    private static final String LOGGING_SEPARATOR = "_sep_";
+    /**
      * Docker client instance
      */
     private DockerClient dockerClient;
@@ -341,7 +345,7 @@ public class ContainerManagerImpl implements ContainerManager {
             logOptions.put("gelf-address", gelfAddress);
             String tag = LOGGING_TAG;
             if (experimentId != null) {
-                tag = containerType + "#" + experimentId + "#" + LOGGING_TAG;
+                tag = containerType + LOGGING_SEPARATOR + experimentId + LOGGING_SEPARATOR + LOGGING_TAG;
             }
             logOptions.put("tag", tag);
             cfgBuilder.hostConfig(
