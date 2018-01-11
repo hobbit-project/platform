@@ -16,25 +16,37 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NStringEntity;
-import org.apache.http.util.EntityUtils;
-import org.elasticsearch.client.RestClient;
-import org.hobbit.core.Constants;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.*;
-import java.io.IOException;
-import java.util.Collections;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.SecurityContext;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.nio.entity.NStringEntity;
+import org.apache.http.util.EntityUtils;
+import org.apache.jena.rdf.model.Model;
+import org.elasticsearch.client.RestClient;
+import org.hobbit.core.Constants;
+import org.hobbit.storage.queries.SparqlQueries;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
+import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 
 
 @Path("logs")
@@ -81,8 +93,26 @@ public class LogsResources {
     @Path("system/query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response systemQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
+        // create experiment URI
+        String experimentUri = Constants.EXPERIMENT_URI_NS + id;
+        // construct query to gather experiment data
+        String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
+        Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+        if (model != null && model.size() > 0) {
+            ExperimentBean experiment = RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri));
+            // Check whether the user is the owner of the system
+            String systemURI = experiment.getSystem().getId();
+            Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
+            if(!userOwnedSystemIds.contains(systemURI)) {
+                // The user is not allowed to see the systems log
+                return Response.status(Status.FORBIDDEN).build();
+            }
+        } else {
+            return Response.status(Status.NO_CONTENT).build();
+        }
         String logs = query(id, "system");
         if(logs == null) {
+            // The experiment is not known
             Response.ok(UNKNOWN_EXP_ERROR_MSG).build();
         }
 
