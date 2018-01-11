@@ -65,34 +65,11 @@ public class LogsResources {
             "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
         "}";
 
-    RestClient restClient = RestClient.builder(
-            new HttpHost("localhost", 9200, "http")
-    ).build();
-
     @GET
-    @Path("query")
+    @Path("benchmark/query")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response query(@QueryParam("id") String id, @Context SecurityContext sc) {
-        String esHost = System.getenv("ELASTICSEARCH_HOST");
-        String esPort = System.getenv("ELASTICSEARCH_HTTP_PORT");
-        if(esHost != null && esPort != null) {
-            restClient = RestClient.builder(
-                    new HttpHost(esHost, Integer.parseInt(esPort), "http")
-            ).build();
-        }
-
-        String logs = null;
-        try {
-            // if user got rights to fetch all logs
-            logs = getLogs(id);
-            // if user only got system log rights
-            // logs = getSystemLogs(id);
-            // if user only got benchmark log rights
-            // logs = getBenchmarkLogs(id);
-        } catch (Exception e) {
-            LOGGER.error("Error occured during request to elasticsearch: "+e.getStackTrace());
-        }
-
+    public Response benchmarkQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
+        String logs = query(id, "benchmark");
         if(logs == null) {
             Response.ok(UNKNOWN_EXP_ERROR_MSG).build();
         }
@@ -100,23 +77,70 @@ public class LogsResources {
         return Response.ok(logs).build();
     }
 
-    public String getBenchmarkLogs(String experimentId) throws Exception {
-        return getLogsByType(experimentId, "benchmark").toString();
+    @GET
+    @Path("system/query")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response systemQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
+        String logs = query(id, "system");
+        if(logs == null) {
+            Response.ok(UNKNOWN_EXP_ERROR_MSG).build();
+        }
+
+        return Response.ok(logs).build();
     }
 
-    public String getSystemLogs(String experimentId) throws Exception {
-        return getLogsByType(experimentId, "system").toString();
+    @GET
+    @Path("query")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response query(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
+        String logs = query(id, "all");
+        if(logs == null) {
+            Response.ok(UNKNOWN_EXP_ERROR_MSG).build();
+        }
+
+        return Response.ok(logs).build();
     }
 
-    public String getLogs(String experimentId) throws Exception {
-        JSONArray benchmarkLogs = getLogsByType(experimentId, "benchmark");
-        JSONArray systemLogs = getLogsByType(experimentId, "system");
+    public String query(String experimentId, String type) throws Exception {
+        RestClient restClient = RestClient.builder(
+                new HttpHost("localhost", 9200, "http")
+        ).build();
+
+        String esHost = System.getenv("ELASTICSEARCH_HOST");
+        String esPort = System.getenv("ELASTICSEARCH_HTTP_PORT");
+        if(esHost != null && esPort != null) {
+            restClient = RestClient.builder(
+                    new HttpHost(esHost, Integer.parseInt(esPort), "http")
+            ).build();
+        }
+        String logs = null;
+        if(type.equals("all")) {
+            logs = getLogs(experimentId, restClient);
+        } else if (type.equals("system")) {
+            logs = getSystemLogs(experimentId, restClient);
+        } else if (type.equals("benchmark")) {
+            logs = getBenchmarkLogs(experimentId, restClient);
+        }
+        return logs;
+    }
+
+    public String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
+        return getLogsByType(experimentId, "benchmark", restClient).toString();
+    }
+
+    public String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
+        return getLogsByType(experimentId, "system", restClient).toString();
+    }
+
+    public String getLogs(String experimentId, RestClient restClient) throws Exception {
+        JSONArray benchmarkLogs = getLogsByType(experimentId, "benchmark", restClient);
+        JSONArray systemLogs = getLogsByType(experimentId, "system", restClient);
         return mergeJSONArrays(benchmarkLogs, systemLogs).toString();
     }
 
-    private JSONArray getLogsByType(String experimentId, String type) throws Exception {
+    private JSONArray getLogsByType(String experimentId, String type, RestClient restClient) throws Exception {
         String countQuery = createCountQuery(experimentId, type);
-        String countJsonString = fireQuery(countQuery, "count");
+        String countJsonString = fireQuery(countQuery, "count", restClient);
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
@@ -126,7 +150,7 @@ public class LogsResources {
         JSONArray results = new JSONArray();
         while(offset < count) {
             String searchQuery = createSearchQuery(offset, size, experimentId, type);
-            String queryResults = fireQuery(searchQuery, "search");
+            String queryResults = fireQuery(searchQuery, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
             results = mergeJSONArrays(results, hits);
@@ -165,7 +189,7 @@ public class LogsResources {
         return createQuery(extension, experimentId, type);
     }
 
-    private String fireQuery(String query, String type) throws IOException {
+    private String fireQuery(String query, String type, RestClient restClient) throws IOException {
         HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         org.elasticsearch.client.Response response = restClient.performRequest(
                 "GET",
