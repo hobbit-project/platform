@@ -23,6 +23,8 @@ services:
       - 9200:9200
       - 9300:9300
     networks:
+      - hobbit
+      - hobbit-core
       - hobbit-services
       
   logstash:
