@@ -132,16 +132,15 @@ public class LogsResources {
     }
 
     public String query(String experimentId, String type) throws Exception {
-        RestClient restClient = RestClient.builder(
-                new HttpHost("localhost", 9200, "http")
-        ).build();
-
+        RestClient restClient = null;
         String esHost = System.getenv("ELASTICSEARCH_HOST");
         String esPort = System.getenv("ELASTICSEARCH_HTTP_PORT");
         if(esHost != null && esPort != null) {
             restClient = RestClient.builder(
                     new HttpHost(esHost, Integer.parseInt(esPort), "http")
             ).build();
+        } else {
+            throw new Exception("ELASTICSEARCH_HOST and ELASTICSEARCH_HTTP_PORT env are not set.");
         }
         String logs = null;
         if(type.equals("all")) {
