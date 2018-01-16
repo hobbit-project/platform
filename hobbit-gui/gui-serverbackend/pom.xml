@@ -52,6 +52,18 @@
             <url>http://maven.aksw.org/repository/snapshots</url>
         </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>maven.aksw.internal</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/internal</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>maven.aksw.snapshots</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -218,9 +230,7 @@
                         <dependency>
                             <groupId>org.hobbit</groupId>
                             <artifactId>keycloak-jetty-adapter-for-hobbit</artifactId>
-                            <version>2.4.0.Final-SNAPSHOT</version>
-                            <!-- remove SNAPSHOT for development -->
-                            <!--version>2.4.0.Final</version-->
+                            <version>2.4.0.Final</version>
                         </dependency>
                     </dependencies>
                 </plugin>
