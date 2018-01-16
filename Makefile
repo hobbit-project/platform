@@ -1,4 +1,6 @@
 # build platform components
+default: build
+
 redeploy: build start
 
 start:
