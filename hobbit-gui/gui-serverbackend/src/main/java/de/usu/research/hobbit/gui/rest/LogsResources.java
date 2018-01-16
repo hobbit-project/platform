@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
 
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -41,8 +42,6 @@ import org.hobbit.core.Constants;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
@@ -52,7 +51,6 @@ import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 @Path("logs")
 public class LogsResources {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
     private static final String benchmarkQueryBase = "" +
         "{" +
@@ -78,6 +76,7 @@ public class LogsResources {
         "}";
 
     @GET
+    @RolesAllowed("system-provider") // Guests can not access this method
     @Path("benchmark/query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response benchmarkQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
@@ -90,6 +89,7 @@ public class LogsResources {
     }
 
     @GET
+    @RolesAllowed("system-provider") // Guests can not access this method
     @Path("system/query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response systemQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
@@ -120,6 +120,7 @@ public class LogsResources {
     }
 
     @GET
+    @RolesAllowed("system-provider") // Guests can not access this method
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response query(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
