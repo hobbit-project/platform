@@ -73,8 +73,7 @@ public class ExperimentTimeoutTest {
         // Check status
         ControllerStatus status = new ControllerStatus();
         manager.addStatusInfo(status, "");
-        Assert.assertNull(status.experiment.experimentId);
-        Assert.assertNull(status.experiment.benchmarkUri);
+        Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
