@@ -202,3 +202,36 @@ export class ExperimentCount {
 
     constructor(public count: Number) { }
 }
+
+
+export class QueuedExperimentBean {
+
+    constructor(public experimentId: string, public benchmarkUri: string, public benchmarkName: string,
+        public systemUri: string, public systemName: string, public dateOfExecution: number, public canBeCanceled: boolean,
+        public challengeUri?: string, public challengeTaskUri?: string) {
+    }
+}
+
+export class RunningExperimentBean extends QueuedExperimentBean {
+    constructor(experimentId: string, benchmarkUri: string, benchmarkName: string,
+        systemUri: string, systemName: string, dateOfExecution: number, canBeCanceled: boolean,
+        public status: string, public startTimestamp: number, public latestDateToFinish: number,
+        challengeUri?: string, challengeTaskUri?: string) {
+        super(experimentId, benchmarkUri, benchmarkName, systemUri, systemName, dateOfExecution, canBeCanceled,
+            challengeUri, challengeTaskUri);
+    }
+
+}
+
+export class StatusBean {
+
+    @Type(() => RunningExperimentBean)
+    public runningExperiment: RunningExperimentBean;
+
+    @Type(() => QueuedExperimentBean)
+    public queuedExperiments: QueuedExperimentBean[];
+
+    constructor() {
+    }
+
+}

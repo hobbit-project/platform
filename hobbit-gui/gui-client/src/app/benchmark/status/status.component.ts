@@ -1,3 +1,4 @@
+import { StatusBean } from './../../model';
 import { BackendService } from './../../backend.service';
 import { Component, OnInit } from '@angular/core';
 
@@ -7,13 +8,13 @@ import { Component, OnInit } from '@angular/core';
 })
 export class StatusComponent implements OnInit {
 
-  public details: string;
+  public status: StatusBean;
 
   constructor(private bs: BackendService) { }
 
   ngOnInit() {
     this.bs.getStatus().subscribe(data => {
-      this.details = data;
+      this.status = data;
     });
   }
 

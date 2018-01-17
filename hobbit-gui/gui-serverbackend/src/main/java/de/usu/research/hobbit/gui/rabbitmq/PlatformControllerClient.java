@@ -36,6 +36,7 @@ import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitRpcClient;
 import org.hobbit.vocab.HOBBIT;
@@ -339,6 +340,8 @@ public class PlatformControllerClient implements Closeable {
         String response = RabbitMQUtils.readString(data);
         System.out.println(response);
         ControllerStatus status = gson.fromJson(response, ControllerStatus.class);
+        if (status.queuedExperiments == null)
+            status.queuedExperiments = new QueuedExperiment[0];
         return status;
     }
 
