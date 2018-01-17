@@ -192,7 +192,8 @@ export class Experiment {
     @Type(() => ChallengeTask)
     public challengeTask: ChallengeTask;
 
-    constructor(public id: string, public error?: string, public rank?: number) { }
+    constructor(public id: string, public benchmarkLogAvailable: boolean, public systemLogAvailable: boolean,
+        public error?: string, public rank?: number) { }
 }
 
 export class ExperimentCount {
