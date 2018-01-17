@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.hobbit.controller.data.ExperimentConfiguration;
 
 import com.google.gson.Gson;
@@ -114,7 +115,7 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
     }
 
     @Override
-    public void remove(ExperimentConfiguration experiment) {
+    public boolean remove(ExperimentConfiguration experiment) {
         String typeKey = EXPERIMENT_KEY; // TODO: detect type based on
                                          // experiment
         String queueKey = EXPERIMENT_QUEUE; // TODO: detect type based on
@@ -124,6 +125,8 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         redisSyncCommands.hdel(typeKey, idKey);
         // remove from queue
         redisSyncCommands.zrem(queueKey, idKey);
+        
+        throw new NotImplementedException();
     }
 
     private List<ExperimentConfiguration> stringMapToExperimentList(Map<String, String> entries) {
@@ -150,6 +153,12 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         result.addAll(0, stringMapToExperimentList(challenges));
         // return result
         return result;
+    }
+
+    @Override
+    public ExperimentConfiguration getExperiment(String experimentId) {
+        // TODO Auto-generated method stub
+        throw new NotImplementedException();
     }
 
     public void close() {

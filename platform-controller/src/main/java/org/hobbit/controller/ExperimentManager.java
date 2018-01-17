@@ -636,6 +636,36 @@ public class ExperimentManager implements Closeable {
         }
     }
 
+    /**
+     * Stops the currently running experiment if it has the given experiment id.
+     * 
+     * @param experimentId
+     *            the id of the experiment that should be stopped
+     */
+    public void stopExperimentIfRunning(String experimentId) {
+        try {
+            experimentMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error(
+                    "Interrupted while waiting for the experiment mutex. Won't check the experiment regarding the requested termination.",
+                    e);
+            return;
+        }
+        try {
+            // If this is the currently running experiment
+            if ((experimentStatus != null) && (experimentStatus.config.id.equals(experimentId))) {
+                // If the experiment hasn't been stopped
+                if (experimentStatus.getState() != States.STOPPED) {
+                    LOGGER.error("The experiment {} was stopped by the user. Forcing termination.",
+                            experimentStatus.experimentUri);
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.TerminatedByUser);
+                }
+            }
+        } finally {
+            experimentMutex.release();
+        }
+    }
+
     @Override
     public void close() throws IOException {
         expStartTimer.cancel();
