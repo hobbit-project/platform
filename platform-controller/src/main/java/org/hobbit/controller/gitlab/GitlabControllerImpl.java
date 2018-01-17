@@ -109,8 +109,8 @@ public class GitlabControllerImpl implements GitlabController {
                 .maximumSize(MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE).build(new CacheLoader<String, Set<String>>() {
 
                     @Override
-                    public Set<String> load(String username) throws Exception {
-                        return getProjectsOfUser(username);
+                    public Set<String> load(String mail) throws Exception {
+                        return getProjectsOfUser(mail);
                     }
 
                 });
@@ -261,7 +261,7 @@ public class GitlabControllerImpl implements GitlabController {
         }
         if ((benchmarkModel != null) || (systemModel != null)) {
             // get user
-            String user = project.getOwner().getUsername();
+            String user = project.getOwner().getEmail();
             Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
                     project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
             return p;
@@ -359,6 +359,7 @@ public class GitlabControllerImpl implements GitlabController {
         }
         List<GitlabUser> users = api.getUsers();
         for (GitlabUser user : users) {
+            System.out.println(user.getEmail().equals(mail));
             if (user.getEmail().equals(mail)) {
                 return user;
             }
