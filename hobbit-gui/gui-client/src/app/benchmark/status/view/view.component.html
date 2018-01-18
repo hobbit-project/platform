@@ -30,7 +30,7 @@
       </table>
     </div>
     <div class="col-3" *ngIf="runningExperiment">
-      <h5>Remaining Runtime</h5>
+      <h5>Max. Runtime</h5>
       <div *ngIf="this.runningExperiment.latestDateToFinish" class="progress-wrapper">
         <div class="progress-overlay">{{remainingRuntime}}s</div>
         <round-progress [current]="runtime" [max]="maxRuntime" [radius]="50"></round-progress>
