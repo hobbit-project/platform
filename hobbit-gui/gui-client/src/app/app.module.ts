@@ -36,6 +36,8 @@ import { DetailsWrapperComponent } from './experiments/details-wrapper/details-w
 import { StatusComponent } from './benchmark/status/status.component';
 import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.component';
 import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
+import { ViewComponent } from './benchmark/status/view/view.component';
+import {RoundProgressModule} from 'angular-svg-round-progressbar';
 
 
 const appRoutes: Routes = [
@@ -110,7 +112,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     DetailsWrapperComponent,
     LeaderboardsComponent,
     LeaderboardDetailsComponent,
-    StatusComponent
+    StatusComponent,
+    ViewComponent
   ],
   imports: [
     BrowserAnimationsModule,
@@ -124,7 +127,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     DataTableModule,
     CalendarModule,
     ConfirmDialogModule,
-    MessagesModule
+    MessagesModule,
+    RoundProgressModule
   ],
   providers: [
     AuthGuardService,

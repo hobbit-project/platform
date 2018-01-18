@@ -57,7 +57,11 @@ public class StatusResources {
         for (int i = 0; i < status.queuedExperiments.length; ++i) {
             queueContent.add(new QueuedExperimentBean(status.queuedExperiments[i]));
         }
-        StatusBean statusBean = new StatusBean(new RunningExperimentBean(status.experiment), queueContent);
+
+        RunningExperimentBean runningExperimentBean = null;
+        if (status.experiment != null)
+            runningExperimentBean = new RunningExperimentBean(status.experiment);
+        StatusBean statusBean = new StatusBean(runningExperimentBean, queueContent);
 
         return Response.ok(new GenericEntity<StatusBean>(statusBean){}).build();
     }
