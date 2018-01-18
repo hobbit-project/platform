@@ -989,6 +989,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 runningExperiment.systemName = RdfHelper.getLabel(model,
                         model.getResource(runningExperiment.systemUri));
             }
+            model = imageManager.getSystemModel(runningExperiment.benchmarkUri);
+            if (model != null) {
+                runningExperiment.benchmarkName = RdfHelper.getLabel(model,
+                        model.getResource(runningExperiment.benchmarkUri));
+            }
         }
         List<ExperimentConfiguration> experiments = queue.listAll();
         List<QueuedExperiment> tempQueue = new ArrayList<QueuedExperiment>(experiments.size());
@@ -998,7 +1003,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 queuedExp = new QueuedExperiment();
                 queuedExp.experimentId = experiment.id;
                 queuedExp.benchmarkUri = experiment.benchmarkUri;
-                queuedExp.benchmarkName = experiment.benchmarkName;
+                queuedExp.benchmarkName = experiment.benchmarkUri; // FIXME should be something different :/
                 queuedExp.systemUri = experiment.systemUri;
                 queuedExp.systemName = experiment.systemUri; // FIXME should be something different :/
                 queuedExp.challengeUri = experiment.challengeUri;
