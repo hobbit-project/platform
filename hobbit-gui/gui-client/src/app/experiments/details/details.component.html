@@ -21,7 +21,7 @@
 
             <ng-template #notError>
                 <div *ngIf="row.kpiSample.name === 'Benchmark Log' || row.kpiSample.name === 'System Log'; else defaultStyle">
-                  <button *ngIf="row.values[i]" class="btn" (click)="download(row.values[i])">Download</button>
+                  <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i])">Download</button>
                 </div>
 
                 <ng-template #defaultStyle>
