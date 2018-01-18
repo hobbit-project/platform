@@ -130,11 +130,10 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         }
         String idKey = experiment.id;
         // remove from experiment data store
-        redisSyncCommands.hdel(typeKey, idKey);
+        long removedFields1 = redisSyncCommands.hdel(typeKey, idKey);
         // remove from queue
-        redisSyncCommands.zrem(queueKey, idKey);
-
-        throw new NotImplementedException();
+        long removedFields2 = redisSyncCommands.zrem(queueKey, idKey);
+        return (removedFields1 > 0) && (removedFields2 > 0);
     }
 
     private List<ExperimentConfiguration> stringMapToExperimentList(Map<String, String> entries) {
