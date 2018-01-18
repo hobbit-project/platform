@@ -1,0 +1,43 @@
+<div>
+  <div class="row">
+    <h4 class="col-10">
+      Experiment
+      <a [routerLink]="['/experiments/', experiment.experimentId]">{{experiment.experimentId}}</a>
+    </h4>
+    <div class="col-2">
+      <button *ngIf="cancelable" class="btn btn-danger pull-right">Cancel</button>
+    </div>
+  </div>
+  <div class="row" *ngIf="runningExperiment">
+    <p class="col-12">{{runningExperiment.status}}</p>
+  </div>
+  <div class="row">
+    <div class="col-9">
+      <table class="table">
+        <tr>
+          <th scope="row">System</th>
+          <td>{{experiment.systemName}}</td>
+          <th scope="row">Benchmark</th>
+          <td>Test {{experiment.benchmarkName}}</td>
+        </tr>
+        <tr *ngIf="experiment.challengeUri">
+          <th scope="row">Challenge</th>
+          <td>
+            <a [routerLink]="['/challenges/', experiment.challengeUri]">Challenge</a>
+          </td>
+        </tr>
+        <tr>
+      </table>
+    </div>
+    <div class="col-3" *ngIf="runningExperiment">
+      <h5>Remaining Runtime</h5>
+      <div *ngIf="this.runningExperiment.latestDateToFinish" class="progress-wrapper">
+        <div class="progress-overlay">{{remainingRuntime}}s</div>
+        <round-progress [current]="runtime" [max]="maxRuntime" [radius]="50"></round-progress>
+      </div>
+      <div *ngIf="!this.runningExperiment.latestDateToFinish">
+        <p>unlimited</p>
+      </div>
+    </div>
+  </div>
+</div>
