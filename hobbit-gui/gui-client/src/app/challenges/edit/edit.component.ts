@@ -61,7 +61,7 @@ export class EditComponent implements OnInit {
       this.challenge = new Challenge('', '');
       this.dates = new ChallengeDates(this.challenge);
       this.bs.userInfo().subscribe(userInfo => {
-        this.challenge.organizer = userInfo.name;
+        this.challenge.organizer = userInfo.preferredUsername;
       });
     } else {
       if (id.indexOf('://') === -1)
