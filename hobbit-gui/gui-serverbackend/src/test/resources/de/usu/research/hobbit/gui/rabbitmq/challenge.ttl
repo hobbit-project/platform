@@ -7,6 +7,7 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix sys: <http://w3id.org/system#> .
 @prefix bench: <http://w3id.org/bench#> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
 
 # --- Challenge ---
 
@@ -19,6 +20,7 @@
     hobbit:publicationDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
     hobbit:organizer "Michael Roeder"@en;
     hobbit:visible "true"^^xsd:boolean;
+    foaf:homepage <http://example-hosting.org/MyChallenge>;
     hobbit:closed "true"^^xsd:boolean .
 
 # --- Challenge Task 1 ---
