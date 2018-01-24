@@ -6,12 +6,12 @@
       </div>
       <div class="col-md-4">
         <div class="pull-right">
-          <div *ngIf="challenge && challenge.organizer === userInfo.name">
+          <div *ngIf="challenge && challenge.organizer === userInfo.preferredUsername">
             <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
             <button type="button" class="btn" (click)="cancel()">Cancel</button>
             <button type="button" class="btn btn-primary" (click)="save()">Save</button>
           </div>
-          <div *ngIf="!challenge || challenge.organizer !== userInfo.name">
+          <div *ngIf="!challenge || challenge.organizer !== userInfo.preferredUsername">
             <button type="button" class="btn" (click)="cancel()">Back</button>
           </div>
         </div>

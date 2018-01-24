@@ -29,7 +29,7 @@ public class ExperimentConfiguration {
     public String id;
     public Calendar executionDate;
     public String benchmarkUri;
-    public String benchmarkName;
+//    public String benchmarkName;
     public String serializedBenchParams;
     public String systemUri;
     public String challengeUri;

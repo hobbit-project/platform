@@ -24,13 +24,13 @@ export default Role;
 export class User {
 
     static fromJson(json: any): User {
-        return new User(json.principalName, json.userName, json.name, json.email, json.roles);
+        return new User(json.principalName, json.userName, json.name, json.email, json.roles, json.preferredUsername);
     }
 
     public roles: Role[] = [];
 
     constructor(public principalName: string, public userName: string,
-        public name: string, public email: string, roles: any[]) {
+        public name: string, public email: string, roles: any[], public preferredUsername: string) {
         for (let i = 0; i < roles.length; i++)
             this.roles.push(parseRole(roles[i]));
     }

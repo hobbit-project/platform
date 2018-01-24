@@ -560,7 +560,6 @@ public class ExperimentManager implements Closeable {
             ExperimentConfiguration config = currentStatus.getConfig();
             RunningExperiment experiment = new RunningExperiment();
             if (config != null) {
-                experiment.benchmarkName = config.benchmarkName;
                 experiment.benchmarkUri = config.benchmarkUri;
                 experiment.systemUri = config.systemUri;
                 experiment.experimentId = config.id;
