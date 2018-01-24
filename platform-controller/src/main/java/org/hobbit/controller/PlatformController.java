@@ -984,8 +984,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
             String serializedBenchParams, String challengUri, String challengTaskUri, Calendar executionDate) {
         String experimentId = generateExperimentId();
-        LOGGER.info("Adding experiment " + experimentId + " with benchmark " + benchmarkUri + " and system " + systemUri
-                + " to the queue.");
+        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId, benchmarkUri, systemUri, userName);
         queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
                 challengUri, challengTaskUri, executionDate));
         return experimentId;

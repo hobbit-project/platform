@@ -331,8 +331,9 @@ public class PlatformControllerClient implements Closeable {
      * @throws IOException
      *             If no response has been received
      */
-    public ControllerStatus requestStatus() throws IOException {
-        byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
+    public ControllerStatus requestStatus(String userName) throws IOException {
+        byte[] data = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS },
+                        new byte[][] { RabbitMQUtils.writeString(userName) }, null));
         if (data == null) {
             throw new IOException("Didn't get a response.");
         }
