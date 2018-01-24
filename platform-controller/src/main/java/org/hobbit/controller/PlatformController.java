@@ -988,11 +988,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
             if (model != null) {
                 runningExperiment.systemName = RdfHelper.getLabel(model,
                         model.getResource(runningExperiment.systemUri));
+            } else {
+                runningExperiment.systemName = runningExperiment.systemUri;
             }
-            model = imageManager.getSystemModel(runningExperiment.benchmarkUri);
+            model = imageManager.getBenchmarkModel(runningExperiment.benchmarkUri);
             if (model != null) {
                 runningExperiment.benchmarkName = RdfHelper.getLabel(model,
                         model.getResource(runningExperiment.benchmarkUri));
+            } else {
+                runningExperiment.benchmarkName = runningExperiment.benchmarkUri;
             }
         }
         List<ExperimentConfiguration> experiments = queue.listAll();
