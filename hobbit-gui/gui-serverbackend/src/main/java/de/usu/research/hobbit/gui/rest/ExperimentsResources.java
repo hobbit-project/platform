@@ -123,12 +123,16 @@ public class ExperimentsResources {
                 }
                 // Add visibility of logs
                 if ((results != null) && (results.size() > 0)) {
+                    UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
                     if (userOwnedSystemIds == null) {
-                        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
                         userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                     }
                     for (ExperimentBean e : results) {
-                        e.setBenchmarkLogAvailable(true);
+                        if(userInfo.getPreferredUsername().equals("guest")) {
+                            e.setBenchmarkLogAvailable(false);
+                        } else {
+                            e.setBenchmarkLogAvailable(true);
+                        }
                         e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
                     }
                 }
