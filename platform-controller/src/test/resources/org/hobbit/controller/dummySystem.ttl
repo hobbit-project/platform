@@ -9,5 +9,6 @@
 ex:DummySystem	a	hobbit:SystemInstance;
       rdfs:label	"Dummy System"@en;
       rdfs:comment	"Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"@en;
-      hobbit:hasAPI	ex:GerbilApi;
-      hobbit:imageName	"gerbil_dummy_system" .
+      hobbit:implementsAPI	ex:GerbilApi;
+      hobbit:imageName	"gerbil_dummy_system";
+      hobbit:usesImage	"gerbil_dummy_system_part2" .
