@@ -123,17 +123,25 @@ public class ExperimentsResources {
                 }
                 // Add visibility of logs
                 if ((results != null) && (results.size() > 0)) {
-                    UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-                    if (userOwnedSystemIds == null) {
-                        userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
-                    }
-                    for (ExperimentBean e : results) {
-                        if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
-                            e.setBenchmarkLogAvailable(true);
-                        } else {
+                    String esHost = System.getenv("ELASTICSEARCH_HOST");
+                    if(esHost == null) {
+                        for (ExperimentBean e : results) {
                             e.setBenchmarkLogAvailable(false);
+                            e.setSystemLogAvailable(false);
                         }
-                        e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                    } else {
+                        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+                        if (userOwnedSystemIds == null) {
+                            userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                        }
+                        for (ExperimentBean e : results) {
+                            if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
+                                e.setBenchmarkLogAvailable(true);
+                            } else {
+                                e.setBenchmarkLogAvailable(false);
+                            }
+                            e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                        }
                     }
                 }
                 // If the user is asking for experiments of a certain challenge task
