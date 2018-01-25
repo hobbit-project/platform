@@ -215,6 +215,12 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
+        public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                     String[] command, String experimentId) {
+            return imageName;
+        }
+
+        @Override
         public void stopContainer(String containerId) {
             // Check whether the benchmark controller has been terminated
             if (containerId.equals(BENCHMARK_NAME)) {

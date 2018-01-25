@@ -64,18 +64,19 @@ public class ExperimentsResources {
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response query(@QueryParam("id") String idsCommaSep,
-            @QueryParam("challenge-task-id") String challengeTaskId, @Context SecurityContext sc) {
+    public Response query(@QueryParam("id") String idsCommaSep, @QueryParam("challenge-task-id") String challengeTaskId,
+            @Context SecurityContext sc) {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
             ids = idsCommaSep.split(",");
         }
 
+        Set<String> userOwnedSystemIds = null;
         if (Application.isUsingDevDb()) {
             return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         } else {
-
+            // If there is a list of experiment ids
             if (ids != null) {
                 LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -101,7 +102,7 @@ public class ExperimentsResources {
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
-                                Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
+                                userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model,
@@ -120,6 +121,22 @@ public class ExperimentsResources {
                         }
                     }
                 }
+                // Add visibility of logs
+                if ((results != null) && (results.size() > 0)) {
+                    UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+                    if (userOwnedSystemIds == null) {
+                        userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                    }
+                    for (ExperimentBean e : results) {
+                        if(userInfo.getPreferredUsername().equals("guest")) {
+                            e.setBenchmarkLogAvailable(false);
+                        } else {
+                            e.setBenchmarkLogAvailable(true);
+                        }
+                        e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                    }
+                }
+                // If the user is asking for experiments of a certain challenge task
             } else if (challengeTaskId != null) {
                 LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
@@ -131,6 +148,7 @@ public class ExperimentsResources {
                 if (model != null && model.size() > 0) {
                     results = RdfModelHelper.createExperimentBeans(model);
                 } else {
+                    boolean challengeOwner = true;
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId,
                             Constants.PRIVATE_RESULT_GRAPH_URI);
@@ -152,6 +170,7 @@ public class ExperimentsResources {
                                 // return whole thing if he is
                                 if (organizer.equals(userInfo.getPreferredUsername())) {
                                     results = RdfModelHelper.createExperimentBeans(model);
+                                    challengeOwner = true;
                                 }
                             } else {
                                 LOGGER.error(
@@ -163,9 +182,10 @@ public class ExperimentsResources {
                                 // that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
-                                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                                    userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                                    final Set<String> filter = userOwnedSystemIds;
                                     results = experiments.stream()
-                                            .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
+                                            .filter(exp -> filter.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
                                 }
                             }
@@ -175,6 +195,24 @@ public class ExperimentsResources {
                     } else {
                         LOGGER.info("Couldn't find experiments for task {}. Returning empty list.", challengeTaskId);
                         results = new ArrayList<>(0);
+                    }
+                    // Add visibility of logs
+                    if ((results != null) && (results.size() > 0)) {
+                        if (challengeOwner) {
+                            for (ExperimentBean e : results) {
+                                e.setBenchmarkLogAvailable(true);
+                                e.setSystemLogAvailable(true);
+                            }
+                        } else {
+                            if (userOwnedSystemIds == null) {
+                                UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+                                userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                            }
+                            for (ExperimentBean e : results) {
+                                e.setBenchmarkLogAvailable(true);
+                                e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                            }
+                        }
                     }
                 }
             } else {
@@ -187,7 +225,8 @@ public class ExperimentsResources {
 
         if (results == null)
             results = new ArrayList<>(0);
-        return Response.ok(new GenericEntity<List<ExperimentBean>>(results){}).build();
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results) {
+        }).build();
     }
 
     @GET
@@ -232,7 +271,8 @@ public class ExperimentsResources {
                     LOGGER.error("Exception while executing ");
                 }
             }
-            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts){}).build();
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts) {
+            }).build();
         }
     }
 
