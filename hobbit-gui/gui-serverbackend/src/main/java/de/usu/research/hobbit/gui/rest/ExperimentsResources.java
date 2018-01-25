@@ -128,10 +128,10 @@ public class ExperimentsResources {
                         userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                     }
                     for (ExperimentBean e : results) {
-                        if(userInfo.getPreferredUsername().equals("guest")) {
-                            e.setBenchmarkLogAvailable(false);
-                        } else {
+                        if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
                             e.setBenchmarkLogAvailable(true);
+                        } else {
+                            e.setBenchmarkLogAvailable(false);
                         }
                         e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
                     }
