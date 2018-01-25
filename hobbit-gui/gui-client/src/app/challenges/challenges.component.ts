@@ -13,22 +13,30 @@ import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 export class ChallengesComponent implements OnInit {
 
   public Role = Role;
-  public challenges: Challenge[];
+  public openChallenges: Challenge[] = [];
+  public closedChallenges: Challenge[] = [];
   public user: User;
   public selectedChallenge: Challenge;
+  public loaded: Boolean;
 
   constructor(private bs: BackendService, private router: Router, private messageService: MessageService) { }
 
   ngOnInit() {
+    this.loaded = false;
     this.bs.userInfo().subscribe(data => {
       this.user = data;
     });
 
     this.bs.listChallenges().subscribe(data => {
-      this.challenges = data;
-
-      if (this.challenges.length === 0)
+      if (data.length === 0)
         this.messageService.add({ severity: 'warn', summary: 'No Challenges', detail: 'Did not find any challenges.' });
+      for (let i = 0; i < data.length; i++) {
+        if (data[i].closed)
+          this.closedChallenges.push(data[i]);
+        else
+          this.openChallenges.push(data[i]);
+      }
+      this.loaded = true;
     });
   }
 
