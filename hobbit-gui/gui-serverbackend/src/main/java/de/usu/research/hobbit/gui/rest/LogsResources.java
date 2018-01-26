@@ -215,7 +215,8 @@ public class LogsResources {
 
     private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
-                "\"from\":"+from.toString()+",\"size\":"+size.toString()+",";
+                "\"from\":"+from.toString()+",\"size\":"+size.toString()+","+
+                "\"sort\": [{ \"@timestamp\" : \"desc\" }],";
         return createQuery(extension, experimentId, type);
     }
 
