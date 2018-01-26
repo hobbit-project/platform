@@ -3,6 +3,12 @@ default: build
 
 redeploy: build start
 
+redeploy-gui:
+	cd hobbit-gui/gui-client && npm install && npm run build-prod
+	cd hobbit-gui/gui-serverbackend && mvn clean package
+	docker-compose build
+	docker-compose up -d gui
+
 start:
 	docker-compose build
 	docker-compose up

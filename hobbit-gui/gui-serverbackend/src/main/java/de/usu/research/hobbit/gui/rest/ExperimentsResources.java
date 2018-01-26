@@ -122,7 +122,7 @@ public class ExperimentsResources {
                     }
                 }
                 // Add visibility of logs
-                if ((results != null) && (results.size() > 0)) {
+                if (results.size() > 0) {
                     String esHost = System.getenv("ELASTICSEARCH_HOST");
                     if(esHost == null) {
                         for (ExperimentBean e : results) {
@@ -135,12 +135,23 @@ public class ExperimentsResources {
                             userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
                         }
                         for (ExperimentBean e : results) {
+                            if(e.getError() != null && e.getError().equals(UNKNOWN_EXP_ERROR_MSG)) {
+                                e.setBenchmarkLogAvailable(false);
+                                e.setSystemLogAvailable(false);
+                                continue;
+                            }
                             if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
                                 e.setBenchmarkLogAvailable(true);
                             } else {
                                 e.setBenchmarkLogAvailable(false);
                             }
-                            e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                            NamedEntityBean system = e.getSystem();
+                            if(system != null) {
+                                String systemId = system.getId();
+                                e.setSystemLogAvailable(userOwnedSystemIds.contains(systemId));
+                            } else {
+                                e.setSystemLogAvailable(false);
+                            }
                         }
                     }
                 }
