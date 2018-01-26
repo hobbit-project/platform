@@ -98,7 +98,7 @@
         <dependency>
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.9-SNAPSHOT</version>
+            <version>1.0.9-qb-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>commons-collections</groupId>
