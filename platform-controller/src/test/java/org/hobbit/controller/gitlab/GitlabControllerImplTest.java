@@ -33,7 +33,7 @@ public class GitlabControllerImplTest {
     public void init() throws InterruptedException {
         controller = new GitlabControllerImpl();
         // wait for controller to fetch projects
-        Thread.sleep(10000);
+        Thread.sleep(20000);
     }
 
     @Test

@@ -27,12 +27,12 @@ import org.junit.Test;
 
 /**
  * This is a whitebox test for
- * {@link ExperimentManager#getSerializedSystemParams(ExperimentConfiguration, ImageManager)}.
+ * {@link ExperimentManager#getSerializedSystemParams(ExperimentConfiguration, BenchmarkMetaData, SystemMetaData)}.
  * 
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
  */
-public class ParameterForwardingTest implements ImageManager {
+public class ParameterForwardingTest {
 
     private String benchmarkUri = "http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmark";
     private String systemUri = "http://example.org/DummySystem";
@@ -52,10 +52,7 @@ public class ParameterForwardingTest implements ImageManager {
 
         Property forwardedParameter = benchmarkModel
                 .getProperty("http://w3id.org/gerbil/hobbit/vocab#hasExperimentType");
-        // FIXME The param class should be replaced by a constant resource in the HOBBIT
-        // vocab
-        benchmarkModel.add(forwardedParameter, RDF.type,
-                benchmarkModel.getResource(HOBBIT.getURI() + "ForwardedParameter"));
+        benchmarkModel.add(forwardedParameter, RDF.type, HOBBIT.ForwardedParameter);
 
         input = ParameterForwardingTest.class.getClassLoader()
                 .getResourceAsStream("org/hobbit/controller/exampleExperiment.ttl");
@@ -89,7 +86,15 @@ public class ParameterForwardingTest implements ImageManager {
     public void testParameterForwarding() {
         ExperimentConfiguration config = new ExperimentConfiguration("123", benchmarkUri,
                 RabbitMQUtils.writeModel2String(benchmarkParamModel), systemUri);
-        String serializedSystemModel = ExperimentManager.getSerializedSystemParams(config, this);
+
+        BenchmarkMetaData benchmark = new BenchmarkMetaData();
+        benchmark.uri = benchmarkUri;
+        benchmark.rdfModel = benchmarkModel;
+        SystemMetaData system = new SystemMetaData();
+        system.uri = systemUri;
+        system.rdfModel = systemModel;
+
+        String serializedSystemModel = ExperimentManager.getSerializedSystemParams(config, benchmark, system);
         Model result = RabbitMQUtils.readModel(serializedSystemModel);
 
         // Compare the models
@@ -110,61 +115,5 @@ public class ParameterForwardingTest implements ImageManager {
         }
 
         Assert.assertTrue(builder.toString(), missingStatements.size() == 0 && unexpectedStatements.size() == 0);
-    }
-
-    @Override
-    public List<BenchmarkMetaData> getBenchmarks() {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public List<SystemMetaData> getSystemsOfUser(String userName) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public List<SystemMetaData> getSystemsForBenchmark(String benchmarkUri) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public List<SystemMetaData> getSystemsForBenchmark(Model benchmarkModel) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public Model getBenchmarkModel(String benchmarkUri) {
-        if (this.benchmarkUri.equals(benchmarkUri)) {
-            return benchmarkModel;
-        }
-        throw new IllegalArgumentException();
-    }
-
-    @Override
-    public Model getSystemModel(String systemUri) {
-        if (this.systemUri.equals(systemUri)) {
-            return systemModel;
-        }
-        throw new IllegalArgumentException();
-    }
-
-    @Override
-    public String getBenchmarkImageName(String benchmarkUri) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public String getSystemImageName(String systemUri) {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
-        throw new NotImplementedException();
-    }
-
-    @Override
-    public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
-        throw new NotImplementedException();
     }
 }
