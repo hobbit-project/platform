@@ -61,7 +61,7 @@ public class DiagramBean extends KeyPerformanceIndicatorBean {
                 return null;
             }
         }
-        
+
         public double x;
         public double y;
 
@@ -71,6 +71,17 @@ public class DiagramBean extends KeyPerformanceIndicatorBean {
         public Point(double x, double y) {
             this.x = x;
             this.y = y;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append('(');
+            builder.append(x);
+            builder.append(',');
+            builder.append(y);
+            builder.append(')');
+            return builder.toString();
         }
 
         /*

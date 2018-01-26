@@ -728,6 +728,8 @@ public class RdfModelHelper {
         Map<String, KeyPerformanceIndicatorBean> kpis = new HashMap<String, KeyPerformanceIndicatorBean>();
         createKPIBeans(model, experiment, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpis);
         bean.setKpis(new ArrayList<>(kpis.values()));
+        bean.setDiagrams(bean.getKpis().stream().filter(k -> k.getClass().equals(DiagramBean.class))
+                .map(k -> (DiagramBean) k).collect(Collectors.toList()));
 
         bean.setError(getErrorMessage(RdfHelper.getObjectResource(model, experiment, HOBBIT.terminatedWithError)));
 
