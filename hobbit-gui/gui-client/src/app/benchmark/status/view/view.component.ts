@@ -34,7 +34,7 @@ export class ViewComponent implements OnInit {
         this.remainingRuntime = Math.ceil((this.maxRuntime - this.runtime) / 1000);
       }
     }
-    this.cancelable = this.experiment.canBeCanceled && this.runningExperiment == null;
+    this.cancelable = this.experiment.canBeCanceled;
   }
 
   public cancel() {
