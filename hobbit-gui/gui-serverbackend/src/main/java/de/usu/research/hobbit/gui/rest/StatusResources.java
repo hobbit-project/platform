@@ -23,9 +23,11 @@ import java.util.Objects;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 import org.hobbit.core.data.status.ControllerStatus;
 import org.slf4j.Logger;
@@ -37,6 +39,7 @@ import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.QueuedExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.RunningExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.StatusBean;
+import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("status")
 public class StatusResources {
@@ -44,13 +47,14 @@ public class StatusResources {
 
     @Produces(MediaType.APPLICATION_JSON)
     @GET
-    public Response getStatus() throws Exception {
+    public Response getStatus(@Context SecurityContext sc) throws Exception {
         LOGGER.info("Get status ...");
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         if (client == null) {
             throw new GUIBackendException("Couldn't connect to platform controller.");
         }
-        ControllerStatus status = client.requestStatus();
+        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+        ControllerStatus status = client.requestStatus(userInfo.getPreferredUsername());
         Objects.requireNonNull(status, "Couldn't get status of platform.");
 
         List<QueuedExperimentBean> queueContent = new ArrayList<>(status.queuedExperiments.length);
