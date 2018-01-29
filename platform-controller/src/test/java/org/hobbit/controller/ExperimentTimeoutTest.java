@@ -161,13 +161,13 @@ public class ExperimentTimeoutTest {
         public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
             List<SystemMetaData> result = new ArrayList<>();
             SystemMetaData meta = new SystemMetaData();
-            meta.systemUri = SYSTEM_URI;
+            meta.uri = SYSTEM_URI;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("SystemImage1");
             meta.usedImages.add("SystemImage2");
             result.add(meta);
             meta = new SystemMetaData();
-            meta.systemUri = "wrong_" + SYSTEM_URI;
+            meta.uri = "wrong_" + SYSTEM_URI;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("wrong_SystemImage1");
             meta.usedImages.add("wrong_SystemImage2");

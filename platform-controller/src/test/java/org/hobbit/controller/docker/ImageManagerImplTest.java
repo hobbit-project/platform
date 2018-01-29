@@ -84,14 +84,14 @@ public class ImageManagerImplTest {
                 // find gerbil benchmark
                 BenchmarkMetaData gerbilBench = null;
                 for (BenchmarkMetaData b : bs) {
-                    if (b.benchmarkUri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB")) {
+                    if (b.uri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB")) {
                         gerbilBench = b;
                     }
                 }
                 Assert.assertNotNull(gerbilBench);
 
                 // find systems for gerbil
-                List<SystemMetaData> gbSys = imageManager.getSystemsForBenchmark(gerbilBench.benchmarkUri);
+                List<SystemMetaData> gbSys = imageManager.getSystemsForBenchmark(gerbilBench.uri);
                 Assert.assertTrue(gbSys.size() > 1);
 
                 // get gerbil benchmark by URL

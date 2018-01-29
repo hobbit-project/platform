@@ -87,13 +87,13 @@ public class ImageManagerImpl implements ImageManager {
             return null;
         }
         // set URI
-        result.benchmarkUri = benchmark.getURI();
+        result.uri = benchmark.getURI();
         // find name
-        result.benchmarkName = getName(model, benchmark);
+        result.name = getName(model, benchmark);
         // find description
-        result.benchmarkDescription = getDescription(model, benchmark);
+        result.description = getDescription(model, benchmark);
         // find APIs
-        result.implementedApis = getAPIs(model, benchmark, true);
+        result.definedApis = getAPIs(model, benchmark, true);
         // find used images
         result.usedImages = getUsedImages(model, benchmark);
 
@@ -113,13 +113,13 @@ public class ImageManagerImpl implements ImageManager {
         for (Resource system : systems) {
             SystemMetaData result = new SystemMetaData();
             // set URI
-            result.systemUri = system.getURI();
+            result.uri = system.getURI();
             // find name
-            result.systemName = getName(model, system);
+            result.name = getName(model, system);
             // find description
-            result.systemDescription = getDescription(model, system);
+            result.description = getDescription(model, system);
             // find image name
-            result.system_image_name = getImage(model, system);
+            result.mainImage = getImage(model, system);
             // find APIs
             result.implementedApis = getAPIs(model, system, false);
             // find used images
@@ -179,7 +179,7 @@ public class ImageManagerImpl implements ImageManager {
         // then first find input benchmark
         BenchmarkMetaData benchmark = null;
         for (BenchmarkMetaData b : benchmarks) {
-            if (b.benchmarkUri.equals(benchmarkUri)) {
+            if (b.uri.equals(benchmarkUri)) {
                 benchmark = b;
                 break;
             }
@@ -193,7 +193,7 @@ public class ImageManagerImpl implements ImageManager {
 
         // find all systems that have same api
         for (SystemMetaData s : systems) {
-            int intersectSize = Sets.intersection(benchmark.implementedApis, s.implementedApis).size();
+            int intersectSize = Sets.intersection(benchmark.definedApis, s.implementedApis).size();
             if (intersectSize > 0) {
                 results.add(s);
             }
@@ -216,7 +216,7 @@ public class ImageManagerImpl implements ImageManager {
                 try {
                     BenchmarkMetaData meta = modelToBenchmarkMetaData(p.benchmarkMetadata);
                     if (meta != null) {
-                        if (meta.benchmarkUri.equals(benchmarkUri)) {
+                        if (meta.uri.equals(benchmarkUri)) {
                             return stringToModel(p.benchmarkMetadata);
                         }
                     } else {
@@ -240,7 +240,7 @@ public class ImageManagerImpl implements ImageManager {
                     Model model = stringToModel(p.systemMetadata);
                     List<SystemMetaData> metas = modelToSystemMetaData(model);
                     for (SystemMetaData meta : metas) {
-                        if (meta.systemUri.equals(systemUri)) {
+                        if (meta.uri.equals(systemUri)) {
                             // We have to remove all other systems that have not
                             // been requested
                             removeOtherSystems(model, systemUri);

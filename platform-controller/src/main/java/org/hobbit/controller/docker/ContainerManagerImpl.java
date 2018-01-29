@@ -80,14 +80,6 @@ public class ContainerManagerImpl implements ContainerManager {
             ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1" : true;
 
     /**
-     * Label that denotes container type
-     */
-    public static final String LABEL_TYPE = "org.hobbit.type";
-    /**
-     * Label that denotes container parent
-     */
-    public static final String LABEL_PARENT = "org.hobbit.parent";
-    /**
      * Default network for new containers
      */
     public static final String HOBBIT_DOCKER_NETWORK = "hobbit";

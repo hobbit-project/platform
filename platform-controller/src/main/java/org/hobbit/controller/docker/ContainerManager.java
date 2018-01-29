@@ -30,6 +30,15 @@ import java.util.List;
  *
  */
 public interface ContainerManager {
+    
+    /**
+     * Label that denotes container type
+     */
+    public static final String LABEL_TYPE = "org.hobbit.type";
+    /**
+     * Label that denotes container parent
+     */
+    public static final String LABEL_PARENT = "org.hobbit.parent";
 
     /**
      * Start container with container type Benchmark and no parent

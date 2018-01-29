@@ -267,7 +267,7 @@ public class ExperimentManager implements Closeable {
         if (model != null) {
             List<SystemMetaData> sysMetas = controller.imageManager().modelToSystemMetaData(model);
             for (SystemMetaData s : sysMetas) {
-                if (s.systemUri == config.systemUri) {
+                if (s.uri == config.systemUri) {
                     usedImages.addAll(s.usedImages);
                     break;
                 }

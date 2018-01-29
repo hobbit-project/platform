@@ -168,7 +168,7 @@ public class FileBasedImageManager implements ImageManager {
                 try {
                     List<SystemMetaData> metaData = modelToSystemMetaData(model);
                     for (SystemMetaData system : metaData) {
-                        newSystems.put(system.systemUri, (ExtSystemMetaData) system);
+                        newSystems.put(system.uri, (ExtSystemMetaData) system);
                     }
                 } catch (Exception e) {
                     LOGGER.error("Couldn't process the model in " + f.getAbsolutePath() + ". It will be ignored.", e);
@@ -190,13 +190,13 @@ public class FileBasedImageManager implements ImageManager {
         ExtBenchmarkMetaData result = new ExtBenchmarkMetaData();
 
         // set URI
-        result.benchmarkUri = benchmark.getURI();
+        result.uri = benchmark.getURI();
         // find name
-        result.benchmarkName = getName(model, benchmark);
+        result.name = getName(model, benchmark);
         // find description
-        result.benchmarkDescription = getDescription(model, benchmark);
+        result.description = getDescription(model, benchmark);
         // find APIs
-        result.implementedApis = getAPIs(model, benchmark, true);
+        result.definedApis = getAPIs(model, benchmark, true);
 
         result.model = model;
 
@@ -216,13 +216,13 @@ public class FileBasedImageManager implements ImageManager {
         for (Resource system : systems) {
             ExtSystemMetaData result = new ExtSystemMetaData();
             // set URI
-            result.systemUri = system.getURI();
+            result.uri = system.getURI();
             // find name
-            result.systemName = getName(model, system);
+            result.name = getName(model, system);
             // find description
-            result.systemDescription = getDescription(model, system);
+            result.description = getDescription(model, system);
             // find image name
-            result.system_image_name = getImage(model, system);
+            result.mainImage = getImage(model, system);
             // find APIs
             result.implementedApis = getAPIs(model, system, false);
             // FIXME We should query the part of the model that is important for
@@ -255,7 +255,7 @@ public class FileBasedImageManager implements ImageManager {
         // then first find input benchmark
         BenchmarkMetaData benchmark = null;
         for (BenchmarkMetaData b : benchmarks) {
-            if (b.benchmarkUri.equals(benchmarkUri)) {
+            if (b.uri.equals(benchmarkUri)) {
                 benchmark = b;
                 break;
             }
@@ -269,7 +269,7 @@ public class FileBasedImageManager implements ImageManager {
 
         // find all systems that have same api
         for (SystemMetaData s : systems) {
-            int intersectSize = Sets.intersection(benchmark.implementedApis, s.implementedApis).size();
+            int intersectSize = Sets.intersection(benchmark.definedApis, s.implementedApis).size();
             if (intersectSize > 0) {
                 results.add(s);
             }
@@ -393,13 +393,13 @@ public class FileBasedImageManager implements ImageManager {
         }
         Resource benchmark = benchmarks.get(0);
         // set URI
-        result.benchmarkUri = benchmark.getURI();
+        result.uri = benchmark.getURI();
         // find name
-        result.benchmarkName = getName(model, benchmark);
+        result.name = getName(model, benchmark);
         // find description
-        result.benchmarkDescription = getDescription(model, benchmark);
+        result.description = getDescription(model, benchmark);
         // find APIs
-        result.implementedApis = getAPIs(model, benchmark, true);
+        result.definedApis = getAPIs(model, benchmark, true);
         // find used images
         result.usedImages = getUsedImages(model, benchmark);
 
