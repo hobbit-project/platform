@@ -37,7 +37,7 @@ public class ResourceInformationCollector {
     }
 
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(c -> (c.labels().containsValue(ContainerManager.LABEL_TYPE))
+        return getUsageInformation(c -> (c.labels().containsKey(ContainerManager.LABEL_TYPE))
                 && (c.labels().get(ContainerManager.LABEL_TYPE).equals(Constants.CONTAINER_TYPE_SYSTEM)));
     }
 
@@ -56,7 +56,8 @@ public class ResourceInformationCollector {
                 .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
         if (resourceInfo != null) {
             // Add disk usage information
-            long diskUsage = containers.parallelStream().mapToLong(c -> c.sizeRootFs()).sum();
+            long diskUsage = containers.parallelStream().map(c -> c.sizeRootFs()).filter(s -> s != null)
+                    .mapToLong(s -> s).sum();
             resourceInfo.setDiskStats(new DiskStats(diskUsage));
         }
         return resourceInfo;
