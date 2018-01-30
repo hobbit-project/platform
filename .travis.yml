@@ -1,5 +1,6 @@
 before_install:
   - nvm install --lts node
+  - docker swarm init
 language: java
 script:
   - make test
