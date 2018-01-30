@@ -37,8 +37,8 @@ import { StatusComponent } from './benchmark/status/status.component';
 import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.component';
 import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
 import { ViewComponent } from './benchmark/status/view/view.component';
-import {RoundProgressModule} from 'angular-svg-round-progressbar';
-
+import { RoundProgressModule } from 'angular-svg-round-progressbar';
+import { PlotComponent } from './experiments/details/plot/plot.component';
 
 const appRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -113,7 +113,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     LeaderboardsComponent,
     LeaderboardDetailsComponent,
     StatusComponent,
-    ViewComponent
+    ViewComponent,
+    PlotComponent
   ],
   imports: [
     BrowserAnimationsModule,

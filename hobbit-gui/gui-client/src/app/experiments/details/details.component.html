@@ -25,18 +25,23 @@
               </div>
 
               <ng-template #notError>
-                <div *ngIf="row.kpiSample.name === 'Benchmark Log' || row.kpiSample.name === 'System Log'; else defaultStyle">
+                <div *ngIf="row.group === 'Logs'; else plots">
                   <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i])">Download</button>
                 </div>
 
-                <ng-template #defaultStyle>
-                  <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+                <ng-template #plots>
+                  <div *ngIf="row.group === 'Plots'; else defaultStyle">
+                    <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                  </div>
+
+                  <ng-template #defaultStyle>
+                    <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+                  </ng-template>
                 </ng-template>
               </ng-template>
             </ng-template>
           </p-column>
         </p-dataTable>
-        <canvas id="resultsChart" width="600" height="400"></canvas>
       </div>
     </div>
   </div>
