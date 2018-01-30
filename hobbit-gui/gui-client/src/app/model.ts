@@ -192,6 +192,8 @@ export class Experiment {
     @Type(() => ChallengeTask)
     public challengeTask: ChallengeTask;
 
+    public diagrams: Array<any>;
+
     constructor(public id: string, public benchmarkLogAvailable: boolean, public systemLogAvailable: boolean,
         public error?: string, public rank?: number) { }
 }

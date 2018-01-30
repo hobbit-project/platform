@@ -2,6 +2,8 @@ import { Router } from '@angular/router';
 import { BackendService } from './../../backend.service';
 import { ConfigParamRealisation, Experiment, NamedEntity } from './../../model';
 import { Component, OnInit, Input, OnChanges } from '@angular/core';
+import Chart from 'chart.js';
+import randomColor from 'randomcolor';
 
 class TableRow {
   constructor(public group: string, public kpiSample: ConfigParamRealisation,
@@ -38,8 +40,10 @@ export class DetailsComponent implements OnInit, OnChanges {
       if (this.experiments == null)
         this.router.navigateByUrl('404', { skipLocationChange: true });
 
-      if (this.experiments.length !== 0)
+      if (this.experiments.length !== 0) {
         this.buildTableRows();
+        setTimeout(() => this.renderChart(), 1000);
+      }
     });
   }
 
@@ -133,6 +137,35 @@ export class DetailsComponent implements OnInit, OnChanges {
       const blob = new Blob([log.text()], { type: 'text/plain' });
       link.href = window.URL.createObjectURL(blob);
       link.click();
+    });
+  }
+
+  private renderChart() {
+    const chartCanvas = <HTMLCanvasElement>document.getElementById('resultsChart');
+    const ctx = chartCanvas.getContext('2d');
+    // takes diagrams for first experiment
+    const diagrams: any = this.experiments[0].diagrams;
+    // takes first diagram from data
+    const firstDiagram = diagrams[0];
+    // generate new nice color for diagram
+    const color = randomColor();
+    const data: any = {
+      // build x axis using label
+      labels: firstDiagram.data.map(d => d.x),
+      // convert diagrams to correct datasets format
+      datasets: [{
+        label: firstDiagram.label + '',
+        data: firstDiagram.data.map(d => d.y),
+        borderColor: color,
+        backgroundColor: color,
+      }],
+    };
+    const myChart = new Chart(ctx, {
+      type: 'line',
+      data,
+      options: {
+        responsive: false,
+      }
     });
   }
 
