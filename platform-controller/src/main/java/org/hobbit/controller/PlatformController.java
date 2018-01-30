@@ -550,9 +550,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
             }
             case FrontEndApiCommands.GET_SYSTEMS_OF_USER: {
                 // get the user name
-                String userName = RabbitMQUtils.readString(buffer);
-                LOGGER.info("Loading systems of user \"{}\"", userName);
-                response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsOfUser(userName)));
+                String email = RabbitMQUtils.readString(buffer);
+                LOGGER.info("Loading systems of user \"{}\"", email);
+                response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsOfUser(email)));
                 break;
             }
             case FrontEndApiCommands.CLOSE_CHALLENGE: {
@@ -562,11 +562,28 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 break;
             }
             case FrontEndApiCommands.REMOVE_EXPERIMENT: {
-                // TODO get the experiment ID
-                // TODO get the user name
-                // TODO call the Experiment Manager to cancel the experiment
-                // TODO return true or false as response
-                throw new UnsupportedOperationException("Has not been implemented!");
+                // get the experiment ID
+                String experimentId = RabbitMQUtils.readString(buffer);
+                // get the user name
+                String userName = RabbitMQUtils.readString(buffer);
+                // Get the experiment from the queue
+                ExperimentConfiguration config = queue.getExperiment(experimentId);
+                // Check whether the use has the right to terminate the experiment
+                if ((config != null) && (config.userName != null) && (config.userName.equals(userName))) {
+                    // Remove the experiment from the queue
+                    if (queue.remove(config)) {
+                        // call the Experiment Manager to cancel the experiment if it is running
+                        expManager.stopExperimentIfRunning(experimentId);
+                        // The experiment has been terminated
+                        response = new byte[] { 1 };
+                    } else {
+                        // The experiment is not known
+                        response = new byte[] { 0 };
+                    }
+                } else {
+                    // The experiment is not known or the user does not have the right to remove it
+                    response = new byte[] { 0 };
+                }
             }
             default: {
                 LOGGER.error("Got a request from the front end with an unknown command code {}. It will be ignored.",
@@ -967,8 +984,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
             String serializedBenchParams, String challengUri, String challengTaskUri, Calendar executionDate) {
         String experimentId = generateExperimentId();
-        LOGGER.info("Adding experiment " + experimentId + " with benchmark " + benchmarkUri + " and system " + systemUri
-                + " to the queue.");
+        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId, benchmarkUri, systemUri, userName);
         queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
                 challengUri, challengTaskUri, executionDate));
         return experimentId;
@@ -988,11 +1004,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
             if (model != null) {
                 runningExperiment.systemName = RdfHelper.getLabel(model,
                         model.getResource(runningExperiment.systemUri));
+            } else {
+                runningExperiment.systemName = runningExperiment.systemUri;
             }
-            model = imageManager.getSystemModel(runningExperiment.benchmarkUri);
+            model = imageManager.getBenchmarkModel(runningExperiment.benchmarkUri);
             if (model != null) {
                 runningExperiment.benchmarkName = RdfHelper.getLabel(model,
                         model.getResource(runningExperiment.benchmarkUri));
+            } else {
+                runningExperiment.benchmarkName = runningExperiment.benchmarkUri;
             }
         }
         List<ExperimentConfiguration> experiments = queue.listAll();

@@ -81,6 +81,10 @@ export class BackendService {
     return this.http.get('BACKEND/rest/experiments/query', { params: params }).map(res => plainToClass(Experiment, res.json()));
   }
 
+  terminateExperiment(id: string): Observable<any> {
+    return this.http.get(`BACKEND/rest/experiments/terminate/${encodeURIComponent(id)}`);
+  }
+
   getAllChallengeRegistrations(challengeId: string): Observable<ChallengeRegistration[]> {
     return this.http.get(`BACKEND/rest/system-provider/challenge-all-registrations/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ChallengeRegistration, res.json()));
   }
@@ -91,6 +95,10 @@ export class BackendService {
 
   getSystemProviderSystems() {
     return this.http.get('BACKEND/rest/system-provider/systems').map(res => res.json());
+  }
+
+  getLogFile(url: string) {
+    return this.http.get('BACKEND/rest/logs/' + url);
   }
 
 }
