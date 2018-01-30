@@ -35,6 +35,7 @@ import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
 
 import static org.junit.Assert.*;
+import org.junit.Assume;
 
 /**
  * Created by yamalight on 31/08/16.
@@ -279,6 +280,10 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void pullPrivateImage() throws Exception {
+        Assume.assumeNotNull(System.getenv("GITLAB_USER"),
+                             System.getenv("GITLAB_EMAIL"),
+                             System.getenv("GITLAB_TOKEN"));
+
         final String testImage = "git.project-hobbit.eu:4567/gitadmin/docker-test";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
 
