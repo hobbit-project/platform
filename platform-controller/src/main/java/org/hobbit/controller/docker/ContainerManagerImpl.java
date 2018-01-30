@@ -18,9 +18,12 @@ package org.hobbit.controller.docker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -93,30 +96,17 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Task states which are considered as not running yet.
      */
-    private static final List<String> newTaskStates = Arrays.asList(new String[] {
-        TaskStatus.TASK_STATE_NEW,
-        TaskStatus.TASK_STATE_ALLOCATED,
-        TaskStatus.TASK_STATE_PENDING,
-        TaskStatus.TASK_STATE_ASSIGNED,
-        TaskStatus.TASK_STATE_ACCEPTED,
-        TaskStatus.TASK_STATE_PREPARING,
-        TaskStatus.TASK_STATE_READY,
-        TaskStatus.TASK_STATE_STARTING,
-    });
+    public static final Set<String> NEW_TASKS_STATES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(new String[] { TaskStatus.TASK_STATE_NEW, TaskStatus.TASK_STATE_ALLOCATED,
+                    TaskStatus.TASK_STATE_PENDING, TaskStatus.TASK_STATE_ASSIGNED, TaskStatus.TASK_STATE_ACCEPTED,
+                    TaskStatus.TASK_STATE_PREPARING, TaskStatus.TASK_STATE_READY, TaskStatus.TASK_STATE_STARTING, })));
     /**
      * Task states which are considered as not finished yet.
      */
-    private static final List<String> unfinishedTaskStates = Arrays.asList(new String[] {
-        TaskStatus.TASK_STATE_NEW,
-        TaskStatus.TASK_STATE_ALLOCATED,
-        TaskStatus.TASK_STATE_PENDING,
-        TaskStatus.TASK_STATE_ASSIGNED,
-        TaskStatus.TASK_STATE_ACCEPTED,
-        TaskStatus.TASK_STATE_PREPARING,
-        TaskStatus.TASK_STATE_READY,
-        TaskStatus.TASK_STATE_STARTING,
-        TaskStatus.TASK_STATE_RUNNING,
-    });
+    public static final Set<String> UNFINISHED_TASK_STATES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            new String[] { TaskStatus.TASK_STATE_NEW, TaskStatus.TASK_STATE_ALLOCATED, TaskStatus.TASK_STATE_PENDING,
+                    TaskStatus.TASK_STATE_ASSIGNED, TaskStatus.TASK_STATE_ACCEPTED, TaskStatus.TASK_STATE_PREPARING,
+                    TaskStatus.TASK_STATE_READY, TaskStatus.TASK_STATE_STARTING, TaskStatus.TASK_STATE_RUNNING, })));
     /**
      * Logging separator for type/experiment id.
      */
@@ -130,10 +120,9 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private final RegistryAuth gitlabAuth;
     /**
-     * Empty authentication configuration.
-     * Docker client's createService() uses ConfigFileRegistryAuthSupplier by default
-     * (if auth is omitted)
-     * and warns about not being able to use it with swarm each time.
+     * Empty authentication configuration. Docker client's createService() uses
+     * ConfigFileRegistryAuthSupplier by default (if auth is omitted) and warns
+     * about not being able to use it with swarm each time.
      */
     private final RegistryAuth nullAuth = RegistryAuth.builder().build();
     /**
@@ -186,7 +175,8 @@ public class ContainerManagerImpl implements ContainerManager {
         // if not found - create new one
         if (hobbitNetwork == null) {
             LOGGER.warn("Could not find hobbit docker network, creating a new one");
-            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).driver("overlay").build();
+            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).driver("overlay")
+                    .build();
             dockerClient.createNetwork(networkConfig);
         }
     }
@@ -305,9 +295,10 @@ public class ContainerManagerImpl implements ContainerManager {
             taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
         }
 
-        // hello-world image used in tests (so we can safely remove all containers depending on it)
+        // hello-world image used in tests (so we can safely remove all containers
+        // depending on it)
         // and it does not have anything besides "/hello" executable
-        String[] command = imageName.equals("hello-world") ? new String[]{ "/hello" } : new String[]{  "true" };
+        String[] command = imageName.equals("hello-world") ? new String[] { "/hello" } : new String[] { "true" };
         cfgBuilder.command(command);
 
         ContainerSpec cfg = cfgBuilder.build();
@@ -336,18 +327,20 @@ public class ContainerManagerImpl implements ContainerManager {
 
             // wait for any container of that service to start on each node
             waitFor(() -> {
-                List<Task> pullingTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
+                List<Task> pullingTasks = dockerClient
+                        .listTasks(Task.Criteria.builder().serviceName(serviceId).build());
                 if (pullingTasks.size() < totalNodes) {
                     return false;
                 }
                 for (Task pullingTask : pullingTasks) {
                     String state = pullingTask.status().state();
-                    if (unfinishedTaskStates.contains(state)) {
+                    if (UNFINISHED_TASK_STATES.contains(state)) {
                         return false;
                     }
 
                     if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
-                        LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(), pullingTask.status().err());
+                        LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(),
+                                pullingTask.status().err());
                         throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
                     }
                 }
@@ -496,7 +489,7 @@ public class ContainerManagerImpl implements ContainerManager {
             waitFor(() -> {
                 serviceTasks.clear();
                 serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build()));
-                return !serviceTasks.isEmpty() && !newTaskStates.contains(serviceTasks.get(0).status().state());
+                return !serviceTasks.isEmpty() && !NEW_TASKS_STATES.contains(serviceTasks.get(0).status().state());
             }, 100);
             String taskId = serviceTasks.get(0).id();
             // return new container id
@@ -543,11 +536,10 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId) {
+            String[] command, String experimentId) {
         this.experimentId = experimentId;
         return startContainer(imageName, containerType, parentId, env, command);
     }
-
 
     @Override
     public void removeContainer(String containerId) {
@@ -558,7 +550,8 @@ public class ContainerManagerImpl implements ContainerManager {
             // If we are not in testing mode, remove all containers. In testing
             // mode, remove only those that have a non-zero status
             Integer exitCode = taskInfo.status().containerStatus().exitCode();
-            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0)) {
+            if (!DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)
+                    && ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0))) {
                 dockerClient.removeService(serviceId);
 
                 // wait for the service to disappear
@@ -571,7 +564,9 @@ public class ContainerManagerImpl implements ContainerManager {
                     }
                 }, 100);
             } else {
-                LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", containerId);
+                LOGGER.info(
+                        "Will not remove container with id {} because its exitCode != 0 and testing mode is enabled",
+                        containerId);
             }
         } catch (Exception e) {
             LOGGER.error("Couldn't remove container with id " + containerId + ".", e);
