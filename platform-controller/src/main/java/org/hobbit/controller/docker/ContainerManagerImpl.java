@@ -71,13 +71,16 @@ public class ContainerManagerImpl implements ContainerManager {
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
 
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
-            ? System.getenv().get(DEPLOY_ENV_KEY) : "production";
+            ? System.getenv().get(DEPLOY_ENV_KEY)
+            : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
     private static final Boolean DOCKER_AUTOPULL = System.getenv().containsKey(DOCKER_AUTOPULL_ENV_KEY)
-            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1" : true;
+            ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1"
+            : true;
 
     /**
      * Default network for new containers
@@ -115,6 +118,10 @@ public class ContainerManagerImpl implements ContainerManager {
         TaskStatus.TASK_STATE_RUNNING,
     });
     /**
+     * Logging separator for type/experiment id.
+     */
+    private static final String LOGGING_SEPARATOR = "_sep_";
+    /**
      * Docker client instance
      */
     private DockerClient dockerClient;
@@ -135,6 +142,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     private String gelfAddress = null;
+    private String experimentId = null;
 
     /**
      * Constructor that creates new docker client instance
@@ -424,7 +432,10 @@ public class ContainerManagerImpl implements ContainerManager {
                         || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
             // defaultEnv.add("constraint:org.hobbit.workergroup==" +
             // Constants.CONTAINER_TYPE_DATABASE);
-            defaultEnv.add("constraint:org.hobbit.type==data");
+            // defaultEnv.add("constraint:org.hobbit.type==data");
+            // database containers have to be deployed on the benchmark nodes (see
+            // https://github.com/hobbit-project/platform/issues/170)
+            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
         } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
                 && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
             defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
@@ -454,7 +465,11 @@ public class ContainerManagerImpl implements ContainerManager {
         if (gelfAddress != null) {
             Map<String, String> logOptions = new HashMap<String, String>();
             logOptions.put("gelf-address", gelfAddress);
-            logOptions.put("tag", LOGGING_TAG);
+            String tag = LOGGING_TAG;
+            if (experimentId != null) {
+                tag = containerType + LOGGING_SEPARATOR + experimentId + LOGGING_SEPARATOR + LOGGING_TAG;
+            }
+            logOptions.put("tag", tag);
             taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
         }
 
@@ -525,6 +540,14 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         return null;
     }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId) {
+        this.experimentId = experimentId;
+        return startContainer(imageName, containerType, parentId, env, command);
+    }
+
 
     @Override
     public void removeContainer(String containerId) {

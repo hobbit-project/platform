@@ -96,7 +96,7 @@ public class SystemProviderResources {
             return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + challengeId + " not found")).build();
 
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
-        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         List<TaskRegistrationBean> result = RdfModelHelper.listRegisteredSystems(challengeModel);
         // make sure that the user is the owner of the challenge
         if (!userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
@@ -123,7 +123,7 @@ public class SystemProviderResources {
     private List<TaskRegistrationBean> getChallengeRegistrations(SecurityContext sc, String challengeId) {
         // Get the list of registered systems
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
-        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         List<TaskRegistrationBean> registrations = RdfModelHelper.listRegisteredSystems(challengeModel);
         // filter the list based on the systems that are visible for this user
         List<TaskRegistrationBean> visibleRegistrations = new ArrayList<>();

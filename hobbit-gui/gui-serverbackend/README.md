@@ -77,6 +77,8 @@ Add the following section to your docker-compose.yml of the platform-controler
       - virtuoso
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_HTTP_PORT=9200
 
 
 

@@ -66,8 +66,8 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
      */
     private List<ContainerTerminationCallback> terminationCallbacks;
     /**
-     * The {@link ContainerManager} class that is used to retrieve information
-     * about containers.
+     * The {@link ContainerManager} class that is used to retrieve information about
+     * containers.
      */
     private ContainerManager manager;
     /**
@@ -181,6 +181,13 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
     public void removedObservedContainer(String containerId) {
         synchronized (monitoredContainers) {
             monitoredContainers.remove(containerId);
+        }
+    }
+
+    @Override
+    public List<String> getObservedContainers() {
+        synchronized (monitoredContainers) {
+            return new ArrayList<String>(monitoredContainers);
         }
     }
 }

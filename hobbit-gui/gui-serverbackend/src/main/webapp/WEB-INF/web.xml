@@ -84,12 +84,21 @@
     <filter-class>de.usu.research.hobbit.gui.util.CorsFilter</filter-class>
   </filter>
   <filter>
+    <filter-name>cache</filter-name>
+    <filter-class>de.usu.research.hobbit.gui.util.CacheFilter</filter-class>
+  </filter>
+  <filter>
     <filter-name>mqconn</filter-name>
     <filter-class>de.usu.research.hobbit.gui.util.ConnectionShutdownFilter</filter-class>
   </filter>
 
   <filter-mapping>
     <filter-name>cors</filter-name>
+    <url-pattern>/rest/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>cache</filter-name>
     <url-pattern>/rest/*</url-pattern>
   </filter-mapping>
 

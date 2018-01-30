@@ -2,12 +2,14 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix ex: <http://example.org/> .
 @prefix gerbil: <http://w3id.org/gerbil/vocab#> .
+@prefix gerbil2: <http://w3id.org/gerbil/hobbit/vocab#> .
 @prefix hobbit: <http://w3id.org/hobbit/vocab#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 
-ex:DummySystem	a	hobbit:SystemInstance;
-      rdfs:label	"Dummy System"@en;
-      rdfs:comment	"Example of a HOBBIT T3.2 system that is compatible to the GERBIL benchmark"@en;
-      hobbit:hasAPI	ex:GerbilApi;
-      hobbit:imageName	"gerbil_dummy_system" .
+<http://w3id.org/hobbit/experiments#New>	rdf:type	hobbit:Experiment;
+	gerbil2:hasNumberOfDocuments	"200"^^xsd:unsignedInt;
+	gerbil2:hasExperimentType	gerbil:A2KB;
+	hobbit:involvesBenchmark    gerbil2:GerbilBenchmark;
+	hobbit:involvesSystem   ex:DummySystemInstance1 .
+

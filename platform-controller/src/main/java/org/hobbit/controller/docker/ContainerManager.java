@@ -123,6 +123,27 @@ public interface ContainerManager {
             String[] command);
 
     /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
+     * @param command
+     *            commands that should be executed
+     * @param experimentId
+     *            experimentId to add to GELF tag
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId);
+
+    /**
      * Stops the container with the given container Id.
      *
      * @param containerId

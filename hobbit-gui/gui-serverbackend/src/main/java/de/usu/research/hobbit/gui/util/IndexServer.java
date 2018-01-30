@@ -29,6 +29,8 @@ import javax.servlet.ServletException;
  * Created on 2017-07-31.
  */
 public class IndexServer extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         RequestDispatcher dispatcher = getServletContext().getRequestDispatcher("/index.html");
 

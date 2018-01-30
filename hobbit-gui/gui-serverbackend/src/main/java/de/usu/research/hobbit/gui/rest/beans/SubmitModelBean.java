@@ -24,7 +24,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SubmitModelBean {
     private String benchmark;
     private String system;
-
     private List<ConfigurationParamValueBean> configurationParams;
 
 

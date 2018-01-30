@@ -23,7 +23,6 @@ export class DetailsComponent implements OnInit, OnChanges {
 
   experiments: Experiment[];
   rows: TableRow[];
-  rowGroups: string[];
 
   constructor(private bs: BackendService, private router: Router) { }
 
@@ -59,7 +58,6 @@ export class DetailsComponent implements OnInit, OnChanges {
       }
     }
 
-    this.rowGroups = ['Experiment', 'Experiment Parameter', 'KPIs'];
     this.rows = [];
 
     this.rows.push(this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => DetailsComponent.safeNameAndDescription(t.benchmark)));
@@ -69,7 +67,7 @@ export class DetailsComponent implements OnInit, OnChanges {
 
     for (const key of Object.keys(experimentParameterSamples)) {
       const bp = experimentParameterSamples[key];
-      const row = this.buildRowKpi('Experiment Parameter', bp, ex => {
+      const row = this.buildRowKpi('Parameter', bp, ex => {
         const exbp = ex.benchmark.configurationParamValues.find(k => k.id === bp.id);
         return DetailsComponent.safeValueAndDescription(exbp);
       });
@@ -84,6 +82,13 @@ export class DetailsComponent implements OnInit, OnChanges {
       });
       this.rows.push(row);
     }
+
+    this.rows.push(this.buildRow('Logs', 'Benchmark Log', '', t => [
+      t.benchmarkLogAvailable ? 'benchmark/query?id=' + t.id : null, 'Download'
+    ]));
+    this.rows.push(this.buildRow('Logs', 'System Log', '', t => [
+      t.systemLogAvailable ? 'system/query?id=' + t.id : null, 'Download'
+    ]));
 
     this.rows.sort((a, b) => {
       if (a.group !== b.group)
@@ -119,6 +124,16 @@ export class DetailsComponent implements OnInit, OnChanges {
       (pv && pv.value) ? pv.value : '',
       (pv && pv.description) ? pv.description : ((pv && pv.name) ? pv.name : '')
     ];
+  }
+
+  download(path: string) {
+    this.bs.getLogFile(path).subscribe(log => {
+      const link = document.createElement('a');
+      link.download = 'log.txt';
+      const blob = new Blob([log.text()], { type: 'text/plain' });
+      link.href = window.URL.createObjectURL(blob);
+      link.click();
+    });
   }
 
 }
