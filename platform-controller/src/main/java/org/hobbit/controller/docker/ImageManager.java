@@ -57,11 +57,11 @@ public interface ImageManager {
      * Retrieves a list of systems that have been defined by the given user. Note
      * that the default implementation does not filter the systems.
      *
-     * @param userName
-     *            the name of the user
+     * @param email
+     *            the e-mail of the user
      * @return a list of system meta data
      */
-    public default List<SystemMetaData> getSystemsOfUser(String userName) {
+    public default List<SystemMetaData> getSystemsOfUser(String email) {
         return getSystems();
     }
 

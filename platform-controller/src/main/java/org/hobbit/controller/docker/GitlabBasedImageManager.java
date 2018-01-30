@@ -66,8 +66,8 @@ public class GitlabBasedImageManager extends AbstactImageManager implements Imag
     }
 
     @Override
-    public List<SystemMetaData> getSystemsOfUser(String userName) {
-        Set<String> visibleProjects = gitlab.getProjectsVisibleForUser(userName).stream()
+    public List<SystemMetaData> getSystemsOfUser(String email) {
+        Set<String> visibleProjects = gitlab.getProjectsVisibleForUser(email).stream()
                 // get all projects which have system information
                 .filter(p -> p.systemModel != null)
                 // get the project names

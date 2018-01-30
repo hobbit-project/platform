@@ -23,6 +23,7 @@ export class DetailsComponent implements OnInit, OnChanges {
   @Input()
   challengeTaskId: string;
 
+  loaded: Boolean;
   experiments: Experiment[];
   rows: TableRow[];
 
@@ -33,6 +34,7 @@ export class DetailsComponent implements OnInit, OnChanges {
 
   ngOnChanges() {
     this.rows = null;
+    this.loaded = false;
 
     this.bs.queryExperiments(this.idsCommaSeparated, this.challengeTaskId).subscribe(data => {
       this.experiments = data;
@@ -45,6 +47,7 @@ export class DetailsComponent implements OnInit, OnChanges {
         setTimeout(() => this.renderChart(), 1000);
       }
     });
+    this.loaded = true;
   }
 
   private buildTableRows() {
