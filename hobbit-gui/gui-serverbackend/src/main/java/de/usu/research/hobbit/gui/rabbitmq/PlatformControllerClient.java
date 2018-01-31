@@ -34,8 +34,9 @@ import org.apache.jena.vocabulary.XSD;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitRpcClient;
 import org.hobbit.vocab.HOBBIT;
@@ -135,8 +136,7 @@ public class PlatformControllerClient implements Closeable {
         List<BenchmarkBean> benchmarkBeans = new ArrayList<BenchmarkBean>();
 
         for (BenchmarkMetaData benchmark : benchmarks) {
-            benchmarkBeans.add(
-                    new BenchmarkBean(benchmark.benchmarkUri, benchmark.benchmarkName, benchmark.benchmarkDescription));
+            benchmarkBeans.add(new BenchmarkBean(benchmark.uri, benchmark.name, benchmark.description));
         }
 
         LOGGER.debug(Arrays.toString(benchmarkBeans.toArray()));
@@ -210,8 +210,7 @@ public class PlatformControllerClient implements Closeable {
         benchmarkDetails.setSystems(new ArrayList<>());
         if (systems != null) {
             for (SystemMetaData system : systems) {
-                benchmarkDetails.getSystems()
-                        .add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+                benchmarkDetails.getSystems().add(new SystemBean(system.uri, system.name, system.description));
             }
         }
 
@@ -227,13 +226,16 @@ public class PlatformControllerClient implements Closeable {
      * @param benchmarkConf
      *            the benchmark configuration with which an experiment should be
      *            started
+     * @param userName
+     *            the name of the user who submitted the benchmark configuration
      * @return The ID of the created experiment
      * @throws GUIBackendException
      *             If the given benchmark configuration is not valid
      * @throws IOException
      *             If there is a problem during the receiving of the response
      */
-    public String submitBenchmark(SubmitModelBean benchmarkConf) throws GUIBackendException, IOException {
+    public String submitBenchmark(SubmitModelBean benchmarkConf, String userName)
+            throws GUIBackendException, IOException {
         String benchmarkUri = benchmarkConf.getBenchmark();
         String systemUri = benchmarkConf.getSystem();
 
@@ -267,7 +269,7 @@ public class PlatformControllerClient implements Closeable {
 
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),
-                        RabbitMQUtils.writeModel(model) },
+                        RabbitMQUtils.writeModel(model), RabbitMQUtils.writeString(userName) },
                 null);
 
         LOGGER.info("Sending request...");
@@ -329,9 +331,9 @@ public class PlatformControllerClient implements Closeable {
      * @throws IOException
      *             If no response has been received
      */
-    public ControllerStatus requestStatus() throws IOException {
-        LOGGER.info("Sending request...");
-        byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
+    public ControllerStatus requestStatus(String userName) throws IOException {
+        byte[] data = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS },
+                        new byte[][] { RabbitMQUtils.writeString(userName) }, null));
         if (data == null) {
             throw new IOException("Didn't get a response.");
         }
@@ -339,6 +341,8 @@ public class PlatformControllerClient implements Closeable {
         String response = RabbitMQUtils.readString(data);
         System.out.println(response);
         ControllerStatus status = gson.fromJson(response, ControllerStatus.class);
+        if (status.queuedExperiments == null)
+            status.queuedExperiments = new QueuedExperiment[0];
         return status;
     }
 
@@ -384,10 +388,32 @@ public class PlatformControllerClient implements Closeable {
         List<SystemBean> systemBeans = new ArrayList<>();
         if (systems != null) {
             for (SystemMetaData system : systems) {
-                systemBeans.add(new SystemBean(system.systemUri, system.systemName, system.systemDescription));
+                systemBeans.add(new SystemBean(system.uri, system.name, system.description));
             }
         }
         return systemBeans;
+    }
+
+    /**
+     * Requests the deletion of the experiment with the given experiment id with the
+     * access rights of the given user.
+     * 
+     * @param id
+     *            id of the experiment that should be removed
+     * @param userName
+     *            name of the user requesting the deletion
+     * @return {@code true} if the deletion was successful, else {@code false}
+     */
+    public boolean requestExperimentDeletion(String id, String userName) {
+        byte[] response = client
+                .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.REMOVE_EXPERIMENT },
+                        new byte[][] { RabbitMQUtils.writeString(id), RabbitMQUtils.writeString(userName) }, null));
+        if ((response == null) || (response.length == 0)) {
+            LOGGER.info("Couldn't request the deletion of {} for {}. Returning false.", id, userName);
+            return false;
+        } else {
+            return response[0] != 0;
+        }
     }
 
     /*
@@ -462,6 +488,30 @@ public class PlatformControllerClient implements Closeable {
         } else {
             return id;
         }
+    }
+
+    /**
+     * Sends a request to the platform controller to terminate the experiment with
+     * the given ID using the access rights of the given user.
+     * 
+     * @param experimentId
+     *            the id of the experiment that should be terminated.
+     * @param preferredUsername
+     *            the name of the user who wants to terminate the experiment
+     * @return {@code true} if the termination was successful, else {@code false}
+     * @throws IOException
+     *             If communication problems arise.
+     */
+    public boolean terminateExperiment(String experimentId, String preferredUsername) throws IOException {
+        byte[] res = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.REMOVE_EXPERIMENT },
+                new byte[][] { RabbitMQUtils.writeString(experimentId), RabbitMQUtils.writeString(preferredUsername) },
+                null));
+        if (res == null) {
+            throw new IOException("Didn't get a response when trying to terminate the challenge");
+        }
+        // If the result is not empty and the first byte is not 0, the removal was
+        // successful
+        return (res.length > 0) && (res[0] > 0);
     }
 
 }

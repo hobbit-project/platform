@@ -706,6 +706,8 @@ public class RdfModelHelper {
             return "The benchmarked system image could not be loaded.";
         } else if (HobbitErrors.SystemCreationError.equals(errorResource)) {
             return "The benchmarked system could not be created.";
+        } else if (HobbitErrors.TerminatedByUser.equals(errorResource)) {
+            return "The experiment has been terminated by the user.";
         } else if (HobbitErrors.UnexpectedError.equals(errorResource)) {
             return "An unexpected error occurred.";
         } else {
