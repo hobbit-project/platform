@@ -5,7 +5,11 @@ import randomColor from 'randomcolor';
 
 @Component({
   selector: 'app-experiment-plot',
-  template: '<canvas #canvas width="600" height="400"></canvas>',
+  template: `
+    <div style="overflow-x: scroll;">
+      <canvas #canvas width="600" height="400"></canvas>'
+    </div>
+    `
 })
 export class PlotComponent implements OnInit {
 
