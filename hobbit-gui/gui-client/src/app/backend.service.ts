@@ -1,7 +1,7 @@
 import { BenchmarkComponent } from './upload/benchmark/benchmark.component';
 import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
-import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration, StatusBean } from './model';
+import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration, ExtendedChallengeRegistration, StatusBean } from './model';
 import { Injectable } from '@angular/core';
 import { Http, Headers, RequestOptions, URLSearchParams } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
@@ -87,6 +87,10 @@ export class BackendService {
 
   getAllChallengeRegistrations(challengeId: string): Observable<ChallengeRegistration[]> {
     return this.http.get(`BACKEND/rest/system-provider/challenge-all-registrations/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ChallengeRegistration, res.json()));
+  }
+
+  getChallengeRegistrations(challengeId: string): Observable<ExtendedChallengeRegistration[]> {
+    return this.http.get(`BACKEND/rest/system-provider/challenge-registrations/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ExtendedChallengeRegistration, res.json()));
   }
 
   updateChallengeTaskRegistrations(challengeId: string, taskId: string, registrations: ChallengeRegistration[]) {
