@@ -178,6 +178,17 @@ export class ChallengeRegistration {
     constructor(public challengeId: string, public taskId: string, public systemId: string) { }
 }
 
+export class ExtendedChallengeRegistration extends ChallengeRegistration {
+
+    @Type(() => System)
+    public system: System;
+
+    constructor(challengeId: string, taskId: string, systemId: string,
+        public registered: boolean) {
+        super(challengeId, taskId, systemId);
+    }
+}
+
 export class Experiment {
 
     @Type(() => ConfigParamRealisation)

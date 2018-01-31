@@ -30,12 +30,11 @@
               <p-dataTable [value]="display[task.id]" [tableStyleClass]="'system-table'" sortField="id">
                 <p-column>
                   <ng-template let-col let-entry="rowData" pTemplate="body">
-                    <input type="checkbox" *ngIf="!entry.fixed" [(ngModel)]="entry.selected" />
-                    <input type="checkbox" *ngIf="entry.fixed" [checked]="entry.selected" disabled />
+                    <input type="checkbox" [(ngModel)]="entry.registered" />
                   </ng-template>
                 </p-column>
-                <p-column field="name" header="System Name"></p-column>
-                <p-column field="description" header="System Description"></p-column>
+                <p-column field="system.name" header="System Name"></p-column>
+                <p-column field="system.description" header="System Description"></p-column>
               </p-dataTable>
             </ng-template>
           </p-column>
