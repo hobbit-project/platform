@@ -109,10 +109,15 @@ public class RdfModelCreationHelper {
                     getDateLiteral(model, challenge.getPublishDate()));
         }
         if (challenge.getHomepage() != null) {
+            String challengeHomepage = challenge.getHomepage();
+            // If the homepage does not start with http:// or https://
+            if((!challengeHomepage.startsWith("http://")) && (!challengeHomepage.startsWith("https://"))) {
+                challengeHomepage = "http://" + challengeHomepage;
+            }
             try {
-                model.add(challengeResource, FOAF.homepage, model.getResource(challenge.getHomepage()));
+                model.add(challengeResource, FOAF.homepage, model.getResource(challengeHomepage));
             } catch (Exception e) {
-                LOGGER.warn("Couldn't store \"{}\" as homepage URL. It will be ignored.", challenge.getHomepage());
+                LOGGER.warn("Couldn't store \"{}\" as homepage URL. It will be ignored.", challengeHomepage);
             }
         }
         model.addLiteral(challengeResource, HOBBIT.visible, challenge.isVisible());
