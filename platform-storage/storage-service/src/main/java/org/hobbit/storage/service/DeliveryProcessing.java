@@ -18,6 +18,7 @@ package org.hobbit.storage.service;
 
 import org.hobbit.core.data.RabbitQueue;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.encryption.AES;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,8 +45,23 @@ public class DeliveryProcessing implements Runnable {
         BasicProperties props = delivery.getProperties();
         BasicProperties replyProps = new BasicProperties.Builder().correlationId(props.getCorrelationId()).build();
         String response = null;
+        AES encryption = null;
+        String AES_PASSWORD = System.getenv("AES_PASSWORD");
+        String AES_SALT = System.getenv("AES_SALT");
+        if(AES_PASSWORD != null && AES_SALT != null) {
+            encryption = new AES(AES_PASSWORD, AES_SALT);
+        }
+
         try {
-            String query = RabbitMQUtils.readString(delivery.getBody());
+            String query = null;
+            byte[] message = delivery.getBody();
+            if(encryption != null) {
+                LOGGER.error(new String(message));
+                byte[] decryptedMessage = encryption.decrypt(message);
+                query = new String(decryptedMessage);
+            } else {
+                query = RabbitMQUtils.readString(delivery.getBody());
+            }
             response = storage.callSparqlEndpoint(query);
         } catch (com.rabbitmq.client.ShutdownSignalException e) {
             LOGGER.info("Got a ShutdownSignalException. Aborting.");
@@ -58,7 +74,21 @@ public class DeliveryProcessing implements Runnable {
             // response = "Fallback response, due to an error.";
             // }
             try {
-                queue.channel.basicPublish("", props.getReplyTo(), replyProps, RabbitMQUtils.writeString(response));
+                if(encryption != null) {
+                    queue.channel.basicPublish(
+                            "",
+                            props.getReplyTo(),
+                            replyProps,
+                            encryption.encrypt(response)
+                    );
+                } else {
+                    queue.channel.basicPublish(
+                            "",
+                            props.getReplyTo(),
+                            replyProps,
+                            RabbitMQUtils.writeString(response)
+                    );
+                }
                 queue.channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             } catch (Exception e) {
                 LOGGER.error("Exception while trying to send response.", e);
