@@ -16,11 +16,14 @@
  */
 package org.hobbit.controller.docker;
 
+import java.util.List;
+
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Task;
-
-import java.util.List;
 
 /**
  * This interface is implemented by classes that can be used to manage Docker
@@ -30,7 +33,7 @@ import java.util.List;
  *
  */
 public interface ContainerManager {
-    
+
     /**
      * Label that denotes container type
      */
@@ -47,10 +50,10 @@ public interface ContainerManager {
      *            Name of the image to start
      *
      * @return container id
-     * @deprecated because the method tries to create a container with type=null
-     *             and parent="" which does not work without a predefined
-     *             default type for all containers that are created in that way.
-     *             Use {@link #startContainer(String, String, String)} instead.
+     * @deprecated because the method tries to create a container with type=null and
+     *             parent="" which does not work without a predefined default type
+     *             for all containers that are created in that way. Use
+     *             {@link #startContainer(String, String, String)} instead.
      */
     @Deprecated
     public String startContainer(String imageName);
@@ -64,10 +67,10 @@ public interface ContainerManager {
      *            command to be executed
      *
      * @return container id
-     * @deprecated because the method tries to create a container with type=null
-     *             and parent="" which does not work without a predefined
-     *             default type for all containers that are created in that way.
-     *             Use {@link #startContainer(String, String, String, String[])}
+     * @deprecated because the method tries to create a container with type=null and
+     *             parent="" which does not work without a predefined default type
+     *             for all containers that are created in that way. Use
+     *             {@link #startContainer(String, String, String, String[])}
      *             instead.
      */
     public String startContainer(String imageName, String[] command);
@@ -141,7 +144,7 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId);
+            String[] command, String experimentId);
 
     /**
      * Stops the container with the given container Id.
@@ -186,16 +189,41 @@ public interface ContainerManager {
     /**
      * Get a list of containers
      */
-    public List<Container> getContainers();
+    public default List<Container> getContainers() {
+        return getContainers(DockerClient.ListContainersParam.allContainers());
+    }
 
     /**
-     * Retrieves the container Id for the container with the given name or null
-     * if no such container could be found.
+     * Get a list of containers which fulfill the given filter criteria.
+     * 
+     * @param params
+     *            container parameters for filtering the list of containers
+     */
+    public List<Container> getContainers(ListContainersParam... params);
+
+    /**
+     * Retrieves the container Id for the container with the given name or null if
+     * no such container could be found.
      */
     public String getContainerId(String name);
 
+    /**
+     * Returns the name of the container with the given Id or {@code null} if such a
+     * container can not be found
+     * 
+     * @param containerId
+     *            the Id of the container for which the name should be retrieved
+     * @return the name of the container with the given Id or {@code null} if such a
+     *         container can not be found
+     */
     public String getContainerName(String containerId);
 
+    /**
+     * Adds the given observer to the list of internal observers.
+     * 
+     * @param containerObserver
+     *            the observer that should be added to the internal list
+     */
     public void addContainerObserver(ContainerStateObserver containerObserver);
 
     /**
@@ -205,4 +233,15 @@ public interface ContainerManager {
      *            the name of the image that should be pulled
      */
     public void pullImage(String imageName);
+
+    /**
+     * Returns statistics of the container with the given Id or {@code null} if the
+     * container can not be found or an error occurs.
+     * 
+     * @param containerId
+     *            the Id of the container for which statistics should be requested
+     * @return statistics of the container with the given Id or {@code null} if the
+     *         container can not be found or an error occurs.
+     */
+    public ContainerStats getStats(String containerId);
 }

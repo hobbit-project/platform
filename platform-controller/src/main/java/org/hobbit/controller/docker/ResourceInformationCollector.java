@@ -1,8 +1,9 @@
 package org.hobbit.controller.docker;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Predicate;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.hobbit.core.Constants;
@@ -10,12 +11,12 @@ import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;
 import org.hobbit.core.data.usage.MemoryStats;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.TaskStatus;
 
 /**
  * A class that can collect resource usage information for the containers known
@@ -26,30 +27,29 @@ import com.spotify.docker.client.messages.ContainerStats;
  */
 public class ResourceInformationCollector {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollector.class);
-
-    private DockerClient client;
     private ContainerManager manager;
 
-    public ResourceInformationCollector(DockerClient client, ContainerManager manager) {
-        this.client = client;
+    public ResourceInformationCollector(ContainerManager manager) {
         this.manager = manager;
     }
 
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(c -> (c.labels().containsKey(ContainerManager.LABEL_TYPE))
-                && (c.labels().get(ContainerManager.LABEL_TYPE).equals(Constants.CONTAINER_TYPE_SYSTEM)));
+        return getUsageInformation(DockerClient.ListContainersParam.withLabel(ContainerManager.LABEL_TYPE,
+                Constants.CONTAINER_TYPE_SYSTEM));
     }
 
-    public ResourceUsageInformation getUsageInformation(Predicate<? super Container> containerFilter) {
-        List<Container> containers = manager.getContainers();
+    public ResourceUsageInformation getUsageInformation(ListContainersParam... params) {
+        params = Arrays.copyOf(params, params.length + 1);
+        params[params.length - 1] = ListContainersParam.withContainerSizes(true);
+        List<Container> containers = manager.getContainers(params);
 
-        Set<String> systemContainerIds = containers.parallelStream()
-                // filter the containers
-                .filter(containerFilter)
-                // get their IDs
-                .map(c -> c.id()).collect(Collectors.toSet());
-        ResourceUsageInformation resourceInfo = systemContainerIds.parallelStream()
+        Map<String, Container> containerMapping = new HashMap<>();
+        for (Container c : containers) {
+            containerMapping.put(c.id(), c);
+        }
+        ResourceUsageInformation resourceInfo = containerMapping.keySet().parallelStream()
+                // filter all containers that are not running
+                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).state()))
                 // get the stats for the single
                 .map(id -> requestCpuAndMemoryStats(id))
                 // sum up the stats
@@ -64,20 +64,15 @@ public class ResourceInformationCollector {
     }
 
     protected ResourceUsageInformation requestCpuAndMemoryStats(String containerId) {
-        ContainerStats stats;
-        try {
-            stats = client.stats(containerId);
-        } catch (Exception e) {
-            LOGGER.warn("Error while requesting usagee stats for {}. Returning null. Error: {}", containerId,
-                    e.getLocalizedMessage());
-            return null;
-        }
+        ContainerStats stats = manager.getStats(containerId);
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
-        if ((stats.cpuStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
-            resourceInfo.setCpuStats(new CpuStats(stats.cpuStats().cpuUsage().totalUsage()));
-        }
-        if ((stats.memoryStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
-            resourceInfo.setMemoryStats(new MemoryStats(stats.memoryStats().usage()));
+        if (stats != null) {
+            if ((stats.cpuStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
+                resourceInfo.setCpuStats(new CpuStats(stats.cpuStats().cpuUsage().totalUsage()));
+            }
+            if ((stats.memoryStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
+                resourceInfo.setMemoryStats(new MemoryStats(stats.memoryStats().usage()));
+            }
         }
         return resourceInfo;
     }

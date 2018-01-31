@@ -16,10 +16,12 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         assertNotNull(containerId);
         containers.add(containerId);
 
-        ResourceInformationCollector collector = new ResourceInformationCollector(dockerClient, manager);
+        ResourceInformationCollector collector = new ResourceInformationCollector(manager);
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
         Assert.assertNotNull(usage);
+        
+        System.out.println("Got usage information " + usage.toString());
 
         Assert.assertNotNull(usage.getCpuStats());
         Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);

@@ -29,7 +29,9 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Task;
 
 /**
@@ -236,7 +238,7 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
-        public List<Container> getContainers() {
+        public List<Container> getContainers(ListContainersParam... params) {
             return new ArrayList<>(0);
         }
 
@@ -259,6 +261,11 @@ public class ExperimentTimeoutTest {
             System.out.print("Pulling Image (fake) ");
             System.out.print(imageName);
             System.out.println("...");
+        }
+
+        @Override
+        public ContainerStats getStats(String containerId) {
+            return null;
         }
 
     }

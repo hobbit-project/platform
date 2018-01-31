@@ -51,6 +51,7 @@ import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
 import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -66,6 +67,7 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
+import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -160,6 +162,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected ExperimentManager expManager;
 
+    protected ResourceInformationCollector resInfoCollector;
+
     /**
      * Timer used to trigger publishing of challenges
      */
@@ -179,6 +183,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
+        resInfoCollector = new ResourceInformationCollector(containerManager);
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
@@ -304,6 +309,28 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 expManager.setResultModel(model);
             }
             break;
+        }
+        case Commands.REQUEST_SYSTEM_RESOURCES_USAGE: {
+            // FIXME use the session id to make sure that only containers of this session
+            // are observed
+            ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
+            if (replyTo != null) {
+                byte[] response;
+                if (resUsage != null) {
+                    response = RabbitMQUtils.writeString(gson.toJson(resUsage));
+                } else {
+                    response = new byte[0];
+                }
+                try {
+                    cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, response);
+                } catch (IOException e) {
+                    StringBuilder errMsgBuilder = new StringBuilder();
+                    errMsgBuilder.append("Error, couldn't sent the request resource usage statistics to replyTo=");
+                    errMsgBuilder.append(replyTo);
+                    errMsgBuilder.append(".");
+                    LOGGER.error(errMsgBuilder.toString(), e);
+                }
+            }
         }
         }
     }
@@ -586,7 +613,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 }
             }
         }
-        LOGGER.info("Finished handling of front end request.");
+        LOGGER.debug("Finished handling of front end request.");
     }
 
     protected Model getChallengeFromUri(String challengeUri) {
