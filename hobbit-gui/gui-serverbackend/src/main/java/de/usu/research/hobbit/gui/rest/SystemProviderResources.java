@@ -17,7 +17,6 @@
 package de.usu.research.hobbit.gui.rest;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,20 +70,9 @@ public class SystemProviderResources {
     @Path("systems")
     @Produces(MediaType.APPLICATION_JSON)
     public Response processSystems(@Context SecurityContext sc) {
-        List<SystemBean> list = getSystems(sc);
+        List<SystemBean> list = InternalResources.getUserSystemBeans(sc);
         return Response.ok(new GenericEntity<List<SystemBean>>(list) {
         }).build();
-    }
-
-    private List<SystemBean> getSystems(SecurityContext sc) {
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-        if (client != null) {
-            return client.requestSystemsOfUser(userInfo.getEmail());
-        } else {
-            LOGGER.error("Couldn't get platform controller client. Returning empty list.");
-            return new ArrayList<>(0);
-        }
     }
 
     @GET
@@ -170,53 +158,31 @@ public class SystemProviderResources {
         return visibleRegistrations;
     }
 
-    @PUT
-    @RolesAllowed("system-provider")
-    @Path("challenge-registrations/{challengeId}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response updateChallengeRegistrations(@Context SecurityContext sc,
-            @PathParam("challengeId") String challengeId, List<TaskRegistrationBean> list) {
-        // who is using this method?
-        doUpdateChallengeRegistrations(sc, challengeId, list, null);
-        return Response.status(Response.Status.NO_CONTENT).build();
-    }
+    // Removed the method since nobody seems to use it
+    // @PUT
+    // @RolesAllowed("system-provider")
+    // @Path("challenge-registrations/{challengeId}")
+    // @Consumes(MediaType.APPLICATION_JSON)
+    // public Response updateChallengeRegistrations(@Context SecurityContext sc,
+    // @PathParam("challengeId") String challengeId, List<TaskRegistrationBean>
+    // list) {
+    // // tasdId == null is not allowed, anymore!
+    // doUpdateChallengeRegistrations(sc, challengeId, list, null);
+    // return Response.status(Response.Status.NO_CONTENT).build();
+    // }
 
     private void doUpdateChallengeRegistrations(@Context SecurityContext sc,
-            @PathParam("challengeId") String challengeId, List<TaskRegistrationBean> list, String taskIdToUpdate) {
+            @PathParam("challengeId") String challengeId, List<TaskRegistrationBean> registrations, String taskId) {
         // check whether the user is allowed to change the given registrations,
         // i.e., whether he is allowed to see the systems.
-        List<SystemBean> systems = getSystems(sc);
-        Set<String> visibleSystems = new HashSet<String>();
-        for (SystemBean s : systems) {
-            visibleSystems.add(s.getId());
-        }
-
-        // create an RDF model containing the newly defined triples
+        Set<String> visibleSystems = InternalResources.getUserSystemIds(sc);
         Model newSystemTaskMappingModel = ModelFactory.createDefaultModel();
-        for (TaskRegistrationBean registration : list) {
-            if (visibleSystems.contains(registration.getSystemId())) {
-                newSystemTaskMappingModel.add(newSystemTaskMappingModel.getResource(registration.getTaskId()),
-                        HOBBIT.involvesSystemInstance,
-                        newSystemTaskMappingModel.getResource(registration.getSystemId()));
-            }
-        }
-
-        // get the old challenge registrations
-        List<ExtendedTaskRegistrationBean> oldList = getChallengeRegistrations(sc, challengeId);
-        // create an RDF model containing the old triples
         Model oldSystemTaskMappingModel = ModelFactory.createDefaultModel();
-        for (TaskRegistrationBean registration : oldList) {
-            if (visibleSystems.contains(registration.getSystemId())) {
-                if (taskIdToUpdate != null && !taskIdToUpdate.equals(registration.getTaskId())) {
-                    newSystemTaskMappingModel.add(newSystemTaskMappingModel.getResource(registration.getTaskId()),
-                            HOBBIT.involvesSystemInstance,
-                            newSystemTaskMappingModel.getResource(registration.getSystemId()));
-                }
-                oldSystemTaskMappingModel.add(oldSystemTaskMappingModel.getResource(registration.getTaskId()),
-                        HOBBIT.involvesSystemInstance,
-                        oldSystemTaskMappingModel.getResource(registration.getSystemId()));
-            }
-        }
+        registrations.stream().filter(r -> visibleSystems.contains(r.getSystemId())).forEach(r -> {
+            Model model = r.isRegistered() ? newSystemTaskMappingModel : oldSystemTaskMappingModel;
+            model.add(model.getResource(r.getTaskId()), HOBBIT.involvesSystemInstance,
+                    model.getResource(r.getSystemId()));
+        });
 
         // Update the storage
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();

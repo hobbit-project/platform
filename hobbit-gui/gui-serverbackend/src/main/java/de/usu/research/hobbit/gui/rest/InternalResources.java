@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -52,6 +53,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
@@ -279,5 +281,16 @@ public class InternalResources {
         UserInfoBean userInfo = getUserInfoBean(sc);
         Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
         return userOwnedSystemIds;
+    }
+
+    public static List<SystemBean> getUserSystemBeans(SecurityContext sc) {
+        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+        PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+        if (client != null) {
+            return client.requestSystemsOfUser(userInfo.getEmail());
+        } else {
+            LOGGER.error("Couldn't get platform controller client. Returning empty list.");
+            return new ArrayList<>(0);
+        }
     }
 }
