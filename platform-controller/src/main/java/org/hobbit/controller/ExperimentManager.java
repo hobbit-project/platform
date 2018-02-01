@@ -42,8 +42,9 @@ import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
@@ -156,6 +157,7 @@ public class ExperimentManager implements Closeable {
                 }
                 LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                         + " and system " + config.systemUri + " to the queue.");
+                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id));
 
                 BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                 if ((benchmark == null) || (benchmark.mainImage == null)) {
@@ -207,8 +209,8 @@ public class ExperimentManager implements Closeable {
                 }
 
                 // start experiment timer/status
-                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                        this, maxExecutionTime);
+                experimentStatus.startAbortionTimer(this, maxExecutionTime);
+                experimentStatus.setState(States.INIT);
 
                 LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
                 String containerId = controller.containerManager.startContainer(benchmark.mainImage,
@@ -218,7 +220,7 @@ public class ExperimentManager implements Closeable {
                                 Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
                                 Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
                                 Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                        null);
+                        null, config.id);
                 if (containerId == null) {
                     experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
                     throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
@@ -233,7 +235,7 @@ public class ExperimentManager implements Closeable {
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                        null);
+                        null, config.id);
                 if (containerId == null) {
                     LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
@@ -548,7 +550,7 @@ public class ExperimentManager implements Closeable {
      * @param status
      *            the status object to which the data should be added
      */
-    public void addStatusInfo(ControllerStatus status) {
+    public void addStatusInfo(ControllerStatus status, String userName) {
         // copy the pointer to the experiment status to make sure that we can
         // read it even if another thread sets the pointer to null. This gives
         // us the possibility to read the status without acquiring the
@@ -556,16 +558,23 @@ public class ExperimentManager implements Closeable {
         ExperimentStatus currentStatus = experimentStatus;
         if (currentStatus != null) {
             ExperimentConfiguration config = currentStatus.getConfig();
+            RunningExperiment experiment = new RunningExperiment();
             if (config != null) {
-                status.currentBenchmarkName = config.benchmarkName;
-                status.currentBenchmarkUri = config.benchmarkUri;
-                status.currentSystemUri = config.systemUri;
-                status.currentExperimentId = config.id;
+                experiment.benchmarkUri = config.benchmarkUri;
+                experiment.systemUri = config.systemUri;
+                experiment.experimentId = config.id;
+                experiment.challengeUri = config.challengeUri;
+                experiment.challengeTaskUri = config.challengeTaskUri;
+                experiment.canBeCanceled = userName != null && userName.equals(config.userName);
+                experiment.dateOfExecution = config.executionDate != null ? config.executionDate.getTimeInMillis() : 0;
             }
+            experiment.startTimestamp = currentStatus.getStartTimeStamp();
+            experiment.timestampOfAbortion = currentStatus.getAbortionTimeStamp();
             States exState = currentStatus.getState();
             if (exState != null) {
-                status.currentStatus = exState.description;
+                experiment.status = exState.description;
             }
+            status.experiment = experiment;
         }
     }
 
@@ -620,6 +629,36 @@ public class ExperimentManager implements Closeable {
             } else {
                 LOGGER.warn(
                         "Got a timeout notification for an experiment that does not match the current experiment. It will be ignored.");
+            }
+        } finally {
+            experimentMutex.release();
+        }
+    }
+
+    /**
+     * Stops the currently running experiment if it has the given experiment id.
+     * 
+     * @param experimentId
+     *            the id of the experiment that should be stopped
+     */
+    public void stopExperimentIfRunning(String experimentId) {
+        try {
+            experimentMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error(
+                    "Interrupted while waiting for the experiment mutex. Won't check the experiment regarding the requested termination.",
+                    e);
+            return;
+        }
+        try {
+            // If this is the currently running experiment
+            if ((experimentStatus != null) && (experimentStatus.config.id.equals(experimentId))) {
+                // If the experiment hasn't been stopped
+                if (experimentStatus.getState() != States.STOPPED) {
+                    LOGGER.error("The experiment {} was stopped by the user. Forcing termination.",
+                            experimentStatus.experimentUri);
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.TerminatedByUser);
+                }
             }
         } finally {
             experimentMutex.release();

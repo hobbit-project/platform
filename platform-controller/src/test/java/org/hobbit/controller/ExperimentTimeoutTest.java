@@ -16,8 +16,8 @@ import org.hobbit.controller.docker.ContainerTerminationCallback;
 import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.queue.InMemoryQueue;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
@@ -72,9 +72,8 @@ public class ExperimentTimeoutTest {
         Assert.assertEquals(0, controller.queue.listAll().size());
         // Check status
         ControllerStatus status = new ControllerStatus();
-        manager.addStatusInfo(status);
-        Assert.assertNull(status.currentExperimentId);
-        Assert.assertNull(status.currentBenchmarkUri);
+        manager.addStatusInfo(status, "");
+        Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
@@ -194,6 +193,12 @@ public class ExperimentTimeoutTest {
         @Override
         public String startContainer(String imageName, String containerType, String parentId, String[] env,
                 String[] command) {
+            return imageName;
+        }
+
+        @Override
+        public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                     String[] command, String experimentId) {
             return imageName;
         }
 

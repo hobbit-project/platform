@@ -21,8 +21,8 @@ import java.io.IOException;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
-import org.hobbit.core.data.ConfiguredExperiment;
-import org.hobbit.core.data.ControllerStatus;
+import org.hobbit.core.data.status.ControllerStatus;
+import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,24 +84,24 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
         builder.append("currentExperiment:");
         builder.append(NEWLINE);
         builder.append("\texperiment id: ");
-        builder.append(status.currentExperimentId);
+        builder.append(status.experiment.experimentId);
         builder.append(NEWLINE);
         builder.append("\tbenchmark URI: ");
-        builder.append(status.currentBenchmarkUri);
+        builder.append(status.experiment.benchmarkUri);
         builder.append(NEWLINE);
         builder.append("\tbenchmark name: ");
-        builder.append(status.currentBenchmarkName);
+        builder.append(status.experiment.benchmarkName);
         builder.append(NEWLINE);
         builder.append("\tsystem Uri: ");
-        builder.append(status.currentSystemUri);
+        builder.append(status.experiment.systemUri);
         builder.append(NEWLINE);
         builder.append("\tstatus: ");
-        builder.append(status.currentStatus);
+        builder.append(status.experiment.status);
         builder.append(NEWLINE);
         builder.append(NEWLINE);
         builder.append("queue:");
-        if (status.queue != null) {
-            for (ConfiguredExperiment exp : status.queue) {
+        if (status.queuedExperiments != null) {
+            for (QueuedExperiment exp : status.queuedExperiments) {
                 builder.append(NEWLINE);
                 builder.append("\tbenchmark URI: ");
                 builder.append(NEWLINE);

@@ -17,6 +17,7 @@
 package org.hobbit.controller.queue;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
@@ -69,6 +70,18 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         List<String> items = redisSyncCommands.zrangebyscore(ExperimentQueueImpl.EXPERIMENT_QUEUE, "-inf", "+inf", 0, 1);
         String ID = items.get(0);
         assertEquals(cfg.id, ID);
+        
+        // get specific experiment from queue
+        ExperimentConfiguration retrievedCfg = queue.getExperiment(cfg.id);
+        assertNotNull(retrievedCfg);
+        assertEquals(cfg.id, retrievedCfg.id);
+        assertEquals(cfg.benchmarkUri, retrievedCfg.benchmarkUri);
+        assertEquals(cfg.systemUri, retrievedCfg.systemUri);
+        assertEquals(cfg.challengeUri, retrievedCfg.challengeUri);
+        assertEquals(cfg.challengeTaskUri, retrievedCfg.challengeTaskUri);
+        //        assertEquals(cfg.executionDate, retrievedCfg.executionDate);
+        assertEquals(cfg.userName, retrievedCfg.userName);
+        assertEquals(cfg.serializedBenchParams, retrievedCfg.serializedBenchParams);
 
         // remove from queue
         queue.remove(cfg);
