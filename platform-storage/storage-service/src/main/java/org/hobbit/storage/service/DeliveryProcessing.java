@@ -19,6 +19,7 @@ package org.hobbit.storage.service;
 import org.hobbit.core.data.RabbitQueue;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.encryption.AES;
+import org.hobbit.encryption.AESException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,8 @@ public class DeliveryProcessing implements Runnable {
         } catch (com.rabbitmq.client.ShutdownSignalException e) {
             LOGGER.info("Got a ShutdownSignalException. Aborting.");
             return;
+        } catch (AESException e ) {
+            LOGGER.error("Encryption failed while trying to decrypt incoming message.", e);
         } catch (Exception e) {
             LOGGER.error("Exception while calling SPARQL endpoint.", e);
             response = "";
@@ -74,11 +77,13 @@ public class DeliveryProcessing implements Runnable {
             // }
             try {
                 if(encryption != null) {
+                    byte[] encryptedResponse = null;
+                    encryptedResponse = encryption.encrypt(response);
                     queue.channel.basicPublish(
                             "",
                             props.getReplyTo(),
                             replyProps,
-                            encryption.encrypt(response)
+                            encryptedResponse
                     );
                 } else {
                     queue.channel.basicPublish(
@@ -89,6 +94,8 @@ public class DeliveryProcessing implements Runnable {
                     );
                 }
                 queue.channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
+            } catch (AESException e ) {
+                LOGGER.error("Encryption failed while trying to send response.", e);
             } catch (Exception e) {
                 LOGGER.error("Exception while trying to send response.", e);
             }
