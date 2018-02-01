@@ -78,6 +78,8 @@ services:
     image: redis
     networks:
       - hobbit-core
+    volumes:
+      - ./config/redis-db:/data
 
   # Triple store
   virtuoso:
