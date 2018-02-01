@@ -57,14 +57,10 @@ export class RegisterComponent implements OnInit {
 
   submit() {
     const batch = [];
-    for (const task of Object.keys(this.display)) {
-      const taskRegistrations: ChallengeRegistration[] = [];
-      for (const reg of this.display[task]) {
-        if (reg.registered)
-          taskRegistrations.push(new ChallengeRegistration(this.challenge.id, task, reg.systemId));
-      }
-      batch.push(this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, taskRegistrations));
-    }
-    Observable.forkJoin(batch).subscribe(res => this.cancel);
+    for (const task of Object.keys(this.display))
+      batch.push(this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, this.display[task]));
+    Observable.forkJoin(batch).subscribe(res => {
+      this.cancel();
+    });
   }
 }
