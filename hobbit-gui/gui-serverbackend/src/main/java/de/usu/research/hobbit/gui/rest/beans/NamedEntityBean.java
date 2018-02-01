@@ -35,6 +35,11 @@ public class NamedEntityBean {
      */
     protected String description;
 
+    /**
+     * An error message that is only set if there is a problem with this named entity.
+     */
+    protected String errorMessage;
+
     public NamedEntityBean() {
     }
 
@@ -67,17 +72,61 @@ public class NamedEntityBean {
     public void setDescription(String description) {
         this.description = description;
     }
+    
+    /**
+     * @return the errorMessage
+     */
+    public String getErrorMessage() {
+        return errorMessage;
+    }
 
+    /**
+     * @param errorMessage the errorMessage to set
+     */
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
     @Override
     public String toString() {
-        return getClass().getName() + ",id=" + id + ",name=" + name;
+        StringBuilder builder = new StringBuilder();
+        builder.append("NamedEntityBean [");
+        if (id != null) {
+            builder.append("id=");
+            builder.append(id);
+            builder.append(", ");
+        }
+        if (name != null) {
+            builder.append("name=");
+            builder.append(name);
+            builder.append(", ");
+        }
+        if (errorMessage != null) {
+            builder.append("errorMessage=");
+            builder.append(errorMessage);
+        }
+        builder.append("]");
+        return builder.toString();
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
     @Override
     public int hashCode() {
-        return ((id == null) ? 0 : id.hashCode());
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((errorMessage == null) ? 0 : errorMessage.hashCode());
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
+        return result;
     }
 
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj)
@@ -87,6 +136,11 @@ public class NamedEntityBean {
         if (getClass() != obj.getClass())
             return false;
         NamedEntityBean other = (NamedEntityBean) obj;
+        if (errorMessage == null) {
+            if (other.errorMessage != null)
+                return false;
+        } else if (!errorMessage.equals(other.errorMessage))
+            return false;
         if (id == null) {
             if (other.id != null)
                 return false;

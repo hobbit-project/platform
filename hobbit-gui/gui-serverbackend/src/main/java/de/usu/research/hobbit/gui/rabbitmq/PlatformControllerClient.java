@@ -134,9 +134,13 @@ public class PlatformControllerClient implements Closeable {
         LOGGER.info("Preparing response for GUI...");
         // Create output
         List<BenchmarkBean> benchmarkBeans = new ArrayList<BenchmarkBean>();
-
+        BenchmarkBean bean;
         for (BenchmarkMetaData benchmark : benchmarks) {
-            benchmarkBeans.add(new BenchmarkBean(benchmark.uri, benchmark.name, benchmark.description));
+            bean = new BenchmarkBean(benchmark.uri, benchmark.name, benchmark.description);
+            if ((benchmark.defError != null) && (!benchmark.defError.isEmpty())) {
+                bean.setErrorMessage(benchmark.defError);
+            }
+            benchmarkBeans.add(bean);
         }
 
         LOGGER.debug(Arrays.toString(benchmarkBeans.toArray()));
@@ -162,14 +166,12 @@ public class PlatformControllerClient implements Closeable {
      */
     public BenchmarkBean requestBenchmarkDetails(String benchmarkUri, UserInfoBean user) throws GUIBackendException,
             IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
-        LOGGER.info("Sending request...");
         // Map<String, String> env = System.getenv();
         if (benchmarkUri == null) {
             String msg = "Benchmark URI is null. Aborting.";
             LOGGER.error(msg);
             throw new GUIBackendException(msg);
         }
-        LOGGER.info("Sending request...");
 
         byte[] data = null;
         if (user != null) {
@@ -187,15 +189,13 @@ public class PlatformControllerClient implements Closeable {
         }
 
         Model benchmarkModel = null;
-        Collection<SystemMetaData> systems = null;
+        List<SystemBean> systemBeans = new ArrayList<>();
         try {
-            LOGGER.info("Parsing response...");
             // parse the response
             ByteBuffer buffer = ByteBuffer.wrap(data);
             benchmarkModel = RabbitMQUtils.readModel(buffer);
             String jsonString = RabbitMQUtils.readString(buffer);
-            systems = gson.fromJson(jsonString, new TypeToken<Collection<SystemMetaData>>() {
-            }.getType());
+            systemBeans = getSystemBeansFromJson(jsonString);
         } catch (Exception e) {
             throw new IOException("Error while parsing benchmark model.", e);
         }
@@ -204,17 +204,8 @@ public class PlatformControllerClient implements Closeable {
         if (benchmarkDetails == null) {
             throw new IOException("Error while parsing benchmark model.");
         }
+        benchmarkDetails.setSystems(systemBeans);
 
-        // Parse Benchmark System Details
-        LOGGER.info("Adding systems for GUI...");
-        benchmarkDetails.setSystems(new ArrayList<>());
-        if (systems != null) {
-            for (SystemMetaData system : systems) {
-                benchmarkDetails.getSystems().add(new SystemBean(system.uri, system.name, system.description));
-            }
-        }
-
-        LOGGER.info("Sending response to GUI...");
         return benchmarkDetails;
     }
 
@@ -382,16 +373,29 @@ public class PlatformControllerClient implements Closeable {
             LOGGER.info("Couldn't get the systems for user {}. Returning empty list.");
             return new ArrayList<>(0);
         }
-        Collection<SystemMetaData> systems = gson.fromJson(RabbitMQUtils.readString(response),
-                new TypeToken<Collection<SystemMetaData>>() {
-                }.getType());
+        List<SystemBean> systemBeans = getSystemBeansFromJson(RabbitMQUtils.readString(response));
+        return systemBeans;
+    }
+
+    protected List<SystemBean> getSystemBeansFromJson(String json) {
+        Collection<SystemMetaData> systems = gson.fromJson(json, new TypeToken<Collection<SystemMetaData>>() {
+        }.getType());
         List<SystemBean> systemBeans = new ArrayList<>();
+        transformSysMetaDataToBean(systems, systemBeans);
+        return systemBeans;
+    }
+
+    protected void transformSysMetaDataToBean(Collection<SystemMetaData> systems, List<SystemBean> systemBeans) {
+        SystemBean bean;
         if (systems != null) {
             for (SystemMetaData system : systems) {
-                systemBeans.add(new SystemBean(system.uri, system.name, system.description));
+                bean = new SystemBean(system.uri, system.name, system.description);
+                if ((system.defError != null) && (!system.defError.isEmpty())) {
+                    bean.setErrorMessage(system.defError);
+                }
+                systemBeans.add(bean);
             }
         }
-        return systemBeans;
     }
 
     /**
