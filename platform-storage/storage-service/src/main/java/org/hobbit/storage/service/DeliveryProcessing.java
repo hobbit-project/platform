@@ -56,7 +56,6 @@ public class DeliveryProcessing implements Runnable {
             String query = null;
             byte[] message = delivery.getBody();
             if(encryption != null) {
-                LOGGER.error(new String(message));
                 byte[] decryptedMessage = encryption.decrypt(message);
                 query = new String(decryptedMessage);
             } else {
