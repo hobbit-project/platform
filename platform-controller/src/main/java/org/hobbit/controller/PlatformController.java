@@ -314,6 +314,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             // FIXME use the session id to make sure that only containers of this session
             // are observed
             ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
+            LOGGER.info("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
             if (replyTo != null) {
                 byte[] response;
                 if (resUsage != null) {
