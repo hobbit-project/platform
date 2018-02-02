@@ -300,8 +300,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             if ((data == null) || (data.length == 0)) {
                 LOGGER.error("Got no result model from the benchmark controller.");
             } else {
-                Model model = RabbitMQUtils.readModel(data);
-                expManager.setResultModel(model);
+                expManager.setResultModel(data, RabbitMQUtils::readModel);
             }
             break;
         }
