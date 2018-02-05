@@ -1,3 +1,4 @@
+import { MessageService } from 'primeng/components/common/messageservice';
 import { Observable } from 'rxjs/Observable';
 import { Location } from '@angular/common';
 import { Challenge, ExtendedChallengeRegistration, ChallengeRegistration } from './../../model';
@@ -20,7 +21,8 @@ export class RegisterComponent implements OnInit {
   private loadedSystems = false;
   public loaded = false;
 
-  constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private location: Location) { }
+  constructor(private activatedRoute: ActivatedRoute, private bs: BackendService, private location: Location,
+    private messageService: MessageService) { }
 
   ngOnInit() {
     const id = this.activatedRoute.snapshot.params['id'];
@@ -38,14 +40,27 @@ export class RegisterComponent implements OnInit {
 
   private updateLoaded() {
     if (this.loadedChallenge && this.loadedSystems) {
+      const faultySystems = {};
+
       for (const task of this.challenge.tasks) {
         if (!this.display[task.id])
           this.display[task.id] = [];
 
         for (const reg of this.registrations) {
-          if (reg.taskId === task.id)
+          if (reg.system.errorMessage !== undefined && !!reg.system.errorMessage)
+            faultySystems[reg.system.id] = reg.system.errorMessage;
+          else if (reg.taskId === task.id)
             this.display[task.id].push(reg);
         }
+      }
+
+      if (Object.keys(faultySystems).length > 0) {
+        const messages = [];
+        messages.push({ severity: 'warn', summary: 'Invalid Systems', detail: '' });
+
+        for (const key of Object.keys(faultySystems))
+          messages.push({ severity: 'warn', summary: key, detail: faultySystems[key] });
+        this.messageService.addAll(messages);
       }
       this.loaded = true;
     }
