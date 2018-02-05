@@ -167,7 +167,7 @@ export class Challenge extends NamedEntity {
     public tasks: ChallengeTask[] = [];
 
     constructor(id: string, name: string, description?: string,
-        public organizer?: string,
+        public organizer?: string, public homepage?: string,
         public executionDate?: string, public publishDate?: string,
         public visible?: boolean, public closed?: boolean) {
         super(id, name, description);

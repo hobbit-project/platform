@@ -36,6 +36,7 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.impl.ModelCom;
 import org.apache.jena.rdf.model.impl.SeqImpl;
+import org.apache.jena.sparql.vocabulary.FOAF;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -53,9 +54,9 @@ import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
-import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.TaskRegistrationBean;
@@ -72,15 +73,15 @@ public class RdfModelHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger(RdfModelHelper.class);
 
     /**
-     * Creates a {@link BenchmarkBean} from the given RDF model by searching for
-     * an instance of {@link HOBBIT#Benchmark}. If such an instance can be
-     * found, the label and description of this resource are derived. Otherwise,
+     * Creates a {@link BenchmarkBean} from the given RDF model by searching for an
+     * instance of {@link HOBBIT#Benchmark}. If such an instance can be found, the
+     * label and description of this resource are derived. Otherwise,
      * <code>null</code> is returned.
      *
      * @param model
      *            the RDF model containing the benchmark model
-     * @return a {@link BenchmarkBean} or <code>null</code> if there is no
-     *         benchmark inside the given model
+     * @return a {@link BenchmarkBean} or <code>null</code> if there is no benchmark
+     *         inside the given model
      */
     public static BenchmarkBean createBenchmarkBean(Model model) {
         // Get the benchmark node
@@ -119,8 +120,8 @@ public class RdfModelHelper {
     }
 
     /**
-     * Creates a {@link BenchmarkBean} from the given RDF model by collecting
-     * all benchmark-relevant information found for the given benchmark
+     * Creates a {@link BenchmarkBean} from the given RDF model by collecting all
+     * benchmark-relevant information found for the given benchmark
      * {@link Resource}.
      *
      * @param model
@@ -160,8 +161,7 @@ public class RdfModelHelper {
      * @param benchmark
      *            the {@link Resource} representing the benchmark
      * @param benchmarkBean
-     *            the {@link BenchmarkBean} to which the parameters should be
-     *            added
+     *            the {@link BenchmarkBean} to which the parameters should be added
      */
     public static void parseBenchmarkParameters(Model model, Resource benchmark, BenchmarkBean benchmarkBean) {
         NodeIterator nodeIterator = model.listObjectsOfProperty(benchmark, HOBBIT.hasParameter);
@@ -179,16 +179,15 @@ public class RdfModelHelper {
     }
 
     /**
-     * Parses the given parameter from the given RDFmodel and adds it to the
-     * given {@link BenchmarkBean}.
+     * Parses the given parameter from the given RDFmodel and adds it to the given
+     * {@link BenchmarkBean}.
      *
      * @param model
      *            the RDF model containing the parameter
      * @param parameter
      *            the {@link Resource} representing the parameter
      * @param benchmarkBean
-     *            the {@link BenchmarkBean} to which the parameter should be
-     *            added
+     *            the {@link BenchmarkBean} to which the parameter should be added
      */
     public static void parseBenchmarkParameter(Model model, Resource parameter, BenchmarkBean benchmarkBean) {
         // If this parameter can be configured
@@ -237,16 +236,15 @@ public class RdfModelHelper {
     }
 
     /**
-     * Derives a list of options that are connected to the given parameter
-     * resource via owl:oneOf predicates or <code>null</code> if no such
-     * resource could be found.
+     * Derives a list of options that are connected to the given parameter resource
+     * via owl:oneOf predicates or <code>null</code> if no such resource could be
+     * found.
      *
      * @param model
      *            the RDF model containing the options
      * @param typeResource
      *            the typ resource for which the options are possible values
-     * @return a list of options or <code>null</code> if no option could be
-     *         found
+     * @return a list of options or <code>null</code> if no option could be found
      */
     public static List<SelectOptionBean> listOptions(Model model, Resource typeResource) {
         ResIterator iterator = model.listSubjectsWithProperty(RDF.type, typeResource);
@@ -323,6 +321,7 @@ public class RdfModelHelper {
         challenge.setName(RdfHelper.getLabel(model, challengeResource));
         challenge.setDescription(RdfHelper.getDescription(model, challengeResource));
         challenge.setOrganizer(RdfHelper.getStringValue(model, challengeResource, HOBBIT.organizer));
+        challenge.setHomepage(RdfHelper.getStringValue(model, challengeResource, FOAF.homepage));
         Literal literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.closed);
         if (literal != null) {
             try {
@@ -475,8 +474,8 @@ public class RdfModelHelper {
     }
 
     /**
-     * Extracts configuration parameters of the given challenge task from the
-     * given model.
+     * Extracts configuration parameters of the given challenge task from the given
+     * model.
      * 
      * @param model
      *            the model containing the triples
