@@ -9,6 +9,11 @@ redeploy-gui:
 	docker-compose build
 	docker-compose up -d gui
 
+redeploy-storage:
+	cd platform-storage/storage-service && mvn clean package -U
+	docker-compose build
+	docker-compose up -d storage-service
+
 start:
 	docker-compose build
 	docker-compose up
