@@ -359,7 +359,6 @@ public class GitlabControllerImpl implements GitlabController {
         }
         List<GitlabUser> users = api.getUsers();
         for (GitlabUser user : users) {
-            System.out.println(user.getEmail().equals(mail));
             if (user.getEmail().equals(mail)) {
                 return user;
             }
@@ -389,7 +388,6 @@ public class GitlabControllerImpl implements GitlabController {
         builder.append("/projects");
         builder.append(new Pagination().withPerPage(Pagination.MAX_ITEMS_PER_PAGE).toString());
         builder.append("&simple=true");
-        System.out.println(builder.toString());
         return api.retrieve().getAll(builder.toString(), GitlabProject[].class);
     }
 
