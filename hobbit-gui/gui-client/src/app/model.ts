@@ -44,7 +44,7 @@ export class User {
 
 
 export class NamedEntity {
-    constructor(public id: string, public name: string, public description?: string) {
+    constructor(public id: string, public name: string, public description?: string, public errorMessage?: string) {
     }
 }
 
@@ -119,8 +119,8 @@ export class System extends NamedEntity {
 
 export class BenchmarkOverview extends NamedEntity {
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
 
@@ -137,8 +137,8 @@ export class Benchmark extends BenchmarkOverview {
     @Type(() => System)
     public systems?: System[];
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
     hasConfigParams() {
