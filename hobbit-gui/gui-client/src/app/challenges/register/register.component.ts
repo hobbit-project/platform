@@ -1,5 +1,6 @@
+import { Observable } from 'rxjs/Observable';
 import { Location } from '@angular/common';
-import { Challenge, ChallengeRegistration, System } from './../../model';
+import { Challenge, ExtendedChallengeRegistration, ChallengeRegistration } from './../../model';
 import { BackendService } from './../../backend.service';
 import { ActivatedRoute } from '@angular/router';
 import { Component, OnInit } from '@angular/core';
@@ -12,12 +13,10 @@ import { Component, OnInit } from '@angular/core';
 export class RegisterComponent implements OnInit {
 
   public challenge: Challenge;
-  private registrations: ChallengeRegistration[];
-  private systems: System[];
-  private display = {};
+  private registrations: ExtendedChallengeRegistration[];
+  private display: { [id: string]: ExtendedChallengeRegistration[]; } = {};
 
   private loadedChallenge = false;
-  private loadedRegistrations = false;
   private loadedSystems = false;
   public loaded = false;
 
@@ -30,42 +29,26 @@ export class RegisterComponent implements OnInit {
       this.loadedChallenge = true;
       this.updateLoaded();
     });
-    this.bs.getAllChallengeRegistrations(id).subscribe(data => {
+    this.bs.getChallengeRegistrations(id).subscribe(data => {
       this.registrations = data;
-      this.loadedRegistrations = true;
-      this.updateLoaded();
-    });
-    this.bs.getSystemProviderSystems().subscribe(data => {
-      this.systems = data;
       this.loadedSystems = true;
       this.updateLoaded();
     });
   }
 
   private updateLoaded() {
-    if (this.loadedChallenge && this.loadedSystems && this.loadedRegistrations) {
-      for (const system of this.systems) {
-        for (const task of this.challenge.tasks) {
-          if (!this.display[task.id])
-            this.display[task.id] = [];
-          this.display[task.id].push({ id: system.id, name: system.name, description: system.description, selected: false });
-        }
-      }
+    if (this.loadedChallenge && this.loadedSystems) {
+      for (const task of this.challenge.tasks) {
+        if (!this.display[task.id])
+          this.display[task.id] = [];
 
-      for (const reg of this.registrations) {
-        if (this.getEntry(this.display[reg.taskId], reg.systemId))
-          this.getEntry(this.display[reg.taskId], reg.systemId).selected = true;
+        for (const reg of this.registrations) {
+          if (reg.taskId === task.id)
+            this.display[task.id].push(reg);
+        }
       }
       this.loaded = true;
     }
-  }
-
-  private getEntry(list, id: string): any {
-    for (let i = 0; i < list.length; i++) {
-      if (list[i].id === id)
-        return list[i];
-    }
-    return null;
   }
 
   cancel() {
@@ -73,14 +56,11 @@ export class RegisterComponent implements OnInit {
   }
 
   submit() {
-    const taskRegistrations: ChallengeRegistration[] = [];
-    for (const task of Object.keys(this.display)) {
-      for (const sel of this.display[task]) {
-        if (sel.selected)
-          taskRegistrations.push(new ChallengeRegistration(this.challenge.id, task, sel.id));
-      }
-      this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, taskRegistrations).subscribe();
-    }
-    this.cancel();
+    const batch = [];
+    for (const task of Object.keys(this.display))
+      batch.push(this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, this.display[task]));
+    Observable.forkJoin(batch).subscribe(res => {
+      this.cancel();
+    });
   }
 }
