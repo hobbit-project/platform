@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
+import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
@@ -298,6 +299,32 @@ public class ExperimentManager implements Closeable {
     }
 
     /**
+     * Sets the result model of the current running experiment by transforming the
+     * given data into an RDF model using the given function while owning the
+     * {@link #experimentStatus} object and therefore blocking all other operations
+     * on that object.
+     *
+     * @param data
+     *            binary data containing a serialized RDF model
+     * @param function
+     *            a deserialization function transforming the binary data into an
+     *            RDF model
+     */
+    public void setResultModel(byte[] data, Function<? super byte[], ? extends Model> function) {
+        try {
+            experimentMutex.acquire();
+        } catch (InterruptedException e) {
+            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
+            return;
+        }
+        try {
+            setResultModel_unsecured(function.apply(data));
+        } finally {
+            experimentMutex.release();
+        }
+    }
+
+    /**
      * Sets the result model of the current running experiment.
      *
      * @param model
@@ -311,13 +338,23 @@ public class ExperimentManager implements Closeable {
             return;
         }
         try {
-            if (experimentStatus != null) {
-                experimentStatus.setOrMergeResultModel(model);
-            } else {
-                LOGGER.error("Got a result model while there is no experiment running.");
-            }
+            setResultModel_unsecured(model);
         } finally {
             experimentMutex.release();
+        }
+    }
+
+    /**
+     * Sets the result model of the current running experiment.
+     *
+     * @param model
+     *            the result model
+     */
+    private void setResultModel_unsecured(Model model) {
+        if (experimentStatus != null) {
+            experimentStatus.setOrMergeResultModel(model);
+        } else {
+            LOGGER.error("Got a result model while there is no experiment running.");
         }
     }
 
