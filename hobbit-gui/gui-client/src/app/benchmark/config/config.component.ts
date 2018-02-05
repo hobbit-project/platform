@@ -20,6 +20,7 @@ export class ConfigComponent implements OnInit, OnChanges {
   @Output()
   submitCallback = new EventEmitter<any>();
 
+  public loaded: Boolean;
   public formGroup: FormGroup;
   public config: ConfigParamDefinition[] = [];
   private configMap: { [s: string]: ConfigParamDefinition } = {};
@@ -31,6 +32,7 @@ export class ConfigComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
+    this.loaded = false;
     const group: { [s: string]: FormControl } = {};
     this.config = [];
     this.configMap = {};
@@ -46,6 +48,7 @@ export class ConfigComponent implements OnInit, OnChanges {
       this.configMap[config.id] = config;
     }
     this.formGroup = new FormGroup(group);
+    this.loaded = true;
   }
 
   onSubmit() {

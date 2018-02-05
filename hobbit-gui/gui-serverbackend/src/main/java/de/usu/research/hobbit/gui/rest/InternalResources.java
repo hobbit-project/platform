@@ -41,7 +41,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import de.usu.research.hobbit.gui.rest.beans.InfoBean;
+import org.apache.commons.collections.SetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -55,6 +55,7 @@ import com.google.common.cache.CacheBuilder;
 import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
 import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
@@ -85,7 +86,9 @@ public class InternalResources {
                 throw new GUIBackendException("Keycloak configuration not found");
             return Response.ok(bean).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage("Error on retrieving Keycloak configuration: " + e.getMessage())).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(InfoBean.withMessage("Error on retrieving Keycloak configuration: " + e.getMessage()))
+                    .build();
         }
     }
 
@@ -260,12 +263,20 @@ public class InternalResources {
      *            returned
      * @return the set of system URIs that are visible for the given user
      */
+    @SuppressWarnings("unchecked")
     public static Set<String> getUserSystemIds(UserInfoBean userInfo) {
+        String email = userInfo.getEmail();
+        // If the user has no mail address (the user account has a wrong configuration
+        // or it is the guest user account)
+        if ((email == null) || (email.isEmpty())) {
+            return SetUtils.EMPTY_SET;
+        }
         List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
-                .requestSystemsOfUser(userInfo.getPreferredUsername());
+                .requestSystemsOfUser(userInfo.getEmail());
         // create set of user owned system ids
         String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
         Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+        LOGGER.info("userSystems={}", userOwnedSystemIds.toString());
         return userOwnedSystemIds;
     }
 

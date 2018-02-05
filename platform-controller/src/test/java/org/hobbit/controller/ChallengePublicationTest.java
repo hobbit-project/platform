@@ -79,6 +79,7 @@ public class ChallengePublicationTest {
         // date should be added when there is no date
         DummyStorage storage = new DummyStorage("org/hobbit/controller/InitialRepeatableChallengeConfigGraph.ttl",
                 "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
+        @SuppressWarnings("resource")
         DummyStorage expectedStorage = new DummyStorage("org/hobbit/controller/ScheduledRepeatableChallengeConfigGraph.ttl",
                 "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
 
@@ -252,12 +253,18 @@ public class ChallengePublicationTest {
         }
 
         @Override
-        public void remove(ExperimentConfiguration experiment) {
+        public boolean remove(ExperimentConfiguration experiment) {
+            return false;
         }
 
         @Override
         public List<ExperimentConfiguration> listAll() {
             return new ArrayList<>(0);
+        }
+
+        @Override
+        public ExperimentConfiguration getExperiment(String experimentId) {
+            return null;
         }
     }
 

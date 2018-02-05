@@ -16,6 +16,8 @@
  */
 package org.hobbit.controller.docker;
 
+import java.util.List;
+
 /**
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
@@ -68,4 +70,10 @@ public interface ContainerStateObserver {
      */
     public void removedObservedContainer(String containerId);
 
+    /**
+     * Returns the list of observed containers.
+     * 
+     * @return the list of containers that should be observer
+     */
+    public List<String> getObservedContainers();
 }
