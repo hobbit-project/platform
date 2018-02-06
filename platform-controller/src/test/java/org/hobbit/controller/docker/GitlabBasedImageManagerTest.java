@@ -41,12 +41,12 @@ import com.google.gson.reflect.TypeToken;
 /**
  * Created by Timofey Ermilov on 22/09/16.
  */
-public class ImageManagerImplTest {
-    private ImageManagerImpl imageManager;
+public class GitlabBasedImageManagerTest {
+    private GitlabBasedImageManager imageManager;
 
     @Before
     public void initObserver() {
-        imageManager = new ImageManagerImpl();
+        imageManager = new GitlabBasedImageManager();
     }
 
     // @Test
@@ -62,9 +62,8 @@ public class ImageManagerImplTest {
 
     @Test
     public void getBenchmarks() throws Exception {
-        Assume.assumeNotNull(System.getenv("GITLAB_USER"),
-                             System.getenv("GITLAB_EMAIL"),
-                             System.getenv("GITLAB_TOKEN"));
+        Assume.assumeNotNull(System.getenv("GITLAB_USER"), System.getenv("GITLAB_EMAIL"),
+                System.getenv("GITLAB_TOKEN"));
 
         // use future to make test wait for async stuff (sigh, java)
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -84,14 +83,14 @@ public class ImageManagerImplTest {
                 // find gerbil benchmark
                 BenchmarkMetaData gerbilBench = null;
                 for (BenchmarkMetaData b : bs) {
-                    if (b.benchmarkUri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB")) {
+                    if (b.uri.equals("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB")) {
                         gerbilBench = b;
                     }
                 }
                 Assert.assertNotNull(gerbilBench);
 
                 // find systems for gerbil
-                List<SystemMetaData> gbSys = imageManager.getSystemsForBenchmark(gerbilBench.benchmarkUri);
+                List<SystemMetaData> gbSys = imageManager.getSystemsForBenchmark(gerbilBench.uri);
                 Assert.assertTrue(gbSys.size() > 1);
 
                 // get gerbil benchmark by URL
@@ -103,7 +102,8 @@ public class ImageManagerImplTest {
                 // system instance
                 Model systemModel = imageManager.getSystemModel("http://gerbil.org/systems/AgdistisWS");
                 Assert.assertNotNull(systemModel);
-                Assert.assertEquals(1, RdfHelper.getSubjectResources(systemModel, RDF.type, HOBBIT.SystemInstance).size());
+                Assert.assertEquals(1,
+                        RdfHelper.getSubjectResources(systemModel, RDF.type, HOBBIT.SystemInstance).size());
 
                 // find test systems for gerbil by URL
                 systemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance1");
@@ -120,7 +120,8 @@ public class ImageManagerImplTest {
                 systems = imageManager.getSystemsOfUser("kleanthie.georgala");
                 Assert.assertTrue(systems.size() > 0);
 
-                List<SystemMetaData> systems4Benchmark = imageManager.getSystemsForBenchmark(benchmarkModel);
+                List<SystemMetaData> systems4Benchmark = imageManager
+                        .getSystemsForBenchmark("http://w3id.org/gerbil/hobbit/vocab#GerbilBenchmarkA2KB");
                 String userName = "testuser";
                 Set<SystemMetaData> userSystems = new HashSet<SystemMetaData>(imageManager.getSystemsOfUser(userName));
                 List<SystemMetaData> filteredSystems = new ArrayList<>(systems4Benchmark.size());

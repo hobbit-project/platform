@@ -46,11 +46,15 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
@@ -59,23 +63,24 @@ public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
 
-    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
+    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiment. Either the experiment has not finished or it does not exist.";
 
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response query(@QueryParam("id") String idsCommaSep,
-            @QueryParam("challenge-task-id") String challengeTaskId, @Context SecurityContext sc) {
+    public Response query(@QueryParam("id") String idsCommaSep, @QueryParam("challenge-task-id") String challengeTaskId,
+            @Context SecurityContext sc) {
         List<ExperimentBean> results = null;
         String[] ids = null;
         if (idsCommaSep != null) {
             ids = idsCommaSep.split(",");
         }
 
+        Set<String> userOwnedSystemIds = null;
         if (Application.isUsingDevDb()) {
             return Response.ok(getDevDb().queryExperiments(ids, challengeTaskId)).build();
         } else {
-
+            // If there is a list of experiment ids
             if (ids != null) {
                 LOGGER.debug("Querying experiment results for " + Arrays.toString(ids));
                 results = new ArrayList<>(ids.length);
@@ -101,7 +106,7 @@ public class ExperimentsResources {
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 String systemURI = system.getURI();
-                                Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
+                                userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model,
@@ -120,6 +125,41 @@ public class ExperimentsResources {
                         }
                     }
                 }
+                // Add visibility of logs
+                if (results.size() > 0) {
+                    String esHost = System.getenv("ELASTICSEARCH_HOST");
+                    if(esHost == null) {
+                        for (ExperimentBean e : results) {
+                            e.setBenchmarkLogAvailable(false);
+                            e.setSystemLogAvailable(false);
+                        }
+                    } else {
+                        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+                        if (userOwnedSystemIds == null) {
+                            userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                        }
+                        for (ExperimentBean e : results) {
+                            if(e.getError() != null && e.getError().equals(UNKNOWN_EXP_ERROR_MSG)) {
+                                e.setBenchmarkLogAvailable(false);
+                                e.setSystemLogAvailable(false);
+                                continue;
+                            }
+                            if (userInfo.hasRole("system-provider") || userInfo.hasRole("challenge-organiser")) {
+                                e.setBenchmarkLogAvailable(true);
+                            } else {
+                                e.setBenchmarkLogAvailable(false);
+                            }
+                            NamedEntityBean system = e.getSystem();
+                            if(system != null) {
+                                String systemId = system.getId();
+                                e.setSystemLogAvailable(userOwnedSystemIds.contains(systemId));
+                            } else {
+                                e.setSystemLogAvailable(false);
+                            }
+                        }
+                    }
+                }
+                // If the user is asking for experiments of a certain challenge task
             } else if (challengeTaskId != null) {
                 LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph
@@ -131,6 +171,7 @@ public class ExperimentsResources {
                 if (model != null && model.size() > 0) {
                     results = RdfModelHelper.createExperimentBeans(model);
                 } else {
+                    boolean challengeOwner = true;
                     // otherwise try to look in private graph
                     query = SparqlQueries.getExperimentOfTaskQuery(null, challengeTaskId,
                             Constants.PRIVATE_RESULT_GRAPH_URI);
@@ -152,6 +193,7 @@ public class ExperimentsResources {
                                 // return whole thing if he is
                                 if (organizer.equals(userInfo.getPreferredUsername())) {
                                     results = RdfModelHelper.createExperimentBeans(model);
+                                    challengeOwner = true;
                                 }
                             } else {
                                 LOGGER.error(
@@ -163,9 +205,10 @@ public class ExperimentsResources {
                                 // that are not owned by the user
                                 List<ExperimentBean> experiments = RdfModelHelper.createExperimentBeans(model);
                                 if (experiments != null) {
-                                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                                    userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                                    final Set<String> filter = userOwnedSystemIds;
                                     results = experiments.stream()
-                                            .filter(exp -> userOwnedSystemIds.contains(exp.getSystem().getId()))
+                                            .filter(exp -> filter.contains(exp.getSystem().getId()))
                                             .collect(Collectors.toList());
                                 }
                             }
@@ -175,6 +218,24 @@ public class ExperimentsResources {
                     } else {
                         LOGGER.info("Couldn't find experiments for task {}. Returning empty list.", challengeTaskId);
                         results = new ArrayList<>(0);
+                    }
+                    // Add visibility of logs
+                    if ((results != null) && (results.size() > 0)) {
+                        if (challengeOwner) {
+                            for (ExperimentBean e : results) {
+                                e.setBenchmarkLogAvailable(true);
+                                e.setSystemLogAvailable(true);
+                            }
+                        } else {
+                            if (userOwnedSystemIds == null) {
+                                UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+                                userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                            }
+                            for (ExperimentBean e : results) {
+                                e.setBenchmarkLogAvailable(true);
+                                e.setSystemLogAvailable(userOwnedSystemIds.contains(e.getSystem().getId()));
+                            }
+                        }
                     }
                 }
             } else {
@@ -187,7 +248,8 @@ public class ExperimentsResources {
 
         if (results == null)
             results = new ArrayList<>(0);
-        return Response.ok(new GenericEntity<List<ExperimentBean>>(results){}).build();
+        return Response.ok(new GenericEntity<List<ExperimentBean>>(results) {
+        }).build();
     }
 
     @GET
@@ -232,7 +294,30 @@ public class ExperimentsResources {
                     LOGGER.error("Exception while executing ");
                 }
             }
-            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts){}).build();
+            return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts) {
+            }).build();
+        }
+    }
+
+    @GET
+    @Path("terminate/{id}")
+    public Response terminateExperiment(@Context SecurityContext sc, @PathParam("id") String experimentId) {
+        try {
+            LOGGER.info("Terminating experiment {}.", experimentId);
+            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+            if (client == null) {
+                throw new GUIBackendException("Couldn't connect to platform controller.");
+            }
+            if (client.terminateExperiment(experimentId, userInfo.getPreferredUsername())) {
+                return Response.ok().build();
+            } else {
+                return Response.notModified().build();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to terminate experiment: " + e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage()))
+                    .build();
         }
     }
 

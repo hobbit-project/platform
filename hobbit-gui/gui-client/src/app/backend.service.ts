@@ -1,7 +1,7 @@
 import { BenchmarkComponent } from './upload/benchmark/benchmark.component';
 import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
-import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration } from './model';
+import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration, ExtendedChallengeRegistration, StatusBean } from './model';
 import { Injectable } from '@angular/core';
 import { Http, Headers, RequestOptions, URLSearchParams } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
@@ -26,8 +26,8 @@ export class BackendService {
     this.obsUserInfo = null;
   }
 
-  getStatus() {
-    return this.http.get('BACKEND/rest/status').map(res => res.text());
+  getStatus(): Observable<StatusBean> {
+    return this.http.get('BACKEND/rest/status').map(res => plainToClass<StatusBean, Object>(StatusBean, res.json()));
   }
 
   listBenchmarks(): Observable<BenchmarkOverview[]> {
@@ -81,8 +81,16 @@ export class BackendService {
     return this.http.get('BACKEND/rest/experiments/query', { params: params }).map(res => plainToClass(Experiment, res.json()));
   }
 
+  terminateExperiment(id: string): Observable<any> {
+    return this.http.get(`BACKEND/rest/experiments/terminate/${encodeURIComponent(id)}`);
+  }
+
   getAllChallengeRegistrations(challengeId: string): Observable<ChallengeRegistration[]> {
     return this.http.get(`BACKEND/rest/system-provider/challenge-all-registrations/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ChallengeRegistration, res.json()));
+  }
+
+  getChallengeRegistrations(challengeId: string): Observable<ExtendedChallengeRegistration[]> {
+    return this.http.get(`BACKEND/rest/system-provider/challenge-registrations/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ExtendedChallengeRegistration, res.json()));
   }
 
   updateChallengeTaskRegistrations(challengeId: string, taskId: string, registrations: ChallengeRegistration[]) {
@@ -91,6 +99,10 @@ export class BackendService {
 
   getSystemProviderSystems() {
     return this.http.get('BACKEND/rest/system-provider/systems').map(res => res.json());
+  }
+
+  getLogFile(url: string) {
+    return this.http.get('BACKEND/rest/logs/' + url);
   }
 
 }

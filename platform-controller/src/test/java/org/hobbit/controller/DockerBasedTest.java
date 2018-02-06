@@ -18,6 +18,8 @@ package org.hobbit.controller;
 
 import java.util.List;
 
+import org.apache.commons.compress.utils.IOUtils;
+import org.junit.After;
 import org.junit.Before;
 
 import com.spotify.docker.client.DefaultDockerClient;
@@ -55,5 +57,10 @@ public class DockerBasedTest {
         if (!findImageWithTag(busyboxImageName, images)) {
             dockerClient.pull(busyboxImageName);
         }
+    }
+
+    @After
+    public void close() throws Exception {
+        IOUtils.closeQuietly(dockerClient);
     }
 }

@@ -16,6 +16,10 @@
  */
 package org.hobbit.controller.gitlab;
 
+import java.util.Date;
+
+import org.apache.jena.rdf.model.Model;
+
 /**
  * Simple structure containing the relevant meta data of a gitlab project that
  * contained at least one benchmark file or one system file.
@@ -31,25 +35,119 @@ public class Project {
     /**
      * Content of the benchmark meta data file.
      */
-    public String benchmarkMetadata;
+    public Model benchmarkModel;
     /**
      * Content of the system meta data file.
      */
-    public String systemMetadata;
+    public Model systemModel;
     /**
      * Name of the owner of the project in which the files have been found.
      */
     public String user;
-
+    /**
+     * Name of the owner of this project
+     */
     public String name;
-    
+    /**
+     * creation date of the project
+     */
+    public Date createdAt;
+    /**
+     * Flag showing whether the project is private.
+     */
     public boolean isPrivate;
 
-    public Project(String benchmarkMetadata, String systemMetadata, String user, String name, boolean isPrivate) {
-        this.benchmarkMetadata = benchmarkMetadata;
-        this.systemMetadata = systemMetadata;
+    public Project(Model benchmarkModel, Model systemModel, String user, String name, Date createdAt,
+            boolean isPrivate) {
+        this.benchmarkModel = benchmarkModel;
+        this.systemModel = systemModel;
         this.user = user;
         this.name = name;
+        this.createdAt = createdAt;
+        this.isPrivate = isPrivate;
+    }
+
+    /**
+     * @return the benchmarkModel
+     */
+    public Model getBenchmarkModel() {
+        return benchmarkModel;
+    }
+
+    /**
+     * @param benchmarkModel the benchmarkModel to set
+     */
+    public void setBenchmarkModel(Model benchmarkModel) {
+        this.benchmarkModel = benchmarkModel;
+    }
+
+    /**
+     * @return the systemModel
+     */
+    public Model getSystemModel() {
+        return systemModel;
+    }
+
+    /**
+     * @param systemModel the systemModel to set
+     */
+    public void setSystemModel(Model systemModel) {
+        this.systemModel = systemModel;
+    }
+
+    /**
+     * @return the user
+     */
+    public String getUser() {
+        return user;
+    }
+
+    /**
+     * @param user the user to set
+     */
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * @return the createdAt
+     */
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    /**
+     * @param createdAt the createdAt to set
+     */
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    /**
+     * @return the isPrivate
+     */
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    /**
+     * @param isPrivate the isPrivate to set
+     */
+    public void setPrivate(boolean isPrivate) {
         this.isPrivate = isPrivate;
     }
 }

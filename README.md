@@ -24,6 +24,14 @@
 
 (Newer versions should work as well)
 
+## Quickstart guide
+
+The platform can be started pretty fast by cloning the repository and executing
+```sh
+make build install
+```
+This will compile the project and execute all necessary default configuration steps described below. After that, `make start` will start the platform.
+
 ## Preparing
 
 These steps have to be done only once before starting the platform the first time.

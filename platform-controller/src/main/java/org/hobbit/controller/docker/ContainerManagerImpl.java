@@ -68,6 +68,7 @@ public class ContainerManagerImpl implements ContainerManager {
             ? System.getenv().get(DEPLOY_ENV_KEY)
             : "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String LOGGING_DRIVER_GELF = "gelf";
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
 
@@ -92,6 +93,10 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     public static final String LOGGING_TAG = "{{.ImageName}}/{{.Name}}/{{.ID}}";
     /**
+     * Logging separator for type/experiment id.
+     */
+    private static final String LOGGING_SEPARATOR = "_sep_";
+    /**
      * Docker client instance
      */
     private DockerClient dockerClient;
@@ -105,6 +110,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     private String gelfAddress = null;
+    private String experimentId = null;
 
     /**
      * Constructor that creates new docker client instance
@@ -338,7 +344,11 @@ public class ContainerManagerImpl implements ContainerManager {
         if (gelfAddress != null) {
             Map<String, String> logOptions = new HashMap<String, String>();
             logOptions.put("gelf-address", gelfAddress);
-            logOptions.put("tag", LOGGING_TAG);
+            String tag = LOGGING_TAG;
+            if (experimentId != null) {
+                tag = containerType + LOGGING_SEPARATOR + experimentId + LOGGING_SEPARATOR + LOGGING_TAG;
+            }
+            logOptions.put("tag", tag);
             cfgBuilder.hostConfig(
                     HostConfig.builder().logConfig(LogConfig.create(LOGGING_DRIVER_GELF, logOptions)).build());
         }
@@ -417,11 +427,20 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId) {
+        this.experimentId = experimentId;
+        return startContainer(imageName, containerType, parentId, env, command);
+    }
+
+
+    @Override
     public void removeContainer(String containerId) {
         try {
-            // If we are not in testing mode, remove all containers. In testing
+            // If we are not in develop or testing mode, remove all containers. In testing
             // mode, remove only those that have a non-zero status
-            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (getContainerInfo(containerId).state().exitCode() == 0)) {
+            if ((!DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) && ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING))
+                    || (getContainerInfo(containerId).state().exitCode() == 0))) {
                 dockerClient.removeContainer(containerId);
             }
         } catch (Exception e) {

@@ -115,16 +115,16 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
         for (SystemMetaData system : systems) {
             builder.append(NEWLINE);
             builder.append("\tname: ");
-            builder.append(system.systemName);
+            builder.append(system.name);
             builder.append(NEWLINE);
             builder.append("\turi: ");
-            builder.append(system.systemUri);
+            builder.append(system.uri);
             builder.append(NEWLINE);
             builder.append("\timage: ");
-            builder.append(system.system_image_name);
+            builder.append(system.mainImage);
             builder.append(NEWLINE);
             builder.append("\tdescription: ");
-            builder.append(system.systemDescription);
+            builder.append(system.description);
             builder.append(NEWLINE);
         }
         LOGGER.info(builder.toString());

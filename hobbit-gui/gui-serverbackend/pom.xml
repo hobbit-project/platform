@@ -14,7 +14,7 @@
 
     <groupId>org.hobbit</groupId>
     <artifactId>gui-serverbackend</artifactId>
-    <version>1.0.14</version>
+    <version>1.0.15</version>
     <packaging>war</packaging>
     <name>gui-serverbackend</name>
 
@@ -52,6 +52,18 @@
             <url>http://maven.aksw.org/repository/snapshots</url>
         </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>maven.aksw.internal</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/internal</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>maven.aksw.snapshots</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <dependencyManagement>
         <dependencies>
@@ -86,7 +98,7 @@
         <dependency>
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
-            <version>1.0.8</version>
+            <version>1.0.9</version>
         </dependency>
         <dependency>
             <groupId>commons-collections</groupId>
@@ -97,6 +109,11 @@
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
             <version>20160810</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>6.1.1</version>
         </dependency>
         <!-- JAXB dependency - necessary to work with Java 9 
         <dependency>
@@ -213,7 +230,7 @@
                         <dependency>
                             <groupId>org.hobbit</groupId>
                             <artifactId>keycloak-jetty-adapter-for-hobbit</artifactId>
-                            <version>2.4.0.Final-SNAPSHOT</version>
+                            <version>2.4.0.Final</version>
                         </dependency>
                     </dependencies>
                 </plugin>

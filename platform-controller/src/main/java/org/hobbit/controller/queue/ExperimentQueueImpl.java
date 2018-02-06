@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.hobbit.controller.data.ExperimentConfiguration;
 
 import com.google.gson.Gson;
@@ -96,11 +97,15 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
     @Override
     public void add(ExperimentConfiguration experiment) {
         Gson gson = new Gson();
-        String typeKey = EXPERIMENT_KEY; // TODO: detect type based on
-                                         // experiment
-        String queueKey = EXPERIMENT_QUEUE; // TODO: detect type based on
-                                            // experiment
-        String idKey = experiment.id; // TODO: correctly define experiment ID
+        String typeKey, queueKey;
+        if ((experiment.challengeUri != null) && (experiment.challengeTaskUri != null)) {
+            typeKey = CHALLENGE_KEY;
+            queueKey = CHALLENGE_QUEUE;
+        } else {
+            typeKey = EXPERIMENT_KEY;
+            queueKey = EXPERIMENT_QUEUE;
+        }
+        String idKey = experiment.id;
         String experimentJson = gson.toJson(experiment);
 
         // add to experiment data store
@@ -114,16 +119,21 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
     }
 
     @Override
-    public void remove(ExperimentConfiguration experiment) {
-        String typeKey = EXPERIMENT_KEY; // TODO: detect type based on
-                                         // experiment
-        String queueKey = EXPERIMENT_QUEUE; // TODO: detect type based on
-                                            // experiment
-        String idKey = experiment.id; // TODO: correctly define experiment ID
+    public boolean remove(ExperimentConfiguration experiment) {
+        String typeKey, queueKey;
+        if ((experiment.challengeUri != null) && (experiment.challengeTaskUri != null)) {
+            typeKey = CHALLENGE_KEY;
+            queueKey = CHALLENGE_QUEUE;
+        } else {
+            typeKey = EXPERIMENT_KEY;
+            queueKey = EXPERIMENT_QUEUE;
+        }
+        String idKey = experiment.id;
         // remove from experiment data store
-        redisSyncCommands.hdel(typeKey, idKey);
+        long removedFields1 = redisSyncCommands.hdel(typeKey, idKey);
         // remove from queue
-        redisSyncCommands.zrem(queueKey, idKey);
+        long removedFields2 = redisSyncCommands.zrem(queueKey, idKey);
+        return (removedFields1 > 0) && (removedFields2 > 0);
     }
 
     private List<ExperimentConfiguration> stringMapToExperimentList(Map<String, String> entries) {
@@ -142,14 +152,29 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
         Map<String, String> experiments = redisSyncCommands.hgetall(EXPERIMENT_KEY);
         // create result
         List<ExperimentConfiguration> result = stringMapToExperimentList(experiments);
-//        result.sort((ExperimentConfiguration o1, ExperimentConfiguration o2) -> o1.executionDate == null
-//                ? (o2.executionDate == null ? 0 : 1)
-//                : (o2.executionDate == null ? -1 : (o1.executionDate.before(o2.executionDate) ? -1 : 1)));
+        // result.sort((ExperimentConfiguration o1, ExperimentConfiguration o2) ->
+        // o1.executionDate == null
+        // ? (o2.executionDate == null ? 0 : 1)
+        // : (o2.executionDate == null ? -1 : (o1.executionDate.before(o2.executionDate)
+        // ? -1 : 1)));
         Map<String, String> challenges = redisSyncCommands.hgetall(CHALLENGE_KEY);
         // Add all challenges in front of the experiments
         result.addAll(0, stringMapToExperimentList(challenges));
         // return result
         return result;
+    }
+
+    @Override
+    public ExperimentConfiguration getExperiment(String experimentId) {
+        String experimentStr = redisSyncCommands.hget(EXPERIMENT_KEY, experimentId);
+        if (experimentStr == null) {
+            experimentStr = redisSyncCommands.hget(CHALLENGE_KEY, experimentId);
+        }
+        if (experimentStr != null) {
+            return decodeExperimentFromString(experimentStr);
+        } else {
+            return null;
+        }
     }
 
     public void close() {
