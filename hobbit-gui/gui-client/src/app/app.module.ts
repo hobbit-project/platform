@@ -11,7 +11,7 @@ import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes, Router } from '@angular/router';
-import { Http, HttpModule, XHRBackend, RequestOptions } from '@angular/http';
+import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
 import { ModalModule } from 'ngx-bootstrap/modal';
 import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule, MessagesModule } from 'primeng/primeng';
@@ -65,13 +65,13 @@ const appRoutes: Routes = [
 
 
 export const httpProvide = {
-  provide: Http,
+  provide: CustomHttp,
   useFactory: httpClientFactory,
-  deps: [XHRBackend, RequestOptions, KeycloakService, SlimLoadingBarService, Router, MessageService]
+  deps: [HttpClient, KeycloakService, SlimLoadingBarService, Router, MessageService]
 };
-export function httpClientFactory(backend: XHRBackend, defaultOptions: RequestOptions, keycloakService: KeycloakService,
-  slimLoadingBarService: SlimLoadingBarService, router: Router, messageService: MessageService): Http {
-  return new CustomHttp(backend, defaultOptions, keycloakService, slimLoadingBarService, router, messageService);
+export function httpClientFactory(http: HttpClient, keycloakService: KeycloakService,
+  slimLoadingBarService: SlimLoadingBarService, router: Router, messageService: MessageService): CustomHttp {
+  return new CustomHttp(http, keycloakService, slimLoadingBarService, router, messageService);
 }
 
 // merge initial path and hash (if it looks suitable)
@@ -119,7 +119,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     BrowserAnimationsModule,
     RouterModule.forRoot(appRoutes),
     BrowserModule,
-    HttpModule,
+    HttpClientModule,
     FormsModule,
     SlimLoadingBarModule.forRoot(),
     ModalModule.forRoot(),
