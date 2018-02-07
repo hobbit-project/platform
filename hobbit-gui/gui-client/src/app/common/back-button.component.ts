@@ -2,7 +2,7 @@ import { Location } from '@angular/common';
 import { Component, OnInit, Input } from '@angular/core';
 
 @Component({
-  selector: 'back-button',
+  selector: 'app-back-button',
   template: '<button type="button" class="btn {{ rightClass }}" (click)="cancel()">Back</button>'
 })
 export class BackButtonComponent implements OnInit {
