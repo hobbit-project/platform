@@ -46,8 +46,4 @@ export class RegistrationComponent implements OnInit {
     this.loaded = this.loadedChallenge && this.loadedRegistrations;
   }
 
-  cancel() {
-    this.location.back();
-  }
-
 }
