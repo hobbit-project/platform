@@ -94,18 +94,14 @@ export class TaskComponent implements OnInit {
     }
   }
 
-  cancel() {
-    this.location.back();
-  }
-
   deleteTask() {
     this.confirmationService.confirm({
       message: 'Do you want to delete this task?',
       header: 'Delete Confirmation',
       icon: 'fa fa-trash',
       accept: () => {
-        this.challenge.tasks.splice(this.taskIdx);
-        this.doSave();
+        this.challenge.tasks.splice(this.taskIdx, 1);
+        this.location.back();
       }
     });
   }
@@ -125,7 +121,7 @@ export class TaskComponent implements OnInit {
 
   private doSave() {
     this.bs.updateChallenge(this.challenge).subscribe(ok => {
-      this.cancel();
+      this.location.back();
     });
   }
 

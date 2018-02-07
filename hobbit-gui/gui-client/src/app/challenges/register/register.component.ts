@@ -66,16 +66,12 @@ export class RegisterComponent implements OnInit {
     }
   }
 
-  cancel() {
-    this.location.back();
-  }
-
   submit() {
     const batch = [];
     for (const task of Object.keys(this.display))
       batch.push(this.bs.updateChallengeTaskRegistrations(this.challenge.id, task, this.display[task]));
     Observable.forkJoin(batch).subscribe(res => {
-      this.cancel();
+      this.location.back();
     });
   }
 }
