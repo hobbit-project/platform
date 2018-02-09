@@ -169,6 +169,7 @@ public interface ContainerManager {
      * @param parentId
      *            id of the parent container
      */
+     @Deprecated
     public void stopParentAndChildren(String parentId);
 
     /**

@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.List;
 
 import com.spotify.docker.client.DockerClient;
@@ -145,8 +146,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsNotRunning("Removed container", testContainer);
     }
 
-    @Test
-    public void stopAndRemoveParentAndChildren() throws Exception {
+    private void parentAndChildren(Consumer<String> removalMethod) throws Exception {
         // start new test containers
         // topParent:
         // - child1
@@ -186,7 +186,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsRunning("Unrelated child container", unrelatedChild);
 
         // trigger removal
-        manager.removeParentAndChildren(topParent);
+        removalMethod.accept(topParent);
 
         // make sure they are removed
         assertContainerIsNotRunning("Top parent container", topParent);
@@ -200,6 +200,17 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // cleanup
         manager.removeParentAndChildren(unrelatedParent);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void stopParentAndChildren() throws Exception {
+        parentAndChildren(manager::stopParentAndChildren);
+    }
+
+    @Test
+    public void removeParentAndChildren() throws Exception {
+        parentAndChildren(manager::removeParentAndChildren);
     }
 
     private Exception getContainer(String id) {

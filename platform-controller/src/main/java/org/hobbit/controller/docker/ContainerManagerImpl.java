@@ -590,23 +590,11 @@ public class ContainerManagerImpl implements ContainerManager {
         removeContainer(containerId);
     }
 
+    @Deprecated
     @Override
     public void stopParentAndChildren(String parentId) {
-        // stop parent
-        removeContainer(parentId);
-
-        // find children
-        try {
-            List<Container> containers = dockerClient.listContainers();
-            for (Container c : containers) {
-                if (c != null && c.labels().get(LABEL_PARENT) != null
-                        && c.labels().get(LABEL_PARENT).equals(parentId)) {
-                    stopParentAndChildren(c.id());
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error("Error while stopping containers: " + e.toString());
-        }
+        LOGGER.error("ContainerManager.stopParentAndChildren() is deprecated! Will remove them instead");
+        removeParentAndChildren(parentId);
     }
 
     @Override

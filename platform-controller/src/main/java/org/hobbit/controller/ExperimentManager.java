@@ -403,7 +403,7 @@ public class ExperimentManager implements Closeable {
     private void forceBenchmarkTerminate_unsecured(Resource error) {
         if (experimentStatus != null) {
             String parent = experimentStatus.getBenchmarkContainer();
-            controller.containerManager.stopParentAndChildren(parent);
+            controller.containerManager.removeParentAndChildren(parent);
             if (error != null) {
                 experimentStatus.addError(error);
             }
@@ -434,7 +434,7 @@ public class ExperimentManager implements Closeable {
                 // experiment
                 if (containerId.equals(experimentStatus.getBenchmarkContainer())) {
                     experimentStatus.setState(ExperimentStatus.States.STOPPED);
-                    controller.containerManager.stopParentAndChildren(containerId);
+                    controller.containerManager.removeParentAndChildren(containerId);
                     if (exitCode != 0) {
                         LOGGER.warn("The benchmark container " + experimentStatus.getBenchmarkContainer()
                                 + " terminated with an exit code != 0.");

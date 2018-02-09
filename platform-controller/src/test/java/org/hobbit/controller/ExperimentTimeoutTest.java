@@ -230,6 +230,7 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void removeParentAndChildren(String parentId) {
+            stopContainer(parentId);
         }
 
         @Override

@@ -405,8 +405,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
             // If we remove this container, we have to make sure that there are
             // no children that are still running
-            containerManager.stopParentAndChildren(containerId);
-            containerManager.removeContainer(containerId);
+            containerManager.removeParentAndChildren(containerId);
         }
     }
 
