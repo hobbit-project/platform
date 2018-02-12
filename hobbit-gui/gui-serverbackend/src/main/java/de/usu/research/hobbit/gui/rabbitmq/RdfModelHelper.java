@@ -38,6 +38,7 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.impl.ModelCom;
 import org.apache.jena.rdf.model.impl.SeqImpl;
+import org.apache.jena.sparql.vocabulary.FOAF;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -325,6 +326,7 @@ public class RdfModelHelper {
         challenge.setName(RdfHelper.getLabel(model, challengeResource));
         challenge.setDescription(RdfHelper.getDescription(model, challengeResource));
         challenge.setOrganizer(RdfHelper.getStringValue(model, challengeResource, HOBBIT.organizer));
+        challenge.setHomepage(RdfHelper.getStringValue(model, challengeResource, FOAF.homepage));
         Literal literal = RdfHelper.getLiteral(model, challengeResource, HOBBIT.closed);
         if (literal != null) {
             try {
@@ -747,7 +749,7 @@ public class RdfModelHelper {
                 BenchmarkBean benchmark = task.getBenchmark();
                 if (benchmark != null) {
                     for (SystemBean system : task.getBenchmark().getSystems()) {
-                        registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                        registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId(), true));
                     }
                 } else {
                     LOGGER.info("Task {} does not have a benchmark.", task.getId());

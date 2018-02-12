@@ -29,6 +29,7 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Seq;
+import org.apache.jena.sparql.vocabulary.FOAF;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -107,6 +108,18 @@ public class RdfModelCreationHelper {
             model.addLiteral(challengeResource, HOBBIT.publicationDate,
                     getDateLiteral(model, challenge.getPublishDate()));
         }
+        if (challenge.getHomepage() != null) {
+            String challengeHomepage = challenge.getHomepage();
+            // If the homepage does not start with http:// or https://
+            if((!challengeHomepage.startsWith("http://")) && (!challengeHomepage.startsWith("https://"))) {
+                challengeHomepage = "http://" + challengeHomepage;
+            }
+            try {
+                model.add(challengeResource, FOAF.homepage, model.getResource(challengeHomepage));
+            } catch (Exception e) {
+                LOGGER.warn("Couldn't store \"{}\" as homepage URL. It will be ignored.", challengeHomepage);
+            }
+        }
         model.addLiteral(challengeResource, HOBBIT.visible, challenge.isVisible());
         model.addLiteral(challengeResource, HOBBIT.closed, challenge.isClosed());
         if (challenge.getTasks() != null) {
@@ -124,12 +137,11 @@ public class RdfModelCreationHelper {
      * {@link Resource} of the task.
      *
      * @param task
-     *            the bean containing the information about the challenge task
-     *            that should be added
+     *            the bean containing the information about the challenge task that
+     *            should be added
      * @param model
      *            the RDF model to which the challenge task should be added
-     * @return the {@link Resource} representing the newly created challenge
-     *         task
+     * @return the {@link Resource} representing the newly created challenge task
      */
     public static Resource addChallengeTask(ChallengeTaskBean task, Model model) {
         String taskUri = task.getId();
@@ -198,7 +210,7 @@ public class RdfModelCreationHelper {
                 model.add(benchmarkResource, HOBBIT.hasParameter, paramResource);
             }
         }
-        if (benchmark.getKpis() != null){
+        if (benchmark.getKpis() != null) {
             Resource kpiResource;
             for (KeyPerformanceIndicatorBean kpi : benchmark.getKpis()) {
                 kpiResource = addKpi(kpi, model);
@@ -274,7 +286,8 @@ public class RdfModelCreationHelper {
             if (datatype != null) {
                 model.add(kpiResource, RDFS.range, model.getResource(datatype.getURI()));
             }
-        } if (kpi.getRanking() != null) {
+        }
+        if (kpi.getRanking() != null) {
             model.add(kpiResource, HOBBIT.ranking, model.getResource(kpi.getRanking()));
         }
         return kpiResource;

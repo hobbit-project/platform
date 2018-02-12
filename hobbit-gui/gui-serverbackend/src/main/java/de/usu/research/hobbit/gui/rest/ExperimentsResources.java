@@ -63,7 +63,7 @@ public class ExperimentsResources {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentsResources.class);
 
-    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
+    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiment. Either the experiment has not finished or it does not exist.";
 
     @GET
     @Path("query")

@@ -29,8 +29,4 @@ export class DetailsWrapperComponent implements OnInit {
     console.log(this.idsCommaSeparated, this.challengeTaskId);
   }
 
-  cancel() {
-    this.location.back();
-  }
-
 }

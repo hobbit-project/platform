@@ -24,6 +24,14 @@
 
 (Newer versions should work as well)
 
+## Quickstart guide
+
+The platform can be started pretty fast by cloning the repository and executing
+```sh
+make build install
+```
+This will compile the project and execute all necessary default configuration steps described below. After that, `make start` will start the platform.
+
 ## Preparing
 
 These steps have to be done only once before starting the platform the first time.
@@ -205,6 +213,35 @@ Available services
 
 If you encounter problems setting up the platform, please have a look at our [FAQ](https://github.com/hobbit-project/platform/wiki/FAQ#platform-setup-questions).
 
+### Regular cleaning of dangling Docker images
+Depending on the way the platform is used, it can download many Docker images over time. Note that Docker itself won't delete but keep all versions of these images. To save disk space, a regular cleaning of dangling images is helpful.
+
+#### Local machine
+
+If the platform is deployed on a local machine, executing `docker rmi $(docker images -q -f "dangling=true")` manually from time to time is already sufficient.
+
+#### Server
+
+If the HOBBIT platform is deployed on a server a regular clean up of docker images is necessary. To perform clean up you need to install a cronjob as follows:
+```
+0 3 * * * docker rmi $(docker images -q -f "dangling=true") > /root/`date +\%Y\%m\%d\%H\%M\%S`-docker-rmi-dangling-cron.log
+```
+
+This will remove all dangling images at 3:00 A.M. (at night) every day.
+
+To install crontab on several server you might want to use the following script:
+```
+#!/bin/bash
+
+crontab -l > currentcron
+echo "0 3 * * * docker rmi \$(docker images -q -f \"dangling=true\") > /root/\`date +\%Y\%m\%d\%H\%M\%S\`-docker-rmi-dangling-cron.log" >> currentcron
+crontab currentcron
+rm currentcron
+```
+The script can be shared across your cluster using e.g. NFS share and executed using following command:
+```
+for x in {1..7}; do ssh -K "myhobbitnodehostname$x" 'klsu -a /path/to/the/script.sh' ; done
+```
 
 # Related projects
 

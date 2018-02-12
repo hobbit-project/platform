@@ -40,6 +40,7 @@ export class BenchmarkComponent implements OnInit {
     this.bs.listBenchmarks().subscribe(data => {
       this.benchmarks = data;
       this.benchmarks.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+      this.benchmarks = this.benchmarks.filter(b => b.errorMessage === undefined && !b.errorMessage);
 
       if (this.benchmarks.length === 0)
         this.messageService.add({ severity: 'warn', summary: 'No Benchmarks', detail: 'Did not find any benchmarks.' });
@@ -54,8 +55,22 @@ export class BenchmarkComponent implements OnInit {
       this.bs.getBenchmarkDetails(event).subscribe(data => {
         this.selectedBenchmark = data;
         this.selectedBenchmark.systems.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+        this.selectedBenchmark.systems = this.filterInvalidSystems(this.selectedBenchmark.systems);
       });
     }
+  }
+
+  private filterInvalidSystems(systems: System[]): System[] {
+    const messages = [];
+    for (const system of systems) {
+      if (system.errorMessage !== undefined && !!system.errorMessage)
+        messages.push({ severity: 'warn', summary: system.id, detail: system.errorMessage });
+    }
+    if (messages.length > 0)
+      messages.unshift({ severity: 'warn', summary: 'Invalid Systems', detail: '' });
+    this.messageService.addAll(messages);
+    return systems.filter(s => s.errorMessage === undefined && !s.errorMessage);
   }
 
   onChangeSystem(event) {
@@ -78,7 +93,7 @@ export class BenchmarkComponent implements OnInit {
       this.configModel['response'] = data;
       this.submitModal.show();
     }, error => {
-      this.messageService.add({ severity: 'warn', summary: 'Error', detail: 'Failed to submit benchmark: ' + error.json().message });
+      this.messageService.add({ severity: 'warn', summary: 'Error', detail: 'Failed to submit benchmark: ' + error.message });
     });
   }
 }

@@ -97,7 +97,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "1.0.14";
+    public static final String PLATFORM_VERSION = "1.0.16";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -300,8 +300,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             if ((data == null) || (data.length == 0)) {
                 LOGGER.error("Got no result model from the benchmark controller.");
             } else {
-                Model model = RabbitMQUtils.readModel(data);
-                expManager.setResultModel(model);
+                expManager.setResultModel(data, RabbitMQUtils::readModel);
             }
             break;
         }
