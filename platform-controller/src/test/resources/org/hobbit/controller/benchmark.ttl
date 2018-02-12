@@ -11,6 +11,8 @@ ex:GerbilBenchmark	a	hobbit:Benchmark;
       rdfs:comment	"Example of a HOBBIT T3.2 benchmark based on GERBIL"@en;
       hobbit:hasAPI	ex:GerbilApi;
       hobbit:imageName	"hobbit/gerbil_controller";
+      hobbit:usesImage	"hobbit/gerbil_datagen";
+      hobbit:usesImage	"hobbit/gerbil_taskgen";
       hobbit:hasParameter	ex:hasExperimentType;
       hobbit:hasParameter	ex:hasNumberOfDocuments .
 

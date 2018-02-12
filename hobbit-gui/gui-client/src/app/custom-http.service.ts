@@ -2,17 +2,17 @@ import { MessageService } from 'primeng/components/common/messageservice';
 import { Router, NavigationStart } from '@angular/router';
 import { environment } from './../environments/environment';
 import { Injectable, EventEmitter } from '@angular/core';
-import { Http, RequestOptions, Headers, ConnectionBackend, RequestOptionsArgs, Request, Response } from '@angular/http';
 import { Observable } from 'rxjs/Rx';
+import { map } from 'rxjs/operators';
 import { SlimLoadingBarService } from 'ng2-slim-loading-bar';
 
 import { KeycloakService } from './auth/keycloak.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Injectable()
-export class CustomHttp extends Http {
-  constructor(backend: ConnectionBackend, defaultOptions: RequestOptions, private keycloakService: KeycloakService,
+export class CustomHttp {
+  constructor(private http: HttpClient, private keycloakService: KeycloakService,
     private slimLoadingBarService: SlimLoadingBarService, private router: Router, private messageService: MessageService) {
-    super(backend, defaultOptions);
 
     router.events.subscribe(event => {
       if (event instanceof NavigationStart) {
@@ -22,50 +22,50 @@ export class CustomHttp extends Http {
     });
   }
 
-  get(url: string, options?: RequestOptionsArgs): Observable<Response> {
+  get(url: string, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.get(x.url, x.options).map((res) => this.hideLoader(res))
+      return this.http.get(x.url, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
 
-  post(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
+  post(url: string, body: any, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.post(x.url, body, x.options).map((res) => this.hideLoader(res))
+      return this.http.post(x.url, body, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
 
-  put(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
+  put(url: string, body: any, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.put(x.url, body, x.options).map((res) => this.hideLoader(res))
+      return this.http.put(x.url, body, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
 
-  delete(url: string, options?: RequestOptionsArgs): Observable<Response> {
+  delete(url: string, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.delete(x.url, x.options).map((res) => this.hideLoader(res))
+      return this.http.delete(x.url, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
 
-  patch(url: string, body: string, options?: RequestOptionsArgs): Observable<Response> {
+  patch(url: string, body: any, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.patch(x.url, body, x.options).map((res) => this.hideLoader(res))
+      return this.http.patch(x.url, body, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
 
-  head(url: string, options?: RequestOptionsArgs): Observable<Response> {
+  head(url: string, options?): Observable<any> {
     this.showLoader();
     return this.transform(url, options).switchMap(x => {
-      return super.head(x.url, x.options).map((res) => this.hideLoader(res))
+      return this.http.head(x.url, x.options).map((res) => this.hideLoader(res))
         .catch((err) => this.errorLoader(err));
     });
   }
@@ -75,7 +75,7 @@ export class CustomHttp extends Http {
     this.slimLoadingBarService.start();
   }
 
-  private hideLoader(response: Response): Response {
+  private hideLoader(response) {
     this.slimLoadingBarService.complete();
     return response;
   }
@@ -87,7 +87,7 @@ export class CustomHttp extends Http {
     return Observable.throw(error);
   }
 
-  private transform(url: string, options?: RequestOptionsArgs): Observable<any> {
+  private transform(url: string, options?): Observable<any> {
     if (!url.startsWith(environment.backendPrefix))
       return Observable.of({ url: url, options: options });
 
@@ -96,11 +96,11 @@ export class CustomHttp extends Http {
       const headers = { 'Authorization': 'bearer ' + token };
       let requestOptions = options;
       if (!options)
-        requestOptions = { 'headers': new Headers(headers) };
+        requestOptions = { 'headers': new HttpHeaders(headers) };
       else if (!options.headers)
-        requestOptions.headers = new Headers(headers);
+        requestOptions.headers = new HttpHeaders(headers);
       else
-        requestOptions.headers.set('Authorization', headers['Authorization']);
+        requestOptions.headers = requestOptions.headers.set('Authorization', headers['Authorization']);
       return { url: requestUrl, options: requestOptions };
     });
     return obs;

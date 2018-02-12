@@ -33,6 +33,10 @@ public class ExperimentBean {
     private NamedEntityBean challengeTask;
 
     private String error;
+    
+    private boolean benchmarkLogAvailable = false;
+    
+    private boolean systemLogAvailable = false;
 
     public List<KeyPerformanceIndicatorBean> getKpis() {
         return kpis;
@@ -80,5 +84,33 @@ public class ExperimentBean {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    /**
+     * @return the benchmarkLogAvailable
+     */
+    public boolean isBenchmarkLogAvailable() {
+        return benchmarkLogAvailable;
+    }
+
+    /**
+     * @param benchmarkLogAvailable the benchmarkLogAvailable to set
+     */
+    public void setBenchmarkLogAvailable(boolean benchmarkLogAvailable) {
+        this.benchmarkLogAvailable = benchmarkLogAvailable;
+    }
+
+    /**
+     * @return the systemLogAvailable
+     */
+    public boolean isSystemLogAvailable() {
+        return systemLogAvailable;
+    }
+
+    /**
+     * @param systemLogAvailable the systemLogAvailable to set
+     */
+    public void setSystemLogAvailable(boolean systemLogAvailable) {
+        this.systemLogAvailable = systemLogAvailable;
     }
 }

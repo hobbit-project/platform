@@ -110,15 +110,16 @@ public class BenchmarksResources {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response submitBenchmark(SubmitModelBean model) {
+    public Response submitBenchmark(@Context SecurityContext sc, SubmitModelBean model) {
         try {
             LOGGER.info("Submit benchmark id = " + model.getBenchmark());
             LOGGER.info("Submit system id = " + model.getSystem());
+            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
             if (client == null) {
                 throw new GUIBackendException("Couldn't connect to platform controller.");
             }
-            String id = client.submitBenchmark(model);
+            String id = client.submitBenchmark(model, userInfo.getPreferredUsername());
             return Response.ok(new SubmitResponseBean(id)).build();
         } catch (Exception e) {
             LOGGER.warn("Failed to submit benchmark: " + e.getMessage());

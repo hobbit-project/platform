@@ -24,13 +24,13 @@ export default Role;
 export class User {
 
     static fromJson(json: any): User {
-        return new User(json.principalName, json.userName, json.name, json.email, json.roles);
+        return new User(json.principalName, json.userName, json.name, json.email, json.roles, json.preferredUsername);
     }
 
     public roles: Role[] = [];
 
     constructor(public principalName: string, public userName: string,
-        public name: string, public email: string, roles: any[]) {
+        public name: string, public email: string, roles: any[], public preferredUsername: string) {
         for (let i = 0; i < roles.length; i++)
             this.roles.push(parseRole(roles[i]));
     }
@@ -44,7 +44,7 @@ export class User {
 
 
 export class NamedEntity {
-    constructor(public id: string, public name: string, public description?: string) {
+    constructor(public id: string, public name: string, public description?: string, public errorMessage?: string) {
     }
 }
 
@@ -119,8 +119,8 @@ export class System extends NamedEntity {
 
 export class BenchmarkOverview extends NamedEntity {
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
 
@@ -137,8 +137,8 @@ export class Benchmark extends BenchmarkOverview {
     @Type(() => System)
     public systems?: System[];
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
     hasConfigParams() {
@@ -167,7 +167,7 @@ export class Challenge extends NamedEntity {
     public tasks: ChallengeTask[] = [];
 
     constructor(id: string, name: string, description?: string,
-        public organizer?: string,
+        public organizer?: string, public homepage?: string,
         public executionDate?: string, public publishDate?: string,
         public visible?: boolean, public closed?: boolean) {
         super(id, name, description);
@@ -176,6 +176,17 @@ export class Challenge extends NamedEntity {
 
 export class ChallengeRegistration {
     constructor(public challengeId: string, public taskId: string, public systemId: string) { }
+}
+
+export class ExtendedChallengeRegistration extends ChallengeRegistration {
+
+    @Type(() => System)
+    public system: System;
+
+    constructor(challengeId: string, taskId: string, systemId: string,
+        public registered: boolean) {
+        super(challengeId, taskId, systemId);
+    }
 }
 
 export class Experiment {
@@ -192,7 +203,8 @@ export class Experiment {
     @Type(() => ChallengeTask)
     public challengeTask: ChallengeTask;
 
-    constructor(public id: string, public error?: string, public rank?: number) { }
+    constructor(public id: string, public benchmarkLogAvailable: boolean, public systemLogAvailable: boolean,
+        public error?: string, public rank?: number) { }
 }
 
 export class ExperimentCount {
@@ -201,4 +213,37 @@ export class ExperimentCount {
     public challengeTask: ChallengeTask;
 
     constructor(public count: Number) { }
+}
+
+
+export class QueuedExperimentBean {
+
+    constructor(public experimentId: string, public benchmarkUri: string, public benchmarkName: string,
+        public systemUri: string, public systemName: string, public dateOfExecution: number, public canBeCanceled: boolean,
+        public challengeUri?: string, public challengeTaskUri?: string) {
+    }
+}
+
+export class RunningExperimentBean extends QueuedExperimentBean {
+    constructor(experimentId: string, benchmarkUri: string, benchmarkName: string,
+        systemUri: string, systemName: string, dateOfExecution: number, canBeCanceled: boolean,
+        public status: string, public startTimestamp: number, public latestDateToFinish: number,
+        challengeUri?: string, challengeTaskUri?: string) {
+        super(experimentId, benchmarkUri, benchmarkName, systemUri, systemName, dateOfExecution, canBeCanceled,
+            challengeUri, challengeTaskUri);
+    }
+
+}
+
+export class StatusBean {
+
+    @Type(() => RunningExperimentBean)
+    public runningExperiment: RunningExperimentBean;
+
+    @Type(() => QueuedExperimentBean)
+    public queuedExperiments: QueuedExperimentBean[];
+
+    constructor() {
+    }
+
 }

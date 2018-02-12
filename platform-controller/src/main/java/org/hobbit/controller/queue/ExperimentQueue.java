@@ -48,8 +48,9 @@ public interface ExperimentQueue {
      *
      * @param experiment
      *            the experiment that should be removed from the queue
+     * @return {@code true} if the given experiment has been removed
      */
-    public void remove(ExperimentConfiguration experiment);
+    public boolean remove(ExperimentConfiguration experiment);
 
     /**
      * Returns the list of all experiments waiting in this queue.
@@ -57,4 +58,14 @@ public interface ExperimentQueue {
      * @return the list of all experiments waiting in this queue
      */
     public List<ExperimentConfiguration> listAll();
+
+    /**
+     * Retrieves the experiment configuration with the given experiment id.
+     * 
+     * @param experimentId
+     *            the id of the experiment that should be retrieved
+     * @return the experiment configuration or {@code null} if such an experiment
+     *         can not be found
+     */
+    public ExperimentConfiguration getExperiment(String experimentId);
 }

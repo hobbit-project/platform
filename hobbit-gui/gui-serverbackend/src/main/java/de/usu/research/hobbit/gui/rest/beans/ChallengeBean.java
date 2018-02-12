@@ -29,6 +29,8 @@ import de.usu.research.hobbit.gui.util.OffsetDateTimeAdapter;
 @XmlRootElement
 public class ChallengeBean extends NamedEntityBean {
   private String organizer;
+  
+  private String homepage;
 
   @XmlJavaTypeAdapter(value = OffsetDateTimeAdapter.class)
   private OffsetDateTime publishDate;
@@ -91,7 +93,21 @@ public class ChallengeBean extends NamedEntityBean {
     this.tasks = tasks;
   }
 
-   @Override
+   /**
+     * @return the homepage
+     */
+    public String getHomepage() {
+        return homepage;
+    }
+    
+    /**
+     * @param homepage the homepage to set
+     */
+    public void setHomepage(String homepage) {
+        this.homepage = homepage;
+    }
+
+@Override
   public String toString() {
     return ToStringBuilder.reflectionToString(this);
   }
