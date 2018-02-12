@@ -8,11 +8,11 @@
         <div class="pull-right">
           <div *ngIf="challenge && challenge.organizer === userInfo.preferredUsername">
             <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
-            <button type="button" class="btn" (click)="cancel()">Back</button>
+            <app-back-button [pullRight]="false"></app-back-button>
             <button type="button" class="btn btn-primary" (click)="save()">Save</button>
           </div>
           <div *ngIf="!challenge || challenge.organizer !== userInfo.preferredUsername">
-            <button type="button" class="btn" (click)="cancel()">Back</button>
+            <app-back-button></app-back-button>
           </div>
         </div>
       </div>
