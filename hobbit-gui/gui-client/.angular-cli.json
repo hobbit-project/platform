@@ -19,12 +19,7 @@
       "testTsconfig": "tsconfig.spec.json",
       "prefix": "app",
       "styles": [
-        "styles.css",
-        "../node_modules/bootstrap/dist/css/bootstrap.min.css",
-        "../node_modules/font-awesome/css/font-awesome.css",
-        "../node_modules/ng2-slim-loading-bar/bundles/style.css",
-        "../node_modules/primeng/resources/primeng.min.css",
-        "../node_modules/primeng/resources/themes/bootstrap/theme.css"
+        "styles.css"
       ],
       "scripts": [
         "../node_modules/jquery/dist/jquery.slim.js",
