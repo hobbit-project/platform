@@ -124,7 +124,7 @@ public class SystemProviderResources {
         // Get the list of registered systems
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
         Model challengeModel = storage.sendConstructQuery(
-                SparqlQueries.getChallengeGraphQuery(challengeId, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+                SparqlQueries.getChallengeGraphQuery(challengeId, null));
         List<TaskRegistrationBean> registrations = RdfModelHelper.listRegisteredSystems(challengeModel);
         Map<String, List<TaskRegistrationBean>> registrationsPerTask = registrations.stream()
                 .collect(Collectors.groupingBy(r -> r.getTaskId()));
