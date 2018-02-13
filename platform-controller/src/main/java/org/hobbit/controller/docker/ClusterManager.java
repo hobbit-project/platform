@@ -12,9 +12,9 @@ import com.spotify.docker.client.messages.Info;
  */
 public interface ClusterManager {
     /**
-     * Get number of nodes in the cluster
+     * Get cluster info
      *
-     * @return number of nodes
+     * @return com.spotify.docker.client.messages.Info
      */
     public Info getClusterInfo() throws DockerException, InterruptedException;
 
@@ -31,4 +31,12 @@ public interface ClusterManager {
      * @return boolean (is cluster healthy?)
      */
     public boolean isClusterHealthy() throws DockerException, InterruptedException;
+
+    /**
+     * Get expected number of nodes in the cluster
+     * Set externally by SWARM_NODE_NUMBER env variable
+     *
+     * @return expected number of nodes
+     */
+    public Integer getExpectedNumberOfNodes();
 }

@@ -1,6 +1,7 @@
 package org.hobbit.controller.docker;
 
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
 
@@ -17,7 +18,7 @@ public class ClusterManagerImpl implements ClusterManager {
     private DockerClient dockerClient;
     private Integer expectedNumberOfNodes = 0;
 
-    public ClusterManagerImpl() throws Exception {
+    public ClusterManagerImpl() throws DockerCertificateException {
         dockerClient = DockerUtility.getDockerClient();
         expectedNumberOfNodes = Integer.getInteger(System.getenv("SWARM_NODE_NUMBER"));
         if(expectedNumberOfNodes == null) {
@@ -40,5 +41,9 @@ public class ClusterManagerImpl implements ClusterManager {
             return true;
         }
         return false;
+    }
+
+    public Integer getExpectedNumberOfNodes() {
+        return expectedNumberOfNodes;
     }
 }
