@@ -9,6 +9,11 @@ redeploy-gui:
 	docker-compose build
 	docker-compose up -d gui
 
+redeploy-controller:
+	cd platform-controller && make build
+	docker-compose build
+	docker-compose up -d platform-controller
+
 start:
 	docker-compose build
 	docker-compose up
