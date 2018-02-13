@@ -378,9 +378,9 @@ public class ExperimentManager implements Closeable {
                 ClusterManager clusterManager = new ClusterManagerImpl();
                 boolean isHealthy = clusterManager.isClusterHealthy();
                 if(!isHealthy) {
-                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down.");
-                    LOGGER.error("Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                            "Current number of nodes: "+clusterManager.getNumberOfNodes());
+                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down." +
+                            " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                            " Current number of nodes: "+clusterManager.getNumberOfNodes());
 
                     experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
                 }
