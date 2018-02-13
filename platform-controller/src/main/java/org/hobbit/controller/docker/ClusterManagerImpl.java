@@ -4,6 +4,9 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
+import org.hobbit.controller.ExperimentManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
@@ -12,6 +15,8 @@ import com.spotify.docker.client.messages.Info;
  *
  */
 public class ClusterManagerImpl implements ClusterManager {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
+
     /**
      * Docker client instance
      */
@@ -20,7 +25,7 @@ public class ClusterManagerImpl implements ClusterManager {
 
     public ClusterManagerImpl() throws DockerCertificateException {
         dockerClient = DockerUtility.getDockerClient();
-        expectedNumberOfNodes = Integer.getInteger(System.getenv("SWARM_NODE_NUMBER"));
+        expectedNumberOfNodes = Integer.parseInt(System.getenv("SWARM_NODE_NUMBER"));
         if(expectedNumberOfNodes == null) {
             expectedNumberOfNodes = 1;
         }

@@ -155,8 +155,10 @@ public class ExperimentManager implements Closeable {
             ClusterManager clusterManager = new ClusterManagerImpl();
             boolean isClusterHealthy = clusterManager.isClusterHealthy();
             if(!isClusterHealthy) {
-                throw new Exception("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
-                        "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable.");
+                LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
+                        "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
+                        "Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                        "Current number of nodes: "+clusterManager.getNumberOfNodes());
             }
             if ((experimentStatus == null) && (controller.queue != null) && (isClusterHealthy)) {
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
@@ -376,6 +378,10 @@ public class ExperimentManager implements Closeable {
                 ClusterManager clusterManager = new ClusterManagerImpl();
                 boolean isHealthy = clusterManager.isClusterHealthy();
                 if(!isHealthy) {
+                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down.");
+                    LOGGER.error("Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                            "Current number of nodes: "+clusterManager.getNumberOfNodes());
+
                     experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
                 }
             } catch (DockerCertificateException e) {
