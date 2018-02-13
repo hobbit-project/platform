@@ -26,6 +26,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
+import com.spotify.docker.client.exceptions.DockerException;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -37,6 +39,8 @@ import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
+import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
@@ -146,9 +150,15 @@ public class ExperimentManager implements Closeable {
             return;
         }
         try {
-            // if there is no benchmark running (and the queue has been
-            // initialized)
-            if ((experimentStatus == null) && (controller.queue != null)) {
+            // if there is no benchmark running, the queue has been
+            // initialized and cluster is healthy
+            ClusterManager clusterManager = new ClusterManagerImpl();
+            boolean isClusterHealthy = clusterManager.isClusterHealthy();
+            if(!isClusterHealthy) {
+                throw new Exception("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
+                        "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable.");
+            }
+            if ((experimentStatus == null) && (controller.queue != null) && (isClusterHealthy)) {
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
@@ -359,6 +369,21 @@ public class ExperimentManager implements Closeable {
                 if (!repeatable) {
                     graphUri = Constants.PRIVATE_RESULT_GRAPH_URI;
                 }
+            }
+
+            //if cluster is not healthy add error message to experimentStatus
+            try {
+                ClusterManager clusterManager = new ClusterManagerImpl();
+                boolean isHealthy = clusterManager.isClusterHealthy();
+                if(!isHealthy) {
+                    experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
+                }
+            } catch (DockerCertificateException e) {
+                LOGGER.error("Could not initialize clusterManager. ", e);
+            } catch (DockerException e) {
+                LOGGER.error("Could not get cluster health status. ", e);
+            } catch (InterruptedException e) {
+                LOGGER.error("Interrupted. Could not get cluster health status. ", e);
             }
 
             Model resultModel = experimentStatus.getResultModel();
