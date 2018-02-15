@@ -9,4 +9,4 @@ EXPOSE 1111
 EXPOSE 8890
 
 WORKDIR $VIRT_DB
-CMD /opt/virtuoso-opensource/bin/virtuoso-t -f
+CMD [ "/opt/virtuoso-opensource/bin/virtuoso-t", "-f" ]

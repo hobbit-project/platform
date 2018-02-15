@@ -80,6 +80,8 @@ services:
     image: openlink/virtuoso_opensource:v07.20.3217
     container_name: vos
     hostname: vos
+    stop_signal: SIGINT
+    stop_grace_period: 2m
     volumes:
       - ./config/db:/opt/virtuoso-opensource/database
     networks:
