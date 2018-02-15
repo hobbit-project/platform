@@ -151,15 +151,16 @@ public class ExperimentManager implements Closeable {
         try {
             // if there is no benchmark running, the queue has been
             // initialized and cluster is healthy
-            ClusterManager clusterManager = this.controller.clusterManager;
-            boolean isClusterHealthy = clusterManager.isClusterHealthy();
-            if(!isClusterHealthy) {
-                LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
-                        "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
-                        " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                        " Current number of nodes: "+clusterManager.getNumberOfNodes());
-            }
-            if ((experimentStatus == null) && (controller.queue != null) && (isClusterHealthy)) {
+            if ((experimentStatus == null) && (controller.queue != null)) {
+                ClusterManager clusterManager = this.controller.clusterManager;
+                boolean isClusterHealthy = clusterManager.isClusterHealthy();
+                if(!isClusterHealthy) {
+                    LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
+                                 "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
+                                 " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                                 " Current number of nodes: "+clusterManager.getNumberOfNodes());
+                    return;
+                }
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
