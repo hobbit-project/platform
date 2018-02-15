@@ -22,12 +22,15 @@ public class ClusterManagerImpl implements ClusterManager {
      */
     private DockerClient dockerClient;
     private Integer expectedNumberOfNodes = 0;
+    private String SWARM_NODE_NUMBER = null;
 
     public ClusterManagerImpl() throws DockerCertificateException {
         dockerClient = DockerUtility.getDockerClient();
-        expectedNumberOfNodes = Integer.parseInt(System.getenv("SWARM_NODE_NUMBER"));
-        if(expectedNumberOfNodes == null) {
+        SWARM_NODE_NUMBER = System.getenv("SWARM_NODE_NUMBER");
+        if(SWARM_NODE_NUMBER == null) {
             expectedNumberOfNodes = 1;
+        } else {
+            expectedNumberOfNodes = Integer.parseInt(SWARM_NODE_NUMBER);
         }
     }
 
