@@ -40,7 +40,6 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
@@ -152,7 +151,7 @@ public class ExperimentManager implements Closeable {
         try {
             // if there is no benchmark running, the queue has been
             // initialized and cluster is healthy
-            ClusterManager clusterManager = new ClusterManagerImpl();
+            ClusterManager clusterManager = this.controller.clusterManager;
             boolean isClusterHealthy = clusterManager.isClusterHealthy();
             if(!isClusterHealthy) {
                 LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
@@ -375,7 +374,7 @@ public class ExperimentManager implements Closeable {
 
             //if cluster is not healthy add error message to experimentStatus
             try {
-                ClusterManager clusterManager = new ClusterManagerImpl();
+                ClusterManager clusterManager = this.controller.clusterManager;
                 boolean isHealthy = clusterManager.isClusterHealthy();
                 if(!isHealthy) {
                     LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down." +
@@ -384,8 +383,6 @@ public class ExperimentManager implements Closeable {
 
                     experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
                 }
-            } catch (DockerCertificateException e) {
-                LOGGER.error("Could not initialize clusterManager. ", e);
             } catch (DockerException e) {
                 LOGGER.error("Could not get cluster health status. ", e);
             } catch (InterruptedException e) {
