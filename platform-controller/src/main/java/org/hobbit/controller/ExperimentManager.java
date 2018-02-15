@@ -157,8 +157,8 @@ public class ExperimentManager implements Closeable {
             if(!isClusterHealthy) {
                 LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
                         "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
-                        "Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                        "Current number of nodes: "+clusterManager.getNumberOfNodes());
+                        " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                        " Current number of nodes: "+clusterManager.getNumberOfNodes());
             }
             if ((experimentStatus == null) && (controller.queue != null) && (isClusterHealthy)) {
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
