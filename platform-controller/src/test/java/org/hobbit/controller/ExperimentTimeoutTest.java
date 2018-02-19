@@ -6,14 +6,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.queue.InMemoryQueue;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
@@ -94,6 +92,11 @@ public class ExperimentTimeoutTest {
             containerManager = new DummyContainerManager(benchmarkControllerTerminated, this);
             queue = new InMemoryQueue();
             storage = new DummyStorageServiceClient();
+            try {
+                clusterManager = new ClusterManagerImpl();
+            } catch (DockerCertificateException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override

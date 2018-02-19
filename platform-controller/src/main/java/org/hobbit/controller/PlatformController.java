@@ -44,14 +44,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerManagerImpl;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.GitlabBasedImageManager;
-import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ResourceInformationCollector;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -164,6 +157,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected ResourceInformationCollector resInfoCollector;
 
+    protected ClusterManager clusterManager;
+
     /**
      * Timer used to trigger publishing of challenges
      */
@@ -213,6 +208,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         queue = new ExperimentQueueImpl();
 
         storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
+
+        clusterManager = new ClusterManagerImpl();
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
