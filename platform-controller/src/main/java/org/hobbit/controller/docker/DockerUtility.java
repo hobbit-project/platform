@@ -11,7 +11,7 @@ public class DockerUtility {
         // Exists only to defeat instantiation.
     }
 
-    public static DockerClient getDockerClient() throws DockerCertificateException {
+    public static synchronized DockerClient getDockerClient() throws DockerCertificateException {
         if(dockerClient == null) {
             dockerClient = initializeDockerClient();
         }
