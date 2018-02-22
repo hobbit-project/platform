@@ -51,6 +51,7 @@ import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.swarm.ContainerSpec;
 import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
+import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.RestartPolicy;
 import com.spotify.docker.client.messages.swarm.ServiceMode;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
@@ -427,7 +428,7 @@ public class ContainerManagerImpl implements ContainerManager {
         if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
                 && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
                 || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
-            defaultEnv.add("constraint:org.hobbit.workergroup==system");
+            taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==system"))));
             containerType = Constants.CONTAINER_TYPE_SYSTEM;
         } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
                 && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
@@ -437,10 +438,10 @@ public class ContainerManagerImpl implements ContainerManager {
             // defaultEnv.add("constraint:org.hobbit.type==data");
             // database containers have to be deployed on the benchmark nodes (see
             // https://github.com/hobbit-project/platform/issues/170)
-            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
+            taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
         } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
                 && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
-            defaultEnv.add("constraint:org.hobbit.workergroup==benchmark");
+                    taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
         } else {
             LOGGER.error(
                     "Got a request to create a container with type={} and parentType={}. Got no rule to determine its type. Returning null.",
