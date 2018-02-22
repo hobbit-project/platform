@@ -463,7 +463,6 @@ public class ExperimentManager implements Closeable {
                 // experiment
                 if (containerId.equals(experimentStatus.getBenchmarkContainer())) {
                     experimentStatus.setState(ExperimentStatus.States.STOPPED);
-                    controller.containerManager.removeParentAndChildren(containerId);
                     if (exitCode != 0) {
                         LOGGER.warn("The benchmark container " + experimentStatus.getBenchmarkContainer()
                                 + " terminated with an exit code != 0.");

@@ -576,6 +576,8 @@ public class ContainerManagerImpl implements ContainerManager {
             } else {
                 LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", containerId);
             }
+        } catch (TaskNotFoundException | ServiceNotFoundException e) {
+            LOGGER.error("Couldn't remove container {} because it doesn't exist", containerId);
         } catch (Exception e) {
             LOGGER.error("Couldn't remove container with id " + containerId + ".", e);
         }

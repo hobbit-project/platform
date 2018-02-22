@@ -127,6 +127,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                             }
                         } else {
                             // assume container was stopped by the platform
+                            LOGGER.info("Couldn't get the status of container {}. Assuming it was stopped by the platform.", id);
                             exitStatus = 128 + new Signal("KILL").getNumber(); // 137
                         }
 
