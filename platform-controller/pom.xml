@@ -42,6 +42,7 @@
         <dependency>
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
+            <version>1.0.10-SNAPSHOT</version>
         </dependency>
         
         <dependency>
