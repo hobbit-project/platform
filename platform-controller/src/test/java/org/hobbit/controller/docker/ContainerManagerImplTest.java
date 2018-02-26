@@ -24,7 +24,6 @@ import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
 
 import org.hobbit.core.Constants;
 import org.junit.Assert;
@@ -45,6 +44,7 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+    
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
@@ -66,6 +66,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private void assertContainerIsNotRunning(String message, String containerId) throws Exception {
         try {
             Task taskInfo = dockerClient.inspectTask(containerId);
+            @SuppressWarnings("unused")
             Service serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
 
             fail(message
@@ -123,21 +124,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    public void stopContainer() throws Exception {
-        // start new test container
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
-        assertNotNull(containerId);
-        containers.add(containerId);
-        // check that it's actually running
-        assertContainerIsRunning("Created container", containerId);
-        // stop it immediately
-        manager.stopContainer(containerId);
-        // check that it's actually stopped
-        assertContainerIsNotRunning("Removed container", containerId);
-    }
-
-    @Test
     public void removeContainer() throws Exception {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
@@ -149,7 +135,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsNotRunning("Removed container", testContainer);
     }
 
-    private void parentAndChildren(Consumer<String> removalMethod) throws Exception {
+    @Test
+    public void removeParentAndChildren() throws Exception {
         // start new test containers
         // topParent:
         // - child1
@@ -189,7 +176,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsRunning("Unrelated child container", unrelatedChild);
 
         // trigger removal
-        removalMethod.accept(topParent);
+        manager.removeParentAndChildren(topParent);
 
         // make sure they are removed
         assertContainerIsNotRunning("Top parent container", topParent);
@@ -203,17 +190,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // cleanup
         manager.removeParentAndChildren(unrelatedParent);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void stopParentAndChildren() throws Exception {
-        parentAndChildren(manager::stopParentAndChildren);
-    }
-
-    @Test
-    public void removeParentAndChildren() throws Exception {
-        parentAndChildren(manager::removeParentAndChildren);
     }
 
     private Exception getContainer(String id) {
