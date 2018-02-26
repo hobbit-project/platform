@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -421,32 +422,67 @@ public class ContainerManagerImpl implements ContainerManager {
                 return null;
             }
         }
+
         // If the parent has "system" --> we do not care what the container
         // would like to have OR if there is no parent or the parent is a
         // benchmark (in case of the benchmark controller) and the container has
         // type "system"
-        if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
-                && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
-                || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
-            taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==system"))));
-            containerType = Constants.CONTAINER_TYPE_SYSTEM;
-        } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
-                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
-                        || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
-            // defaultEnv.add("constraint:org.hobbit.workergroup==" +
-            // Constants.CONTAINER_TYPE_DATABASE);
-            // defaultEnv.add("constraint:org.hobbit.type==data");
-            // database containers have to be deployed on the benchmark nodes (see
-            // https://github.com/hobbit-project/platform/issues/170)
-            taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
-        } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
-                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
-                    taskCfgBuilder.placement(Placement.create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
+        Integer numberOfSwarmNodes = Integer.MAX_VALUE;
+        try {
+            ClusterManager clusterManager = new ClusterManagerImpl();
+            numberOfSwarmNodes = clusterManager.getNumberOfNodes();
+        } catch (DockerCertificateException e) {
+            LOGGER.error("Could not initialize Cluster Manager, will use container placement constraints by default. ", e);
+        } catch (Exception e) {
+            LOGGER.error("Could not get number of swarm nodes. ", e);
+        }
+
+        if (numberOfSwarmNodes > 1) {
+            if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
+                    && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
+                    || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
+                taskCfgBuilder.placement(
+                        Placement.create(
+                                new ArrayList<String>(
+                                        Arrays.asList("node.labels.org.hobbit.workergroup==system")
+                                )
+                        )
+                );
+                containerType = Constants.CONTAINER_TYPE_SYSTEM;
+            } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
+                    && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
+                    || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
+                // defaultEnv.add("constraint:org.hobbit.workergroup==" +
+                // Constants.CONTAINER_TYPE_DATABASE);
+                // defaultEnv.add("constraint:org.hobbit.type==data");
+                // database containers have to be deployed on the benchmark nodes (see
+                // https://github.com/hobbit-project/platform/issues/170)
+                taskCfgBuilder.placement(
+                        Placement.create(
+                                new ArrayList<String>(
+                                        Arrays.asList("node.labels.org.hobbit.workergroup==benchmark")
+                                )
+                        )
+                );
+            } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
+                    && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
+                taskCfgBuilder.placement(
+                        Placement.create(
+                                new ArrayList<String>(
+                                        Arrays.asList("node.labels.org.hobbit.workergroup==benchmark")
+                                )
+                        )
+                );
+            } else {
+                LOGGER.error(
+                        "Got a request to create a container with type={} and parentType={}. " +
+                                "Got no rule to determine its type. Returning null.",
+                        containerType, parentType);
+                return null;
+            }
         } else {
-            LOGGER.error(
-                    "Got a request to create a container with type={} and parentType={}. Got no rule to determine its type. Returning null.",
-                    containerType, parentType);
-            return null;
+            LOGGER.warn(
+                    "The swarm cluster got only 1 node, I will not use placement constraints.");
         }
 
         // create env vars to pass
