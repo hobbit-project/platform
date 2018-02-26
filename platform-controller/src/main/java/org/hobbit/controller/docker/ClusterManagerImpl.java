@@ -4,9 +4,6 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
-import org.hobbit.controller.ExperimentManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
@@ -15,8 +12,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ClusterManagerImpl implements ClusterManager {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
-
+    
     /**
      * Docker client instance
      */

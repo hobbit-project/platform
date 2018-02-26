@@ -22,11 +22,16 @@ import java.util.List;
 import org.hobbit.controller.DockerBasedTest;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
  */
 public class ContainerManagerBasedTest extends DockerBasedTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerBasedTest.class);
+
     protected ContainerManagerImpl manager;
     protected List<String> containers = new ArrayList<String>();
 
@@ -37,14 +42,29 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
-        for (String containerId : containers) {
+        String serviceId, containerId;
+        for (String taskId : containers) {
             try {
-                dockerClient.removeService(dockerClient.inspectTask(containerId).serviceId());
+                serviceId = dockerClient.inspectTask(taskId).serviceId();
+                containerId = dockerClient.inspectTask(taskId).status().containerStatus().containerId();
+                try {
+                    dockerClient.removeService(serviceId);
+                } catch (Exception e) {
+                    LOGGER.info(
+                            "Cleaning up service of task {} was not successful ({}). This does not have to be a problem.",
+                            taskId, e.getMessage());
+                }
+                try {
+                    dockerClient.stopContainer(containerId, 10);
+                    dockerClient.removeContainer(containerId);
+                } catch (Exception e) {
+                    LOGGER.info("Cleaning up container {} was not successful ({}). This does not have to be a problem.",
+                            containerId, e.getMessage());
+                }
             } catch (Exception e) {
-            }
-            try {
-                dockerClient.removeService(dockerClient.inspectTask(containerId).serviceId());
-            } catch (Exception e) {
+                LOGGER.info(
+                        "Cleaning up service and containers of task {} were not successful ({}). This does not have to be a problem.",
+                        taskId, e.getMessage());
             }
         }
     }

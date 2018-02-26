@@ -420,10 +420,6 @@ public class ContainerManagerImpl implements ContainerManager {
             }
         }
 
-        // If the parent has "system" --> we do not care what the container
-        // would like to have OR if there is no parent or the parent is a
-        // benchmark (in case of the benchmark controller) and the container has
-        // type "system"
         Integer numberOfSwarmNodes = Integer.MAX_VALUE;
         try {
             ClusterManager clusterManager = new ClusterManagerImpl();
@@ -435,6 +431,10 @@ public class ContainerManagerImpl implements ContainerManager {
         }
 
         if (numberOfSwarmNodes > 1) {
+            // If the parent has "system" --> we do not care what the container
+            // would like to have OR if there is no parent or the parent is a
+            // benchmark (in case of the benchmark controller) and the container has
+            // type "system"
             if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
                     && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
                     || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
