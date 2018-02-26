@@ -16,27 +16,30 @@
  */
 package org.hobbit.controller.docker;
 
-import com.spotify.docker.client.messages.ContainerInfo;
-
-import org.hobbit.core.Constants;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
-import java.util.function.Consumer;
 import java.util.List;
+import java.util.function.Consumer;
+
+import org.hobbit.core.Constants;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
 
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
-
-import static org.junit.Assert.*;
-import org.junit.Assume;
 
 /**
  * Created by yamalight on 31/08/16.
@@ -49,7 +52,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
             // FIXME: "starting container failed: Address already in use"
             // skip test if this happens
             if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
-                Assume.assumeFalse("BUG: Address already in use",
+                Assert.assertFalse("BUG: Address already in use",
                         task.status().err().equals("starting container failed: Address already in use"));
             }
 
