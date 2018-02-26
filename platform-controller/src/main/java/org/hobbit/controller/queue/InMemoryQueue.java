@@ -33,9 +33,9 @@ public class InMemoryQueue implements ExperimentQueue {
     }
 
     @Override
-    public void remove(ExperimentConfiguration experiment) {
+    public boolean remove(ExperimentConfiguration experiment) {
         synchronized (queue) {
-            queue.remove(experiment);
+            return queue.remove(experiment);
         }
     }
 
@@ -44,6 +44,11 @@ public class InMemoryQueue implements ExperimentQueue {
         synchronized (queue) {
             return new ArrayList<>(queue);
         }
+    }
+
+    @Override
+    public ExperimentConfiguration getExperiment(String experimentId) {
+        return queue.stream().filter(e -> e.id.equals(experimentId)).findFirst().orElse(null);
     }
 
 }

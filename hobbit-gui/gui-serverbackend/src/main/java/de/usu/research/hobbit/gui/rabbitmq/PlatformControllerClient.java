@@ -331,8 +331,9 @@ public class PlatformControllerClient implements Closeable {
      * @throws IOException
      *             If no response has been received
      */
-    public ControllerStatus requestStatus() throws IOException {
-        byte[] data = client.request(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
+    public ControllerStatus requestStatus(String userName) throws IOException {
+        byte[] data = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS },
+                        new byte[][] { RabbitMQUtils.writeString(userName) }, null));
         if (data == null) {
             throw new IOException("Didn't get a response.");
         }
@@ -487,6 +488,30 @@ public class PlatformControllerClient implements Closeable {
         } else {
             return id;
         }
+    }
+
+    /**
+     * Sends a request to the platform controller to terminate the experiment with
+     * the given ID using the access rights of the given user.
+     * 
+     * @param experimentId
+     *            the id of the experiment that should be terminated.
+     * @param preferredUsername
+     *            the name of the user who wants to terminate the experiment
+     * @return {@code true} if the termination was successful, else {@code false}
+     * @throws IOException
+     *             If communication problems arise.
+     */
+    public boolean terminateExperiment(String experimentId, String preferredUsername) throws IOException {
+        byte[] res = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.REMOVE_EXPERIMENT },
+                new byte[][] { RabbitMQUtils.writeString(experimentId), RabbitMQUtils.writeString(preferredUsername) },
+                null));
+        if (res == null) {
+            throw new IOException("Didn't get a response when trying to terminate the challenge");
+        }
+        // If the result is not empty and the first byte is not 0, the removal was
+        // successful
+        return (res.length > 0) && (res[0] > 0);
     }
 
 }

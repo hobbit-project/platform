@@ -46,11 +46,15 @@ import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentCountBean;
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
@@ -292,6 +296,28 @@ public class ExperimentsResources {
             }
             return Response.ok(new GenericEntity<List<ExperimentCountBean>>(counts) {
             }).build();
+        }
+    }
+
+    @GET
+    @Path("terminate/{id}")
+    public Response terminateExperiment(@Context SecurityContext sc, @PathParam("id") String experimentId) {
+        try {
+            LOGGER.info("Terminating experiment {}.", experimentId);
+            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+            if (client == null) {
+                throw new GUIBackendException("Couldn't connect to platform controller.");
+            }
+            if (client.terminateExperiment(experimentId, userInfo.getPreferredUsername())) {
+                return Response.ok().build();
+            } else {
+                return Response.notModified().build();
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to terminate experiment: " + e.getMessage());
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage()))
+                    .build();
         }
     }
 

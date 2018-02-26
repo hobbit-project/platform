@@ -1,5 +1,7 @@
+import { MessageService } from 'primeng/components/common/messageservice';
 import { QueuedExperimentBean, RunningExperimentBean } from './../../../model';
 import { Component, OnInit, Input } from '@angular/core';
+import { BackendService } from '../../../backend.service';
 
 @Component({
   selector: 'app-experiment-view',
@@ -13,12 +15,13 @@ export class ViewComponent implements OnInit {
 
   runningExperiment: RunningExperimentBean = null;
   cancelable = false;
+  show = true;
 
   maxRuntime: number;
   runtime: number;
   remainingRuntime: number;
 
-  constructor() { }
+  constructor(private bs: BackendService, private ms: MessageService) { }
 
   ngOnInit() {
     if (this.experiment instanceof RunningExperimentBean) {
@@ -31,7 +34,17 @@ export class ViewComponent implements OnInit {
         this.remainingRuntime = Math.ceil((this.maxRuntime - this.runtime) / 1000);
       }
     }
-    this.cancelable = this.experiment.canBeCanceled && this.runningExperiment == null;
+    this.cancelable = this.experiment.canBeCanceled;
+  }
+
+  public cancel() {
+    this.cancelable = false;
+    this.bs.terminateExperiment(this.experiment.experimentId).subscribe(data => {
+      this.show = false;
+    }, error => {
+      this.cancelable = true;
+      this.ms.add({ severity: 'warn', summary: 'Failed', detail: 'Unable to remove experiment ' + this.experiment.experimentId });
+    });
   }
 
 }
