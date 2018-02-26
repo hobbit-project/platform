@@ -147,7 +147,6 @@ public class ContainerManagerImpl implements ContainerManager {
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
     private String gelfAddress = null;
-    private String experimentId = null;
 
     /**
      * Constructor that creates new docker client instance
@@ -383,7 +382,7 @@ public class ContainerManagerImpl implements ContainerManager {
      *
      * @return String the container Id or <code>null</code> if an error occurs
      */
-    private String createContainer(String imageName, String containerType, String parentId, String[] env,
+    private String createContainer(String imageName, String containerType, String parentId, String experimentId, String[] env,
             String[] command) {
         ServiceSpec.Builder serviceCfgBuilder = ServiceSpec.builder();
 
@@ -566,7 +565,13 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
-        String containerId = createContainer(imageName, containerType, parentId, env, command);
+        return startContainer(imageName, containerType, parentId, env, command, null);
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId) {
+        String containerId = createContainer(imageName, containerType, parentId, experimentId, env, command);
 
         // if the creation was successful
         if (containerId != null) {
@@ -576,13 +581,6 @@ public class ContainerManagerImpl implements ContainerManager {
             return containerId;
         }
         return null;
-    }
-
-    @Override
-    public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId) {
-        this.experimentId = experimentId;
-        return startContainer(imageName, containerType, parentId, env, command);
     }
 
 
