@@ -19,16 +19,60 @@ package org.hobbit.controller.docker;
 import com.spotify.docker.client.messages.ContainerInfo;
 
 import org.hobbit.core.Constants;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.function.Consumer;
+import java.util.List;
+
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.ServiceNotFoundException;
+import com.spotify.docker.client.exceptions.TaskNotFoundException;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.messages.swarm.Service;
+import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.messages.swarm.TaskStatus;
 
 import static org.junit.Assert.*;
+import org.junit.Assume;
 
 /**
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+    private void assertContainerIsRunning(String message, String containerId) throws Exception {
+        try {
+            Task task = dockerClient.inspectTask(containerId);
+
+            // FIXME: "starting container failed: Address already in use"
+            // skip test if this happens
+            if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
+                Assume.assumeFalse("BUG: Address already in use",
+                        task.status().err().equals("starting container failed: Address already in use"));
+            }
+
+            assertEquals(message + " is running (error: " + task.status().err() + ")",
+                    TaskStatus.TASK_STATE_RUNNING, task.status().state());
+        } catch (TaskNotFoundException e) {
+            fail(message + "is running got: swarm task not found");
+        }
+    }
+
+    private void assertContainerIsNotRunning(String message, String containerId) throws Exception {
+        try {
+            Task taskInfo = dockerClient.inspectTask(containerId);
+            Service serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
+
+            fail(message
+                    + " expected an TaskNotFoundException to be thrown, got a task with state="
+                    + taskInfo.status().state());
+        } catch (TaskNotFoundException | ServiceNotFoundException e) {
+            assertNotNull(message + " expected TaskNotFoundException | ServiceNotFoundException", e);
+        }
+    }
+
     @Test
     public void created() throws Exception {
         assertNotNull(manager);
@@ -46,13 +90,22 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(containerId);
         containers.add(containerId);
 
-        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
+        final Task containerInfo = dockerClient.inspectTask(containerId);
+        assertNotNull("Task inspection response from docker", containerInfo);
+
+        final Service serviceInfo = dockerClient.inspectService(containerInfo.serviceId());
+        assertNotNull("Service inspection response from docker", serviceInfo);
+
         assertEquals(containerInfo.id(), containerId);
-        assertTrue(containerInfo.state().running());
-        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_TYPE),
+        assertEquals("Task state of created swarm service",
+                TaskStatus.TASK_STATE_RUNNING, containerInfo.status().state());
+        assertEquals("Type label of created swarm service",
+                serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE),
                 Constants.CONTAINER_TYPE_SYSTEM);
-        assertEquals(containerInfo.config().labels().get(ContainerManagerImpl.LABEL_PARENT), parentId);
-        assertTrue(Arrays.equals(containerInfo.config().cmd().toArray(), sleepCommand));
+        assertEquals("Parent label of created swarm service",
+                parentId, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_PARENT));
+        assertTrue("Command of created container spec is sleepCommand",
+                Arrays.equals(sleepCommand, containerInfo.spec().containerSpec().command().toArray()));
     }
 
     @Test
@@ -61,25 +114,24 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(containerId);
         containers.add(containerId);
         // make sure it was executed with default sleepCommand
-        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
-        String[] defaultCommand = { "sh" };
-        assertTrue(Arrays.equals(containerInfo.config().cmd().toArray(), defaultCommand));
+        final Task taskInfo = dockerClient.inspectTask(containerId);
+        assertNotNull("Task inspection result from docker", taskInfo);
+        assertNull("Command of created container spec", taskInfo.spec().containerSpec().command());
     }
 
     @Test
+    @SuppressWarnings("deprecation")
     public void stopContainer() throws Exception {
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
         containers.add(containerId);
         // check that it's actually running
-        ContainerInfo containerInfo = dockerClient.inspectContainer(containerId);
-        assertTrue(containerInfo.state().running());
+        assertContainerIsRunning("Created container", containerId);
         // stop it immediately
         manager.stopContainer(containerId);
         // check that it's actually stopped
-        containerInfo = dockerClient.inspectContainer(containerId);
-        assertFalse(containerInfo.state().running());
+        assertContainerIsNotRunning("Removed container", containerId);
     }
 
     @Test
@@ -88,28 +140,20 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
         containers.add(testContainer);
-        // stop it immediately
-        manager.stopContainer(testContainer);
         // remove it
         manager.removeContainer(testContainer);
-        try {
-            // try to get info on removed container
-            ContainerInfo containerInfo = dockerClient.inspectContainer(testContainer);
-            containerInfo.state().running();
-            // we expected an exception
-            fail();
-        } catch (Exception e) {
-            assertNotNull(e);
-        }
+        // check that it's actually removed
+        assertContainerIsNotRunning("Removed container", testContainer);
     }
 
-    @Test
-    public void stopAndRemoveParentAndChildren() throws Exception {
+    private void parentAndChildren(Consumer<String> removalMethod) throws Exception {
         // start new test containers
         // topParent:
         // - child1
         // - subParent:
-        // - subchild
+        //   - subchild
+        // unrelatedParent:
+        // - unrelatedChild
         String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(topParent);
         containers.add(topParent);
@@ -125,30 +169,48 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
                 sleepCommand);
         assertNotNull(subchild);
         containers.add(subchild);
+        String unrelatedParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull(unrelatedParent);
+        containers.add(unrelatedParent);
+        String unrelatedChild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, unrelatedParent,
+                sleepCommand);
+        assertNotNull(unrelatedChild);
+        containers.add(unrelatedChild);
 
         // make sure they are running
-        assertTrue(dockerClient.inspectContainer(topParent).state().running());
-        assertTrue(dockerClient.inspectContainer(child1).state().running());
-        assertTrue(dockerClient.inspectContainer(subParent).state().running());
-        assertTrue(dockerClient.inspectContainer(subchild).state().running());
-
-        // trigger stop parent function
-        manager.stopParentAndChildren(topParent);
-
-        // make sure all the containers are stopped
-        assertFalse(dockerClient.inspectContainer(topParent).state().running());
-        assertFalse(dockerClient.inspectContainer(child1).state().running());
-        assertFalse(dockerClient.inspectContainer(subParent).state().running());
-        assertFalse(dockerClient.inspectContainer(subchild).state().running());
+        assertContainerIsRunning("Top parent container", topParent);
+        assertContainerIsRunning("Child 1 container", child1);
+        assertContainerIsRunning("Sub parent container", subParent);
+        assertContainerIsRunning("Sub child container", subchild);
+        assertContainerIsRunning("Unrelated parent container", unrelatedParent);
+        assertContainerIsRunning("Unrelated child container", unrelatedChild);
 
         // trigger removal
-        manager.removeParentAndChildren(topParent);
+        removalMethod.accept(topParent);
 
         // make sure they are removed
-        assertNotNull(getContainer(topParent));
-        assertNotNull(getContainer(child1));
-        assertNotNull(getContainer(subParent));
-        assertNotNull(getContainer(subchild));
+        assertContainerIsNotRunning("Top parent container", topParent);
+        assertContainerIsNotRunning("Child 1 container", child1);
+        assertContainerIsNotRunning("Sub parent container", subParent);
+        assertContainerIsNotRunning("Sub child container", subchild);
+
+        // make sure unrelated containers are running
+        assertContainerIsRunning("Unrelated parent container", unrelatedParent);
+        assertContainerIsRunning("Unrelated child container", unrelatedChild);
+
+        // cleanup
+        manager.removeParentAndChildren(unrelatedParent);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void stopParentAndChildren() throws Exception {
+        parentAndChildren(manager::stopParentAndChildren);
+    }
+
+    @Test
+    public void removeParentAndChildren() throws Exception {
+        parentAndChildren(manager::removeParentAndChildren);
     }
 
     private Exception getContainer(String id) {
@@ -169,14 +231,15 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
         containers.add(testContainer);
+        // get info
+        Task infoFromMananger = manager.getContainerInfo(testContainer);
+        Task containerInfo = dockerClient.inspectTask(testContainer);
         // stop it immediately
-        manager.stopContainer(testContainer);
+        manager.removeContainer(testContainer);
 
         // compare info
-        ContainerInfo infoFromMananger = manager.getContainerInfo(testContainer);
-        ContainerInfo containerInfo = dockerClient.inspectContainer(testContainer);
         assertEquals(infoFromMananger.id(), containerInfo.id());
-        assertEquals(infoFromMananger.state().exitCode(), containerInfo.state().exitCode());
+        assertEquals(infoFromMananger.status().containerStatus().exitCode(), containerInfo.status().containerStatus().exitCode());
     }
 
     @Test
@@ -189,5 +252,58 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // compare containerId and retrieved id
         String containerName = manager.getContainerName(containerId);
         assertEquals(containerId, manager.getContainerId(containerName));
+    }
+
+    private void removeImage(String imageName) throws Exception {
+        // remove image (FIXME: from all nodes)
+        List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.byName(imageName));
+        if (!images.isEmpty()) {
+            for (Container c : dockerClient.listContainers(DockerClient.ListContainersParam.allContainers())) {
+                if (c.image().equals(imageName)) {
+                    dockerClient.removeContainer(c.id());
+                }
+            }
+            for (Image image : images) {
+                dockerClient.removeImage(image.id(), true, false);
+            }
+        }
+    }
+
+    private boolean imageExists(String name) {
+        // check if image exists (FIXME: on all nodes)
+        try {
+            return !dockerClient.listImages(DockerClient.ListImagesParam.byName(name)).isEmpty();
+        } catch (Exception e) {
+            fail("Couldn't list images with name " + name);
+            return false;
+        }
+    }
+
+    @Test
+    public void pullPublicImage() throws Exception {
+        final String testImage = "hello-world";
+        // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
+
+        removeImage(testImage);
+        assertTrue("No test image should exist before pulling", !imageExists(testImage));
+
+        manager.pullImage(testImage);
+        assertTrue("Test image should exist after pulling", imageExists(testImage));
+    }
+
+    @Test
+    public void pullPrivateImage() throws Exception {
+        Assume.assumeNotNull(System.getenv("GITLAB_USER"),
+                             System.getenv("GITLAB_EMAIL"),
+                             System.getenv("GITLAB_TOKEN"));
+
+        final String testImage = "git.project-hobbit.eu:4567/gitadmin/docker-test";
+        // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
+
+        removeImage(testImage);
+        assertTrue("No test image should exist before pulling", !imageExists(testImage));
+
+        manager.pullImage(testImage);
+        assertTrue("Test image should exist after pulling", imageExists(testImage));
     }
 }

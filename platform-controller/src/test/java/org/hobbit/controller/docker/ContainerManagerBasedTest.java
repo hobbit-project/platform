@@ -39,11 +39,11 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
     public void cleanUp() {
         for (String containerId : containers) {
             try {
-                dockerClient.stopContainer(containerId, 5);
+                dockerClient.removeService(dockerClient.inspectTask(containerId).serviceId());
             } catch (Exception e) {
             }
             try {
-                dockerClient.removeContainer(containerId);
+                dockerClient.removeService(dockerClient.inspectTask(containerId).serviceId());
             } catch (Exception e) {
             }
         }
