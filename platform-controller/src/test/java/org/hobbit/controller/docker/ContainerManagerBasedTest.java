@@ -19,7 +19,9 @@ package org.hobbit.controller.docker;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
 import com.spotify.docker.client.messages.swarm.SwarmSpec;
+import com.spotify.docker.client.messages.swarm.Version;
 import org.hobbit.controller.DockerBasedTest;
 import org.junit.After;
 import org.junit.Before;
