@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hobbit.controller.DockerBasedTest;
-import org.hobbit.controller.docker.ContainerManagerImpl.ExceptionBooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -45,11 +44,10 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
-        String serviceId, containerId;
         for (String taskId : containers) {
             try {
-                serviceId = dockerClient.inspectTask(taskId).serviceId();
-                containerId = dockerClient.inspectTask(taskId).status().containerStatus().containerId();
+                String serviceId = dockerClient.inspectTask(taskId).serviceId();
+                String containerId = dockerClient.inspectTask(taskId).status().containerStatus().containerId();
                 try {
                     dockerClient.removeService(serviceId);
                 } catch (Exception e) {
