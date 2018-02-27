@@ -16,32 +16,35 @@
  */
 package org.hobbit.controller.docker;
 
-import com.spotify.docker.client.messages.ContainerInfo;
-
-import org.hobbit.core.Constants;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
-import java.util.function.Consumer;
 import java.util.List;
+
+import org.hobbit.core.Constants;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
 
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
 
-import static org.junit.Assert.*;
-import org.junit.Assume;
-
 /**
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+    
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
@@ -49,7 +52,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
             // FIXME: "starting container failed: Address already in use"
             // skip test if this happens
             if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
-                Assume.assumeFalse("BUG: Address already in use",
+                Assert.assertFalse("BUG: Address already in use",
                         task.status().err().equals("starting container failed: Address already in use"));
             }
 
@@ -63,6 +66,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private void assertContainerIsNotRunning(String message, String containerId) throws Exception {
         try {
             Task taskInfo = dockerClient.inspectTask(containerId);
+            @SuppressWarnings("unused")
             Service serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
 
             fail(message
@@ -120,21 +124,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     }
 
     @Test
-    @SuppressWarnings("deprecation")
-    public void stopContainer() throws Exception {
-        // start new test container
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
-        assertNotNull(containerId);
-        containers.add(containerId);
-        // check that it's actually running
-        assertContainerIsRunning("Created container", containerId);
-        // stop it immediately
-        manager.stopContainer(containerId);
-        // check that it's actually stopped
-        assertContainerIsNotRunning("Removed container", containerId);
-    }
-
-    @Test
     public void removeContainer() throws Exception {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
@@ -146,7 +135,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsNotRunning("Removed container", testContainer);
     }
 
-    private void parentAndChildren(Consumer<String> removalMethod) throws Exception {
+    @Test
+    public void removeParentAndChildren() throws Exception {
         // start new test containers
         // topParent:
         // - child1
@@ -186,7 +176,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertContainerIsRunning("Unrelated child container", unrelatedChild);
 
         // trigger removal
-        removalMethod.accept(topParent);
+        manager.removeParentAndChildren(topParent);
 
         // make sure they are removed
         assertContainerIsNotRunning("Top parent container", topParent);
@@ -200,17 +190,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // cleanup
         manager.removeParentAndChildren(unrelatedParent);
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    public void stopParentAndChildren() throws Exception {
-        parentAndChildren(manager::stopParentAndChildren);
-    }
-
-    @Test
-    public void removeParentAndChildren() throws Exception {
-        parentAndChildren(manager::removeParentAndChildren);
     }
 
     private Exception getContainer(String id) {

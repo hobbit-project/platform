@@ -151,6 +151,7 @@ public interface ContainerManager {
      *
      * @param containerId
      *            id of the container that should be stopped
+     * @deprecated use {@link #removeContainer(String)} instead.
      */
     @Deprecated
     public void stopContainer(String containerId);
@@ -168,8 +169,9 @@ public interface ContainerManager {
      *
      * @param parentId
      *            id of the parent container
+     * @deprecated use {@link #removeParentAndChildren(String)} instead.
      */
-     @Deprecated
+    @Deprecated
     public void stopParentAndChildren(String parentId);
 
     /**

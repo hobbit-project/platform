@@ -25,14 +25,35 @@ public class TaskRegistrationBean {
     private String challengeId;
     private String taskId;
     private String systemId;
+    private boolean registered = false;
 
     public TaskRegistrationBean() {
     }
 
+    /**
+     * Constructor.
+     * 
+     * @param challengeId
+     *            URI of the challenge
+     * @param taskId
+     *            URI of the challenge task
+     * @param systemId
+     *            URI of the registered system
+     * @deprecated Use
+     *             {@link TaskRegistrationBean#TaskRegistrationBean(String, String, String, boolean)}
+     *             instead with an explicit assignment of the flag whether the
+     *             system is registered or not.
+     */
+    @Deprecated
     public TaskRegistrationBean(String challengeId, String taskId, String systemId) {
+        this(challengeId, taskId, systemId, false);
+    }
+
+    public TaskRegistrationBean(String challengeId, String taskId, String systemId, boolean registered) {
         this.challengeId = challengeId;
         this.taskId = taskId;
         this.systemId = systemId;
+        this.registered = registered;
     }
 
     public String getChallengeId() {
@@ -57,6 +78,63 @@ public class TaskRegistrationBean {
 
     public void setSystemId(String systemId) {
         this.systemId = systemId;
+    }
+
+    /**
+     * @return the registered
+     */
+    public boolean isRegistered() {
+        return registered;
+    }
+
+    /**
+     * @param registered the registered to set
+     */
+    public void setRegistered(boolean registered) {
+        this.registered = registered;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#hashCode()
+     */
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((challengeId == null) ? 0 : challengeId.hashCode());
+        result = prime * result + ((systemId == null) ? 0 : systemId.hashCode());
+        result = prime * result + ((taskId == null) ? 0 : taskId.hashCode());
+        return result;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#equals(java.lang.Object)
+     */
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        TaskRegistrationBean other = (TaskRegistrationBean) obj;
+        if (challengeId == null) {
+            if (other.challengeId != null)
+                return false;
+        } else if (!challengeId.equals(other.challengeId))
+            return false;
+        if (systemId == null) {
+            if (other.systemId != null)
+                return false;
+        } else if (!systemId.equals(other.systemId))
+            return false;
+        if (taskId == null) {
+            if (other.taskId != null)
+                return false;
+        } else if (!taskId.equals(other.taskId))
+            return false;
+        return true;
     }
 
     @Override

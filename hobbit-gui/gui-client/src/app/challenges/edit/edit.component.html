@@ -8,11 +8,11 @@
         <div class="pull-right">
           <div *ngIf="challenge && challenge.organizer === userInfo.preferredUsername">
             <button *ngIf="challenge?.id" type="button" class="btn btn-danger" (click)="delete()">Delete</button>
-            <button type="button" class="btn" (click)="cancel()">Back</button>
+            <app-back-button [pullRight]="false"></app-back-button>
             <button type="button" class="btn btn-primary" (click)="save()">Save</button>
           </div>
           <div *ngIf="!challenge || challenge.organizer !== userInfo.preferredUsername">
-            <button type="button" class="btn" (click)="cancel()">Back</button>
+            <app-back-button></app-back-button>
           </div>
         </div>
       </div>
@@ -34,7 +34,7 @@
       </div>
 
       <div class="row">
-        <div class="form-group col-md-6">
+        <div class="form-group col-md-4">
           <label for="pubdate">Publish Date</label>
           <div>
             <p-calendar id="pubdate" name="pubdate" [disabled]="!canEdit()" [(ngModel)]="dates.publishDate" [showTime]="true" [showIcon]="true"
@@ -44,7 +44,7 @@
             </p>
           </div>
         </div>
-        <div class="form-group col-md-6">
+        <div class="form-group col-md-4">
           <label for="execdate">Execution Date</label>
           <br>
           <p-calendar id="execdate" name="execdate" [disabled]="!canEdit()" [(ngModel)]="dates.executionDate" [showTime]="true" [showIcon]="true"
@@ -52,6 +52,19 @@
           <p>
             <small *ngIf="dates.executionDate">{{dates.executionDate.toString()}}</small>
           </p>
+        </div>
+        <div class="form-group col-md-4">
+          <div *ngIf="canEdit()">
+            <label for="homepage">Homepage</label>
+            <br>
+            <input type="text" id="homepage" name="homepage" [(ngModel)]="challenge.homepage" class="form-control" placeholder="Homepage"
+            />
+          </div>
+          <div *ngIf="!canEdit() && challenge.homepage">
+            <label>Homepage</label>
+            <br>
+            <a href="{{challenge.homepage}}" target="_blank">{{challenge.homepage}}</a>
+          </div>
         </div>
       </div>
 

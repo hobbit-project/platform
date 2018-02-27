@@ -543,8 +543,8 @@ public class ExperimentStatus implements Closeable {
             List<Statement> removableStatements = resultModel.listStatements(null, HOBBIT.imageName, (RDFNode) null)
                     .toList();
             removableStatements.addAll(resultModel.listStatements(null, HOBBIT.usesImage, (RDFNode) null).toList());
-            System.out.print("stmts to remove: ");
-            System.out.println(removableStatements.toString());
+//            System.out.print("stmts to remove: ");
+//            System.out.println(removableStatements.toString());
             resultModel.remove(removableStatements);
         } finally {
             modelMutex.release();

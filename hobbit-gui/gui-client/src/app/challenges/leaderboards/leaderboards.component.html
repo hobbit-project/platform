@@ -1,11 +1,18 @@
 <div class="container">
   <app-page-header>
-    <h1>Leaderboards of Tasks for Challenge {{challenge?.name}}</h1>
+    <div class="row">
+      <div class="col-md-6">
+        <h1>Leaderboards of Tasks for Challenge {{challenge?.name}}</h1>
+      </div>
+      <div class="col-md-6">
+        <app-back-button [skipUrl]="'leaderboards'"></app-back-button>
+      </div>
+    </div>
   </app-page-header>
 
   <div *ngIf="challenge">
-    <p-dataTable [value]="challenge.tasks" selectionMode="single" (onRowSelect)="handleSelect($event)" resizableColumns="true" [tableStyleClass]="'experiment-table'"
-      sortField="name" [(selection)]="selectedTask">
+    <p-dataTable [value]="challenge.tasks" selectionMode="single" (onRowSelect)="handleSelect($event)" resizableColumns="true"
+      [tableStyleClass]="'experiment-table'" sortField="name" [(selection)]="selectedTask">
       <p-column field="name" header="Task Name" [sortable]="true"></p-column>
     </p-dataTable>
     <br>

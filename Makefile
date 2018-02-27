@@ -9,16 +9,23 @@ redeploy-gui:
 	docker-compose build
 	docker-compose up -d gui
 
+
+redeploy-storage:
+	cd platform-storage/storage-service && mvn clean package -U
+	docker-compose build
+	docker-compose up -d storage-service
+
 redeploy-controller:
 	cd platform-controller && make build
 	docker-compose build
 	docker-compose up -d platform-controller
 
+
 start:
 	docker-compose build
 	docker-compose up
 
-build:
+build: install-parent-pom
 	cd platform-controller && make build
 	cd platform-storage/storage-service && mvn clean package -U
 	cd analysis-component && mvn clean package -U
@@ -47,12 +54,15 @@ run-platform-elk:
 	docker-compose -f docker-compose-elk.yml up -d
 	docker-compose up
 
-test:
+test: install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test
 	cd hobbit-gui/gui-client && npm install && npm run lint
 	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
+
+install-parent-pom:
+	cd parent-pom && mvn install
 
 local-controller: lc-build lc-run
 

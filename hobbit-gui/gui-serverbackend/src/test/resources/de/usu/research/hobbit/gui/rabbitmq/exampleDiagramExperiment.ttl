@@ -1,0 +1,368 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix hobbit: <http://w3id.org/hobbit/vocab#> .
+@prefix exp: <http://w3id.org/hobbit/experiments#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix sys: <http://w3id.org/system#> .
+@prefix bench: <http://w3id.org/bench#> .
+@prefix chall:	<https://project-hobbit.eu/challenges/> .
+
+<http://w3id.org/hobbit/experiments#1516893771172>	rdf:type	hobbit:Experiment ;
+	hobbit:hobbitPlatformVersion	"1.0.14"@en .
+<http://w3id.org/hobbit/experiments#1516893771172>	hobbit:involvesBenchmark	bench:OdinBenchmark2 ;
+	hobbit:involvesSystemInstance	bench:vos3 .
+<http://w3id.org/hobbit/experiments#1516893771172>	hobbit:startTime	"2018-01-25T16:13:15.154Z"^^xsd:dateTime ;
+	bench:macroAveragePrecision	0.82676681783824634842 ;
+	bench:microAverageFmeasure	0.92682926829268286184 ;
+	bench:hasMimickingAlgorithm	"TRANSPORT_DATA" ;
+	bench:microAverageRecall	1.0 ;
+	bench:tasksAnswerDelay	bench:Delay_Dataset_for_1516893771172 ;
+	bench:hasNumberOfTaskGenerators	"true"^^xsd:boolean ;
+	bench:maxTPS	159498.88452674241853 ;
+	bench:microAveragePrecision	0.86363636363636364646 ;
+	bench:tasksRecall	bench:Recall_Dataset_for_1516893771172 ;
+	bench:hasDuration	600000 ;
+	bench:macroAverageRecall	1.0 ;
+	bench:macroAverageFmeasure	0.90516951563267733505 ;
+	bench:hasMimickingOutput	"output_data/" ;
+	bench:hasNumberOfInsertQueries	"100"^^xsd:unsignedInt ;
+	bench:hasNumberOfDataGenerators	"2"^^xsd:unsignedInt ;
+	bench:averageTPS	351.87768802876666996 ;
+	bench:hasPopulation	"1000"^^xsd:unsignedInt ;
+	bench:hasSeed	"100"^^xsd:unsignedInt ;
+	bench:tasksTPS	bench:TPS_Dataset_for_1516893771172 ;
+	bench:averageTaskDelay	0.62833333333333329929 ;
+	bench:tasksPrecision	bench:Precision_Dataset_for_1516893771172 ;
+	bench:tasksFmeasure	bench:Fmeasure_Dataset_for_1516893771172 .
+
+bench:OdinBenchmark2	rdf:type	hobbit:Benchmark .
+bench:OdinBenchmark2	rdfs:label	"ODIN Benchmark Version 2"@en ;
+	rdfs:comment	"HOBBIT benchmark ODIN"@en ;
+	hobbit:hasParameter	bench:hasPopulation ,
+		bench:hasSeed ,
+		bench:hasMimickingOutput ,
+		bench:hasNumberOfInsertQueries ,
+		bench:hasNumberOfDataGenerators ,
+		bench:hasMimickingAlgorithm ,
+		bench:hasDuration ,
+		bench:hasNumberOfTaskGenerators ;
+	hobbit:measuresKPI	bench:averageTPS ,
+		bench:tasksTPS ,
+		bench:averageTaskDelay ,
+		bench:tasksPrecision ,
+		bench:tasksFmeasure ,
+		bench:macroAveragePrecision ,
+		bench:microAverageFmeasure ,
+		bench:microAverageRecall ,
+		bench:tasksAnswerDelay ,
+		bench:maxTPS ,
+		bench:microAveragePrecision ,
+		bench:tasksRecall ,
+		bench:macroAverageRecall ,
+		bench:macroAverageFmeasure ;
+	hobbit:version	"2.0.0" .
+bench:OdinBenchmark2	hobbit:hasAPI	chall:MOCHA2017-API .
+bench:macroAveragePrecision	rdf:type	hobbit:KPI ;
+	rdfs:label	"Macro-Average-Precision"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Macro-Average-Precision = (sum of Precision of all tasks) / (number of all tasks)"@en ;
+	hobbit:ranking	hobbit:AscendingOrder .
+bench:microAverageFmeasure	rdf:type	hobbit:KPI ;
+	rdfs:label	"Micro-Average-F-Measure"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Micro-Average-F-Measure = (2 * Micro-Average-Precision * Micro-Average-Recall) / (Micro-Average-Precision + Micro-Average-Recall)"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:hasMimickingAlgorithm	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Name of mimicking algorithm"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:string ;
+	rdfs:comment	"The mimicking algorithm used by the benchmark to generate data for ingestion."@en ;
+	hobbit:defaultValue	"TWIG" ,
+		"MIMICKING_SIMPLE" ,
+		"TRANSPORT_DATA" .
+bench:microAverageRecall	rdf:type	hobbit:KPI ;
+	rdfs:label	"Micro-Average-Recall"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Micro-Average-Recall = (sum of TP of all tasks) / (sum of TP of all tasks + sum of FN of all tasks)"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:tasksAnswerDelay	rdf:type	hobbit:KPI ;
+	rdfs:label	"Evaluation of each SELECT SPARQL query"@en ,
+		"Evaluation of task delay for each SELECT SPARQL query"@en .
+bench:tasksAnswerDelay	rdfs:range	qb:DataSet ;
+	rdfs:comment	"Evaluation of Answer Delay"@en ;
+	hobbit:ranking	hobbit:AscendingOrder .
+bench:hasNumberOfTaskGenerators	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Number of task generators - agents"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"The number of independent task generators that perform select queries against the triple stores."@en ;
+	hobbit:defaultValue	"1"^^xsd:unsignedInt .
+bench:maxTPS	rdf:type	hobbit:KPI ;
+	rdfs:label	"Maximum Triples-Per-Seconds"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Max TPS achieved by the system"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:microAveragePrecision	rdf:type	hobbit:KPI ;
+	rdfs:label	"Micro-Average-Precision"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Micro-Average-Precision = (sum of TP of all tasks) / (sum of TP of all tasks + sum of FP of all tasks)"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:tasksRecall	rdf:type	hobbit:KPI ;
+	rdfs:label	"Evaluation of each SELECT SPARQL query"@en ,
+		"Evaluation of Recall for each SELECT SPARQL query"@en ;
+	rdfs:range	qb:DataSet ;
+	rdfs:comment	"Evaluation of Recall"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:hasDuration	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Duration of the benchmark"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:string ,
+		xsd:unsignedLong ;
+	rdfs:comment	"Duration of the benchmark"@en ;
+	hobbit:defaultValue	600000 ,
+		10800000 ,
+		"600000" .
+bench:macroAverageRecall	rdf:type	hobbit:KPI ;
+	rdfs:label	"Macro-Average-Recall"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Macro-Average-Recall = (sum of Recall of all tasks) / (number of all tasks)"@en ;
+	hobbit:ranking	hobbit:AscendingOrder .
+bench:macroAverageFmeasure	rdf:type	hobbit:KPI ;
+	rdfs:label	"Macro-Average-F-Measure"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Macro-Average-F-Measure = (2 * Macro-Average-Recall * Macro-Average-Precision) / (Macro-Average-Precision + Macro-Average-Recall)"@en ;
+	hobbit:ranking	hobbit:AscendingOrder .
+bench:hasMimickingOutput	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Name of mimicking algorithm output folder"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:string ;
+	rdfs:comment	"The mimicking algorithm output folder used to store the data generated from a mimicing algorithm."@en ;
+	hobbit:defaultValue	"output_data/" .
+bench:hasNumberOfInsertQueries	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Number of insert queries"@en ,
+		"Number of insert queries per stream"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"Number of insert queries performed by a data generator until a select query is performed."@en ;
+	hobbit:defaultValue	"100"^^xsd:unsignedInt ,
+		"10"^^xsd:unsignedInt .
+bench:hasNumberOfDataGenerators	rdf:type	hobbit:FeatureParameter ,
+		hobbit:ConfigurableParameter ,
+		hobbit:Parameter ;
+	rdfs:label	"Number of data generators - agents"@en ;
+	rdfs:domain	hobbit:Challenge ,
+		hobbit:Experiment ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"The number of independent data generators that will insert data into the triple stores."@en ;
+	hobbit:defaultValue	"10"^^xsd:unsignedInt ,
+		"2"^^xsd:unsignedInt .
+bench:averageTPS	rdf:type	hobbit:KPI ;
+	rdfs:label	"Average Triples-Per-Seconds"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Average TPS achieved by the system"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:hasPopulation	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Population of generated data"@en ,
+		"Population of generated data (number on instances)"@en ,
+		"Population of generated data (number of instances)"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"Number of different events to be generated by a mimicking algorithm"@en ;
+	hobbit:defaultValue	"100"^^xsd:unsignedInt ,
+		"1000"^^xsd:unsignedInt ,
+		"10"^^xsd:unsignedInt .
+bench:hasSeed	rdf:type	hobbit:ConfigurableParameter ,
+		hobbit:Parameter ,
+		hobbit:FeatureParameter ;
+	rdfs:label	"Seed"@en ,
+		"Seed for mimicking algorithm"@en ;
+	rdfs:domain	hobbit:Experiment ,
+		hobbit:Challenge ;
+	rdfs:range	xsd:unsignedInt ;
+	rdfs:comment	"Seed for pseudo-random numbers"@en ,
+		"The seed used by the mimicking algorithm."@en ;
+	hobbit:defaultValue	"100"^^xsd:unsignedInt .
+bench:tasksTPS	rdf:type	hobbit:KPI ;
+	rdfs:label	"Evaluation of Triple-Per-Second for each SELECT SPARQL query"@en ,
+		"Evaluation of each SELECT SPARQL query"@en ;
+	rdfs:range	qb:DataSet ;
+	rdfs:comment	"Evaluation of Triples-Per-Seconds"@en ,
+		"Evaluation of Triples-Per-Second"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:averageTaskDelay	rdf:type	hobbit:KPI ;
+	rdfs:label	"Average Delay of Tasks"@en ;
+	rdfs:range	xsd:double ;
+	rdfs:comment	"Average time need to complete a select query in seconds"@en ,
+		"Average time need to complete a select query"@en ;
+	hobbit:ranking	hobbit:AscendingOrder .
+bench:tasksPrecision	rdf:type	hobbit:KPI ;
+	rdfs:label	"Evaluation of Precision for each SELECT SPARQL query"@en ,
+		"Evaluation of each SELECT SPARQL query"@en ;
+	rdfs:range	qb:DataSet ;
+	rdfs:comment	"Evaluation of Precision"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:tasksFmeasure	rdf:type	hobbit:KPI ;
+	rdfs:label	"Evaluation of F-measure for each SELECT SPARQL query"@en ,
+		"Evaluation of each SELECT SPARQL query"@en ;
+	rdfs:range	qb:DataSet ;
+	rdfs:comment	"Evaluation of Fmeasure"@en ;
+	hobbit:ranking	hobbit:DescendingOrder .
+bench:vos3	rdf:type	hobbit:SystemInstance ;
+	rdfs:label	"VOS for all"@en ;
+	rdfs:comment	"Virtuoso Opensource used in all tasks"@en ;
+	hobbit:implementsAPI	chall:MOCHA2017-API .
+
+
+# --- data cube triples ---
+
+<http://w3id.org/bench#Precision_Dataset_for_1516893771172>
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#DataSet>;
+	<http://www.w3.org/2000/01/rdf-schema#label>	"Precision"@en;
+	<http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure>	<http://dbpedia.org/resource/Precision>;
+	<http://purl.org/linked-data/cube#structure>	<http://w3id.org/bench#PrecisionStructure_for_1516893771172>;
+	<http://purl.org/dc/terms/subject>	<http://purl.org/linked-data/sdmx/2009/subject#2.9>;
+	<http://purl.org/dc/terms/publisher>	"Kleanthi Georgala for HOBBIT"@en;
+	<http://purl.org/dc/terms/issued>	"2018-01-25T16:16:00";
+	<http://purl.org/dc/terms/description>	"Detailed evaluation of Precision performance for each SELECT SPARQL query"@en .
+
+<http://w3id.org/bench#PrecisionStructure_for_1516893771172>
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#DataStructureDefinition>;
+	<http://purl.org/linked-data/cube#component>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172DimensionComponent>;
+	<http://purl.org/linked-data/cube#component>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172MeasureComponent>;
+	<http://purl.org/linked-data/cube#component>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172AttributeComponent> .
+
+<http://w3id.org/bench#Precision_Dataset_for_1516893771172DimensionComponent>
+	<http://purl.org/linked-data/cube#dimension>	<http://w3id.org/bench#taskID> .
+
+<http://w3id.org/bench#taskID>
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>;
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#DimensionProperty>;
+	<http://www.w3.org/2000/01/rdf-schema#label>	"Task ID"@en;
+	<http://www.w3.org/2000/01/rdf-schema#range>	<http://www.w3.org/2001/XMLSchema#unsignedInt>;
+	<http://purl.org/linked-data/cube#concept>	<http://purl.org/linked-data/sdmx/2009/concept#completeness> .
+
+<http://w3id.org/bench#Precision_Dataset_for_1516893771172MeasureComponent>
+	<http://purl.org/linked-data/cube#measure>	<http://w3id.org/bench#precision> .
+
+<http://w3id.org/bench#precision>
+  hobbit:ranking hobbit:AscendingOrder ;
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://w3id.org/hobbit/vocab#KPI>;
+	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#MeasureProperty>;
+	<http://www.w3.org/2000/01/rdf-schema#label>	"Precision"@en;
+	<http://www.w3.org/2000/01/rdf-schema#range>	<http://www.w3.org/2001/XMLSchema#double>;
+	<http://www.w3.org/2000/01/rdf-schema#range>	<http://www.w3.org/2001/XMLSchema#float>;
+	<http://www.w3.org/2000/01/rdf-schema#comment>	"Detailed evaluation of Precision performance for each SELECT SPARQL query"@en;
+	<http://www.w3.org/2000/01/rdf-schema#comment>	"Precision = TP / (TP + FP)"@en .
+
+#<http://w3id.org/bench#Precision_Dataset_for_1516893771172AttributeComponent>
+#	<http://purl.org/linked-data/cube#componentRequired>	"true"^^xsd:boolean ;
+#	<http://purl.org/linked-data/cube#componentAttachment>	<http://purl.org/linked-data/cube#DataSet>;
+#	<http://purl.org/linked-data/cube#attribute>	<http://purl.org/linked-data/sdmx/2009/attribute#unitMeasure> .
+
+# --- Observations ---
+
+<http://w3id.org/bench#Precision_Observation8_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation12_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation3_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation18_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation9_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation20_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation13_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation4_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation19_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation21_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation14_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation5_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation6_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation15_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation10_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation1_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation16_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation7_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation11_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation2_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation17_for_1516893771172>	<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>	<http://purl.org/linked-data/cube#Observation> .
+<http://w3id.org/bench#Precision_Observation8_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation12_for_1516893771172>	<http://w3id.org/bench#precision>	0.444444 .
+<http://w3id.org/bench#Precision_Observation3_for_1516893771172>	<http://w3id.org/bench#precision>	0.5 .
+<http://w3id.org/bench#Precision_Observation18_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation9_for_1516893771172>	<http://w3id.org/bench#precision>	0.965278 .
+<http://w3id.org/bench#Precision_Observation20_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation13_for_1516893771172>	<http://w3id.org/bench#precision>	0.25 .
+<http://w3id.org/bench#Precision_Observation4_for_1516893771172>	<http://w3id.org/bench#precision>	0.428571 .
+<http://w3id.org/bench#Precision_Observation19_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation21_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation14_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation5_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation6_for_1516893771172>	<http://w3id.org/bench#precision>	0.75 .
+<http://w3id.org/bench#Precision_Observation15_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation10_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation1_for_1516893771172>	<http://w3id.org/bench#precision>	0.857143 .
+<http://w3id.org/bench#Precision_Observation16_for_1516893771172>	<http://w3id.org/bench#precision>	0.5 .
+<http://w3id.org/bench#Precision_Observation7_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation11_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation2_for_1516893771172>	<http://w3id.org/bench#precision>	0.666667 .
+<http://w3id.org/bench#Precision_Observation17_for_1516893771172>	<http://w3id.org/bench#precision>	1.0 .
+<http://w3id.org/bench#Precision_Observation8_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation12_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation3_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation18_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation9_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation20_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation13_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation4_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation19_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation21_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation14_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation5_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation6_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation15_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation10_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation1_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation16_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation7_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation11_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation2_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation17_for_1516893771172>	<http://purl.org/linked-data/cube#dataSet>	<http://w3id.org/bench#Precision_Dataset_for_1516893771172> .
+<http://w3id.org/bench#Precision_Observation8_for_1516893771172>	<http://w3id.org/bench#taskID>	8 .
+<http://w3id.org/bench#Precision_Observation12_for_1516893771172>	<http://w3id.org/bench#taskID>	12 .
+<http://w3id.org/bench#Precision_Observation3_for_1516893771172>	<http://w3id.org/bench#taskID>	3 .
+<http://w3id.org/bench#Precision_Observation18_for_1516893771172>	<http://w3id.org/bench#taskID>	18 .
+<http://w3id.org/bench#Precision_Observation9_for_1516893771172>	<http://w3id.org/bench#taskID>	9 .
+<http://w3id.org/bench#Precision_Observation20_for_1516893771172>	<http://w3id.org/bench#taskID>	20 .
+<http://w3id.org/bench#Precision_Observation13_for_1516893771172>	<http://w3id.org/bench#taskID>	13 .
+<http://w3id.org/bench#Precision_Observation4_for_1516893771172>	<http://w3id.org/bench#taskID>	4 .
+<http://w3id.org/bench#Precision_Observation19_for_1516893771172>	<http://w3id.org/bench#taskID>	19 .
+<http://w3id.org/bench#Precision_Observation21_for_1516893771172>	<http://w3id.org/bench#taskID>	21 .
+<http://w3id.org/bench#Precision_Observation14_for_1516893771172>	<http://w3id.org/bench#taskID>	14 .
+<http://w3id.org/bench#Precision_Observation5_for_1516893771172>	<http://w3id.org/bench#taskID>	5 .
+<http://w3id.org/bench#Precision_Observation6_for_1516893771172>	<http://w3id.org/bench#taskID>	6 .
+<http://w3id.org/bench#Precision_Observation15_for_1516893771172>	<http://w3id.org/bench#taskID>	15 .
+<http://w3id.org/bench#Precision_Observation10_for_1516893771172>	<http://w3id.org/bench#taskID>	10 .
+<http://w3id.org/bench#Precision_Observation1_for_1516893771172>	<http://w3id.org/bench#taskID>	1 .
+<http://w3id.org/bench#Precision_Observation16_for_1516893771172>	<http://w3id.org/bench#taskID>	16 .
+<http://w3id.org/bench#Precision_Observation7_for_1516893771172>	<http://w3id.org/bench#taskID>	7 .
+<http://w3id.org/bench#Precision_Observation11_for_1516893771172>	<http://w3id.org/bench#taskID>	11 .
+<http://w3id.org/bench#Precision_Observation2_for_1516893771172>	<http://w3id.org/bench#taskID>	2 .
+<http://w3id.org/bench#Precision_Observation17_for_1516893771172>	<http://w3id.org/bench#taskID>	17 .
+

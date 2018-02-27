@@ -75,7 +75,10 @@ services:
 
   # DB for controller
   redis:
-    image: redis
+    image: redis:4.0.7
+    volumes:
+      - ./config/redis-db:/data
+    command: ["redis-server", "/data/redis.conf"]
     networks:
       - hobbit-core
 

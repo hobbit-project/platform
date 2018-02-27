@@ -44,7 +44,7 @@ export class User {
 
 
 export class NamedEntity {
-    constructor(public id: string, public name: string, public description?: string) {
+    constructor(public id: string, public name: string, public description?: string, public errorMessage?: string) {
     }
 }
 
@@ -119,8 +119,8 @@ export class System extends NamedEntity {
 
 export class BenchmarkOverview extends NamedEntity {
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
 
@@ -137,8 +137,8 @@ export class Benchmark extends BenchmarkOverview {
     @Type(() => System)
     public systems?: System[];
 
-    constructor(id: string, name: string, description?: string) {
-        super(id, name, description);
+    constructor(id: string, name: string, description?: string, errorMessage?: string) {
+        super(id, name, description, errorMessage);
     }
 
     hasConfigParams() {
@@ -167,7 +167,7 @@ export class Challenge extends NamedEntity {
     public tasks: ChallengeTask[] = [];
 
     constructor(id: string, name: string, description?: string,
-        public organizer?: string,
+        public organizer?: string, public homepage?: string,
         public executionDate?: string, public publishDate?: string,
         public visible?: boolean, public closed?: boolean) {
         super(id, name, description);
@@ -176,6 +176,24 @@ export class Challenge extends NamedEntity {
 
 export class ChallengeRegistration {
     constructor(public challengeId: string, public taskId: string, public systemId: string) { }
+}
+
+export class Diagram extends NamedEntity {
+
+    constructor(id: string, name: string, public range: string, public label: string, public data: any[], description?: string) {
+        super(id, name, description);
+    }
+}
+
+export class ExtendedChallengeRegistration extends ChallengeRegistration {
+
+    @Type(() => System)
+    public system: System;
+
+    constructor(challengeId: string, taskId: string, systemId: string,
+        public registered: boolean) {
+        super(challengeId, taskId, systemId);
+    }
 }
 
 export class Experiment {
@@ -191,6 +209,9 @@ export class Experiment {
 
     @Type(() => ChallengeTask)
     public challengeTask: ChallengeTask;
+
+    @Type(() => Diagram)
+    public diagrams: Diagram[];
 
     constructor(public id: string, public benchmarkLogAvailable: boolean, public systemLogAvailable: boolean,
         public error?: string, public rank?: number) { }

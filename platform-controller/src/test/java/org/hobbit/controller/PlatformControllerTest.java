@@ -88,6 +88,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
                 null,
                 new String[] { "sh", "-c", "while :; do sleep 1; done" });
         final String parentName = manager.getContainerName(parentId);
+        containers.add(parentId);
 
         // create and execute test container
         final String image = "busybox:latest";
@@ -99,19 +100,21 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         // get running containers
         Service serviceInfo = null;
         Task taskInfo = null;
+        String taskId = null;
         String containerId = null;
-        final List<Task> containers = dockerClient.listTasks(Task.Criteria.builder()
+        final List<Task> taskList = dockerClient.listTasks(Task.Criteria.builder()
                 .label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId)
                 .build());
 
-        if (!containers.isEmpty()) {
-            taskInfo = containers.get(0);
+        if (!taskList.isEmpty()) {
+            taskInfo = taskList.get(0);
             serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
-            containerId = taskInfo.id();
+            taskId = taskInfo.id();
         }
+
         // check that container exists
-        assertNotNull(containerId);
-        assertEquals("Amount of child containers of the test parent container", 1, containers.size());
+        assertNotNull(taskId);
+        assertEquals("Amount of child containers of the test parent container", 1, taskList.size());
         assertEquals("Type of created container",
                 Constants.CONTAINER_TYPE_SYSTEM, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE));
         assertDockerImageEquals("Image of created container", image, taskInfo.spec().containerSpec().image());

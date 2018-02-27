@@ -26,6 +26,8 @@ public class ExperimentBean {
 
     private List<KeyPerformanceIndicatorBean> kpis;
 
+    private List<DiagramBean> diagrams;
+
     private ConfiguredBenchmarkBean benchmark;
 
     private NamedEntityBean system;
@@ -44,6 +46,20 @@ public class ExperimentBean {
 
     public void setKpis(List<KeyPerformanceIndicatorBean> kpis) {
         this.kpis = kpis;
+    }
+
+    /**
+     * @return the diagrams
+     */
+    public List<DiagramBean> getDiagrams() {
+        return diagrams;
+    }
+
+    /**
+     * @param diagrams the diagrams to set
+     */
+    public void setDiagrams(List<DiagramBean> diagrams) {
+        this.diagrams = diagrams;
     }
 
     public ConfiguredBenchmarkBean getBenchmark() {

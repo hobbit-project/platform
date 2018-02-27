@@ -7,11 +7,11 @@
       <div class="col-md-4">
         <div class="pull-right">
           <div *ngIf="!canEdit()">
-            <button type="button" class="btn btn-default" (click)="cancel()">Back</button>
+            <app-back-button></app-back-button>
           </div>
           <div *ngIf="canEdit()">
             <button type="button" class="btn btn-danger" [disabled]="!loaded || !canEdit() || adding" (click)="deleteTask()">Delete</button>
-            <button type="button" class="btn btn-default" (click)="cancel()">Cancel</button>
+            <app-back-button [pullRight]="false"></app-back-button>
             <button type="button" class="btn btn-primary" [disabled]="!loaded || !canEdit() || !canSave()" (click)="saveTask()">Save</button>
           </div>
         </div>
