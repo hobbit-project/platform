@@ -88,11 +88,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void created() throws Exception {
+        LOGGER.debug("Testing whether container manager has been created.");
         assertNotNull(manager);
     }
 
     @Test
     public void startContainer() throws Exception {
+        LOGGER.debug("Testing whether container manager can start a container.");
         String parentId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 sleepCommand);
         assertNotNull(parentId);
@@ -123,6 +125,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void startContainerWithoutCommand() throws Exception {
+        LOGGER.debug("Testing whether container manager can start a container without a command.");
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
         containers.add(containerId);
@@ -134,6 +137,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void removeContainer() throws Exception {
+        LOGGER.debug("Testing whether container manager can remove a container.");
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
@@ -146,6 +150,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void removeParentAndChildren() throws Exception {
+        LOGGER.debug("Testing whether container manager can remove a container and its children.");
         // start new test containers
         // topParent:
         // - child1
@@ -215,6 +220,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void getContainerInfo() throws Exception {
+        LOGGER.debug("Testing whether container manager can retrieve information about a container.");
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
@@ -232,6 +238,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void getContainerIdAndName() throws Exception {
+        LOGGER.debug("Testing whether container manager can retrieve the id and name of a container.");
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
@@ -269,6 +276,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test
     public void pullPublicImage() throws Exception {
+        LOGGER.debug("Testing whether container can pull a public image.");
         final String testImage = "hello-world";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
 
@@ -284,6 +292,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         Assume.assumeNotNull(System.getenv("GITLAB_USER"),
                              System.getenv("GITLAB_EMAIL"),
                              System.getenv("GITLAB_TOKEN"));
+        LOGGER.debug("Testing whether container can pull a private image.");
 
         final String testImage = "git.project-hobbit.eu:4567/gitadmin/docker-test";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node

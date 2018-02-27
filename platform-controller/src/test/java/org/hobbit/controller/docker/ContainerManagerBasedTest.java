@@ -57,6 +57,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                     for (Network n : networks) {
                         try {
                             dockerClient.disconnectFromNetwork(containerId, n.id(), true);
+                            LOGGER.debug("Removed container {} from network {}", containerId, n.name());
                         } catch (Exception e) {
                             // can be ignored
                         }
