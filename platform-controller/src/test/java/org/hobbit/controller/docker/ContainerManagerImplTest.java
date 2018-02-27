@@ -29,7 +29,10 @@ import org.hobbit.core.Constants;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
@@ -44,14 +47,20 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImplTest.class);
     
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
-
+            TaskStatus status = task.status();
+            Assert.assertNotNull(status);
+            ObjectMapper objectMapper = new ObjectMapper();
+            LOGGER.info("Checking status of {}", objectMapper.writeValueAsString(status).replace('\n', ' '));
+            
             // FIXME: "starting container failed: Address already in use"
             // skip test if this happens
-            if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
+            if (status.state().equals(TaskStatus.TASK_STATE_FAILED)) {
                 Assert.assertFalse("BUG: Address already in use",
                         task.status().err().equals("starting container failed: Address already in use"));
             }
