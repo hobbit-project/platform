@@ -20,10 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hobbit.controller.DockerBasedTest;
+import org.hobbit.controller.docker.ContainerManagerImpl.ExceptionBooleanSupplier;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
@@ -61,11 +64,32 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                     LOGGER.info("Cleaning up container {} was not successful ({}). This does not have to be a problem.",
                             containerId, e.getMessage());
                 }
+                // wait for the service to disappear
+                waitFor(() -> {
+                    try {
+                        dockerClient.inspectService(serviceId);
+                        return false;
+                    } catch (ServiceNotFoundException e) {
+                        return true;
+                    }
+                }, 100);
             } catch (Exception e) {
                 LOGGER.info(
                         "Cleaning up service and containers of task {} were not successful ({}). This does not have to be a problem.",
                         taskId, e.getMessage());
             }
+        }
+    }
+
+    @FunctionalInterface
+    private interface ExceptionBooleanSupplier {
+        boolean getAsBoolean() throws Exception;
+    }
+    
+    private static void waitFor(ExceptionBooleanSupplier checkSupplier, long interval) throws Exception {
+        while (!checkSupplier.getAsBoolean()) {
+            // TODO: can use some kind of inverval adjustion
+            Thread.sleep(interval);
         }
     }
 }
