@@ -53,13 +53,6 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                 String serviceId = dockerClient.inspectTask(taskId).serviceId();
                 String containerId = dockerClient.inspectTask(taskId).status().containerStatus().containerId();
                 try {
-                    dockerClient.removeService(serviceId);
-                } catch (Exception e) {
-                    LOGGER.debug(
-                            "Cleaning up service of task {} was not successful ({}). This does not have to be a problem.",
-                            taskId, e.getMessage());
-                }
-                try {
                     List<Network> networks = dockerClient.listNetworks();
                     for (Network n : networks) {
                         try {
@@ -70,6 +63,13 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                     }
                 } catch (Exception e) {
                     LOGGER.debug("Couldn't get a list of networks: {}", e.getMessage());
+                }
+                try {
+                    dockerClient.removeService(serviceId);
+                } catch (Exception e) {
+                    LOGGER.debug(
+                            "Cleaning up service of task {} was not successful ({}). This does not have to be a problem.",
+                            taskId, e.getMessage());
                 }
                 try {
                     dockerClient.stopContainer(containerId, 10);
