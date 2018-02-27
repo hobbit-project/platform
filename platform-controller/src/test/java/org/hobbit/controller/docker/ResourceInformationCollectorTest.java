@@ -16,11 +16,13 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         assertNotNull(containerId);
         containers.add(containerId);
 
+        Thread.sleep(20000);
+
         ResourceInformationCollector collector = new ResourceInformationCollector(manager);
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
         Assert.assertNotNull(usage);
-        
+
         System.out.println("Got usage information " + usage.toString());
 
         Assert.assertNotNull(usage.getCpuStats());

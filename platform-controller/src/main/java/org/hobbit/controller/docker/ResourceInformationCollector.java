@@ -1,5 +1,10 @@
 package org.hobbit.controller.docker;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -12,20 +17,25 @@ import org.hobbit.core.data.usage.DiskStats;
 import org.hobbit.core.data.usage.MemoryStats;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
-import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A class that can collect resource usage information for the containers known
  * by the given {@link ContainerManager} using the given {@link DockerClient}.
- * 
+ *
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
  */
 public class ResourceInformationCollector {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollector.class);
 
     private ContainerManager manager;
 
@@ -34,47 +44,65 @@ public class ResourceInformationCollector {
     }
 
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(DockerClient.ListContainersParam.withLabel(ContainerManager.LABEL_TYPE,
-                Constants.CONTAINER_TYPE_SYSTEM));
+        return getUsageInformation(
+                Task.Criteria.builder().label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_SYSTEM).build());
     }
 
-    public ResourceUsageInformation getUsageInformation(ListContainersParam... params) {
-        params = Arrays.copyOf(params, params.length + 1);
-        params[params.length - 1] = ListContainersParam.withContainerSizes(true);
-        List<Container> containers = manager.getContainers(params);
+    public ResourceUsageInformation getUsageInformation(Task.Criteria criteria) {
+        List<Task> tasks = manager.getContainers(criteria);
 
-        Map<String, Container> containerMapping = new HashMap<>();
-        for (Container c : containers) {
+        Map<String, Task> containerMapping = new HashMap<>();
+        for (Task c : tasks) {
             containerMapping.put(c.id(), c);
         }
         ResourceUsageInformation resourceInfo = containerMapping.keySet().parallelStream()
                 // filter all containers that are not running
-                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).state()))
+                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).status().state()))
                 // get the stats for the single
                 .map(id -> requestCpuAndMemoryStats(id))
                 // sum up the stats
                 .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
-        if (resourceInfo != null) {
-            // Add disk usage information
-            long diskUsage = containers.parallelStream().map(c -> c.sizeRootFs()).filter(s -> s != null)
-                    .mapToLong(s -> s).sum();
-            resourceInfo.setDiskStats(new DiskStats(diskUsage));
-        }
         return resourceInfo;
     }
 
     protected ResourceUsageInformation requestCpuAndMemoryStats(String containerId) {
-        ContainerStats stats = manager.getStats(containerId);
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
-        if (stats != null) {
-            if ((stats.cpuStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
-                resourceInfo.setCpuStats(new CpuStats(stats.cpuStats().cpuUsage().totalUsage()));
-            }
-            if ((stats.memoryStats() != null) && (stats.cpuStats().cpuUsage() != null)) {
-                resourceInfo.setMemoryStats(new MemoryStats(stats.memoryStats().usage()));
-            }
+        try {
+            resourceInfo.setCpuStats(new CpuStats(Math.round(Double.parseDouble(
+                    requestPrometheusValue(containerId, "container_cpu_usage_seconds_total"))*1000)));
+        } catch (Exception e) {
+            LOGGER.error("Could not get cpu usage stats for container {}", containerId, e);
+        }
+        try {
+            resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(
+                    requestPrometheusValue(containerId, "container_memory_usage_bytes"))));
+        } catch (Exception e) {
+            LOGGER.error("Could not get memory usage stats for container {}", containerId, e);
+        }
+        try {
+            resourceInfo.setDiskStats(new DiskStats(Long.parseLong(
+                    requestPrometheusValue(containerId, "container_fs_usage_bytes"))));
+        } catch (Exception e) {
+            LOGGER.error("Could not get disk usage stats for container {}", containerId, e);
         }
         return resourceInfo;
+    }
+
+    private String requestPrometheusValue(String taskId, String metric) throws IOException, MalformedURLException {
+        String filter = "{container_label_com_docker_swarm_task_id=\"" + taskId + "\"}";
+        URL url = new URL("http://prometheus:9090/api/v1/query?query=" + metric + filter);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openConnection().getInputStream()));
+        String line;
+        String content = "";
+        while ((line = reader.readLine()) != null) {
+            content += line + "\n";
+        }
+        reader.close();
+
+        JsonParser parser = new JsonParser();
+        JsonObject root = parser.parse(content).getAsJsonObject();
+        JsonArray result = root.get("data").getAsJsonObject().get("result").getAsJsonArray();
+        return result.get(0).getAsJsonObject().get("value").getAsJsonArray().get(1).getAsString();
     }
 
 }
