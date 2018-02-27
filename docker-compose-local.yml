@@ -61,11 +61,13 @@ services:
 
   # Triple store
   virtuoso:
-    image: openlink/virtuoso_opensource:vos-hobbit
+    image: openlink/virtuoso_opensource:v07.20.3217
     container_name: vos
     hostname: vos
+    stop_signal: SIGINT
+    stop_grace_period: 2m
     volumes:
-      - ./config/db:/opt/virtuoso-opensource/var/lib/virtuoso/db
+      - ./config/db:/opt/virtuoso-opensource/database
     networks:
       - hobbit-core
     ports:
