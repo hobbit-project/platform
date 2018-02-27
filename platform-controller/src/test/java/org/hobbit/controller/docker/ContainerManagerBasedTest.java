@@ -85,7 +85,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                 // wait for the task to disappear
                 waitFor(() -> {
                     try {
-                        dockerClient.inspectTask(taskId);
+                        dockerClient.inspectTask(containerId);
                         return false;
                     } catch (ContainerNotFoundException e) {
                         return true;
