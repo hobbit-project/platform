@@ -34,6 +34,7 @@ import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
@@ -524,8 +525,10 @@ public class ContainerManagerImpl implements ContainerManager {
 
         serviceCfgBuilder.name(containerName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
+        ObjectMapper mapper = new ObjectMapper();
         try {
             ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
+            System.out.println("Service: " + mapper.writeValueAsString(resp));
             String containerId = resp.id();
             // wait for a container of that service to start
             List<Task> serviceTasks = new ArrayList<Task>();
@@ -534,6 +537,9 @@ public class ContainerManagerImpl implements ContainerManager {
                 serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build()));
                 return !serviceTasks.isEmpty() && !NEW_TASKS_STATES.contains(serviceTasks.get(0).status().state());
             }, 100);
+            for(Task t : serviceTasks) {
+                System.out.println("Task: " + mapper.writeValueAsString(t));
+            }
             String taskId = serviceTasks.get(0).id();
             // return new container id
             return taskId;
