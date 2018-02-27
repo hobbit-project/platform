@@ -54,7 +54,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         try {
             Task task = dockerClient.inspectTask(containerId);
             ObjectMapper objectMapper = new ObjectMapper();
-            System.out.println("Checking status of " + objectMapper.writeValueAsString(task).replace('\n', ' '));
+            System.err.println("Checking status of " + objectMapper.writeValueAsString(task).replace('\n', ' '));
             Thread.sleep(100);
             TaskStatus status = task.status();
             Assert.assertNotNull(status);
