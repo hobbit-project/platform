@@ -55,14 +55,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
             Task task = dockerClient.inspectTask(containerId);
             ObjectMapper objectMapper = new ObjectMapper();
             System.err.println("Checking status of " + objectMapper.writeValueAsString(task).replace('\n', ' '));
-            Thread.sleep(100);
             TaskStatus status = task.status();
             Assert.assertNotNull(status);
             
             // FIXME: "starting container failed: Address already in use"
             // skip test if this happens
             if (status.state().equals(TaskStatus.TASK_STATE_FAILED)) {
-                Assert.assertFalse("BUG: Address already in use",
+                Assert.assertFalse("BUG: Address already in use. Task: " + objectMapper.writeValueAsString(task).replace('\n', ' '),
                         task.status().err().equals("starting container failed: Address already in use"));
             }
 
