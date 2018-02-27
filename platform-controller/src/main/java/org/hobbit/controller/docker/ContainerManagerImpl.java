@@ -590,16 +590,22 @@ public class ContainerManagerImpl implements ContainerManager {
     public void removeContainer(String taskId) {
         try {
             Task taskInfo = dockerClient.inspectTask(taskId);
-            String containerId = taskInfo.status().containerStatus().containerId();
             String serviceId = taskInfo.serviceId();
+            String containerId = taskInfo.status().containerStatus().containerId();
 
-            // If we are not in testing mode, remove all containers. In testing
-            // mode, remove only those that have a non-zero status
             Integer exitCode = taskInfo.status().containerStatus().exitCode();
-            if (!DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP) && ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0))) {
-                dockerClient.removeService(serviceId);
+            if(DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+                LOGGER.info("Will not remove container with task id {}, container id {}. " +
+                        "Development mode is enabled.", taskId, containerId);
+            } else if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
+                // In testing - do not remove containers if they returned non-zero exit code
+                LOGGER.info("Will not remove container with task id {}, container id {}. " +
+                        "ExitCode != 0 and testing mode is enabled.", taskId, containerId);
+            } else {
+                LOGGER.info("Removing service of container with task id {}, container id {}. ", taskId, containerId);
                 dockerClient.stopContainer(containerId, 10);
                 dockerClient.removeContainer(containerId);
+                dockerClient.removeService(serviceId);
 
                 // wait for the service to disappear
                 waitFor(() -> {
@@ -610,8 +616,6 @@ public class ContainerManagerImpl implements ContainerManager {
                         return true;
                     }
                 }, 100);
-            } else {
-                LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", taskId);
             }
         } catch (TaskNotFoundException | ServiceNotFoundException e) {
             LOGGER.error("Couldn't remove container {} because it doesn't exist", taskId);
