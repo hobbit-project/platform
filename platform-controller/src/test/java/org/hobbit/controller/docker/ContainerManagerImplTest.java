@@ -53,10 +53,11 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
+            ObjectMapper objectMapper = new ObjectMapper();
+            LOGGER.info("Checking status of {}", objectMapper.writeValueAsString(task).replace('\n', ' '));
+            Thread.sleep(100);
             TaskStatus status = task.status();
             Assert.assertNotNull(status);
-            ObjectMapper objectMapper = new ObjectMapper();
-            LOGGER.info("Checking status of {}", objectMapper.writeValueAsString(status).replace('\n', ' '));
             
             // FIXME: "starting container failed: Address already in use"
             // skip test if this happens
