@@ -374,7 +374,7 @@ public class ContainerManagerImpl implements ContainerManager {
      * @return String the container Id or <code>null</code> if an error occurs
      */
     private String createContainer(String imageName, String containerType, String parentId, String experimentId,
-            String[] env, String[] command) {
+            String[] env, String[] command, boolean retryIfFailed) {
         ServiceSpec.Builder serviceCfgBuilder = ServiceSpec.builder();
 
         TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
@@ -517,9 +517,21 @@ public class ContainerManagerImpl implements ContainerManager {
                     LOGGER.debug("Task: " + mapper.writeValueAsString(t));
                 }
             }
-            String taskId = serviceTasks.get(0).id();
-            // return new container id
-            return taskId;
+            Task task = serviceTasks.get(0);
+            // Check task for known IP reusage problem.
+            if (TaskStatus.TASK_STATE_FAILED.equals(task.status().state())
+                    && task.status().err().equals("starting container failed: Address already in use")) {
+                if (retryIfFailed) {
+                    LOGGER.warn("Problem starting new task. Trying it a second time.");
+                    removeContainer(task.id());
+                    return createContainer(imageName, containerType, parentId, experimentId, env, command, false);
+                } else {
+                    LOGGER.error("Problem starting new task.");
+                    // falls through and returns task id
+                }
+            }
+            // return new task id
+            return task.id();
         } catch (Exception e) {
             LOGGER.error("Couldn't create Docker container. Returning null.", e);
             return null;
@@ -554,7 +566,7 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, String experimentId) {
-        String containerId = createContainer(imageName, containerType, parentId, experimentId, env, command);
+        String containerId = createContainer(imageName, containerType, parentId, experimentId, env, command, true);
 
         // if the creation was successful
         if (containerId != null) {
