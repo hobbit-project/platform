@@ -25,7 +25,9 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
+import com.spotify.docker.client.exceptions.TaskNotFoundException;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
@@ -51,7 +53,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                 try {
                     dockerClient.removeService(serviceId);
                 } catch (Exception e) {
-                    LOGGER.info(
+                    LOGGER.debug(
                             "Cleaning up service of task {} was not successful ({}). This does not have to be a problem.",
                             taskId, e.getMessage());
                 }
@@ -59,7 +61,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                     dockerClient.stopContainer(containerId, 10);
                     dockerClient.removeContainer(containerId);
                 } catch (Exception e) {
-                    LOGGER.info("Cleaning up container {} was not successful ({}). This does not have to be a problem.",
+                    LOGGER.debug("Cleaning up container {} was not successful ({}). This does not have to be a problem.",
                             containerId, e.getMessage());
                 }
                 // wait for the service to disappear
@@ -71,6 +73,26 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                         return true;
                     }
                 }, 100);
+                // wait for the container to disappear
+                waitFor(() -> {
+                    try {
+                        dockerClient.inspectTask(taskId);
+                        return false;
+                    } catch (TaskNotFoundException e) {
+                        return true;
+                    }
+                }, 100);
+                // wait for the task to disappear
+                waitFor(() -> {
+                    try {
+                        dockerClient.inspectTask(taskId);
+                        return false;
+                    } catch (ContainerNotFoundException e) {
+                        return true;
+                    }
+                }, 100);
+            } catch (TaskNotFoundException e) {
+                // Nothing to do since the task is already gone.
             } catch (Exception e) {
                 LOGGER.info(
                         "Cleaning up service and containers of task {} were not successful ({}). This does not have to be a problem.",
