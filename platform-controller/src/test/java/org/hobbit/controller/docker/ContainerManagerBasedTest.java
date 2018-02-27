@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.spotify.docker.client.exceptions.ContainerNotFoundException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
+import com.spotify.docker.client.messages.Network;
 
 /**
  * Created by Timofey Ermilov on 01/09/16.
@@ -46,6 +47,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
+        LOGGER.debug("cleaning up...");
         for (String taskId : containers) {
             try {
                 String serviceId = dockerClient.inspectTask(taskId).serviceId();
@@ -58,16 +60,30 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                             taskId, e.getMessage());
                 }
                 try {
+                    List<Network> networks = dockerClient.listNetworks();
+                    for (Network n : networks) {
+                        try {
+                            dockerClient.disconnectFromNetwork(containerId, n.id());
+                        } catch (Exception e) {
+                            // can be ignored
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.debug("Couldn't get a list of networks: {}", e.getMessage());
+                }
+                try {
                     dockerClient.stopContainer(containerId, 10);
                     dockerClient.removeContainer(containerId);
                 } catch (Exception e) {
-                    LOGGER.debug("Cleaning up container {} was not successful ({}). This does not have to be a problem.",
+                    LOGGER.debug(
+                            "Cleaning up container {} was not successful ({}). This does not have to be a problem.",
                             containerId, e.getMessage());
                 }
                 // wait for the service to disappear
                 waitFor(() -> {
                     try {
                         dockerClient.inspectService(serviceId);
+                        System.out.println("s");
                         return false;
                     } catch (ServiceNotFoundException e) {
                         return true;
@@ -76,18 +92,20 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
                 // wait for the container to disappear
                 waitFor(() -> {
                     try {
-                        dockerClient.inspectTask(taskId);
+                        dockerClient.inspectContainer(containerId);
+                        System.out.println("c");
                         return false;
-                    } catch (TaskNotFoundException e) {
+                    } catch (ContainerNotFoundException e) {
                         return true;
                     }
                 }, 100);
                 // wait for the task to disappear
                 waitFor(() -> {
                     try {
-                        dockerClient.inspectTask(containerId);
+                        dockerClient.inspectTask(taskId);
+                        System.out.println("t");
                         return false;
-                    } catch (ContainerNotFoundException e) {
+                    } catch (TaskNotFoundException e) {
                         return true;
                     }
                 }, 100);
@@ -105,7 +123,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
     private interface ExceptionBooleanSupplier {
         boolean getAsBoolean() throws Exception;
     }
-    
+
     private static void waitFor(ExceptionBooleanSupplier checkSupplier, long interval) throws Exception {
         while (!checkSupplier.getAsBoolean()) {
             // TODO: can use some kind of inverval adjustion
