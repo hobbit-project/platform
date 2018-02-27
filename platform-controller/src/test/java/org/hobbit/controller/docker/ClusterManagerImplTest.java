@@ -33,5 +33,14 @@ public class ClusterManagerImplTest {
         assertTrue(isHealthy);
     }
 
+    @Test
+    public void setTaskHistoryLimit() throws Exception {
+        clusterManager.setTaskHistoryLimit(0);
+        Integer taskHistoryLimit = clusterManager.getTaskHistoryLimit();
+        assertTrue(taskHistoryLimit == 0);
+        //set back to default
+        clusterManager.setTaskHistoryLimit(5);
+    }
+
 
 }

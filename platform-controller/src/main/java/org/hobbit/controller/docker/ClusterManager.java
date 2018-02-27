@@ -39,4 +39,19 @@ public interface ClusterManager {
      * @return expected number of nodes
      */
     public Integer getExpectedNumberOfNodes();
+
+    /**
+     * Set task history limit for the swarm cluster
+     * For production history limit should be set to 0
+     * Then the cluster will not keep containers after the services are removed
+     */
+    public void setTaskHistoryLimit(Integer taskHistoryLimit) throws DockerException, InterruptedException;
+
+    /**
+     * Get task history limit for the swarm cluster
+     *
+     * @return Integer (task history limit)
+     */
+
+    public Integer getTaskHistoryLimit() throws DockerException, InterruptedException;
 }

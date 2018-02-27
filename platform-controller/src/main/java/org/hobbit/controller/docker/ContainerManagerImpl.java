@@ -587,15 +587,21 @@ public class ContainerManagerImpl implements ContainerManager {
 
 
     @Override
-    public void removeContainer(String containerId) {
+    public void removeContainer(String taskId) {
         try {
-            Task taskInfo = dockerClient.inspectTask(containerId);
+            Task taskInfo = dockerClient.inspectTask(taskId);
             String serviceId = taskInfo.serviceId();
 
-            // If we are not in testing mode, remove all containers. In testing
-            // mode, remove only those that have a non-zero status
             Integer exitCode = taskInfo.status().containerStatus().exitCode();
-            if (!DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP) && ((!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) || (exitCode == null) || (exitCode == 0))) {
+            if(DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+                LOGGER.info("Will not remove container with task id {}. " +
+                        "Development mode is enabled.", taskId);
+            } else if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
+                // In testing - do not remove containers if they returned non-zero exit code
+                LOGGER.info("Will not remove container with task id {}. " +
+                        "ExitCode != 0 and testing mode is enabled.", taskId);
+            } else {
+                LOGGER.info("Removing service of container with task id {}. ", taskId);
                 dockerClient.removeService(serviceId);
 
                 // wait for the service to disappear
@@ -607,13 +613,11 @@ public class ContainerManagerImpl implements ContainerManager {
                         return true;
                     }
                 }, 100);
-            } else {
-                LOGGER.info("Will not remove container with id {} because its exitCode != 0 and testing mode is enabled", containerId);
             }
         } catch (TaskNotFoundException | ServiceNotFoundException e) {
-            LOGGER.error("Couldn't remove container {} because it doesn't exist", containerId);
+            LOGGER.error("Couldn't remove container {} because it doesn't exist", taskId);
         } catch (Exception e) {
-            LOGGER.error("Couldn't remove container with id " + containerId + ".", e);
+            LOGGER.error("Couldn't remove container with task id " + taskId + ".", e);
         }
     }
 
@@ -651,13 +655,13 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Task getContainerInfo(String containerId) throws InterruptedException, DockerException {
-        if (containerId == null) {
+    public Task getContainerInfo(String taskId) throws InterruptedException, DockerException {
+        if (taskId == null) {
             return null;
         }
         Task info = null;
         try {
-            info = dockerClient.inspectTask(containerId);
+            info = dockerClient.inspectTask(taskId);
         } catch (TaskNotFoundException e) {
             // return null
         }
