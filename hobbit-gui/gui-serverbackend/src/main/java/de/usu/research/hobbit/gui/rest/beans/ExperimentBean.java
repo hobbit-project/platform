@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ExperimentBean {
     private String id;
 
-    private List<ConfigurationParamValueBean> kpis;
+    private List<KeyPerformanceIndicatorBean> kpis;
 
     private ConfiguredBenchmarkBean benchmark;
 
@@ -33,12 +33,16 @@ public class ExperimentBean {
     private NamedEntityBean challengeTask;
 
     private String error;
+    
+    private boolean benchmarkLogAvailable = false;
+    
+    private boolean systemLogAvailable = false;
 
-    public List<ConfigurationParamValueBean> getKpis() {
+    public List<KeyPerformanceIndicatorBean> getKpis() {
         return kpis;
     }
 
-    public void setKpis(List<ConfigurationParamValueBean> kpis) {
+    public void setKpis(List<KeyPerformanceIndicatorBean> kpis) {
         this.kpis = kpis;
     }
 
@@ -80,5 +84,33 @@ public class ExperimentBean {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    /**
+     * @return the benchmarkLogAvailable
+     */
+    public boolean isBenchmarkLogAvailable() {
+        return benchmarkLogAvailable;
+    }
+
+    /**
+     * @param benchmarkLogAvailable the benchmarkLogAvailable to set
+     */
+    public void setBenchmarkLogAvailable(boolean benchmarkLogAvailable) {
+        this.benchmarkLogAvailable = benchmarkLogAvailable;
+    }
+
+    /**
+     * @return the systemLogAvailable
+     */
+    public boolean isSystemLogAvailable() {
+        return systemLogAvailable;
+    }
+
+    /**
+     * @param systemLogAvailable the systemLogAvailable to set
+     */
+    public void setSystemLogAvailable(boolean systemLogAvailable) {
+        this.systemLogAvailable = systemLogAvailable;
     }
 }

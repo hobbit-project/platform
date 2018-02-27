@@ -1,0 +1,125 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix qb: <http://purl.org/linked-data/cube#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix hobbit: <http://w3id.org/hobbit/vocab#> .
+@prefix exp: <http://w3id.org/hobbit/experiments#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://example.org/> .
+@prefix bench: <http://w3id.org/bench#> .
+
+exp:ExperimentX_A a hobbit:Experiment ;
+  hobbit:involvesBenchmark bench:BenchmarkX;
+  hobbit:involvesSystemInstance ex:SystemA;
+  hobbit:startTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:hobbitPlatformVersion "V1.0" ;
+  hobbit:isPartOf ex:Challenge1Task1 ;
+  bench:dataType bench:TrafficData;
+  bench:kpiX "0.5"^^xsd:double .
+
+exp:ExperimentX_B a hobbit:Experiment ;
+  hobbit:involvesBenchmark bench:BenchmarkX;
+  hobbit:involvesSystemInstance ex:SystemB;
+  hobbit:startTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:hobbitPlatformVersion "V1.0" ;
+  hobbit:isPartOf ex:Challenge1Task1 ;
+  bench:dataType bench:TrafficData;
+  bench:kpiX "0.5"^^xsd:double .
+
+exp:ExperimentY_C a hobbit:Experiment ;
+  hobbit:involvesBenchmark bench:BenchmarkY;
+  hobbit:involvesSystemInstance ex:SystemC;
+  hobbit:startTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:hobbitPlatformVersion "V1.0" ;
+  hobbit:isPartOf ex:Challenge1Task2 ;
+  bench:dataSize "1000"^^xsd:positiveInteger;
+  bench:frequency "9"^^xsd:positiveInteger;
+  bench:kpiY "0.9"^^xsd:double .
+
+exp:ExperimentZ_D a hobbit:Experiment ;
+  hobbit:involvesBenchmark bench:BenchmarkZ;
+  hobbit:involvesSystemInstance ex:SystemD;
+  hobbit:startTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:endTime "2016-11-31T23:01:00"^^xsd:dateTime ;
+  hobbit:hobbitPlatformVersion "V1.0" ;
+  hobbit:isPartOf <http://w3id.org/hobbit/challenges#OAEILinkingChallenge> ;
+  bench:triples "1000"^^xsd:positiveInteger;
+  bench:kpiX "0.1"^^xsd:double .
+
+# --- Benchamrks ---
+
+bench:BenchmarkX a	hobbit:Benchmark;
+  rdfs:label "Benchmark X Label"@en;
+  rdfs:comment	"Benchmark X Desc"@en;
+  hobbit:hasParameter bench:dataType;
+    hobbit:hasAPI bench:ApiX;
+  hobbit:measuresKPI bench:kpiX .
+
+bench:dataType a hobbit:ConfigurableParameter;
+    rdfs:range bench:GenerationDataType .
+
+bench:GenerationDataType a owl:Class, rdfs:Class .
+
+bench:TrafficData a bench:GenerationDataType .
+
+bench:kpiX a hobbit:KPI;
+    rdfs:range xsd:double .
+
+bench:BenchmarkY a	hobbit:Benchmark;
+  rdfs:label "Benchmark Y Label"@en;
+  rdfs:comment	"Benchmark Y Desc"@en;
+  hobbit:hasParameter bench:dataSize;
+  hobbit:hasParameter bench:frequency;
+    hobbit:hasAPI bench:ApiY;
+  hobbit:measuresKPI bench:kpiY .
+
+bench:dataSize a hobbit:ConfigurableParameter;
+    rdfs:range xsd:positiveInteger .
+
+bench:frequency a hobbit:ConfigurableParameter;
+    rdfs:range xsd:positiveInteger .
+
+bench:kpiY a hobbit:KPI;
+    rdfs:range xsd:double .
+
+bench:BenchmarkZ a	hobbit:Benchmark;
+  rdfs:label "Benchmark Z Label"@en;
+  rdfs:comment	"Benchmark Z Desc"@en;
+  hobbit:hasParameter bench:triples;
+    hobbit:hasAPI bench:ApiZ;
+  hobbit:measuresKPI bench:kpiZ .
+
+bench:triples a hobbit:ConfigurableParameter;
+    rdfs:range xsd:positiveInteger .
+
+bench:kpiZ a hobbit:KPI;
+    rdfs:range xsd:double .
+
+# --- Systems ---
+
+ex:SystemA a  hobbit:SystemInstance ;
+  rdfs:label	"System A Label"@en;
+  rdfs:comment	"System A Desc"@en;
+  hobbit:imageName "SystemImageName" ;
+  hobbit:implementsAPI bench:ApiX .
+
+ex:SystemB a  hobbit:SystemInstance ;
+  rdfs:label	"System B Label"@en;
+  rdfs:comment	"System B Desc"@en;
+  hobbit:imageName "SystemImageName" ;
+  hobbit:implementsAPI bench:ApiX .
+
+ex:SystemC a  hobbit:SystemInstance ;
+  rdfs:label	"System C Label"@en;
+  rdfs:comment	"System C Desc"@en;
+  hobbit:imageName "SystemImageName" ;
+  hobbit:implementsAPI bench:ApiY .
+
+ex:SystemD a  hobbit:SystemInstance ;
+  rdfs:label	"System D Label"@en;
+  rdfs:comment	"System D Desc"@en;
+  hobbit:imageName "SystemImageName" ;
+  hobbit:implementsAPI bench:ApiZ .

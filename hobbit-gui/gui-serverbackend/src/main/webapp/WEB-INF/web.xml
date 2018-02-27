@@ -8,12 +8,31 @@
     <servlet-name>de.usu.research.hobbit.gui.rest.Application</servlet-name>
   </servlet>
 
+  <servlet>
+    <servlet-name>IndexServer</servlet-name>
+    <servlet-class>de.usu.research.hobbit.gui.util.IndexServer</servlet-class>
+  </servlet>
+
   <!-- Servlet mapping can be omitted in case the Application subclass
        is annotated with @ApplicationPath annotation; in such case
        the mapping would be automatically added by Jersey -->
   <servlet-mapping>
     <servlet-name>de.usu.research.hobbit.gui.rest.Application</servlet-name>
     <url-pattern>/rest/*</url-pattern>
+  </servlet-mapping>
+
+  <servlet-mapping>
+    <servlet-name>IndexServer</servlet-name>
+    <url-pattern>/benchmarks</url-pattern>
+    <url-pattern>/benchmarks/*</url-pattern>
+    <url-pattern>/challenges</url-pattern>
+    <url-pattern>/challenges/*</url-pattern>
+    <url-pattern>/experiments</url-pattern>
+    <url-pattern>/experiments/*</url-pattern>
+    <url-pattern>/home</url-pattern>
+    <url-pattern>/home/*</url-pattern>
+    <url-pattern>/upload</url-pattern>
+    <url-pattern>/upload/*</url-pattern>
   </servlet-mapping>
 
   <security-constraint>
@@ -65,12 +84,21 @@
     <filter-class>de.usu.research.hobbit.gui.util.CorsFilter</filter-class>
   </filter>
   <filter>
+    <filter-name>cache</filter-name>
+    <filter-class>de.usu.research.hobbit.gui.util.CacheFilter</filter-class>
+  </filter>
+  <filter>
     <filter-name>mqconn</filter-name>
     <filter-class>de.usu.research.hobbit.gui.util.ConnectionShutdownFilter</filter-class>
   </filter>
 
   <filter-mapping>
     <filter-name>cors</filter-name>
+    <url-pattern>/rest/*</url-pattern>
+  </filter-mapping>
+
+  <filter-mapping>
+    <filter-name>cache</filter-name>
     <url-pattern>/rest/*</url-pattern>
   </filter-mapping>
 

@@ -1,0 +1,26 @@
+<div class="container">
+  <app-page-header>
+    <h1>Experiments of Tasks for Challenge {{challenge?.name}}</h1>
+  </app-page-header>
+
+  <div *ngIf="challenge">
+    <p-dataTable [value]="counts" selectionMode="single" (onRowSelect)="handleSelect($event)" resizableColumns="true" [tableStyleClass]="'experiment-table'"
+      sortField="challengeTask.name" [(selection)]="selectedCount">
+      <p-column field="challengeTask.name" header="Task Name" [sortable]="true"></p-column>
+      <p-column field="count" header="Counts" [sortable]="true"></p-column>
+    </p-dataTable>
+    <br>
+    <div *ngIf="selectedCount">
+      <h4>Experiments for Task {{selectedCount.challengeTask.name}}</h4>
+
+      <p>{{selectedCount.challengeTask.description}}</p>
+
+      <p *ngIf="selectedCount.count === 0">No experiments found</p>
+      <div *ngIf="selectedCount.count > 0">
+
+      </div>
+      <app-experiments-details *ngIf="selectedCount.count > 0" [challengeTaskId]="selectedCount.challengeTask.id">
+      </app-experiments-details>
+    </div>
+  </div>
+</div>

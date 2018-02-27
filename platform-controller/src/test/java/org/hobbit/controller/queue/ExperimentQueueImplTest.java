@@ -17,9 +17,12 @@
 package org.hobbit.controller.queue;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import org.hobbit.controller.data.ExperimentConfiguration;
@@ -67,6 +70,18 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         List<String> items = redisSyncCommands.zrangebyscore(ExperimentQueueImpl.EXPERIMENT_QUEUE, "-inf", "+inf", 0, 1);
         String ID = items.get(0);
         assertEquals(cfg.id, ID);
+        
+        // get specific experiment from queue
+        ExperimentConfiguration retrievedCfg = queue.getExperiment(cfg.id);
+        assertNotNull(retrievedCfg);
+        assertEquals(cfg.id, retrievedCfg.id);
+        assertEquals(cfg.benchmarkUri, retrievedCfg.benchmarkUri);
+        assertEquals(cfg.systemUri, retrievedCfg.systemUri);
+        assertEquals(cfg.challengeUri, retrievedCfg.challengeUri);
+        assertEquals(cfg.challengeTaskUri, retrievedCfg.challengeTaskUri);
+        //        assertEquals(cfg.executionDate, retrievedCfg.executionDate);
+        assertEquals(cfg.userName, retrievedCfg.userName);
+        assertEquals(cfg.serializedBenchParams, retrievedCfg.serializedBenchParams);
 
         // remove from queue
         queue.remove(cfg);
@@ -109,9 +124,12 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         // get a list
         List<ExperimentConfiguration> allThree = queue.listAll();
         assertEquals(allThree.size(), 3);
-        assertEquals(allThree.get(0).id, "2");
-        assertEquals(allThree.get(1).id, "1");
-        assertEquals(allThree.get(2).id, "3");
+        // queue.listAll() returns items with no specific order
+        List<String> gotIds = Arrays.asList(allThree.get(0).id, allThree.get(1).id, allThree.get(2).id);
+        Collections.sort(gotIds);
+        List<String> expectedIds = Arrays.asList(cfg.id, cfg2.id, cfg3.id);
+        Collections.sort(expectedIds);
+        assertEquals("List of all items in the queue", expectedIds, gotIds);
     }
 
     @Test

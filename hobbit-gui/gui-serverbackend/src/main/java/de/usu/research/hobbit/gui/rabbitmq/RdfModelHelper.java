@@ -34,6 +34,8 @@ import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.impl.ModelCom;
+import org.apache.jena.rdf.model.impl.SeqImpl;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -51,6 +53,7 @@ import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
@@ -99,7 +102,8 @@ public class RdfModelHelper {
         return createBenchmarkBean(model, benchmarkResource, bean);
     }
 
-    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource, Resource experimentResource) {
+    public static ConfiguredBenchmarkBean createConfiguredBenchmarkBean(Model model, Resource benchmarkResource,
+            Resource experimentResource) {
         ConfiguredBenchmarkBean bean = new ConfiguredBenchmarkBean();
         createBenchmarkBean(model, benchmarkResource, bean);
 
@@ -107,8 +111,8 @@ public class RdfModelHelper {
         Map<String, ConfigurationParamValueBean> configuredParams = new HashMap<String, ConfigurationParamValueBean>();
         createParamValueBeans(model, experimentResource,
                 model.listResourcesWithProperty(RDF.type, HOBBIT.ConfigurableParameter), configuredParams);
-        createParamValueBeans(model, experimentResource,
-                model.listResourcesWithProperty(RDF.type, HOBBIT.Parameter), configuredParams);
+        createParamValueBeans(model, experimentResource, model.listResourcesWithProperty(RDF.type, HOBBIT.Parameter),
+                configuredParams);
         bean.setConfigurationParamValues(new ArrayList<>(configuredParams.values()));
 
         return bean;
@@ -140,6 +144,10 @@ public class RdfModelHelper {
         bean.setName(label);
         bean.setDescription(description);
         parseBenchmarkParameters(model, benchmarkResource, bean);
+
+        Map<String, KeyPerformanceIndicatorBean> kpiMap = new HashMap<>();
+        createKPIBeans(model, benchmarkResource, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpiMap);
+        bean.setKpis(new ArrayList<>(kpiMap.values()));
         return bean;
     }
 
@@ -422,6 +430,21 @@ public class RdfModelHelper {
         }
         task.setConfigurationParams(createParamValueBeans(model, taskResource, benchmarkResource));
         task.setId(taskResource.getURI());
+
+        List<String> rankingKPIs = new ArrayList<>();
+        Resource rankingKPIsSequence = RdfHelper.getObjectResource(model, taskResource, HOBBIT.rankingKPIs);
+        if (rankingKPIsSequence != null) {
+            SeqImpl sequence = new SeqImpl(rankingKPIsSequence, (ModelCom) model);
+            NodeIterator sequenceIterator = sequence.iterator();
+            while (sequenceIterator.hasNext()) {
+                RDFNode node = sequenceIterator.next();
+                if (node.isResource()) {
+                    rankingKPIs.add(node.asResource().toString());
+                }
+            }
+        }
+        task.setRankingKPIs(rankingKPIs);
+
         return task;
     }
 
@@ -522,6 +545,55 @@ public class RdfModelHelper {
         }
     }
 
+    private static void createKPIBeans(Model model, Resource resource, ResIterator parameterIterator,
+            Map<String, KeyPerformanceIndicatorBean> kpis) {
+        Resource kpi;
+        Property kpiProp;
+        String parameterUri;
+        while (parameterIterator.hasNext()) {
+            kpi = parameterIterator.next();
+            parameterUri = kpi.getURI();
+            kpiProp = model.getProperty(parameterUri);
+            // If the KPI has not been seen before AND (it is either used as
+            // property with the given resource OR the given resource is
+            // connected via hobbit:measuresKPI with the KPI)
+            if ((model.contains(resource, kpiProp) || model.contains(resource, HOBBIT.measuresKPI, kpi))
+                    && !kpis.containsKey(parameterUri)) {
+                KeyPerformanceIndicatorBean kpiBean = new KeyPerformanceIndicatorBean();
+                kpiBean.setId(parameterUri);
+                kpiBean.setValue(RdfHelper.getStringValue(model, resource, kpiProp));
+
+                kpiBean.setName(RdfHelper.getLabel(model, kpiProp));
+                if (kpiBean.getName() == null) {
+                    kpiBean.setName(kpi.getURI());
+                    LOGGER.info("The benchmark parameter {} does not have a label.", kpi.getURI());
+                }
+                kpiBean.setDescription(RdfHelper.getDescription(model, kpiProp));
+                if (kpiBean.getDescription() == null) {
+                    LOGGER.info("The benchmark parameter {} does not have a description.", kpi.getURI());
+                }
+                NodeIterator nodeIterator = model.listObjectsOfProperty(kpi, RDFS.range);
+                RDFNode node;
+                if (nodeIterator.hasNext()) {
+                    node = nodeIterator.next();
+                    if (node.isResource()) {
+                        Resource typeResource = node.asResource();
+                        kpiBean.setRange(typeResource.getURI());
+                        // If this is an XSD resource
+                        if (XSD.getURI().equals(typeResource.getNameSpace())) {
+                            kpiBean.setDatatype(parseXsdType(typeResource));
+                        }
+                    }
+                }
+                Resource ranking = RdfHelper.getObjectResource(model, kpi, HOBBIT.ranking);
+                if (ranking != null) {
+                    kpiBean.setRanking(ranking.toString());
+                }
+                kpis.put(parameterUri, kpiBean);
+            }
+        }
+    }
+
     private static void createParamValueBeans(Model model, Resource taskResource, NodeIterator parameterIterator,
             Map<String, ConfigurationParamValueBean> parameters) {
         RDFNode node;
@@ -587,8 +659,8 @@ public class RdfModelHelper {
         if (challengeTask != null) {
             bean.setChallengeTask(getChallengeTask(model, challengeTask));
         }
-        Map<String, ConfigurationParamValueBean> kpis = new HashMap<String, ConfigurationParamValueBean>();
-        createParamValueBeans(model, experiment, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpis);
+        Map<String, KeyPerformanceIndicatorBean> kpis = new HashMap<String, KeyPerformanceIndicatorBean>();
+        createKPIBeans(model, experiment, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpis);
         bean.setKpis(new ArrayList<>(kpis.values()));
 
         bean.setError(getErrorMessage(RdfHelper.getObjectResource(model, experiment, HOBBIT.terminatedWithError)));
@@ -604,8 +676,13 @@ public class RdfModelHelper {
         List<ChallengeBean> challenges = listChallenges(model);
         for (ChallengeBean challenge : challenges) {
             for (ChallengeTaskBean task : challenge.getTasks()) {
-                for (SystemBean system : task.getBenchmark().getSystems()) {
-                    registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                BenchmarkBean benchmark = task.getBenchmark();
+                if (benchmark != null) {
+                    for (SystemBean system : task.getBenchmark().getSystems()) {
+                        registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId()));
+                    }
+                } else {
+                    LOGGER.info("Task {} does not have a benchmark.", task.getId());
                 }
             }
         }
@@ -630,6 +707,8 @@ public class RdfModelHelper {
             return "The benchmarked system image could not be loaded.";
         } else if (HobbitErrors.SystemCreationError.equals(errorResource)) {
             return "The benchmarked system could not be created.";
+        } else if (HobbitErrors.TerminatedByUser.equals(errorResource)) {
+            return "The experiment has been terminated by the user.";
         } else if (HobbitErrors.UnexpectedError.equals(errorResource)) {
             return "An unexpected error occurred.";
         } else {

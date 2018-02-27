@@ -11,25 +11,25 @@
 # --- Challenge ---
 
 <http://example.org/MyChallenge> a	hobbit:Challenge;
-  rdfs:label "My example Challenge"@en;
-  rdfs:comment	"This is an example for a challenge."@en;
+    rdfs:label "My example Challenge"@en;
+    rdfs:comment	"This is an example for a challenge."@en;
 #	hobbit:executionDate "2016-12-24"^^xsd:date;
 #	hobbit:publicationDate "2016-12-26"^^xsd:date;
-  hobbit:executionDate "2016-12-24T00:00:00Z"^^xsd:dateTime;
-  hobbit:publicationDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
-  hobbit:organizer "Michael Roeder"@en;
+    hobbit:executionDate "2016-12-24T00:00:00Z"^^xsd:dateTime;
+    hobbit:publicationDate "2016-12-26T00:00:00Z"^^xsd:dateTime;
+    hobbit:organizer "Michael Roeder"@en;
     hobbit:visible "true"^^xsd:boolean;
     hobbit:closed "true"^^xsd:boolean .
 
 # --- Challenge Task 1 ---
 
 <http://example.org/MyChallengeTask1> a hobbit:ChallengeTask;
-  rdfs:label "Example task 1"@en;
-  rdfs:comment	"Task 1 of my example challenge."@en;
-  hobbit:isTaskOf <http://example.org/MyChallenge>;
-  hobbit:involvesBenchmark bench:lance;
-  bench:lanceDataFormat bench:RDF_XML;
-  hobbit:involvesSystemInstance <http://example.org/System> .
+    rdfs:label "Example task 1"@en;
+    rdfs:comment	"Task 1 of my example challenge."@en;
+    hobbit:isTaskOf <http://example.org/MyChallenge>;
+    hobbit:involvesBenchmark bench:lance;
+    bench:lanceDataFormat bench:RDF_XML;
+    hobbit:involvesSystemInstance <http://example.org/System> .
 
 bench:lance a	hobbit:Benchmark;
     rdfs:label "Lance Benchmark"@en;
@@ -40,30 +40,30 @@ bench:lance a	hobbit:Benchmark;
     hobbit:measuresKPI bench:recall ;
     hobbit:measuresKPI bench:fmeasure ;
     hobbit:hasAPI	bench:lanceApi;
-  hobbit:hasParameter bench:lanceDataFormat .
+    hobbit:hasParameter bench:lanceDataFormat .
 
 bench:precision a hobbit:KPI;
     rdfs:label "Precision"@en;
-  rdfs:comment	"Precision = TP / (TP + FP)"@en;
-  rdfs:range	xsd:float .
+    rdfs:comment	"Precision = TP / (TP + FP)"@en;
+    rdfs:range	xsd:float .
 
 bench:recall a hobbit:KPI;
     rdfs:label "Recall"@en;
-  rdfs:comment	"Recall = TP / (TP + FN)"@en;
-  rdfs:range	xsd:float .
+    rdfs:comment	"Recall = TP / (TP + FN)"@en;
+    rdfs:range	xsd:float .
 
 bench:fmeasure a hobbit:KPI;
     rdfs:label "F-measure"@en;
-  rdfs:comment	"F-measure is the harmonic mean of precision and recall."@en;
-  rdfs:range	xsd:float .
+    rdfs:comment	"F-measure is the harmonic mean of precision and recall."@en;
+    rdfs:range	xsd:float .
 
 bench:lanceApi a hobbit:API .
 
 bench:lanceDataFormat  a	hobbit:ConfigurableParameter;
-  rdfs:label	"Lance dataset format"@en;
-  rdfs:comment	"......."@en;
+    rdfs:label	"Lance dataset format"@en;
+    rdfs:comment	"......."@en;
     rdfs:range bench:DataFormat;
-  hobbit:defaultValue bench:Turtle .
+    hobbit:defaultValue bench:Turtle .
 
 bench:DataFormat  a owl:Class .
 bench:RDF_XML a bench:DataFormat .
@@ -71,41 +71,56 @@ bench:N3  a bench:DataFormat .
 bench:Turtle a bench:DataFormat .
 
 sys:limesV1 a  hobbit:SystemInstance ;
-  rdfs:label	"Limes"@en;
-  rdfs:comment	"Limes is an Instance Matching System..."@en;
-  hobbit:imageName "LimesImageName" ;
-  hobbit:implementsAPI bench:lanceApi ;
-  hobbit:instanceOf sys:limes ;
-  sys:threshold "0.7"^^xsd:float .
+    rdfs:label	"Limes"@en;
+    rdfs:comment	"Limes is an Instance Matching System..."@en;
+    hobbit:imageName "LimesImageName" ;
+    hobbit:implementsAPI bench:lanceApi ;
+    hobbit:instanceOf sys:limes ;
+    sys:threshold "0.7"^^xsd:float .
 
 sys:limes a hobbit:System ;
     hobbit:hasParameter sys:threshold .
 
 sys:threshold a hobbit:FeatureParameter;
-  rdfs:label	"Limes Parameter"@en;
-  rdfs:comment	"Threshold parameter for Limes system."@en;
+    rdfs:label	"Limes Parameter"@en;
+    rdfs:comment	"Threshold parameter for Limes system."@en;
     rdfs:range	xsd:float .
 
 # --- Challenge Task 2 ---
 
 <http://example.org/MyChallengeTask2> a hobbit:ChallengeTask;
-  rdfs:label "Example task 2"@en;
-  rdfs:comment	"The second task of my example challenge."@en;
-  hobbit:isTaskOf <http://example.org/MyChallenge>;
-  hobbit:involvesBenchmark bench:BenchmarkY;
-  bench:dataSize "1000"^^xsd:positiveInteger;
-  bench:frequency "9"^^xsd:positiveInteger;
-  hobbit:involvesSystemInstance <http://example.org/SystemC> .
+    rdfs:label "Example task 2"@en;
+    rdfs:comment	"The second task of my example challenge."@en;
+    hobbit:isTaskOf <http://example.org/MyChallenge>;
+    hobbit:involvesBenchmark bench:BenchmarkY;
+    bench:dataSize "1000"^^xsd:positiveInteger;
+    bench:frequency "9"^^xsd:positiveInteger;
+    hobbit:rankingKPIs <http://example.org/MyChallengeTask2_KPIs>;
+    hobbit:involvesSystemInstance <http://example.org/SystemC> .
+    
+<http://example.org/MyChallengeTask2_KPIs> a hobbit:KPISeq, rdf:Seq;
+    rdf:_1 bench:Kpi1;
+    rdf:_2 bench:Kpi2 .
 
 bench:BenchmarkY a	hobbit:Benchmark;
-  hobbit:hasParameter bench:dataSize;
-  hobbit:hasParameter bench:frequency .
+    hobbit:hasParameter bench:dataSize;
+    hobbit:hasParameter bench:frequency;
+    hobbit:measuresKPI bench:Kpi1;
+    hobbit:measuresKPI bench:Kpi2 .
 
 bench:dataSize a hobbit:ConfigurableParameter;
     rdfs:range  xsd:positiveInteger .
 
 bench:frequency a hobbit:ConfigurableParameter;
     rdfs:range  xsd:positiveInteger .
+
+bench:Kpi1 a hobbit:KPI;
+    rdfs:range  xsd:unsignedInt;
+    hobbit:ranking hobbit:DescendingOrder .
+
+bench:Kpi2 a hobbit:KPI;
+    rdfs:range  xsd:unsignedInt;
+    hobbit:ranking hobbit:AscendingOrder .
 
 # --- Experiment ---
 

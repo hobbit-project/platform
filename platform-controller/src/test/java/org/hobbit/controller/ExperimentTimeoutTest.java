@@ -6,26 +6,31 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.queue.InMemoryQueue;
 import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.ControllerStatus;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
-import org.junit.*;
-
-import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerInfo;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
+
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.Task;
 
 /**
  * A simple test that uses a dummy {@link PlatformController} to simulate an
@@ -51,14 +56,14 @@ public class ExperimentTimeoutTest {
     @Before
     public void init() {
         // set max execution time to 1s
-        environmentVariables.set("MAX_EXECUTION_TIME", "1000");
+        System.setProperty("MAX_EXECUTION_TIME", "1000");
         controller = new DummyPlatformController(benchmarkControllerTerminated);
         controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, BENCHMARK_NAME, "{}", SYSTEM_URI));
         manager = new ExperimentManager(controller, 1000, 1000);
         controller.expManager = manager;
     }
 
-    @Test /* (timeout = 10000) */
+    @Test (timeout = 10000)
     public void test() throws Exception {
         benchmarkControllerTerminated.acquire();
         // Give the system some time to tidy up
@@ -67,9 +72,8 @@ public class ExperimentTimeoutTest {
         Assert.assertEquals(0, controller.queue.listAll().size());
         // Check status
         ControllerStatus status = new ControllerStatus();
-        manager.addStatusInfo(status);
-        Assert.assertNull(status.currentExperimentId);
-        Assert.assertNull(status.currentBenchmarkUri);
+        manager.addStatusInfo(status, "");
+        Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
@@ -88,6 +92,11 @@ public class ExperimentTimeoutTest {
             containerManager = new DummyContainerManager(benchmarkControllerTerminated, this);
             queue = new InMemoryQueue();
             storage = new DummyStorageServiceClient();
+            try {
+                clusterManager = new ClusterManagerImpl();
+            } catch (DockerCertificateException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
@@ -104,77 +113,55 @@ public class ExperimentTimeoutTest {
         public void notifyTermination(String containerId, int exitCode) {
             expManager.notifyTermination(containerId, exitCode);
         }
+        
+        @Override
+        protected void sendToCmdQueue(String address, byte command, byte[] data, BasicProperties props)
+                throws IOException {
+            // nothing to do
+//            receiveCommand(command, data, address, null);
+        }
     }
 
     private static class DummyImageManager implements ImageManager {
 
         @Override
         public List<BenchmarkMetaData> getBenchmarks() {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsOfUser(String userName) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsForBenchmark(String benchmarkUri) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public List<SystemMetaData> getSystemsForBenchmark(Model benchmarkModel) {
-            return new ArrayList<>(0);
-        }
-
-        @Override
-        public Model getBenchmarkModel(String benchmarkUri) {
-            return ModelFactory.createDefaultModel();
-        }
-
-        @Override
-        public Model getSystemModel(String systemUri) {
-            return ModelFactory.createDefaultModel();
-        }
-
-        @Override
-        public String getBenchmarkImageName(String benchmarkUri) {
-            return benchmarkUri;
-        }
-
-        @Override
-        public String getSystemImageName(String systemUri) {
-            return systemUri;
-        }
-
-        @Override
-        public BenchmarkMetaData modelToBenchmarkMetaData(Model model) throws Exception {
+            List<BenchmarkMetaData> result = new ArrayList<>();
             BenchmarkMetaData meta = new BenchmarkMetaData();
+            meta.uri = BENCHMARK_NAME;
+            meta.name = BENCHMARK_NAME;
+            meta.mainImage = BENCHMARK_NAME;
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("benchmarkImage1");
             meta.usedImages.add("benchmarkImage2");
-            return meta;
+            meta.rdfModel = ModelFactory.createDefaultModel();
+            result.add(meta);
+            return result;
         }
 
         @Override
-        public List<SystemMetaData> modelToSystemMetaData(Model model) throws Exception {
+        public List<SystemMetaData> getSystems() {
             List<SystemMetaData> result = new ArrayList<>();
             SystemMetaData meta = new SystemMetaData();
-            meta.systemUri = SYSTEM_URI;
+            meta.uri = SYSTEM_URI;
+            meta.name = meta.uri;
+            meta.mainImage = "SystemImage";
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("SystemImage1");
             meta.usedImages.add("SystemImage2");
+            meta.rdfModel = ModelFactory.createDefaultModel();
             result.add(meta);
             meta = new SystemMetaData();
-            meta.systemUri = "wrong_" + SYSTEM_URI;
+            meta.uri = "wrong_" + SYSTEM_URI;
+            meta.name = meta.uri;
+            meta.mainImage = "wrong_SystemImage";
             meta.usedImages = new HashSet<>();
             meta.usedImages.add("wrong_SystemImage1");
             meta.usedImages.add("wrong_SystemImage2");
+            meta.rdfModel = ModelFactory.createDefaultModel();
             result.add(meta);
-            return new ArrayList<>(0);
+            return result;
         }
-
     }
 
     private static class DummyContainerManager implements ContainerManager {
@@ -215,6 +202,12 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
+        public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                     String[] command, String experimentId) {
+            return imageName;
+        }
+
+        @Override
         public void stopContainer(String containerId) {
             // Check whether the benchmark controller has been terminated
             if (containerId.equals(BENCHMARK_NAME)) {
@@ -240,15 +233,16 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void removeParentAndChildren(String parentId) {
+            stopContainer(parentId);
         }
 
         @Override
-        public ContainerInfo getContainerInfo(String containerId) {
+        public Task getContainerInfo(String containerId) {
             return null;
         }
 
         @Override
-        public List<Container> getContainers() {
+        public List<Container> getContainers(ListContainersParam... params) {
             return new ArrayList<>(0);
         }
 
@@ -268,9 +262,14 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void pullImage(String imageName) {
-            System.out.print("Pulling Image ");
+            System.out.print("Pulling Image (fake) ");
             System.out.print(imageName);
             System.out.println("...");
+        }
+
+        @Override
+        public ContainerStats getStats(String containerId) {
+            return null;
         }
 
     }

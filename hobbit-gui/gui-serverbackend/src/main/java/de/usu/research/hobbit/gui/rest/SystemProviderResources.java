@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
@@ -29,9 +30,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.GenericEntity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.core.Constants;
@@ -58,20 +62,19 @@ public class SystemProviderResources {
     // registrations = new ConcurrentHashMap<>();
 
     @GET()
-    @RolesAllowed("system-provider")
+    @RolesAllowed("system-provider") // Guests can not access this method
     @Path("systems")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<SystemBean> getSystems(@Context SecurityContext sc) {
-        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        LOGGER.info("getSystems for " + userInfo.getPreferredUsername());
-        // LOGGER.info("getSystems for PreferredUsername=" +
-        // userInfo.getPreferredUsername() + " name="
-        // + userInfo.getName() + " PrincipalName=" + userInfo.userPrincipalName
-        // + " email=" + userInfo.email);
+    public Response processSystems(@Context SecurityContext sc) {
+        List<SystemBean> list = getSystems(sc);
+        return Response.ok(new GenericEntity<List<SystemBean>>(list){}).build();
+    }
 
+    private List<SystemBean> getSystems(SecurityContext sc) {
+        UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
         if (client != null) {
-            return client.requestSystemsOfUser(userInfo.getPreferredUsername());
+            return client.requestSystemsOfUser(userInfo.getEmail());
         } else {
             LOGGER.error("Couldn't get platform controller client. Returning empty list.");
             return new ArrayList<>(0);
@@ -81,33 +84,46 @@ public class SystemProviderResources {
     @GET
     @Path("challenge-all-registrations/{challengeId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<TaskRegistrationBean> getAllChallengeRegistrations(@Context SecurityContext sc,
-            @PathParam("challengeId") String challengeId) throws Exception {
+    public Response getAllChallengeRegistrations(@Context SecurityContext sc,
+            @PathParam("challengeId") String challengeId) {
         UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
-        LOGGER.info("get all registered systems for challenge {} and user {}.", challengeId,
+        LOGGER.info("get registered systems for challenge {} and user {}.", challengeId,
                 userInfo.getPreferredUsername());
 
-        ChallengeBean challenge = (new ChallengesResources()).getById(challengeId, sc);
+        // Retrieve the registrations
+        ChallengeBean challenge = ChallengesResources.getChallenge(challengeId, sc);
+        if (challenge == null)
+            return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + challengeId + " not found")).build();
+
+        StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        List<TaskRegistrationBean> result = RdfModelHelper.listRegisteredSystems(challengeModel);
         // make sure that the user is the owner of the challenge
-        if (userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
-            StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
-            Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
-            return RdfModelHelper.listRegisteredSystems(challengeModel);
-        } else {
-            LOGGER.info("{} does not match the expected {}", userInfo.getPreferredUsername(), challenge.getOrganizer());
-            return new ArrayList<>();
+        if (!userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
+                // if not, iterate over the beans and remove all beans that are not owned by the current user
+                if (result != null) {
+                    Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(userInfo);
+                    result = result.stream()
+                            .filter(reg -> userOwnedSystemIds.contains(reg.getSystemId()))
+                            .collect(Collectors.toList());
+                }
         }
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(result){}).build();
     }
 
     @GET
     @RolesAllowed("system-provider")
     @Path("challenge-registrations/{challengeId}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<TaskRegistrationBean> getChallengeRegistrations(@Context SecurityContext sc,
+    public Response processChallengeRegistrations(@Context SecurityContext sc,
             @PathParam("challengeId") String challengeId) {
+        return Response.ok(new GenericEntity<List<TaskRegistrationBean>>(getChallengeRegistrations(sc, challengeId)){}).build();
+    }
+
+    private List<TaskRegistrationBean> getChallengeRegistrations(SecurityContext sc, String challengeId) {
         // Get the list of registered systems
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
-        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, null));
+        Model challengeModel = storage.sendConstructQuery(SparqlQueries.getChallengeGraphQuery(challengeId, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         List<TaskRegistrationBean> registrations = RdfModelHelper.listRegisteredSystems(challengeModel);
         // filter the list based on the systems that are visible for this user
         List<TaskRegistrationBean> visibleRegistrations = new ArrayList<>();
@@ -128,14 +144,15 @@ public class SystemProviderResources {
     @RolesAllowed("system-provider")
     @Path("challenge-registrations/{challengeId}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
+    public Response updateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
             List<TaskRegistrationBean> list) {
         // who is using this method?
         doUpdateChallengeRegistrations(sc, challengeId, list, null);
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
-    private void doUpdateChallengeRegistrations(@Context SecurityContext sc, @PathParam("challengeId") String challengeId,
-            List<TaskRegistrationBean> list, String taskIdToUpdate) {
+    private void doUpdateChallengeRegistrations(@Context SecurityContext sc,
+            @PathParam("challengeId") String challengeId, List<TaskRegistrationBean> list, String taskIdToUpdate) {
         // check whether the user is allowed to change the given registrations,
         // i.e., whether he is allowed to see the systems.
         List<SystemBean> systems = getSystems(sc);
@@ -183,7 +200,7 @@ public class SystemProviderResources {
     @RolesAllowed("system-provider")
     @Path("challenge-registrations/{challengeId}/{taskId}")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void updateChallengeTaskRegistrations(@Context SecurityContext sc,
+    public Response updateChallengeTaskRegistrations(@Context SecurityContext sc,
             @PathParam("challengeId") String challengeId, @PathParam("taskId") String taskId,
             List<TaskRegistrationBean> list) {
         List<TaskRegistrationBean> registrationsForTask = new ArrayList<>();
@@ -193,6 +210,7 @@ public class SystemProviderResources {
             }
         }
         doUpdateChallengeRegistrations(sc, challengeId, registrationsForTask, taskId);
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
 }

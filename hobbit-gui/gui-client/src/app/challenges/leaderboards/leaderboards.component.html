@@ -1,0 +1,21 @@
+<div class="container">
+  <app-page-header>
+    <h1>Leaderboards of Tasks for Challenge {{challenge?.name}}</h1>
+  </app-page-header>
+
+  <div *ngIf="challenge">
+    <p-dataTable [value]="challenge.tasks" selectionMode="single" (onRowSelect)="handleSelect($event)" resizableColumns="true" [tableStyleClass]="'experiment-table'"
+      sortField="name" [(selection)]="selectedTask">
+      <p-column field="name" header="Task Name" [sortable]="true"></p-column>
+    </p-dataTable>
+    <br>
+    <div *ngIf="selectedTask">
+      <h4>Leaderboard for Task {{selectedTask.name}}</h4>
+
+      <p>{{selectedTask.description}}</p>
+
+      <app-leaderboard-details [challengeTaskId]="selectedTask.id" [rankingKPIs]="selectedTask.rankingKPIs">
+      </app-leaderboard-details>
+    </div>
+  </div>
+</div>

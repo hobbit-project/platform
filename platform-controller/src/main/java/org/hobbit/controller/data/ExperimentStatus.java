@@ -33,6 +33,7 @@ import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Constants;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -56,6 +57,10 @@ public class ExperimentStatus implements Closeable {
      *
      */
     public static enum States {
+        /**
+         * The platform is still preparing the experiment, e.g., pulling Docker images.
+         */
+        PREPARATION("The platform is preparing the experiment."),
         /**
          * Benchmark and system are still initializing.
          */
@@ -95,9 +100,14 @@ public class ExperimentStatus implements Closeable {
      */
     private final long startTimeStamp;
     /**
+     * The timestamp at which the experiment will be aborted by the
+     * {@link #abortTimer}.
+     */
+    private long abortionTimeStamp = 0;
+    /**
      * State of the benchmark.
      */
-    private States state = States.INIT;
+    private States state = States.PREPARATION;
     /**
      * Flag indicating whether the benchmark is ready.
      */
@@ -125,31 +135,89 @@ public class ExperimentStatus implements Closeable {
     /**
      * Timer used to abort the experiment if it takes too much time.
      */
-    private Timer abortTimer;
+    private final Timer abortTimer;
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI and the current system time as start time.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the given starting time and starts the abortion
+     * timer using the given maximum runtime of the experiment and the experiment
+     * manager which will be used to abort the experiment if the time is exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param startTimeStamp
+     *            the time stamp at which the experiment is started.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, long startTimeStamp) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the current system time as start time and starts
+     * the abortion timer using the given maximum runtime of the experiment and the
+     * experiment manager which will be used to abort the experiment if the time is
+     * exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting) {
         this(config, experimentUri, manager, timeUntilAborting, System.currentTimeMillis());
     }
 
+    /**
+     * Creates an experiment status with the given experiment config, the given
+     * experiment URI as well as the given starting time and starts the abortion
+     * timer using the given maximum runtime of the experiment and the experiment
+     * manager which will be used to abort the experiment if the time is exceeded.
+     * 
+     * @param config
+     *            the configuration of the experiment
+     * @param experimentUri
+     *            the URI of the experiment
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     * @param startTimeStamp
+     *            the time stamp at which the experiment is started.
+     */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting, long startTimeStamp) {
         this.config = config;
         this.experimentUri = experimentUri;
         this.startTimeStamp = startTimeStamp;
-
+        this.abortTimer = new Timer();
+        // If a manager is provided, the abortion timer should be started directly
         if (manager != null) {
-            LOGGER.info("Creating abort timer for " + experimentUri + " with " + timeUntilAborting + "ms.");
-            abortTimer = new Timer();
-            abortTimer.schedule(new ExperimentAbortTimerTask(manager, this), timeUntilAborting);
+            startAbortionTimer(manager, timeUntilAborting);
         }
     }
 
@@ -197,14 +265,40 @@ public class ExperimentStatus implements Closeable {
         this.systemContainer = systemContainer;
     }
 
+    public long getStartTimeStamp() {
+        return startTimeStamp;
+    }
+
+    public long getAbortionTimeStamp() {
+        return abortionTimeStamp;
+    }
+
     /**
-     * The method sets a flag that (depending on the given flag) the system or
-     * the benchmark is ready and returns <code>true</code> if internally both
-     * have the state of being ready.
+     * Starts the abortion timer using the given maximum runtime of the experiment
+     * and the experiment manager which will be used to abort the experiment if the
+     * time is exceeded.
+     * 
+     * @param manager
+     *            experiment manager which is used if the maximum runtime is
+     *            exceeded
+     * @param timeUntilAborting
+     *            the maximum runtime for this experiment which is used to configure
+     *            the internal timer.
+     */
+    public void startAbortionTimer(ExperimentManager manager, long timeUntilAborting) {
+        abortionTimeStamp = System.currentTimeMillis() + timeUntilAborting;
+        LOGGER.info("Creating abort timer for " + experimentUri + " with " + timeUntilAborting + "ms.");
+        abortTimer.schedule(new ExperimentAbortTimerTask(manager, this), timeUntilAborting);
+    }
+
+    /**
+     * The method sets a flag that (depending on the given flag) the system or the
+     * benchmark is ready and returns <code>true</code> if internally both have the
+     * state of being ready.
      *
      * @param systemReportedReady
-     *            <code>true</code> if the system is ready or <code>false</code>
-     *            if the benchmark is ready
+     *            <code>true</code> if the system is ready or <code>false</code> if
+     *            the benchmark is ready
      * @return <code>true</code> if system and benchmark are ready
      */
     public synchronized boolean setReadyAndCheck(boolean systemReportedReady) {
@@ -276,8 +370,8 @@ public class ExperimentStatus implements Closeable {
     }
 
     /**
-     * Adds the given error to the result model if it does not already contain
-     * an error.
+     * Adds the given error to the result model if it does not already contain an
+     * error.
      *
      * <p>
      * This method is thread-safe.
@@ -413,8 +507,8 @@ public class ExperimentStatus implements Closeable {
      * regarding the benchmark and the system to the experiment result model.
      * 
      * @param imageManager
-     *            used to get RDF models for the benchmark and the system of
-     *            this experiment
+     *            used to get RDF models for the benchmark and the system of this
+     *            experiment
      */
     public void addMetaDataToResult(ImageManager imageManager) {
         try {
@@ -430,14 +524,16 @@ public class ExperimentStatus implements Closeable {
             }
             // Add basic information about the benchmark and the system
             if (config.benchmarkUri != null) {
-                Model benchmarkModel = imageManager.getBenchmarkModel(config.benchmarkUri);
+                Model benchmarkModel = MetaDataFactory.getModelWithUniqueBenchmark(
+                        imageManager.getBenchmarkModel(config.benchmarkUri), config.benchmarkUri);
                 if (benchmarkModel != null) {
                     LOGGER.debug("Adding benchmark model : " + benchmarkModel.toString());
                     resultModel.add(benchmarkModel);
                 }
             }
             if (config.systemUri != null) {
-                Model systemModel = imageManager.getSystemModel(config.systemUri);
+                Model systemModel = MetaDataFactory
+                        .getModelWithUniqueSystem(imageManager.getSystemModel(config.systemUri), config.systemUri);
                 if (systemModel != null) {
                     resultModel.add(systemModel);
                 }

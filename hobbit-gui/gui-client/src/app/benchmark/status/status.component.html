@@ -1,0 +1,30 @@
+<div class="container">
+  <app-page-header>
+    <h1>Status</h1>
+  </app-page-header>
+
+  <div *ngIf="status">
+    <h2>Running Experiment</h2>
+    <div *ngIf="!status.runningExperiment">
+      <p>No experiments currently running</p>
+    </div>
+    <div *ngIf="status.runningExperiment">
+      <app-experiment-view [experiment]="status.runningExperiment"></app-experiment-view>
+    </div>
+    <hr>
+
+    <h2>Experiment Queue</h2>
+    <div *ngIf="status.queuedExperiments.length === 0">
+      <p>No experiments queued</p>
+    </div>
+    <div *ngIf="status.queuedExperiments.length !== 0">
+      <ul class="list-group">
+        <li *ngFor="let exp of status.queuedExperiments" class="list-group-item">
+            <app-experiment-view [experiment]="exp"></app-experiment-view>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+
+</div>

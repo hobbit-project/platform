@@ -1,0 +1,65 @@
+<div class="container">
+  <app-page-header>
+    <div class="row">
+      <div class="col-md-10">
+        <h1>Challenges</h1>
+      </div>
+      <div class="col-md-2">
+        <div class="pull-right">
+          <button type="button" class="btn btn-primary" *ngIf="user?.hasRole(Role.CHALLENGE_ORGANISER)" (click)="addChallenge()">Add Challenge</button>
+        </div>
+      </div>
+    </div>
+  </app-page-header>
+</div>
+<!-- [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)" -->
+
+<div class="container-fluid" *ngIf="loaded">
+  <div class="row">
+    <h2>Open Challenges</h2>
+    <p *ngIf="openChallenges.length == 0">No open challenges.</p>
+    <div class="col-md-12" *ngIf="openChallenges.length > 0">
+      <p-dataTable [value]="openChallenges" selectionMode="single" resizableColumns="true" sortField="name" [rows]="20" [paginator]="true"
+        [tableStyleClass]="'challenge-table'" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)"
+        sortField="name" [sortOrder]="1">
+        <p-column [filter]="true" filterPlaceholder="Search" filterMatchMode="contains" field="name" header="Name" [sortable]="true"
+          [styleClass]="'name-column'"></p-column>
+        <p-column field="description" header="Description" [sortable]="false" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"
+          [styleClass]="'desc-column'"></p-column>
+        <p-column field="organizer" header="Organizer" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"
+          [styleClass]="'organizer-column'"></p-column>
+        <p-column field="publishDate" header="Publish Date" [sortable]="true" [styleClass]="'date-column'"></p-column>
+        <p-column field="executionDate" header="Execution Date" [sortable]="true" [styleClass]="'date-column'"></p-column>
+        <p-column *ngIf="user?.hasRole(Role.CHALLENGE_ORGANISER)" field="visible" header="Visible" [sortable]="true" [styleClass]="'checkbox-column'">
+          <ng-template let-col let-challenge="rowData" pTemplate="body">
+            <input type="checkbox" class="form-check" [(ngModel)]="challenge.visible" disabled>
+          </ng-template>
+        </p-column>
+      </p-dataTable>
+    </div>
+  </div>
+
+
+  <div class="row" *ngIf="closedChallenges.length > 0">
+    <h2>Closed Challenges</h2>
+    <div class="col-md-12">
+      <p-dataTable [value]="closedChallenges" selectionMode="single" resizableColumns="true" sortField="name" [rows]="20" [paginator]="true"
+        [tableStyleClass]="'challenge-table'" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)"
+        sortField="executionDate" [sortOrder]="-1">
+        <p-column [filter]="true" filterPlaceholder="Search" filterMatchMode="contains" field="name" header="Name" [sortable]="true"
+          [styleClass]="'name-column'"></p-column>
+        <p-column field="description" header="Description" [sortable]="false" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"
+          [styleClass]="'desc-column'"></p-column>
+        <p-column field="organizer" header="Organizer" [sortable]="true" [filter]="true" filterPlaceholder="Search" filterMatchMode="contains"
+          [styleClass]="'organizer-column'"></p-column>
+        <p-column field="publishDate" header="Publish Date" [sortable]="true" [styleClass]="'date-column'"></p-column>
+        <p-column field="executionDate" header="Execution Date" [sortable]="true" [styleClass]="'date-column'"></p-column>
+        <p-column *ngIf="user?.hasRole(Role.CHALLENGE_ORGANISER)" field="visible" header="Visible" [sortable]="true" [styleClass]="'checkbox-column'">
+          <ng-template let-col let-challenge="rowData" pTemplate="body">
+            <input type="checkbox" class="form-check" [(ngModel)]="challenge.visible" disabled>
+          </ng-template>
+        </p-column>
+      </p-dataTable>
+    </div>
+  </div>
+</div>

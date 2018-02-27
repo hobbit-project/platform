@@ -21,6 +21,9 @@ import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.security.Principal;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -31,11 +34,13 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.collections.SetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -47,7 +52,10 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
+import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
+import de.usu.research.hobbit.gui.rest.beans.InfoBean;
 import de.usu.research.hobbit.gui.rest.beans.KeycloakConfigBean;
+import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 
 @Path("internal")
@@ -61,9 +69,9 @@ public class InternalResources {
     @Path("keycloak-config")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public KeycloakConfigBean getKeycloakConfig(@Context ServletContext servletContext) throws Exception {
+    public Response getKeycloakConfig(@Context ServletContext servletContext) {
         if (cachedBean != null) {
-            return cachedBean;
+            return Response.ok(cachedBean).build();
         }
 
         try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/jetty-web.xml")) {
@@ -74,21 +82,21 @@ public class InternalResources {
             }
             if (bean == null)
                 throw new GUIBackendException("Keycloak configuration not found");
-            return bean;
-        } catch (GUIBackendException e) {
-            throw e;
+            return Response.ok(bean).build();
         } catch (Exception e) {
-            throw new GUIBackendException("Error on retrieving Keycloak configuration: " + e, e);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(InfoBean.withMessage("Error on retrieving Keycloak configuration: " + e.getMessage()))
+                    .build();
         }
     }
 
     @GET
     @Path("user-info")
     @Produces(MediaType.APPLICATION_JSON)
-    public UserInfoBean userInfo(@Context SecurityContext sc) {
+    public Response userInfo(@Context SecurityContext sc) {
         UserInfoBean bean = getUserInfoBean(sc);
         LOGGER.info("User-info: " + bean);
-        return bean;
+        return Response.ok(bean).build();
     }
 
     public static UserInfoBean getUserInfoBean(SecurityContext sc) {
@@ -103,8 +111,7 @@ public class InternalResources {
                     String[] roleNames = Application.getRoleNames(sc);
                     bean.setRoles(Arrays.asList(roleNames));
 
-                    // as Keycloak adapter is not on classpath, get information
-                    // via
+                    // as Keycloak adapter is not on classpath, get information via
                     // reflection
                     // Security is a KeycloakSecurityContext
                     try {
@@ -154,6 +161,7 @@ public class InternalResources {
 
         KeycloakConfigBean bean = new KeycloakConfigBean();
         Node child = elem.getFirstChild();
+        String keycloakUrlUsedByJetty = null;
         while (child != null) {
             if (child instanceof Element && child.getNodeName().equals("Set")) {
                 String name = child.getAttributes().getNamedItem("name").getNodeValue();
@@ -163,7 +171,7 @@ public class InternalResources {
                     bean.setRealm(value);
                     break;
                 case "authServerUrl":
-                    bean.setUrl(value);
+                    keycloakUrlUsedByJetty = value;
                     break;
                 case "resource":
                     bean.setClientId(value.replace("REST", "GUI"));
@@ -172,6 +180,13 @@ public class InternalResources {
             }
 
             child = child.getNextSibling();
+        }
+        if (System.getenv().containsKey("KEYCLOAK_AUTH_URL")) {
+            bean.setUrl(System.getenv().get("KEYCLOAK_AUTH_URL"));
+        } else {
+            LOGGER.warn(
+                    "Couldn't get the redirect URL which should be used for keycloak. Reusing direct keycloak URL used by jetty.");
+            bean.setUrl(keycloakUrlUsedByJetty);
         }
         return bean;
     }
@@ -236,5 +251,44 @@ public class InternalResources {
             node = node.getNextSibling();
         }
         return null;
+    }
+
+    /**
+     * Retrieves the set of system URIs that are visible for the given user.
+     *
+     * @param userInfo
+     *            the bean describing the user for which the system URIs should be
+     *            returned
+     * @return the set of system URIs that are visible for the given user
+     */
+    @SuppressWarnings("unchecked")
+    public static Set<String> getUserSystemIds(UserInfoBean userInfo) {
+        String email = userInfo.getEmail();
+        // If the user has no mail address (the user account has a wrong configuration
+        // or it is the guest user account)
+        if ((email == null) || (email.isEmpty())) {
+            return SetUtils.EMPTY_SET;
+        }
+        List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
+                .requestSystemsOfUser(userInfo.getEmail());
+        // create set of user owned system ids
+        String[] sysIds = userSystems.stream().map(s -> s.getId()).toArray(String[]::new);
+        Set<String> userOwnedSystemIds = new HashSet<>(Arrays.asList(sysIds));
+        LOGGER.info("userSystems={}", userOwnedSystemIds.toString());
+        return userOwnedSystemIds;
+    }
+
+    /**
+     * Retrieves the set of system URIs that are visible for the given user.
+     *
+     * @param sc
+     *            the security context containing the user for which the system URIs
+     *            should be returned
+     * @return the set of system URIs that are visible for the given user
+     */
+    public static Set<String> getUserSystemIds(SecurityContext sc) {
+        UserInfoBean userInfo = getUserInfoBean(sc);
+        Set<String> userOwnedSystemIds = getUserSystemIds(userInfo);
+        return userOwnedSystemIds;
     }
 }

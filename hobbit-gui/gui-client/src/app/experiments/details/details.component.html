@@ -1,0 +1,42 @@
+<div *ngIf="loaded">
+  <div *ngIf="!rows">
+    <p>No experiment results found</p>
+  </div>
+  <div *ngIf="rows">
+    <div class="row">
+      <div class="col-md-12">
+        <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true" rowGroupMode="subheader" groupField="group"
+          expandableRowGroups="true" [expandedRowsGroups]="['Experiment', 'Parameter', 'KPIs', 'Logs']" [sortableRowGroup]="false">
+          <ng-template pTemplate="rowgroupheader" let-rowData>
+            <strong>{{rowData.group}}</strong>
+          </ng-template>
+          <p-column header="Experiment ID" styleClass="dataTableWrapping">
+            <ng-template let-row="rowData" pTemplate="body">
+              <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
+            </ng-template>
+          </p-column>
+          <p-column *ngFor="let ex of experiments; let i = index" styleClass="dataTableWrapping">
+            <ng-template pTemplate="header">
+              <span title="Experiment ID">{{ex.id}}</span>
+            </ng-template>
+            <ng-template pTemplate="body" let-row="rowData">
+              <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]; else notError" class="alert alert-danger" role="alert" [title]="row.values[i]">
+                {{row.values[i]}}
+              </div>
+
+              <ng-template #notError>
+                <div *ngIf="row.kpiSample.name === 'Benchmark Log' || row.kpiSample.name === 'System Log'; else defaultStyle">
+                  <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i])">Download</button>
+                </div>
+
+                <ng-template #defaultStyle>
+                  <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+                </ng-template>
+              </ng-template>
+            </ng-template>
+          </p-column>
+        </p-dataTable>
+      </div>
+    </div>
+  </div>
+</div>

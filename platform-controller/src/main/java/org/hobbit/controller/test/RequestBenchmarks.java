@@ -88,13 +88,13 @@ public class RequestBenchmarks extends AbstractCommandReceivingComponent {
         for (BenchmarkMetaData benchmark : benchmarks) {
             builder.append(NEWLINE);
             builder.append("\tname: ");
-            builder.append(benchmark.benchmarkName);
+            builder.append(benchmark.name);
             builder.append(NEWLINE);
             builder.append("\turi: ");
-            builder.append(benchmark.benchmarkUri);
+            builder.append(benchmark.uri);
             builder.append(NEWLINE);
             builder.append("\tdescription: ");
-            builder.append(benchmark.benchmarkDescription);
+            builder.append(benchmark.description);
             builder.append(NEWLINE);
         }
         LOGGER.info(builder.toString());

@@ -18,6 +18,7 @@ package de.usu.research.hobbit.gui.rabbitmq;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.TimeZone;
 
 import org.apache.jena.datatypes.DatatypeFormatException;
@@ -27,6 +28,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Seq;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -41,6 +43,7 @@ import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 
@@ -53,6 +56,8 @@ import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 public class RdfModelCreationHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RdfModelCreationHelper.class);
+
+    public static final String KPI_SEQ_APPENDIX = "_KPIs";
 
     public static final TimeZone DEFAULT_TIME_ZONE = TimeZone.getTimeZone("GMT");
 
@@ -95,10 +100,12 @@ public class RdfModelCreationHelper {
             model.add(challengeResource, HOBBIT.organizer, challenge.getOrganizer(), "en");
         }
         if (challenge.getExecutionDate() != null) {
-            model.addLiteral(challengeResource, HOBBIT.executionDate, getDateLiteral(model, challenge.getExecutionDate()));
+            model.addLiteral(challengeResource, HOBBIT.executionDate,
+                    getDateLiteral(model, challenge.getExecutionDate()));
         }
         if (challenge.getPublishDate() != null) {
-            model.addLiteral(challengeResource, HOBBIT.publicationDate, getDateLiteral(model, challenge.getPublishDate()));
+            model.addLiteral(challengeResource, HOBBIT.publicationDate,
+                    getDateLiteral(model, challenge.getPublishDate()));
         }
         model.addLiteral(challengeResource, HOBBIT.visible, challenge.isVisible());
         model.addLiteral(challengeResource, HOBBIT.closed, challenge.isClosed());
@@ -151,6 +158,15 @@ public class RdfModelCreationHelper {
                 addParameterValue(parameter, taskResource, benchmarkResource, model);
             }
         }
+        List<String> rankingKpis = task.getRankingKPIs();
+        if ((rankingKpis != null) && (rankingKpis.size() > 0)) {
+            Seq kpiSeq = model.createSeq(taskUri + KPI_SEQ_APPENDIX);
+            for (String kpi : rankingKpis) {
+                kpiSeq.add(model.getResource(kpi));
+            }
+            model.add(kpiSeq, RDF.type, HOBBIT.KPISeq);
+            model.add(taskResource, HOBBIT.rankingKPIs, kpiSeq);
+        }
         return taskResource;
     }
 
@@ -180,6 +196,13 @@ public class RdfModelCreationHelper {
             for (ConfigurationParamBean parameter : benchmark.getConfigurationParams()) {
                 paramResource = addParameter(parameter, model);
                 model.add(benchmarkResource, HOBBIT.hasParameter, paramResource);
+            }
+        }
+        if (benchmark.getKpis() != null){
+            Resource kpiResource;
+            for (KeyPerformanceIndicatorBean kpi : benchmark.getKpis()) {
+                kpiResource = addKpi(kpi, model);
+                model.add(benchmarkResource, HOBBIT.measuresKPI, kpiResource);
             }
         }
         return benchmarkResource;
@@ -237,6 +260,26 @@ public class RdfModelCreationHelper {
         return paramResource;
     }
 
+    private static Resource addKpi(KeyPerformanceIndicatorBean kpi, Model model) {
+        Resource kpiResource = model.getResource(kpi.getId());
+        model.add(kpiResource, RDF.type, HOBBIT.KPI);
+        if ((kpi.getName() != null) && (!kpi.getName().equals(kpi.getId()))) {
+            model.add(kpiResource, RDFS.label, kpi.getName(), "en");
+        }
+        if ((kpi.getDescription() != null) && (!kpi.getDescription().equals(kpi.getId()))) {
+            model.add(kpiResource, RDFS.comment, kpi.getDescription(), "en");
+        }
+        if (kpi.getDatatype() != null) {
+            XSDDatatype datatype = datatypeToXsd(kpi.getDatatype());
+            if (datatype != null) {
+                model.add(kpiResource, RDFS.range, model.getResource(datatype.getURI()));
+            }
+        } if (kpi.getRanking() != null) {
+            model.add(kpiResource, HOBBIT.ranking, model.getResource(kpi.getRanking()));
+        }
+        return kpiResource;
+    }
+
     private static void addParameterValue(ConfigurationParamValueBean parameter, Resource taskResource,
             Resource benchmarkResource, Model model) {
 
@@ -249,7 +292,8 @@ public class RdfModelCreationHelper {
             XSDDatatype type = datatypeToXsd(parameter.getDatatype());
             typeResource = model.getResource(type.getURI());
             try {
-                model.add(taskResource, parameterProperty, model.createTypedLiteral(type.parse(parameter.getValue()), type));
+                model.add(taskResource, parameterProperty,
+                        model.createTypedLiteral(type.parse(parameter.getValue()), type));
             } catch (DatatypeFormatException e) {
                 LOGGER.error(
                         "Couldn't create typed literal for " + parameter.toString() + ". Adding literal without type.",

@@ -1,33 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-
-    This file is part of gui-serverbackend.
-
-    gui-serverbackend is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    gui-serverbackend is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with gui-serverbackend.  If not, see <http://www.gnu.org/licenses/>.
-
--->
+<!-- This file is part of gui-serverbackend. gui-serverbackend is free software: 
+    you can redistribute it and/or modify it under the terms of the GNU General 
+    Public License as published by the Free Software Foundation, either version 
+    3 of the License, or (at your option) any later version. gui-serverbackend 
+    is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+    without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+    PURPOSE. See the GNU General Public License for more details. You should 
+    have received a copy of the GNU General Public License along with gui-serverbackend. 
+    If not, see <http://www.gnu.org/licenses/>. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.hobbit</groupId>
-  <artifactId>gui-serverbackend</artifactId>
-  <version>1.0.11</version>
-  <packaging>war</packaging>
-  <name>gui-serverbackend</name>
+    <groupId>org.hobbit</groupId>
+    <artifactId>gui-serverbackend</artifactId>
+    <version>1.0.15-SNAPSHOT</version>
+    <packaging>war</packaging>
+    <name>gui-serverbackend</name>
 
-  <description>Hobbit GUI server backend</description>
+    <description>Hobbit GUI server backend</description>
 
     <!-- LICENSE -->
     <licenses>
@@ -38,245 +29,274 @@
     </licenses>
     <inceptionYear>2017</inceptionYear>
 
-  <properties>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <jersey.version>2.24</jersey.version>
-    <jetty.version>9.3.13.v20161014</jetty.version>
-    <keycloak.version>2.4.0.Final</keycloak.version>
-    <slf4j.version>1.7.15</slf4j.version>
-    <junit.version>4.11</junit.version>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jersey.config.test.container.port>8181</jersey.config.test.container.port>
-  </properties>
-  <repositories>
-    <repository>
-      <id>maven.aksw.internal</id>
-      <name>University Leipzig, AKSW Maven2 Repository</name>
-      <url>http://maven.aksw.org/repository/internal</url>
-    </repository>
-    <repository>
-      <id>maven.aksw.snapshots</id>
-      <name>University Leipzig, AKSW Maven2 Repository</name>
-      <url>http://maven.aksw.org/repository/snapshots</url>
-    </repository>
-  </repositories>
+    <properties>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <jersey.version>2.24</jersey.version>
+        <jetty.version>9.3.13.v20161014</jetty.version>
+        <keycloak.version>2.4.0.Final</keycloak.version>
+        <slf4j.version>1.7.15</slf4j.version>
+        <junit.version>4.11</junit.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jersey.config.test.container.port>8181</jersey.config.test.container.port>
+    </properties>
+    <repositories>
+        <repository>
+            <id>maven.aksw.internal</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/internal</url>
+        </repository>
+        <repository>
+            <id>maven.aksw.snapshots</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/snapshots</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>maven.aksw.internal</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/internal</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>maven.aksw.snapshots</id>
+            <name>University Leipzig, AKSW Maven2 Repository</name>
+            <url>http://maven.aksw.org/repository/snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.glassfish.jersey</groupId>
-        <artifactId>jersey-bom</artifactId>
-        <version>${jersey.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.glassfish.jersey.containers</groupId>
-      <!-- use the following artifactId if you need servlet 2.x compatibility -->
-      <!--<artifactId>jersey-container-servlet-core</artifactId>-->
-      <!-- use the following artifactId if you don't need servlet 2.x compatibility -->
-      <artifactId>jersey-container-servlet</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.glassfish.jersey.media</groupId>
-      <artifactId>jersey-media-moxy</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hobbit</groupId>
-      <artifactId>core</artifactId>
-      <version>1.0.5</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-collections</groupId>
-      <artifactId>commons-collections</artifactId>
-      <version>3.2.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-      <version>20160810</version>
-    </dependency>
-
-    <!-- ~~~~~~~~~~~~~~~~~~~ Logging ~~~~~~~~~~~~~~~~~~~~~~ -->
-    <!-- slf4j: Logging API -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4j.version}</version>
-    </dependency>
-    <!-- slf4j: Logging Binding -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <version>${slf4j.version}</version>
-    </dependency>
-    <!-- ~~~~~~~~~~~~~~~~~~~ End Logging ~~~~~~~~~~~~~~~~~~~~~~ -->
-    <!-- ~~~~~~~~~~~~~~~~~~~ Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
-    <!-- JUnit -->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
-  </dependencies>
-
-  <build>
-    <finalName>${project.artifactId}</finalName>
-
-    <pluginManagement>
-      <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <inherited>true</inherited>
-          <configuration>
-            <source>${maven.compiler.source}</source>
-            <target>${maven.compiler.target}</target>
-            <showWarnings>false</showWarnings>
-            <fork>false</fork>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-war-plugin</artifactId>
-          <version>3.0.0</version>
-          <configuration>
-            <webResources>
-              <resource>
-                <!-- this is relative to the pom.xml directory -->
-                <directory>../gui-client/dist</directory>
-              </resource>
-            </webResources>
-          </configuration>
-        </plugin>
-        <!-- Run the application using "mvn jetty:run" -->
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <version>2.3</version>
-          <executions>
-            <execution>
-              <phase>package</phase>
-              <goals>
-                <goal>copy</goal>
-              </goals>
-              <configuration>
-                <artifactItems>
-                  <artifactItem>
-                    <groupId>org.eclipse.jetty</groupId>
-                    <artifactId>jetty-runner</artifactId>
-                    <version>${jetty.version}</version>
-                    <destFileName>jetty-runner.jar</destFileName>
-                  </artifactItem>
-                </artifactItems>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <groupId>org.eclipse.jetty</groupId>
-          <artifactId>jetty-maven-plugin</artifactId>
-          <version>${jetty.version}</version>
-          <configuration>
-            <scanIntervalSeconds>5</scanIntervalSeconds>
-            <stopKey>STOP</stopKey>
-            <webApp>
-              <contextPath>/</contextPath>
-              <webInfIncludeJarPattern>.*/.*jersey-[^/]\.jar$</webInfIncludeJarPattern>
-            </webApp>
-            <systemProperties>
-              <systemProperty>
-                <name>jetty.http.port</name>
-                <value>${jersey.config.test.container.port}</value>
-              </systemProperty>
-            </systemProperties>
-            <war>${project.build.directory}/${project.build.finalName}.war</war>
-            <jettyXml>
-              src/main/resources/jetty/jetty.xml,src/main/resources/jetty/jetty-http.xml,src/main/resources/jetty/jetty-ssl.xml,src/main/resources/jetty/jetty-https.xml
-            </jettyXml>
-          </configuration>
-          <dependencies>
+    <dependencyManagement>
+        <dependencies>
             <dependency>
-              <groupId>org.keycloak</groupId>
-              <artifactId>keycloak-jetty93-adapter</artifactId>
-              <version>${keycloak.version}</version>
+                <groupId>org.glassfish.jersey</groupId>
+                <artifactId>jersey-bom</artifactId>
+                <version>${jersey.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
-          </dependencies>
-        </plugin>
-        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
-        <plugin>
-            <groupId>org.eclipse.m2e</groupId>
-            <artifactId>lifecycle-mapping</artifactId>
-            <version>1.0.0</version>
-            <configuration>
-                <lifecycleMappingMetadata>
-                    <pluginExecutions>
-                        <pluginExecution>
-                            <pluginExecutionFilter>
-                                <groupId>org.codehaus.mojo</groupId>
-                                <artifactId>
-                                    keytool-maven-plugin
-                                </artifactId>
-                                <versionRange>[1.5,)</versionRange>
-                                <goals>
-                                    <goal>clean</goal>
-                                    <goal>generateKeyPair</goal>
-                                </goals>
-                            </pluginExecutionFilter>
-                            <action>
-                                <ignore></ignore>
-                            </action>
-                        </pluginExecution>
-                    </pluginExecutions>
-                </lifecycleMappingMetadata>
-            </configuration>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>keytool-maven-plugin</artifactId>
-        <version>1.5</version>
-        <executions>
-          <execution>
-            <id>clean</id>
-            <goals>
-              <goal>clean</goal>
-            </goals>
-            <phase>generate-resources</phase>
-          </execution>
-          <execution>
-            <goals>
-              <goal>generateKeyPair</goal>
-            </goals>
-            <phase>generate-resources</phase>
-          </execution>
-        </executions>
-        <configuration>
-          <!-- for "HowTo use https / ssl with Maven Jetty Plugin?" see
-           http://stackoverflow.com/questions/3794892/howto-use-https-ssl-with-maven-mortbay-jetty-plugin and
-           http://www.eclipse.org/jetty/documentation/current/jetty-maven-plugin.html -->
-          <keystore>${project.build.directory}/jetty-ssl.keystore</keystore>
-          <dname>cn=127.0.0.1</dname><!-- put your CN here -->
-          <keypass>keystore-pw</keypass>
-          <storepass>keystore-pw</storepass>
-          <alias>jetty</alias>
-          <keyalg>RSA</keyalg>
-        </configuration>
-      </plugin>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <!-- use the following artifactId if you need servlet 2.x compatibility -->
+            <!--<artifactId>jersey-container-servlet-core</artifactId> -->
+            <!-- use the following artifactId if you don't need servlet 2.x 
+                compatibility -->
+            <artifactId>jersey-container-servlet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-moxy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hobbit</groupId>
+            <artifactId>core</artifactId>
+            <version>1.0.9-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>3.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20160810</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>6.1.1</version>
+        </dependency>
+        <!-- JAXB dependency - necessary to work with Java 9 
+        <dependency>
+            <groupId>javax.xml.bind</groupId>
+            <artifactId>jaxb-api</artifactId>
+            <version>2.3.0</version>
+        </dependency> -->
+
+        <!-- ~~~~~~~~~~~~~~~~~~~ Logging ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <!-- slf4j: Logging API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <!-- slf4j: Logging Binding -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <!-- ~~~~~~~~~~~~~~~~~~~ End Logging ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <!-- ~~~~~~~~~~~~~~~~~~~ Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <!-- JUnit -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.7.0</version>
+                    <inherited>true</inherited>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <showWarnings>false</showWarnings>
+                        <fork>false</fork>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-war-plugin</artifactId>
+                    <version>3.0.0</version>
+                    <configuration>
+                        <webResources>
+                            <resource>
+                                <!-- this is relative to the pom.xml directory -->
+                                <directory>../gui-client/dist</directory>
+                            </resource>
+                        </webResources>
+                    </configuration>
+                </plugin>
+                <!-- Run the application using "mvn jetty:run" -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>2.3</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>copy</goal>
+                            </goals>
+                            <configuration>
+                                <artifactItems>
+                                    <artifactItem>
+                                        <groupId>org.eclipse.jetty</groupId>
+                                        <artifactId>jetty-runner</artifactId>
+                                        <version>${jetty.version}</version>
+                                        <destFileName>jetty-runner.jar</destFileName>
+                                    </artifactItem>
+                                </artifactItems>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.eclipse.jetty</groupId>
+                    <artifactId>jetty-maven-plugin</artifactId>
+                    <version>${jetty.version}</version>
+                    <configuration>
+                        <scanIntervalSeconds>5</scanIntervalSeconds>
+                        <stopKey>STOP</stopKey>
+                        <webApp>
+                            <contextPath>/</contextPath>
+                            <webInfIncludeJarPattern>.*/.*jersey-[^/]\.jar$</webInfIncludeJarPattern>
+                        </webApp>
+                        <systemProperties>
+                            <systemProperty>
+                                <name>jetty.http.port</name>
+                                <value>${jersey.config.test.container.port}</value>
+                            </systemProperty>
+                        </systemProperties>
+                        <war>${project.build.directory}/${project.build.finalName}.war</war>
+                        <jettyXml>
+                            src/main/resources/jetty/jetty.xml,src/main/resources/jetty/jetty-http.xml,src/main/resources/jetty/jetty-ssl.xml,src/main/resources/jetty/jetty-https.xml
+                        </jettyXml>
+                    </configuration>
+                    <dependencies>
+                        <!-- The original dependency that was replaced by 
+                            our workaround <dependency> <groupId>org.keycloak</groupId> <artifactId>keycloak-jetty93-adapter</artifactId> 
+                            <version>${keycloak.version}</version> </dependency> -->
+                        <dependency>
+                            <groupId>org.hobbit</groupId>
+                            <artifactId>keycloak-jetty-adapter-for-hobbit</artifactId>
+                            <version>2.4.0.Final</version>
+                        </dependency>
+                    </dependencies>
+                </plugin>
+                <!--This plugin's configuration is used to store Eclipse 
+                    m2e settings only. It has no influence on the Maven build itself. -->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.codehaus.mojo</groupId>
+                                        <artifactId>
+                                            keytool-maven-plugin
+                                        </artifactId>
+                                        <versionRange>[1.5,)</versionRange>
+                                        <goals>
+                                            <goal>clean</goal>
+                                            <goal>generateKeyPair</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>keytool-maven-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>clean</id>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                    </execution>
+                    <execution>
+                        <goals>
+                            <goal>generateKeyPair</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- for "HowTo use https / ssl with Maven Jetty Plugin?" 
+                        see http://stackoverflow.com/questions/3794892/howto-use-https-ssl-with-maven-mortbay-jetty-plugin 
+                        and http://www.eclipse.org/jetty/documentation/current/jetty-maven-plugin.html -->
+                    <keystore>${project.build.directory}/jetty-ssl.keystore</keystore>
+                    <dname>cn=127.0.0.1</dname><!-- put your CN here -->
+                    <keypass>keystore-pw</keypass>
+                    <storepass>keystore-pw</storepass>
+                    <alias>jetty</alias>
+                    <keyalg>RSA</keyalg>
+                </configuration>
+            </plugin>
             <!-- Javadoc plugin for generating documentation -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -332,7 +352,7 @@
                     </excludes>
                 </configuration>
             </plugin>
-    </plugins>
+        </plugins>
 
-  </build>
+    </build>
 </project>
