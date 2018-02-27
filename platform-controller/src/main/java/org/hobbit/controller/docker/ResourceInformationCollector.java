@@ -1,8 +1,6 @@
 package org.hobbit.controller.docker;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
@@ -10,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;
@@ -60,7 +59,7 @@ public class ResourceInformationCollector {
             LOGGER.info("Didn't got the prometheus host. Using default {}.", PROMETHEUS_HOST_DEFAULT);
             this.prometheusHost = PROMETHEUS_HOST_DEFAULT;
         }
-        this.prometheusPort = prometheusHost;
+        this.prometheusPort = prometheusPort;
         if ((this.prometheusPort == null) && System.getenv().containsKey(PROMETHEUS_PORT_KEY)) {
             this.prometheusPort = System.getenv().get(PROMETHEUS_PORT_KEY);
         }
@@ -77,7 +76,7 @@ public class ResourceInformationCollector {
 
     public ResourceUsageInformation getUsageInformation(Task.Criteria criteria) {
         List<Task> tasks = manager.getContainers(criteria);
-
+        
         Map<String, Task> containerMapping = new HashMap<>();
         for (Task c : tasks) {
             containerMapping.put(c.id(), c);
@@ -94,22 +93,28 @@ public class ResourceInformationCollector {
 
     protected ResourceUsageInformation requestCpuAndMemoryStats(String containerId) {
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
+        String value;
         try {
-            resourceInfo.setCpuStats(new CpuStats(Math
-                    .round(Double.parseDouble(requestPrometheusValue(containerId, "container_cpu_usage_seconds_total"))
-                            * 1000)));
+            value = requestPrometheusValue(containerId, "container_cpu_usage_seconds_total");
+            if (value != null) {
+                resourceInfo.setCpuStats(new CpuStats(Math.round(Double.parseDouble(value) * 1000)));
+            }
         } catch (Exception e) {
             LOGGER.error("Could not get cpu usage stats for container {}", containerId, e);
         }
         try {
-            resourceInfo.setMemoryStats(new MemoryStats(
-                    Long.parseLong(requestPrometheusValue(containerId, "container_memory_usage_bytes"))));
+            value = requestPrometheusValue(containerId, "container_memory_usage_bytes");
+            if (value != null) {
+                resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
+            }
         } catch (Exception e) {
             LOGGER.error("Could not get memory usage stats for container {}", containerId, e);
         }
         try {
-            resourceInfo.setDiskStats(
-                    new DiskStats(Long.parseLong(requestPrometheusValue(containerId, "container_fs_usage_bytes"))));
+            value = requestPrometheusValue(containerId, "container_fs_usage_bytes");
+            if (value != null) {
+                resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
+            }
         } catch (Exception e) {
             LOGGER.error("Could not get disk usage stats for container {}", containerId, e);
         }
@@ -117,20 +122,25 @@ public class ResourceInformationCollector {
     }
 
     private String requestPrometheusValue(String taskId, String metric) throws IOException, MalformedURLException {
-        String filter = "{container_label_com_docker_swarm_task_id=\"" + taskId + "\"}";
-        URL url = new URL(prometheusHost + ":" + prometheusPort + "/api/v1/query?query=" + metric + filter);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openConnection().getInputStream()));
-        String line;
-        String content = "";
-        while ((line = reader.readLine()) != null) {
-            content += line + "\n";
-        }
-        reader.close();
-
+        StringBuilder builder = new StringBuilder();
+        builder.append("http://").append(prometheusHost).append(':').append(prometheusPort)
+                .append("/api/v1/query?query=")
+                // append metric
+                .append(metric)
+                // append filter
+                .append("{container_label_com_docker_swarm_task_id=\"").append(taskId).append("\"}");
+        URL url = new URL(builder.toString());
+        String content = IOUtils.toString(url.openConnection().getInputStream());
+        System.out.println(content);
         JsonParser parser = new JsonParser();
         JsonObject root = parser.parse(content).getAsJsonObject();
         JsonArray result = root.get("data").getAsJsonObject().get("result").getAsJsonArray();
-        return result.get(0).getAsJsonObject().get("value").getAsJsonArray().get(1).getAsString();
+        if (result.size() > 0) {
+            return result.get(0).getAsJsonObject().get("value").getAsJsonArray().get(1).getAsString();
+        } else {
+            LOGGER.warn("Didn't got a result when requesting {} for {}. Returning null", metric, taskId);
+            return null;
+        }
     }
 
 }
