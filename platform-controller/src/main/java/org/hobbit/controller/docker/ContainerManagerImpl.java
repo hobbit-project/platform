@@ -591,20 +591,17 @@ public class ContainerManagerImpl implements ContainerManager {
         try {
             Task taskInfo = dockerClient.inspectTask(taskId);
             String serviceId = taskInfo.serviceId();
-            String containerId = taskInfo.status().containerStatus().containerId();
 
             Integer exitCode = taskInfo.status().containerStatus().exitCode();
             if(DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
-                LOGGER.info("Will not remove container with task id {}, container id {}. " +
-                        "Development mode is enabled.", taskId, containerId);
+                LOGGER.info("Will not remove container with task id {}. " +
+                        "Development mode is enabled.", taskId);
             } else if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
-                LOGGER.info("Will not remove container with task id {}, container id {}. " +
-                        "ExitCode != 0 and testing mode is enabled.", taskId, containerId);
+                LOGGER.info("Will not remove container with task id {}. " +
+                        "ExitCode != 0 and testing mode is enabled.", taskId);
             } else {
-                LOGGER.info("Removing service of container with task id {}, container id {}. ", taskId, containerId);
-                dockerClient.stopContainer(containerId, 10);
-                dockerClient.removeContainer(containerId);
+                LOGGER.info("Removing service of container with task id {}. ", taskId);
                 dockerClient.removeService(serviceId);
 
                 // wait for the service to disappear

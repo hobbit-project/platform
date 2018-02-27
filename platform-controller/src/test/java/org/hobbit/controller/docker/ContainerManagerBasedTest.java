@@ -45,10 +45,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
         for (String taskId : containers) {
             try {
                 String serviceId = dockerClient.inspectTask(taskId).serviceId();
-                String containerId = dockerClient.inspectTask(taskId).status().containerStatus().containerId();
                 dockerClient.removeService(serviceId);
-                dockerClient.stopContainer(containerId, 10);
-                dockerClient.removeContainer(containerId);
             } catch (Exception e) {
             }
         }
