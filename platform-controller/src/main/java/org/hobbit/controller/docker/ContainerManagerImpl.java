@@ -35,12 +35,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
-import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.Network;
@@ -669,9 +667,9 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public List<Container> getContainers(ListContainersParam...params) {
+    public List<Task> getContainers(Task.Criteria criteria) {
         try {
-            return dockerClient.listContainers(params.length == 0 ? new ListContainersParam[] {DockerClient.ListContainersParam.allContainers()} : params);
+            return dockerClient.listTasks(criteria);
         } catch (Exception e) {
             return new ArrayList<>();
         }
