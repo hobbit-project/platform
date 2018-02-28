@@ -96,6 +96,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
@@ -170,6 +171,16 @@ public class PlatformController extends AbstractCommandReceivingComponent
         super.init();
         LOGGER.debug("Platform controller initialization started.");
 
+        // Set task history limit for swarm cluster to 0 (will remove all terminated containers)
+        // Only for prod mode
+        clusterManager = new ClusterManagerImpl();
+        if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+            LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
+        } else {
+            LOGGER.debug("Production mode. Setting task history limit to 0. All terminated containers will be removed.");
+            clusterManager.setTaskHistoryLimit(0);
+        }
+
         // create container manager
         containerManager = new ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
@@ -208,8 +219,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
         queue = new ExperimentQueueImpl();
 
         storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
-
-        clusterManager = new ClusterManagerImpl();
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules

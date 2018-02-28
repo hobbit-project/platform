@@ -7,6 +7,12 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
+import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
+import com.spotify.docker.client.messages.swarm.SwarmSpec;
+import com.spotify.docker.client.messages.swarm.Version;
+import org.hobbit.controller.ExperimentManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
@@ -54,5 +60,29 @@ public class ClusterManagerImpl implements ClusterManager {
 
     public Integer getExpectedNumberOfNodes() {
         return expectedNumberOfNodes;
+    }
+
+    public void setTaskHistoryLimit(Integer taskHistoryLimit) throws DockerException, InterruptedException {
+        OrchestrationConfig orchestrationConfig = OrchestrationConfig.builder()
+                .taskHistoryRetentionLimit(0)
+                .build();
+        SwarmSpec currentSwarmSpec = dockerClient.inspectSwarm().swarmSpec();
+        SwarmSpec updatedSwarmSpec = SwarmSpec.builder()
+                .orchestration(orchestrationConfig)
+                .caConfig(currentSwarmSpec.caConfig())
+                .dispatcher(currentSwarmSpec.dispatcher())
+                .encryptionConfig(currentSwarmSpec.encryptionConfig())
+                .labels(currentSwarmSpec.labels())
+                .name(currentSwarmSpec.name())
+                .raft(currentSwarmSpec.raft())
+                .taskDefaults(currentSwarmSpec.taskDefaults())
+                .build();
+        Version swarmVersion = dockerClient.inspectSwarm().version();
+        dockerClient.updateSwarm(swarmVersion.index(), updatedSwarmSpec);
+    }
+
+    public Integer getTaskHistoryLimit() throws DockerException, InterruptedException {
+        SwarmSpec currentSwarmSpec = dockerClient.inspectSwarm().swarmSpec();
+        return currentSwarmSpec.orchestration().taskHistoryRetentionLimit();
     }
 }
