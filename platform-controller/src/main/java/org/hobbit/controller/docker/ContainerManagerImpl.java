@@ -591,6 +591,10 @@ public class ContainerManagerImpl implements ContainerManager {
             String serviceId = taskInfo.serviceId();
 
             Integer exitCode = taskInfo.status().containerStatus().exitCode();
+            if (exitCode == null) {
+                LOGGER.warn("Container for task {} has no exit code, assuming 0", taskId);
+                exitCode = 0;
+            }
             if(DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
                 LOGGER.info("Will not remove container with task id {}. " +
                         "Development mode is enabled.", taskId);

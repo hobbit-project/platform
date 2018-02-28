@@ -7,23 +7,23 @@ redeploy-gui:
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 	docker-compose build
-	docker-compose up -d gui
+	docker stack deploy --compose-file docker-compose.yml platform
 
 
 redeploy-storage:
 	cd platform-storage/storage-service && mvn clean package -U
 	docker-compose build
-	docker-compose up -d storage-service
+	docker stack deploy --compose-file docker-compose.yml platform
 
 redeploy-controller:
 	cd platform-controller && make build
 	docker-compose build
-	docker-compose up -d platform-controller
+	docker stack deploy --compose-file docker-compose.yml platform
 
 
 start:
 	docker-compose build
-	docker-compose up
+	docker stack deploy --compose-file docker-compose.yml platform
 
 build: install-parent-pom
 	cd platform-controller && make build
@@ -51,8 +51,8 @@ install: create-networks set-keycloak-permissions setup-virtuoso
 	[ -z "$$DOCKER_HOST" ] && cp --no-clobber docker-compose.override.localhost.yml docker-compose.override.yml; true
 
 run-platform-elk:
-	docker-compose -f docker-compose-elk.yml up -d
-	docker-compose up
+	docker stack deploy --compose-file docker-compose-elk.yml elk
+	docker stack deploy --compose-file docker-compose.yml platform
 
 test: install-parent-pom
 	make --directory=platform-controller test
