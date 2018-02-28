@@ -1,11 +1,11 @@
-version: '2'
+version: '3.3'
 services:
   platform-controller:
+    image: hobbitplatform_platform-controller
     build: ./platform-controller
     networks:
       - hobbit-core
     environment:
-      - DOCKER_HOST=unix:///var/run/docker.sock
       - HOBBIT_RABBIT_HOST=rabbit
       - HOBBIT_REDIS_HOST=redis
       - DEPLOY_ENV=testing
@@ -23,6 +23,7 @@ services:
   # HOBBIT GUI
   gui:
     #image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+    image: hobbitplatform_gui
     build: ./hobbit-gui/gui-serverbackend
     ports:
       - "8080:8080"
@@ -42,8 +43,6 @@ services:
   # Keycloak user management (used by the GUI)
   keycloak:
     image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak:1.0.0
-    container_name: keycloak
-    restart: always
     ports:
       - "8181:8080"
     networks:
@@ -53,6 +52,7 @@ services:
 
   # HOBBIT Analysis component
   analysis:
+    image: hobbitplatform_analysis
     build: ./analysis-component
     networks:
       - hobbit-core
@@ -64,7 +64,6 @@ services:
   # message bus
   rabbit:
     image: rabbitmq:management
-    container_name: rabbit
     networks:
       - hobbit
       - hobbit-core
@@ -85,7 +84,6 @@ services:
   # Triple store
   virtuoso:
     image: openlink/virtuoso_opensource:v07.20.3217
-    container_name: vos
     hostname: vos
     stop_signal: SIGINT
     stop_grace_period: 2m
@@ -98,6 +96,7 @@ services:
 
   # Storage service
   storage-service:
+    image: hobbitplatform_storage-service
     build: ./platform-storage/storage-service
     networks:
       - hobbit-core
