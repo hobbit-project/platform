@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
+import com.spotify.docker.client.exceptions.DockerException;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
@@ -34,11 +36,12 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
 public class ResourceInformationCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollector.class);
+    private static DockerClient dockerClient;
 
     public static final String PROMETHEUS_HOST_KEY = "PROMETHEUS_HOST";
     public static final String PROMETHEUS_PORT_KEY = "PROMETHEUS_PORT";
 
-    public static final String PROMETHEUS_HOST_DEFAULT = "http://prometheus";
+    public static final String PROMETHEUS_HOST_DEFAULT = "localhost";
     public static final String PROMETHEUS_PORT_DEFAULT = "9090";
 
     private ContainerManager manager;
@@ -50,13 +53,19 @@ public class ResourceInformationCollector {
     }
 
     public ResourceInformationCollector(ContainerManager manager, String prometheusHost, String prometheusPort) {
+        try {
+            this.dockerClient = DockerUtility.getDockerClient();
+        } catch (DockerCertificateException e) {
+            LOGGER.error("Could not initialize Docker Client. Resource Information Collector will not work! ", e);
+            return;
+        }
         this.manager = manager;
         this.prometheusHost = prometheusHost;
         if ((this.prometheusHost == null) && System.getenv().containsKey(PROMETHEUS_HOST_KEY)) {
             this.prometheusHost = System.getenv().get(PROMETHEUS_HOST_KEY);
         }
         if (this.prometheusHost == null) {
-            LOGGER.info("Didn't got the prometheus host. Using default {}.", PROMETHEUS_HOST_DEFAULT);
+            LOGGER.info("Prometheus host env {} is not set. Using default {}.", PROMETHEUS_HOST_KEY, PROMETHEUS_HOST_DEFAULT);
             this.prometheusHost = PROMETHEUS_HOST_DEFAULT;
         }
         this.prometheusPort = prometheusPort;
@@ -64,7 +73,7 @@ public class ResourceInformationCollector {
             this.prometheusPort = System.getenv().get(PROMETHEUS_PORT_KEY);
         }
         if (this.prometheusPort == null) {
-            LOGGER.info("Didn't got the prometheus port. Using default {}.", PROMETHEUS_PORT_DEFAULT);
+            LOGGER.info("Prometheus port env {} is not set. Using default {}.", PROMETHEUS_PORT_KEY, PROMETHEUS_PORT_DEFAULT);
             this.prometheusPort = PROMETHEUS_PORT_DEFAULT;
         }
     }
@@ -91,32 +100,32 @@ public class ResourceInformationCollector {
         return resourceInfo;
     }
 
-    protected ResourceUsageInformation requestCpuAndMemoryStats(String containerId) {
+    protected ResourceUsageInformation requestCpuAndMemoryStats(String taskId) {
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
         String value;
         try {
-            value = requestPrometheusValue(containerId, "container_cpu_usage_seconds_total");
+            value = requestPrometheusValue(taskId, "container_cpu_usage_seconds_total");
             if (value != null) {
                 resourceInfo.setCpuStats(new CpuStats(Math.round(Double.parseDouble(value) * 1000)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get cpu usage stats for container {}", containerId, e);
+            LOGGER.error("Could not get cpu usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(containerId, "container_memory_usage_bytes");
+            value = requestPrometheusValue(taskId, "container_memory_usage_bytes");
             if (value != null) {
                 resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get memory usage stats for container {}", containerId, e);
+            LOGGER.error("Could not get memory usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(containerId, "container_fs_usage_bytes");
+            value = requestPrometheusValue(taskId, "container_fs_usage_bytes");
             if (value != null) {
                 resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get disk usage stats for container {}", containerId, e);
+            LOGGER.error("Could not get disk usage stats for container {}", taskId, e);
         }
         return resourceInfo;
     }
