@@ -1,7 +1,8 @@
 version: '3.3'
 services:
   platform-controller:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-controller-image
+    image: hobbitplatform_platform-controller
+    build: ./platform-controller
     networks:
       - hobbit-core
     environment:
@@ -21,8 +22,9 @@ services:
 
   # HOBBIT GUI
   gui:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
-
+    #image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+    image: hobbitplatform_gui
+    build: ./hobbit-gui/gui-serverbackend
     ports:
       - "8080:8080"
     networks:
@@ -34,7 +36,8 @@ services:
       - virtuoso
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
-      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      #- KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
       - CHECK_REALM_URL=false
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
 
@@ -50,7 +53,8 @@ services:
 
   # HOBBIT Analysis component
   analysis:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-analysis-image
+    image: hobbitplatform_analysis
+    build: ./analysis-component
     networks:
       - hobbit-core
     depends_on:
@@ -93,7 +97,8 @@ services:
 
   # Storage service
   storage-service:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-storage-image
+    image: hobbitplatform_storage-service
+    build: ./platform-storage/storage-service
     networks:
       - hobbit-core
     environment:
