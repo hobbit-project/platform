@@ -1,4 +1,7 @@
-version: '2'
+# When deploying with "docker stack", docker-compose.override.yml is no longer being read!
+# Modify main docker-compose.yml file accordingly...
+
+version: '3.3'
 services:
   gui:
     environment:

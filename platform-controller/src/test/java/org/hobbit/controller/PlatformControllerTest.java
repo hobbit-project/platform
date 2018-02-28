@@ -16,18 +16,17 @@
  */
 package org.hobbit.controller;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerConfig;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.hobbit.controller.docker.ContainerManagerBasedTest;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
@@ -37,10 +36,13 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
+import com.spotify.docker.client.messages.swarm.Service;
+import com.spotify.docker.client.messages.swarm.Task;
+
 /**
  * Created by Timofey Ermilov on 02/09/16.
  */
-public class PlatformControllerTest extends DockerBasedTest {
+public class PlatformControllerTest extends ContainerManagerBasedTest {
 
     private static final String RABBIT_HOST_NAME = DockerHelper.getHost();
 
@@ -48,6 +50,12 @@ public class PlatformControllerTest extends DockerBasedTest {
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     private PlatformController controller;
+
+    private void assertDockerImageEquals(String message, String expected, String got) throws Exception {
+        final Matcher matcher = Pattern.compile("^(.*?)(?:@.*)?$").matcher(got);
+        assertTrue("Image name matches pattern", matcher.find());
+        assertEquals(message, expected, matcher.group(1));
+    }
 
     @Before
     public void init() throws Exception {
@@ -74,12 +82,13 @@ public class PlatformControllerTest extends DockerBasedTest {
         byte command = Commands.DOCKER_CONTAINER_START;
 
         // create and execute parent container
-        Map<String, String> labels = new HashMap<String, String>();
-        labels.put(ContainerManagerImpl.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
-        final String parentId = dockerClient.createContainer(ContainerConfig.builder().image("busybox")
-                .cmd("sh", "-c", "while :; do sleep 1; done").labels(labels).build()).id();
-        dockerClient.startContainer(parentId);
-        final String parentName = dockerClient.inspectContainer(parentId).name();
+        final String parentId = manager.startContainer(
+                "busybox",
+                Constants.CONTAINER_TYPE_SYSTEM,
+                null,
+                new String[] { "sh", "-c", "while :; do sleep 1; done" });
+        final String parentName = manager.getContainerName(parentId);
+        containers.add(parentId);
 
         // create and execute test container
         final String image = "busybox:latest";
@@ -89,37 +98,25 @@ public class PlatformControllerTest extends DockerBasedTest {
         controller.receiveCommand(command, data, "1", "");
 
         // get running containers
+        Service serviceInfo = null;
+        Task taskInfo = null;
+        String taskId = null;
         String containerId = null;
-        List<Container> containers = dockerClient.listContainers(DockerClient.ListContainersParam.allContainers());
-        for (Container c : containers) {
-            String gotImage = c.image();
-            String gotType = c.labels().get(ContainerManagerImpl.LABEL_TYPE);
-            String gotParent = c.labels().get(ContainerManagerImpl.LABEL_PARENT);
-            if (gotImage != null && gotImage.equals(image) && gotType != null && gotType.equals(type)
-                    && gotParent != null && gotParent.equals(parentId)) {
-                containerId = c.id();
-                break;
-            }
-        }
-        // check that container exists
-        assertNotNull(containerId);
+        final List<Task> taskList = dockerClient.listTasks(Task.Criteria.builder()
+                .label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId)
+                .build());
 
-        // cleanup (no, will be done by the platform controller)
-        // try {
-        // dockerClient.stopContainer(containerId, 5);
-        // } catch (Exception e) {
-        // }
-        // try {
-        // dockerClient.removeContainer(containerId);
-        // } catch (Exception e) {
-        // }
-        // try {
-        // dockerClient.stopContainer(parentId, 5);
-        // } catch (Exception e) {
-        // }
-        // try {
-        // dockerClient.removeContainer(parentId);
-        // } catch (Exception e) {
-        // }
+        if (!taskList.isEmpty()) {
+            taskInfo = taskList.get(0);
+            serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
+            taskId = taskInfo.id();
+        }
+
+        // check that container exists
+        assertNotNull(taskId);
+        assertEquals("Amount of child containers of the test parent container", 1, taskList.size());
+        assertEquals("Type of created container",
+                Constants.CONTAINER_TYPE_SYSTEM, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE));
+        assertDockerImageEquals("Image of created container", image, taskInfo.spec().containerSpec().image());
     }
 }

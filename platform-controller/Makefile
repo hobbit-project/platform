@@ -18,11 +18,12 @@ run:
 test: deps
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
+	PROMETHEUS_HOST=localhost \
 	mvn --update-snapshots clean test
 
 test-all: test
 
-deps: redis rabbit
+deps: redis rabbit node-exporter cAdvisor prometheus
 
 redis:
 	test -n "$$(docker ps -aq --filter name=hobbit-redis)" || \
@@ -46,3 +47,37 @@ rabbit:
 		-p 8080:15672 \
 		--rm \
 		rabbitmq:management
+
+node-exporter:
+	test -n "$$(docker ps -aq --filter name=node-exporter)" || \
+	docker run -d \
+		--name node-exporter \
+		-p 9100:9100 \
+		--rm \
+		prom/node-exporter
+
+cAdvisor:
+	test -n "$$(docker ps -aq --filter name=cAdvisor)" || \
+	docker run -d \
+		--name cAdvisor \
+		-p 8081:8080 \
+		--rm \
+		-v /:/rootfs:ro \
+		-v /var/run:/var/run:rw \
+		-v /sys:/sys:ro \
+		-v /var/lib/docker/:/var/lib/docker:ro \
+		-v /dev/disk:/dev/disk:ro \
+		google/cadvisor
+
+prometheus:
+	test -n "$$(docker ps -aq --filter name=prometheus)" || \
+	docker run -d \
+		--name prometheus \
+		-p 9090:9090 \
+		--link cAdvisor:cAdvisor \
+		--link node-exporter:node-exporter \
+		--rm \
+		-v $(shell pwd)/config/prometheus:/config \
+		prom/prometheus --config.file=/config/prometheus.conf
+
+

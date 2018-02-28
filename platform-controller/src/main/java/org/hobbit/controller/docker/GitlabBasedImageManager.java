@@ -25,8 +25,6 @@ import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.gitlab.Project;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * An {@link ImageManager} implementation relying on the usage of a
@@ -36,8 +34,6 @@ import org.slf4j.LoggerFactory;
  * 
  */
 public class GitlabBasedImageManager extends AbstactImageManager implements ImageManager {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(GitlabBasedImageManager.class);
 
     // gitlab access controller
     private GitlabControllerImpl gitlab;

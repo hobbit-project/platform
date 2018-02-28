@@ -22,9 +22,11 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.jena.datatypes.DatatypeFormatException;
 import org.apache.jena.rdf.model.Literal;
@@ -43,6 +45,7 @@ import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
 import org.hobbit.core.Constants;
 import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.DataCube;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
@@ -55,6 +58,8 @@ import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfiguredBenchmarkBean;
+import de.usu.research.hobbit.gui.rest.beans.DiagramBean;
+import de.usu.research.hobbit.gui.rest.beans.DiagramBean.Point;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
 import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
@@ -544,53 +549,117 @@ public class RdfModelHelper {
         }
     }
 
-    private static void createKPIBeans(Model model, Resource resource, ResIterator parameterIterator,
+    private static void createKPIBeans(Model model, Resource experiment, ResIterator kpiIterator,
             Map<String, KeyPerformanceIndicatorBean> kpis) {
         Resource kpi;
         Property kpiProp;
         String parameterUri;
-        while (parameterIterator.hasNext()) {
-            kpi = parameterIterator.next();
+        while (kpiIterator.hasNext()) {
+            kpi = kpiIterator.next();
             parameterUri = kpi.getURI();
             kpiProp = model.getProperty(parameterUri);
             // If the KPI has not been seen before AND (it is either used as
             // property with the given resource OR the given resource is
             // connected via hobbit:measuresKPI with the KPI)
-            if ((model.contains(resource, kpiProp) || model.contains(resource, HOBBIT.measuresKPI, kpi))
+            if ((model.contains(experiment, kpiProp) || model.contains(experiment, HOBBIT.measuresKPI, kpi))
                     && !kpis.containsKey(parameterUri)) {
-                KeyPerformanceIndicatorBean kpiBean = new KeyPerformanceIndicatorBean();
-                kpiBean.setId(parameterUri);
-                kpiBean.setValue(RdfHelper.getStringValue(model, resource, kpiProp));
-
-                kpiBean.setName(RdfHelper.getLabel(model, kpiProp));
-                if (kpiBean.getName() == null) {
-                    kpiBean.setName(kpi.getURI());
-                    LOGGER.info("The benchmark parameter {} does not have a label.", kpi.getURI());
-                }
-                kpiBean.setDescription(RdfHelper.getDescription(model, kpiProp));
-                if (kpiBean.getDescription() == null) {
-                    LOGGER.info("The benchmark parameter {} does not have a description.", kpi.getURI());
-                }
-                NodeIterator nodeIterator = model.listObjectsOfProperty(kpi, RDFS.range);
-                RDFNode node;
-                if (nodeIterator.hasNext()) {
-                    node = nodeIterator.next();
-                    if (node.isResource()) {
-                        Resource typeResource = node.asResource();
-                        kpiBean.setRange(typeResource.getURI());
-                        // If this is an XSD resource
-                        if (XSD.getURI().equals(typeResource.getNameSpace())) {
-                            kpiBean.setDatatype(parseXsdType(typeResource));
-                        }
-                    }
-                }
-                Resource ranking = RdfHelper.getObjectResource(model, kpi, HOBBIT.ranking);
-                if (ranking != null) {
-                    kpiBean.setRanking(ranking.toString());
-                }
+                KeyPerformanceIndicatorBean kpiBean = createKpiBean(model, experiment, kpiProp);
                 kpis.put(parameterUri, kpiBean);
             }
         }
+    }
+
+    private static KeyPerformanceIndicatorBean createKpiBean(Model model, Resource experiment, Property kpiProp) {
+        KeyPerformanceIndicatorBean kpiBean = null;
+        // Try to parse the value of the KPI as a diagram
+        Resource object = RdfHelper.getObjectResource(model, experiment, kpiProp);
+        if (object != null) {
+            // we have a resource as KPI. Check its type
+            if (model.contains(object, RDF.type, DataCube.DataSet)) {
+                kpiBean = createDiagramBean(model, kpiProp, object);
+            }
+        }
+        // If it is not a diagram, create a normal bean
+        if (kpiBean == null) {
+            kpiBean = new KeyPerformanceIndicatorBean();
+            kpiBean.setValue(RdfHelper.getStringValue(model, experiment, kpiProp));
+        }
+        kpiBean.setId(kpiProp.getURI());
+
+        kpiBean.setName(RdfHelper.getLabel(model, kpiProp));
+        if (kpiBean.getName() == null) {
+            kpiBean.setName(kpiProp.getURI());
+            LOGGER.info("The benchmark parameter {} does not have a label.", kpiProp.getURI());
+        }
+        kpiBean.setDescription(RdfHelper.getDescription(model, kpiProp));
+        if (kpiBean.getDescription() == null) {
+            LOGGER.info("The benchmark parameter {} does not have a description.", kpiProp.getURI());
+        }
+        NodeIterator nodeIterator = model.listObjectsOfProperty(kpiProp, RDFS.range);
+        RDFNode node;
+        if (nodeIterator.hasNext()) {
+            node = nodeIterator.next();
+            if (node.isResource()) {
+                Resource typeResource = node.asResource();
+                kpiBean.setRange(typeResource.getURI());
+                // If this is an XSD resource
+                if (XSD.getURI().equals(typeResource.getNameSpace())) {
+                    kpiBean.setDatatype(parseXsdType(typeResource));
+                }
+            }
+        }
+        Resource ranking = RdfHelper.getObjectResource(model, kpiProp, HOBBIT.ranking);
+        if (ranking != null) {
+            kpiBean.setRanking(ranking.toString());
+        }
+        return kpiBean;
+    }
+
+    private static KeyPerformanceIndicatorBean createDiagramBean(Model model, Property kpiProp, Resource dataset) {
+        DiagramBean bean = new DiagramBean();
+        Resource structureNode = RdfHelper.getObjectResource(model, dataset, DataCube.structure);
+        if (structureNode == null) {
+            return null;
+        }
+        List<Resource> components = RdfHelper.getObjectResources(model, structureNode, DataCube.component);
+        if (components.size() < 2) {
+            return null;
+        }
+        Property dimensionProperty = null, measureProperty = null;
+        for (Resource component : components) {
+            Resource temp = RdfHelper.getObjectResource(model, component, DataCube.dimension);
+            // If this is a dimension
+            if ((temp != null) && (model.contains(temp, RDF.type, DataCube.DimensionProperty))) {
+                dimensionProperty = model.getProperty(temp.getURI());
+            } else {
+                temp = RdfHelper.getObjectResource(model, component, DataCube.measure);
+                // If this is a measure
+                if ((temp != null) && (model.contains(temp, RDF.type, DataCube.MeasureProperty))) {
+                    measureProperty = model.getProperty(temp.getURI());
+                }
+            }
+        }
+        // if the dimension or measure are missing
+        if ((dimensionProperty == null) || (measureProperty == null)) {
+            return null;
+        }
+        final Property fDimProp = dimensionProperty, fMeaProp = measureProperty;
+        // go through the observations and collect the points
+        List<Point> points = RdfHelper.getSubjectResources(model, DataCube.dataSet, dataset).parallelStream()
+                // it should be an observation
+                .filter(o -> model.contains(o, RDF.type, DataCube.Observation))
+                // it should have a value for the dimension
+                .filter(o -> model.contains(o, fDimProp))
+                // it should have a value for the measure
+                .filter(o -> model.contains(o, fMeaProp))
+                // map the observations to points
+                .map(o -> Point.createFromObservation(model, o, fDimProp, fMeaProp))
+                // point creation should have been successful
+                .filter(p -> (p != null)).collect(Collectors.toList());
+        Collections.sort(points);
+        bean.setData(points.toArray(new Point[points.size()]));
+        bean.setLabel(RdfHelper.getLabel(model, measureProperty));
+        return bean;
     }
 
     private static void createParamValueBeans(Model model, Resource taskResource, NodeIterator parameterIterator,
@@ -661,6 +730,8 @@ public class RdfModelHelper {
         Map<String, KeyPerformanceIndicatorBean> kpis = new HashMap<String, KeyPerformanceIndicatorBean>();
         createKPIBeans(model, experiment, model.listResourcesWithProperty(RDF.type, HOBBIT.KPI), kpis);
         bean.setKpis(new ArrayList<>(kpis.values()));
+        bean.setDiagrams(bean.getKpis().stream().filter(k -> k.getClass().equals(DiagramBean.class))
+                .map(k -> (DiagramBean) k).collect(Collectors.toList()));
 
         bean.setError(getErrorMessage(RdfHelper.getObjectResource(model, experiment, HOBBIT.terminatedWithError)));
 

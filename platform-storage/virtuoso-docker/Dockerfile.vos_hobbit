@@ -1,0 +1,6 @@
+FROM openlink/virtuoso_opensource:vos
+
+ADD vos-interruptible.sh /opt/virtuoso-opensource/bin/vos-interruptible.sh
+RUN chmod +x /opt/virtuoso-opensource/bin/vos-interruptible.sh
+
+ENTRYPOINT ["/opt/virtuoso-opensource/bin/vos-interruptible.sh"]

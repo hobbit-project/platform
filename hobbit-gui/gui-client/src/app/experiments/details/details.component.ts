@@ -86,6 +86,14 @@ export class DetailsComponent implements OnInit, OnChanges {
       this.rows.push(row);
     }
 
+    for (const ex of this.experiments) {
+      for (const diag of ex.diagrams) {
+        this.rows.push(this.buildRow('Plots', diag.name, diag.description, e => {
+          return [diag, diag.name];
+        }));
+      }
+    }
+
     this.rows.push(this.buildRow('Logs', 'Benchmark Log', '', t => [
       t.benchmarkLogAvailable ? 'benchmark/query?id=' + t.id : null, 'Download'
     ]));
@@ -100,11 +108,11 @@ export class DetailsComponent implements OnInit, OnChanges {
     });
   }
 
-  private buildRow(group: string, name: string, description: string, selector: (ex: Experiment) => [string, string]): TableRow {
+  private buildRow(group: string, name: string, description: string, selector: (ex: Experiment) => [any, string]): TableRow {
     return this.buildRowKpi(group, new ConfigParamRealisation('', name, 'xsd.string', '', description), selector);
   }
 
-  private buildRowKpi(group: string, kpi: ConfigParamRealisation, selector: (ex: Experiment) => [string, string]): TableRow {
+  private buildRowKpi(group: string, kpi: ConfigParamRealisation, selector: (ex: Experiment) => [any, string]): TableRow {
     const values = new Map<String, String>();
     const descriptions = new Map<String, String>();
     for (let i = 0; i < this.experiments.length; i++) {

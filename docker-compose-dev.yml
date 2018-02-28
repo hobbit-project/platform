@@ -1,29 +1,51 @@
-version: '2'
+version: '3.3'
 services:
+  platform-controller:
+    image: hobbitplatform_platform-controller
+    build: ./platform-controller
+    networks:
+      - hobbit-core
+    environment:
+      - HOBBIT_RABBIT_HOST=rabbit
+      - HOBBIT_REDIS_HOST=redis
+      - DEPLOY_ENV=testing
+#      - GITLAB_USER=
+#      - GITLAB_EMAIL=
+#      - GITLAB_TOKEN=
+#      - CONTAINER_PARENT_CHECK=0
+    depends_on:
+      - rabbit
+      - redis
+      - storage-service
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   # HOBBIT GUI
   gui:
+    #image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+    image: hobbitplatform_gui
     build: ./hobbit-gui/gui-serverbackend
     ports:
-      - "8082:8080"
+      - "8080:8080"
     networks:
       - hobbit-core
       - hobbit
     depends_on:
+      - platform-controller
       - rabbit
       - virtuoso
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
-      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      #- KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
       - CHECK_REALM_URL=false
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
 
   # Keycloak user management (used by the GUI)
   keycloak:
     image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak:1.0.0
-    container_name: keycloak
-    restart: always
     ports:
-      - "8080:8080"
+      - "8181:8080"
     networks:
       - hobbit
     volumes:
@@ -31,6 +53,7 @@ services:
 
   # HOBBIT Analysis component
   analysis:
+    image: hobbitplatform_analysis
     build: ./analysis-component
     networks:
       - hobbit-core
@@ -42,7 +65,6 @@ services:
   # message bus
   rabbit:
     image: rabbitmq:management
-    container_name: rabbit
     networks:
       - hobbit
       - hobbit-core
@@ -53,19 +75,21 @@ services:
 
   # DB for controller
   redis:
-    image: redis
+    image: redis:4.0.7
+    volumes:
+      - ./config/redis-db:/data
+    command: ["redis-server", "/data/redis.conf"]
     networks:
       - hobbit-core
-    ports:
-      - "6379:6379"
 
   # Triple store
   virtuoso:
-    image: openlink/virtuoso_opensource:vos-hobbit
-    container_name: vos
+    image: openlink/virtuoso_opensource:v07.20.3217
     hostname: vos
+    stop_signal: SIGINT
+    stop_grace_period: 2m
     volumes:
-      - ./config/db:/opt/virtuoso-opensource/var/lib/virtuoso/db
+      - ./config/db:/opt/virtuoso-opensource/database
     networks:
       - hobbit-core
     ports:
@@ -73,6 +97,7 @@ services:
 
   # Storage service
   storage-service:
+    image: hobbitplatform_storage-service
     build: ./platform-storage/storage-service
     networks:
       - hobbit-core
