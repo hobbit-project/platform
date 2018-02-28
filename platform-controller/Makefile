@@ -87,6 +87,8 @@ prometheus:
 	docker run -d \
 		--name prometheus \
 		-p 9090:9090 \
+		--link cAdvisor:cAdvisor \
+		--link node-exporter:node-exporter \
 		--rm \
 		--network hobbit-core \
 		-v $(shell pwd)/config/prometheus:/config \
