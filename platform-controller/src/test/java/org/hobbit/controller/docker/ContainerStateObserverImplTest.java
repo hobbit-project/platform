@@ -91,7 +91,6 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
                     // cleanup
                     LOGGER.info("Removing stopped container one...");
                     observer.removedObservedContainer(containerOneId);
-                    manager.removeContainer(containerOneId);
 
                     observer.addTerminationCallback(cb2);
                     LOGGER.info("Waiting for container two to terminate...");
@@ -105,7 +104,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
 
         // stop container one
         LOGGER.info("Stopping container one...");
-        manager.stopContainer(containerOneId);
+        manager.removeContainer(containerOneId);
 
         // wait for the check to end
         LOGGER.info("Waiting for the check to end...");

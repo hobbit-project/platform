@@ -38,8 +38,8 @@ import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.co
 import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
 import { ViewComponent } from './benchmark/status/view/view.component';
 import { RoundProgressModule } from 'angular-svg-round-progressbar';
+import { PlotComponent } from './experiments/details/plot/plot.component';
 import { BackButtonComponent } from './common/back-button.component';
-
 
 const appRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -115,6 +115,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     LeaderboardDetailsComponent,
     StatusComponent,
     ViewComponent,
+    PlotComponent,
     BackButtonComponent
   ],
   imports: [

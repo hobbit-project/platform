@@ -178,6 +178,13 @@ export class ChallengeRegistration {
     constructor(public challengeId: string, public taskId: string, public systemId: string) { }
 }
 
+export class Diagram extends NamedEntity {
+
+    constructor(id: string, name: string, public range: string, public label: string, public data: any[], description?: string) {
+        super(id, name, description);
+    }
+}
+
 export class ExtendedChallengeRegistration extends ChallengeRegistration {
 
     @Type(() => System)
@@ -202,6 +209,9 @@ export class Experiment {
 
     @Type(() => ChallengeTask)
     public challengeTask: ChallengeTask;
+
+    @Type(() => Diagram)
+    public diagrams: Diagram[];
 
     constructor(public id: string, public benchmarkLogAvailable: boolean, public systemLogAvailable: boolean,
         public error?: string, public rank?: number) { }

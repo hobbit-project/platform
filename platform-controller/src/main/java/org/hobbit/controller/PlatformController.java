@@ -44,13 +44,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerManagerImpl;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.GitlabBasedImageManager;
-import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -66,6 +60,7 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
+import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -101,6 +96,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
+    private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
@@ -160,6 +156,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected ExperimentManager expManager;
 
+    protected ResourceInformationCollector resInfoCollector;
+
+    protected ClusterManager clusterManager;
+
     /**
      * Timer used to trigger publishing of challenges
      */
@@ -171,6 +171,16 @@ public class PlatformController extends AbstractCommandReceivingComponent
         super.init();
         LOGGER.debug("Platform controller initialization started.");
 
+        // Set task history limit for swarm cluster to 0 (will remove all terminated containers)
+        // Only for prod mode
+        clusterManager = new ClusterManagerImpl();
+        if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+            LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
+        } else {
+            LOGGER.debug("Production mode. Setting task history limit to 0. All terminated containers will be removed.");
+            clusterManager.setTaskHistoryLimit(0);
+        }
+
         // create container manager
         containerManager = new ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
@@ -179,6 +189,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
+        resInfoCollector = new ResourceInformationCollector(containerManager);
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
@@ -304,6 +315,29 @@ public class PlatformController extends AbstractCommandReceivingComponent
             }
             break;
         }
+        case Commands.REQUEST_SYSTEM_RESOURCES_USAGE: {
+            // FIXME use the session id to make sure that only containers of this session
+            // are observed
+            ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
+            LOGGER.info("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
+            if (replyTo != null) {
+                byte[] response;
+                if (resUsage != null) {
+                    response = RabbitMQUtils.writeString(gson.toJson(resUsage));
+                } else {
+                    response = new byte[0];
+                }
+                try {
+                    cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, response);
+                } catch (IOException e) {
+                    StringBuilder errMsgBuilder = new StringBuilder();
+                    errMsgBuilder.append("Error, couldn't sent the request resource usage statistics to replyTo=");
+                    errMsgBuilder.append(replyTo);
+                    errMsgBuilder.append(".");
+                    LOGGER.error(errMsgBuilder.toString(), e);
+                }
+            }
+        }
         }
     }
 
@@ -355,7 +389,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     public void stopContainer(String containerName) {
         String containerId = containerManager.getContainerId(containerName);
         if (containerId != null) {
-            containerManager.stopContainer(containerId);
+            containerManager.removeContainer(containerId);
         }
     }
 
@@ -376,8 +410,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
             // If we remove this container, we have to make sure that there are
             // no children that are still running
-            containerManager.stopParentAndChildren(containerId);
-            containerManager.removeContainer(containerId);
+            containerManager.removeParentAndChildren(containerId);
         }
     }
 
@@ -398,7 +431,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
             List<String> containers = containerObserver.getObservedContainers();
             for (String containerId : containers) {
                 try {
-                    containerManager.stopContainer(containerId);
                     containerManager.removeContainer(containerId);
                 } catch (Exception e) {
                     LOGGER.error("Couldn't stop running containers.", e);
@@ -603,7 +635,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 }
             }
         }
-        LOGGER.info("Finished handling of front end request.");
+        LOGGER.debug("Finished handling of front end request.");
     }
 
     protected Model getChallengeFromUri(String challengeUri) {

@@ -38,6 +38,7 @@ import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
+import org.hobbit.controller.docker.ClusterManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;
@@ -52,6 +53,8 @@ import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.spotify.docker.client.exceptions.DockerException;
 
 /**
  * This class encapsulates (and synchronizes) all methods that are applied on a
@@ -147,9 +150,18 @@ public class ExperimentManager implements Closeable {
             return;
         }
         try {
-            // if there is no benchmark running (and the queue has been
-            // initialized)
+            // if there is no benchmark running, the queue has been
+            // initialized and cluster is healthy
             if ((experimentStatus == null) && (controller.queue != null)) {
+                ClusterManager clusterManager = this.controller.clusterManager;
+                boolean isClusterHealthy = clusterManager.isClusterHealthy();
+                if(!isClusterHealthy) {
+                    LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
+                                 "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
+                                 " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                                 " Current number of nodes: "+clusterManager.getNumberOfNodes());
+                    return;
+                }
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
@@ -398,6 +410,23 @@ public class ExperimentManager implements Closeable {
                 }
             }
 
+            //if cluster is not healthy add error message to experimentStatus
+            try {
+                ClusterManager clusterManager = this.controller.clusterManager;
+                boolean isHealthy = clusterManager.isClusterHealthy();
+                if(!isHealthy) {
+                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down." +
+                            " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
+                            " Current number of nodes: "+clusterManager.getNumberOfNodes());
+
+                    experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
+                }
+            } catch (DockerException e) {
+                LOGGER.error("Could not get cluster health status. ", e);
+            } catch (InterruptedException e) {
+                LOGGER.error("Interrupted. Could not get cluster health status. ", e);
+            }
+
             Model resultModel = experimentStatus.getResultModel();
             if (resultModel == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
@@ -440,7 +469,7 @@ public class ExperimentManager implements Closeable {
     private void forceBenchmarkTerminate_unsecured(Resource error) {
         if (experimentStatus != null) {
             String parent = experimentStatus.getBenchmarkContainer();
-            controller.containerManager.stopParentAndChildren(parent);
+            controller.containerManager.removeParentAndChildren(parent);
             if (error != null) {
                 experimentStatus.addError(error);
             }
@@ -471,7 +500,6 @@ public class ExperimentManager implements Closeable {
                 // experiment
                 if (containerId.equals(experimentStatus.getBenchmarkContainer())) {
                     experimentStatus.setState(ExperimentStatus.States.STOPPED);
-                    controller.containerManager.stopParentAndChildren(containerId);
                     if (exitCode != 0) {
                         LOGGER.warn("The benchmark container " + experimentStatus.getBenchmarkContainer()
                                 + " terminated with an exit code != 0.");
