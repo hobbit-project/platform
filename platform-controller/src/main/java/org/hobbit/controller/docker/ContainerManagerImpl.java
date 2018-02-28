@@ -39,7 +39,6 @@ import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
-import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.Network;

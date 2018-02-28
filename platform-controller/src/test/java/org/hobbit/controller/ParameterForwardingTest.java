@@ -1,11 +1,9 @@
 package org.hobbit.controller;
 
 import java.io.InputStream;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.compress.utils.IOUtils;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -14,7 +12,6 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
