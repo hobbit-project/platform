@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.spotify.docker.client.exceptions.DockerCertificateException;
-import com.spotify.docker.client.exceptions.DockerException;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
@@ -36,7 +34,6 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
 public class ResourceInformationCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollector.class);
-    private static DockerClient dockerClient;
 
     public static final String PROMETHEUS_HOST_KEY = "PROMETHEUS_HOST";
     public static final String PROMETHEUS_PORT_KEY = "PROMETHEUS_PORT";
@@ -53,12 +50,6 @@ public class ResourceInformationCollector {
     }
 
     public ResourceInformationCollector(ContainerManager manager, String prometheusHost, String prometheusPort) {
-        try {
-            this.dockerClient = DockerUtility.getDockerClient();
-        } catch (DockerCertificateException e) {
-            LOGGER.error("Could not initialize Docker Client. Resource Information Collector will not work! ", e);
-            return;
-        }
         this.manager = manager;
         this.prometheusHost = prometheusHost;
         if ((this.prometheusHost == null) && System.getenv().containsKey(PROMETHEUS_HOST_KEY)) {
@@ -140,7 +131,7 @@ public class ResourceInformationCollector {
                 .append("{container_label_com_docker_swarm_task_id=\"").append(taskId).append("\"}");
         URL url = new URL(builder.toString());
         String content = IOUtils.toString(url.openConnection().getInputStream());
-        System.out.println(content);
+        LOGGER.debug("Prometheus response: {}", content);
         JsonParser parser = new JsonParser();
         JsonObject root = parser.parse(content).getAsJsonObject();
         JsonArray result = root.get("data").getAsJsonObject().get("result").getAsJsonArray();
