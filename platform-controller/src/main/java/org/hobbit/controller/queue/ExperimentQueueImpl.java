@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.hobbit.controller.data.ExperimentConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.lambdaworks.redis.RedisClient;
@@ -37,6 +39,9 @@ import com.lambdaworks.redis.api.sync.RedisCommands;
  * now
  */
 public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentQueueImpl.class);
+    
     public final static String CHALLENGE_KEY = "challenge";
     public final static String EXPERIMENT_KEY = "experiment";
     public final static String CHALLENGE_QUEUE = "challenge_queue";
@@ -87,8 +92,18 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
             challenge = decodeExperimentFromString(challengeStr);
         }
 
-        if (challenge != null && challenge.executionDate.before(Calendar.getInstance())) {
-            return challenge;
+        // If a challenge experiment is available
+        if (challenge != null) {
+            // If the experiment is faulty (i.e., it has no execution date defined)
+            if (challenge.executionDate == null) {
+                LOGGER.error(
+                        "Got a challenge experiment without an execution date. Setting the execution date to 'now' and returning it.");
+                challenge.executionDate = Calendar.getInstance();
+                return challenge;
+                // If we reached the point in time to execute this experiment
+            } else if (challenge.executionDate.before(Calendar.getInstance())) {
+                return challenge;
+            }
         }
         return experiment;
     }
