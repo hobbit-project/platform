@@ -46,7 +46,6 @@ rabbit:
 		-p 5672:5672 \
 		-p 8080:15672 \
 		--rm \
-		--network hobbit-core \
 		rabbitmq:management
 
 node-exporter:
@@ -55,18 +54,7 @@ node-exporter:
 		--name node-exporter \
 		-p 9100:9100 \
 		--rm \
-		--network hobbit-core \
 		prom/node-exporter
-
-container-exporter:
-	test -n "$$(docker ps -aq --filter name=container-exporter)" || \
-	docker run -d \
-		--name container-exporter \
-		-p 9104:9104 \
-		--rm \
-		--network hobbit-core \
-	  	-v /var/run/docker.sock \
-		prom/container-exporter
 
 cAdvisor:
 	test -n "$$(docker ps -aq --filter name=cAdvisor)" || \
@@ -74,7 +62,6 @@ cAdvisor:
 		--name cAdvisor \
 		-p 8081:8080 \
 		--rm \
-		--network hobbit-core \
 		-v /:/rootfs:ro \
 		-v /var/run:/var/run:rw \
 		-v /sys:/sys:ro \
@@ -90,7 +77,6 @@ prometheus:
 		--link cAdvisor:cAdvisor \
 		--link node-exporter:node-exporter \
 		--rm \
-		--network hobbit-core \
 		-v $(shell pwd)/config/prometheus:/config \
 		prom/prometheus --config.file=/config/prometheus.conf
 
