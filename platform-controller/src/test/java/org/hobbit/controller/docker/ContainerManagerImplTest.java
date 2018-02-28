@@ -34,7 +34,6 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -190,18 +189,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // cleanup
         manager.removeParentAndChildren(unrelatedParent);
-    }
-
-    private Exception getContainer(String id) {
-        try {
-            // try to get info on removed container
-            ContainerInfo containerInfo = dockerClient.inspectContainer(id);
-            containerInfo.state().running();
-            // we expected an exception
-            return null;
-        } catch (Exception e) {
-            return e;
-        }
     }
 
     @Test

@@ -18,10 +18,7 @@ package org.hobbit.controller.docker;
 
 import java.util.List;
 
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Task;
 
@@ -190,19 +187,19 @@ public interface ContainerManager {
     public Task getContainerInfo(String containerId) throws InterruptedException, DockerException;
 
     /**
-     * Get a list of containers
+     * Get a list of tasks
      */
-    public default List<Container> getContainers() {
-        return getContainers(DockerClient.ListContainersParam.allContainers());
+    public default List<Task> getContainers() {
+        return getContainers(Task.Criteria.builder().build());
     }
 
     /**
-     * Get a list of containers which fulfill the given filter criteria.
-     * 
-     * @param params
-     *            container parameters for filtering the list of containers
+     * Get a list of tasks which fulfill the given filter criteria.
+     *
+     * @Task.Criteria criteria
+     *            task criteria for filtering the list of tasks
      */
-    public List<Container> getContainers(ListContainersParam... params);
+    public List<Task> getContainers(Task.Criteria criteria);
 
     /**
      * Retrieves the container Id for the container with the given name or null if

@@ -27,8 +27,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 
-import com.spotify.docker.client.exceptions.DockerCertificateException;
-import com.spotify.docker.client.exceptions.DockerException;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.NodeIterator;
@@ -55,6 +53,8 @@ import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.spotify.docker.client.exceptions.DockerException;
 
 /**
  * This class encapsulates (and synchronizes) all methods that are applied on a

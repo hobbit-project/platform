@@ -6,12 +6,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import com.spotify.docker.client.exceptions.DockerCertificateException;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.*;
+import org.hobbit.controller.docker.ClusterManagerImpl;
+import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.docker.ContainerStateObserver;
+import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.queue.InMemoryQueue;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
@@ -27,10 +30,10 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
-import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.messages.swarm.Task.Criteria;
 
 /**
  * A simple test that uses a dummy {@link PlatformController} to simulate an
@@ -242,7 +245,7 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
-        public List<Container> getContainers(ListContainersParam... params) {
+        public List<Task> getContainers(Criteria criteria) {
             return new ArrayList<>(0);
         }
 
