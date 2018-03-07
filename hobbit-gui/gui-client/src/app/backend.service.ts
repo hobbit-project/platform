@@ -101,7 +101,7 @@ export class BackendService {
   }
 
   getLogFile(url: string) {
-    return this.http.get('BACKEND/rest/logs/' + url);
+    return this.http.get('BACKEND/rest/logs/' + url, { responseType: 'text' });
   }
 
 }
