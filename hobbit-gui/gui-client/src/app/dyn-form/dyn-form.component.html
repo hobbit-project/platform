@@ -10,11 +10,12 @@
         <label [attr.for]="config.id">{{config.name}}</label>
 
         <div [ngSwitch]="config.getType()">
-            <input *ngSwitchCase="'input'" [formControlName]="config.id" [id]="config.id" [type]="config.getInputType()" class="form-control">
+            <input *ngSwitchCase="'input'" [formControlName]="config.id" [id]="config.id" [type]="config.getInputType()"
+                [title]="config.description" class="form-control">
 
             <select *ngSwitchCase="'dropdown'" [formControlName]="config.id" [id]="config.id" class="form-control">
-            <option *ngFor="let value of config.options" [value]="value.value">{{value.label}}</option>
-        </select>
+                <option *ngFor="let value of config.options" [value]="value.value">{{value.label}}</option>
+            </select>
 
             <p *ngSwitchDefault>
                 Unable to render input of type {{config.getType()}}.
