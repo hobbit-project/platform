@@ -64,7 +64,7 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageService.class);
 
     private static final int MAX_NUMBER_PARALLEL_REQUESTS = 10;
-    
+
     /**
      * Maximum result size used for pagination.
      */
@@ -77,20 +77,20 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     private static final String QUEUE_NAME = Constants.STORAGE_QUEUE_NAME;
 
     /**
-     * The environment variable containing the URL to the SPARQL Endpoint used
-     * as a Storage component for the Platform.
+     * The environment variable containing the URL to the SPARQL Endpoint used as a
+     * Storage component for the Platform.
      */
     private static final String SPARQL_ENDPOINT_URL_KEY = "SPARQL_ENDPOINT_URL";
 
     /**
-     * The environment variable containing the username for authenticating with
-     * the SPARQL Endpoint.
+     * The environment variable containing the username for authenticating with the
+     * SPARQL Endpoint.
      */
     private static final String SPARQL_ENDPOINT_USERNAME_KEY = "SPARQL_ENDPOINT_USERNAME";
 
     /**
-     * The environment variable containing the password for authenticating with
-     * the SPARQL Endpoint.
+     * The environment variable containing the password for authenticating with the
+     * SPARQL Endpoint.
      */
     private static final String SPARQL_ENDPOINT_PASSWORD_KEY = "SPARQL_ENDPOINT_PASSWORD";
 
@@ -98,27 +98,27 @@ public class StorageService extends AbstractComponent implements CredentialsProv
      * The queue on which this service is listening for requests.
      */
     private RabbitQueue queue = null;
-    
+
     /**
      * The consumer used to consume requests.
      */
     private QueueingConsumer consumer = null;
-    
+
     /**
      * The URL of the SPARQL endpoint.
      */
     private String sparqlEndpointUrl = null;
-    
+
     /**
      * The Query factory used to query the SPARQL endpoint.
      */
     private QueryExecutionFactory queryExecFactory = null;
-    
+
     /**
      * The provided credentials.
      */
     private Credentials credentials = null;
-    
+
     /**
      * The HTTP client used for communication with the SPARQL endpoint.
      */
@@ -130,12 +130,13 @@ public class StorageService extends AbstractComponent implements CredentialsProv
      * @param queryString
      *            The query to be executed
      * @return Returns the queryString results serialized in JSON
-     * @throws Exception If endpoint not reachable, exception while executing query, etc.
+     * @throws Exception
+     *             If endpoint not reachable, exception while executing query, etc.
      */
     public String callSparqlEndpoint(String queryString) throws Exception {
         String response = null;
         QueryExecution qexec = null;
-        
+
         LOGGER.info("Received a request to call the SPARQL Endpoint at {} and execute the following query: {}",
                 sparqlEndpointUrl, queryString.replace("\n", " "));
 
@@ -200,7 +201,8 @@ public class StorageService extends AbstractComponent implements CredentialsProv
             } finally {
                 try {
                     qexec.close();
-                } catch(Exception e) {}
+                } catch (Exception e) {
+                }
             }
         }
         return response;
@@ -214,11 +216,11 @@ public class StorageService extends AbstractComponent implements CredentialsProv
         String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
         String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
         credentials = new UsernamePasswordCredentials(username, password);
-        
+
         HttpClientBuilder clientBuilder = HttpClientBuilder.create();
         clientBuilder.setDefaultCredentialsProvider(this);
         client = clientBuilder.build();
-        
+
         queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
         queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
 
@@ -240,10 +242,9 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     }
 
     /**
-     * A simple method that reduces the given query to the parts that are
-     * located outside of brackets, i.e.,parts that match {{@code ...}} and
-     * {@code <...>} are removed. It can be used to make sure that only
-     * keywords are processed.
+     * A simple method that reduces the given query to the parts that are located
+     * outside of brackets, i.e.,parts that match {{@code ...}} and {@code <...>}
+     * are removed. It can be used to make sure that only keywords are processed.
      *
      * @param query
      *            the SPARQL query that should be reduced
@@ -254,8 +255,8 @@ public class StorageService extends AbstractComponent implements CredentialsProv
         int startPos = reduced.lastIndexOf("{");
         int endPos;
         /*
-         * First, delete all {...} constructs. We start with the last inner
-         * bracket, delete it and search for the next last inner bracket.
+         * First, delete all {...} constructs. We start with the last inner bracket,
+         * delete it and search for the next last inner bracket.
          */
         while (startPos >= 0) {
             endPos = reduced.indexOf("}", startPos);
@@ -272,17 +273,17 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     }
 
     /**
-     * Retrieves the value of the environmental variable with the given key if
-     * such a variable can be found. Otherwise, if the given essential flag is
-     * <code>true</code> an {@link IllegalStateException} is thrown. If the flag
-     * is <code>false</code>, <code>null</code> is returned.
+     * Retrieves the value of the environmental variable with the given key if such
+     * a variable can be found. Otherwise, if the given essential flag is
+     * <code>true</code> an {@link IllegalStateException} is thrown. If the flag is
+     * <code>false</code>, <code>null</code> is returned.
      *
      * @param key
      *            the name of the environmental variable
      * @param essential
      *            a flag indicating whether the value must be retrievable
-     * @return the value of the environmental variable or <code>null</code> if
-     *         the variable couldn't be found and the essential flag is
+     * @return the value of the environmental variable or <code>null</code> if the
+     *         variable couldn't be found and the essential flag is
      *         <code>false</code>.
      * @throws IllegalStateException
      *             if the variable couldn't be found and the essential flag is
@@ -315,12 +316,30 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     }
 
     @Override
-    public Credentials getCredentials(AuthScope arg0) {
+    public Credentials getCredentials(AuthScope scope) {
         return credentials;
     }
 
     @Override
     public void setCredentials(AuthScope arg0, Credentials arg1) {
         LOGGER.error("I am a read-only credential provider but got a call to set credentials.");
+    }
+
+    /**
+     * Main method for debugging purposes.
+     * 
+     * @param args
+     */
+    public static void main(String[] args) {
+        StorageService storage = new StorageService();
+        try {
+            storage.init();
+            System.out.println(storage.callSparqlEndpoint(
+                    "select distinct ?g ?p ?o where { graph ?g { <http://w3id.org/hobbit/experiments#1520529269933> ?p ?o }} LIMIT 100"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            IOUtils.closeQuietly(storage);
+        }
     }
 }
