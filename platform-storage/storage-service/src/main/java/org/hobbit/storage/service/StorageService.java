@@ -26,15 +26,23 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.aksw.jena_sparql_api.core.QueryExecutionFactory;
+import org.aksw.jena_sparql_api.http.QueryExecutionFactoryHttp;
+import org.aksw.jena_sparql_api.pagination.core.QueryExecutionFactoryPaginated;
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.atlas.web.auth.SimpleAuthenticator;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.Credentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.jena.query.Query;
 import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryExecutionFactory;
 import org.apache.jena.query.QueryFactory;
 import org.apache.jena.query.ResultSet;
 import org.apache.jena.query.ResultSetFormatter;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.sparql.core.DatasetDescription;
 import org.apache.jena.sparql.modify.UpdateProcessRemote;
 import org.apache.jena.update.UpdateExecutionFactory;
 import org.apache.jena.update.UpdateFactory;
@@ -51,11 +59,13 @@ import com.rabbitmq.client.QueueingConsumer;
  * @author Milos Jovanovik (mjovanovik@openlinksw.com)
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  */
-public class StorageService extends AbstractComponent {
+public class StorageService extends AbstractComponent implements CredentialsProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageService.class);
 
     private static final int MAX_NUMBER_PARALLEL_REQUESTS = 10;
+    
+    private static final int MAX_RESULT_SIZE = 1000;
 
     /**
      * The queue name for communication between the Platform components and the
@@ -84,8 +94,9 @@ public class StorageService extends AbstractComponent {
     private RabbitQueue queue = null;
     private String sparqlEndpointUrl = null;
     private QueueingConsumer consumer = null;
-    private String username = null;
-    private String password = null;
+    private QueryExecutionFactory queryExecFactory = null;
+    private Credentials credentials = null;
+    private CloseableHttpClient client = null;
 
     /**
      * Calls the SPARQL Endpoint denoted by the URL, to execute the queryString.
@@ -98,10 +109,9 @@ public class StorageService extends AbstractComponent {
     public String callSparqlEndpoint(String queryString) throws Exception {
         String response = null;
         QueryExecution qexec = null;
-
-        String endpointURL = sparqlEndpointUrl + "-auth";
+        
         LOGGER.info("Received a request to call the SPARQL Endpoint at {} and execute the following query: {}",
-                endpointURL, queryString.replace("\n", " "));
+                sparqlEndpointUrl, queryString.replace("\n", " "));
 
         // TODO: Fix this with something better
         String queryKeywords = reduceQueryToKeyWords(queryString);
@@ -111,8 +121,7 @@ public class StorageService extends AbstractComponent {
                 // The UPDATE query will go to the protected SPARQL endpoint, at
                 // /sparql-auth
                 UpdateProcessRemote update = (UpdateProcessRemote) UpdateExecutionFactory
-                        .createRemote(UpdateFactory.create(queryString), endpointURL);
-                update.setAuthentication(username, password.toCharArray());
+                        .createRemote(UpdateFactory.create(queryString), sparqlEndpointUrl, client);
                 update.execute(); // There's no response from an UPDATE query
                 System.out.println("[Storage Service] Done with the SPARQL UPDATE.");
                 response = "Successfully executed the SPARQL UPDATE.";
@@ -124,8 +133,7 @@ public class StorageService extends AbstractComponent {
             try {
                 // Prepare the query execution
                 Query query = QueryFactory.create(queryString);
-                qexec = QueryExecutionFactory.sparqlService(endpointURL, query,
-                        new SimpleAuthenticator(username, password.toCharArray()));
+                qexec = queryExecFactory.createQueryExecution(query);
                 ResultSet results = null;
                 Model resultsModel = null;
                 Boolean resultsBoolean = null;
@@ -176,9 +184,17 @@ public class StorageService extends AbstractComponent {
     public void init() throws Exception {
         super.init();
 
-        sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true);
-        username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
-        password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
+        sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true) + "-auth";
+        String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
+        String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
+        credentials = new UsernamePasswordCredentials(username, password);
+        
+        HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+        clientBuilder.setDefaultCredentialsProvider(this);
+        client = clientBuilder.build();
+        
+        queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
+        queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
 
         queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
         queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
@@ -260,6 +276,25 @@ public class StorageService extends AbstractComponent {
     @Override
     public void close() throws IOException {
         IOUtils.closeQuietly(queue);
+        try {
+            queryExecFactory.close();
+        } catch (Exception e) {
+        }
+        IOUtils.closeQuietly(client);
         super.close();
+    }
+
+    @Override
+    public void clear() {
+    }
+
+    @Override
+    public Credentials getCredentials(AuthScope arg0) {
+        return credentials;
+    }
+
+    @Override
+    public void setCredentials(AuthScope arg0, Credentials arg1) {
+        LOGGER.error("I am a read-only credential provider but got a call to set credentials.");
     }
 }
