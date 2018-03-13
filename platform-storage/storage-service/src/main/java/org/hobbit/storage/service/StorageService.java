@@ -65,6 +65,9 @@ public class StorageService extends AbstractComponent implements CredentialsProv
 
     private static final int MAX_NUMBER_PARALLEL_REQUESTS = 10;
     
+    /**
+     * Maximum result size used for pagination.
+     */
     private static final int MAX_RESULT_SIZE = 1000;
 
     /**
@@ -91,11 +94,34 @@ public class StorageService extends AbstractComponent implements CredentialsProv
      */
     private static final String SPARQL_ENDPOINT_PASSWORD_KEY = "SPARQL_ENDPOINT_PASSWORD";
 
+    /**
+     * The queue on which this service is listening for requests.
+     */
     private RabbitQueue queue = null;
-    private String sparqlEndpointUrl = null;
+    
+    /**
+     * The consumer used to consume requests.
+     */
     private QueueingConsumer consumer = null;
+    
+    /**
+     * The URL of the SPARQL endpoint.
+     */
+    private String sparqlEndpointUrl = null;
+    
+    /**
+     * The Query factory used to query the SPARQL endpoint.
+     */
     private QueryExecutionFactory queryExecFactory = null;
+    
+    /**
+     * The provided credentials.
+     */
     private Credentials credentials = null;
+    
+    /**
+     * The HTTP client used for communication with the SPARQL endpoint.
+     */
     private CloseableHttpClient client = null;
 
     /**
@@ -155,17 +181,17 @@ public class StorageService extends AbstractComponent implements CredentialsProv
                     ByteArrayOutputStream jsonOutputStream = new ByteArrayOutputStream();
                     ResultSetFormatter.outputAsJSON(jsonOutputStream, results);
                     String jsonResults = new String(jsonOutputStream.toByteArray(), "UTF-8");
-                    LOGGER.debug("[Storage Service] Results serialized in JSON: \n" + jsonResults);
+                    LOGGER.debug("[Storage Service] Results serialized in JSON: \n{}", jsonResults);
                     response = jsonResults;
                 } else if (query.isConstructType() || query.isDescribeType()) {
                     // Transform the Model into a JSON serialization
                     ByteArrayOutputStream jsonOutputStream = new ByteArrayOutputStream();
                     resultsModel.write(jsonOutputStream, "JSON-LD");
                     String jsonResults = new String(jsonOutputStream.toByteArray(), "UTF-8");
-                    LOGGER.debug("[Storage Service] Results serialized in JSON: \n" + jsonResults);
+                    LOGGER.debug("[Storage Service] Results serialized in JSON: \n{}", jsonResults);
                     response = jsonResults;
                 } else if (query.isAskType()) {
-                    LOGGER.debug("[Storage Service] Result is: " + resultsBoolean.toString());
+                    LOGGER.debug("[Storage Service] Result is: {}", resultsBoolean.toString());
                     response = resultsBoolean.toString();
                 }
             } catch (Exception e) {
