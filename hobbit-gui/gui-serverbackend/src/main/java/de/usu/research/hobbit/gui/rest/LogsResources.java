@@ -51,7 +51,8 @@ import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 @Path("logs")
 public class LogsResources {
 
-    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. Either the experiment has not been finished or it does not exist.";
+    private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. " +
+            "Either the experiment has not been finished or it does not exist.";
     private static final String benchmarkQueryBase = "" +
         "{" +
         "%s" + // placeholder for _source or other extensions
@@ -224,7 +225,7 @@ public class LogsResources {
         HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
         org.elasticsearch.client.Response response = restClient.performRequest(
                 "GET",
-                "/_"+type,
+                "/logstash*/_"+type,
                 Collections.singletonMap("pretty", "true"),
                 entity
         );
