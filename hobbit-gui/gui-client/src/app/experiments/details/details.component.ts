@@ -141,7 +141,7 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.bs.getLogFile(path).subscribe(log => {
       const link = document.createElement('a');
       link.download = 'log.txt';
-      const blob = new Blob([log.text()], { type: 'text/plain' });
+      const blob = new Blob([log], { type: 'text/plain' });
       link.href = window.URL.createObjectURL(blob);
       link.click();
     });
