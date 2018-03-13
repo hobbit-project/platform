@@ -83,3 +83,7 @@ lc-run:
 	java -cp platform-controller/target/platform-controller.jar \
 	org.hobbit.core.run.ComponentStarter \
 	org.hobbit.controller.PlatformController
+
+dev:
+	docker-compose -f docker-compose-dev.yml build
+	docker-compose -f docker-compose-dev.yml -f docker-compose.override.yml up
