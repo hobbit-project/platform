@@ -86,12 +86,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String parentId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 sleepCommand);
         assertNotNull(parentId);
-        containers.add(parentId);
+        tasks.add(parentId);
 
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, parentId,
                 sleepCommand);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
 
         final Task containerInfo = dockerClient.inspectTask(containerId);
         assertNotNull("Task inspection response from docker", containerInfo);
@@ -115,7 +115,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     public void startContainerWithoutCommand() throws Exception {
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
         // make sure it was executed with default sleepCommand
         final Task taskInfo = dockerClient.inspectTask(containerId);
         assertNotNull("Task inspection result from docker", taskInfo);
@@ -127,7 +127,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        containers.add(testContainer);
+        tasks.add(testContainer);
         // remove it
         manager.removeContainer(testContainer);
         // check that it's actually removed
@@ -145,26 +145,26 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // - unrelatedChild
         String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(topParent);
-        containers.add(topParent);
+        tasks.add(topParent);
         String child1 = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(child1);
-        containers.add(child1);
+        tasks.add(child1);
         String subParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(subParent);
-        containers.add(subParent);
+        tasks.add(subParent);
         String subchild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, subParent,
                 sleepCommand);
         assertNotNull(subchild);
-        containers.add(subchild);
+        tasks.add(subchild);
         String unrelatedParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(unrelatedParent);
-        containers.add(unrelatedParent);
+        tasks.add(unrelatedParent);
         String unrelatedChild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, unrelatedParent,
                 sleepCommand);
         assertNotNull(unrelatedChild);
-        containers.add(unrelatedChild);
+        tasks.add(unrelatedChild);
 
         // make sure they are running
         assertContainerIsRunning("Top parent container", topParent);
@@ -196,7 +196,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        containers.add(testContainer);
+        tasks.add(testContainer);
         // get info
         Task infoFromMananger = manager.getContainerInfo(testContainer);
         Task containerInfo = dockerClient.inspectTask(testContainer);
@@ -213,7 +213,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
 
         // compare containerId and retrieved id
         String containerName = manager.getContainerName(containerId);
