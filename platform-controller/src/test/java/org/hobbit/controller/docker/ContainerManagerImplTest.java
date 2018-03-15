@@ -22,6 +22,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,11 +32,15 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.PortBinding;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
@@ -43,7 +49,7 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
-    
+
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
@@ -271,5 +277,53 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         manager.pullImage(testImage);
         assertTrue("Test image should exist after pulling", imageExists(testImage));
+    }
+
+    @Test
+    public void pullUpdatedImage() throws Exception {
+        final String registryImage = "registry:2";
+        final String registryHostPort = "5000";
+        final String testImage = "localhost:" + registryHostPort + "/test-image-version";
+
+        // remove image from local cache
+        removeImage(testImage);
+        // start local docker registry
+        dockerClient.pull(registryImage);
+        ContainerConfig.Builder cfgBuilder = ContainerConfig.builder();
+        cfgBuilder.image(registryImage);
+        cfgBuilder.exposedPorts("5000");
+        HostConfig.Builder hostCfgBuilder = HostConfig.builder();
+        hostCfgBuilder.portBindings(ImmutableMap.of("5000",
+                new ArrayList<PortBinding>(Arrays.asList(PortBinding.of("0.0.0.0", registryHostPort)))));
+        cfgBuilder.hostConfig(hostCfgBuilder.build());
+        final String registryContainer = dockerClient.createContainer(cfgBuilder.build()).id();
+        dockerClient.startContainer(registryContainer);
+        containers.add(registryContainer);
+        // build first version of image
+        dockerClient.build(Paths.get("docker/test-image-version-1"), testImage + ":latest");
+        // push it to the registry
+        dockerClient.push(testImage + ":latest");
+        removeImage(testImage);
+        // start a service using the image via the manager
+        String testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
+        tasks.add(testTask);
+        // check if the started service uses the first version of image
+        assertEquals("Service is using first image version",
+                Integer.valueOf(1), dockerClient.inspectTask(testTask).status().containerStatus().exitCode());
+        manager.removeContainer(testTask);
+        tasks.remove(testTask);
+        // build second version of image
+        dockerClient.build(Paths.get("docker/test-image-version-2"), testImage + ":latest");
+        // push it to the registry
+        dockerClient.push(testImage + ":latest");
+        removeImage(testImage);
+        // restore (rebuild) first version of image locally
+        dockerClient.build(Paths.get("docker/test-image-version-1"), testImage + ":latest");
+        // start a service using the image via the manager
+        testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
+        tasks.add(testTask);
+        // check if the started service uses the second version of image
+        assertEquals("Service is using second image version",
+                Integer.valueOf(2), dockerClient.inspectTask(testTask).status().containerStatus().exitCode());
     }
 }
