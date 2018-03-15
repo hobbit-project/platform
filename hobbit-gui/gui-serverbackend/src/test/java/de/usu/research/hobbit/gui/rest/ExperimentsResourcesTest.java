@@ -38,8 +38,8 @@ public class ExperimentsResourcesTest {
         environmentVariables.set("ELASTICSEARCH_HTTP_PORT", "9200");
 
         String experimentId = "1521118896241";
-        LogsResources logsResource = new LogsResources();
-        String logs = logsResource.query(experimentId, "benchmark");
-        System.out.println(logs);
+        //LogsResources logsResource = new LogsResources();
+        //String logs = logsResource.query(experimentId, "benchmark");
+        //System.out.println(logs);
     }
 }
