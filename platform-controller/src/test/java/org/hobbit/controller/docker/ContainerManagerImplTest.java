@@ -282,8 +282,9 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     @Test
     public void pullUpdatedImage() throws Exception {
         final String registryImage = "registry:2";
+        final String registryHost = "localhost";
         final String registryHostPort = "5000";
-        final String testImage = "localhost:" + registryHostPort + "/test-image-version";
+        final String testImage = registryHost + ":" + registryHostPort + "/test-image-version";
 
         // remove image from local cache
         removeImage(testImage);
