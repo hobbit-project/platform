@@ -281,9 +281,18 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test(timeout=60000)
     public void pullUpdatedImage() throws Exception {
-        final String registryImage = "registry:2";
+        /*
+        To test with multinode swarm,
+        set registryHost as master node's hostname or IP,
+        add the following to the /etc/docker/daemon.json on the system worker node:
+        {
+          "insecure-registries" : ["YOUR-REGISTRY-HOST-HERE:5000"]
+        }
+        and restart docker on that node.
+        */
         final String registryHost = "localhost";
         final String registryHostPort = "5000";
+        final String registryImage = "registry:2";
         final String testImage = registryHost + ":" + registryHostPort + "/test-image-version";
 
         // remove image from local cache
