@@ -1,2 +1,2 @@
 FROM busybox:latest
-CMD exit 2
+CMD sleep 1; exit 2

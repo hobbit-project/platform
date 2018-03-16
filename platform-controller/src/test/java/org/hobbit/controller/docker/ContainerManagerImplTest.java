@@ -279,7 +279,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertTrue("Test image should exist after pulling", imageExists(testImage));
     }
 
-    @Test
+    @Test(timeout=60000)
     public void pullUpdatedImage() throws Exception {
         final String registryImage = "registry:2";
         final String registryHost = "localhost";
@@ -309,8 +309,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
         tasks.add(testTask);
         // check if the started service uses the first version of image
+        Integer exitCode = null;
+        while (exitCode == null) {
+            Thread.sleep(500);
+            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+        }
         assertEquals("Service is using first image version",
-                Integer.valueOf(1), dockerClient.inspectTask(testTask).status().containerStatus().exitCode());
+                Integer.valueOf(1), exitCode);
         manager.removeContainer(testTask);
         tasks.remove(testTask);
         // build second version of image
@@ -324,7 +329,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
         tasks.add(testTask);
         // check if the started service uses the second version of image
+        exitCode = null;
+        while (exitCode == null) {
+            Thread.sleep(500);
+            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+        }
         assertEquals("Service is using second image version",
-                Integer.valueOf(2), dockerClient.inspectTask(testTask).status().containerStatus().exitCode());
+                Integer.valueOf(2), exitCode);
     }
 }
