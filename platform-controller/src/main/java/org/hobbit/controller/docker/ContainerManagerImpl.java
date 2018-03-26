@@ -51,6 +51,7 @@ import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.RestartPolicy;
+import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceMode;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -494,20 +495,43 @@ public class ContainerManagerImpl implements ContainerManager {
 
         serviceCfgBuilder.name(containerName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
+        String serviceId = null;
         try {
             ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
-            String containerId = resp.id();
+            serviceId = resp.id();
+            final String serviceIdForLambda = serviceId;
             // wait for a container of that service to start
             List<Task> serviceTasks = new ArrayList<Task>();
             Waiting.waitFor(() -> {
                 serviceTasks.clear();
-                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build()));
-                return !serviceTasks.isEmpty() && !NEW_TASKS_STATES.contains(serviceTasks.get(0).status().state());
+                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceIdForLambda).build()));
+
+                if (!serviceTasks.isEmpty()) {
+                    TaskStatus status = serviceTasks.get(0).status();
+                    if (status.state().equals(TaskStatus.TASK_STATE_PENDING)) {
+                        LOGGER.info("[" + status.err() + "]");
+                        if (status.err().matches("no suitable node.*")) {
+                            throw new Exception(status.err());
+                        }
+                    }
+
+                    return !NEW_TASKS_STATES.contains(status.state());
+                }
+
+                return false;
             }, DOCKER_POLL_INTERVAL);
             String taskId = serviceTasks.get(0).id();
             // return new container id
             return taskId;
         } catch (Exception e) {
+            if (serviceId != null) {
+                try {
+                    dockerClient.removeService(serviceId);
+                } catch (Exception cleanupE) {
+                    LOGGER.error("Couldn't remove service {} which didn't cleanly start", serviceId, cleanupE);
+                }
+            }
+
             LOGGER.error("Couldn't create Docker container. Returning null.", e);
             return null;
         }
