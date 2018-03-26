@@ -329,7 +329,7 @@ public class ContainerManagerImpl implements ContainerManager {
                             if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
                                 LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(),
                                         pullingTask.status().err());
-                                throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
+                                throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ": " + pullingTask.status().err());
                             }
                             finshedTaskIds.add(pullingTask.id());
                         }
