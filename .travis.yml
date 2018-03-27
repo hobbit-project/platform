@@ -5,6 +5,7 @@ before_install:
   - sudo apt-get -y install docker-ce
   - nvm install --lts node
   - docker swarm init
+  - docker network create -d overlay --attachable hobbit
 language: java
 script:
   - make test
