@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.concurrent.Semaphore;
 
@@ -51,8 +52,10 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         // create two containers
         LOGGER.info("Creating container one...");
         String containerOneId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull(containerOneId);
         LOGGER.info("Creating container two...");
         String containerTwoId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull(containerTwoId);
 
         // add containers to observer
         observer.addObservedContainer(containerOneId);
