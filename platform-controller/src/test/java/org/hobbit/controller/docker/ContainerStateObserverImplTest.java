@@ -53,9 +53,11 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         LOGGER.info("Creating container one...");
         String containerOneId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerOneId);
+        LOGGER.info("Container one: {}", containerOneId);
         LOGGER.info("Creating container two...");
         String containerTwoId = manager.startContainer("busybox:latest", Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerTwoId);
+        LOGGER.info("Container two: {}", containerTwoId);
 
         // add containers to observer
         observer.addObservedContainer(containerOneId);
