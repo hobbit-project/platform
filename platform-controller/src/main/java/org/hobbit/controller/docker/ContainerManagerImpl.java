@@ -510,7 +510,7 @@ public class ContainerManagerImpl implements ContainerManager {
                     TaskStatus status = serviceTasks.get(0).status();
                     if (status.state().equals(TaskStatus.TASK_STATE_PENDING)) {
                         LOGGER.info("[" + status.err() + "]");
-                        if (status.err().matches("no suitable node.*")) {
+                        if (status.err() != null && status.err().matches("no suitable node.*")) {
                             throw new Exception(status.err());
                         }
                     }
