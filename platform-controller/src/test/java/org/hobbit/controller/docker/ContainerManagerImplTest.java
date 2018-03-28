@@ -22,6 +22,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,11 +32,15 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.PortBinding;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
@@ -43,7 +49,7 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
-    
+
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
             Task task = dockerClient.inspectTask(containerId);
@@ -86,12 +92,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String parentId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 sleepCommand);
         assertNotNull(parentId);
-        containers.add(parentId);
+        tasks.add(parentId);
 
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, parentId,
                 sleepCommand);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
 
         final Task containerInfo = dockerClient.inspectTask(containerId);
         assertNotNull("Task inspection response from docker", containerInfo);
@@ -115,7 +121,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     public void startContainerWithoutCommand() throws Exception {
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
         // make sure it was executed with default sleepCommand
         final Task taskInfo = dockerClient.inspectTask(containerId);
         assertNotNull("Task inspection result from docker", taskInfo);
@@ -127,7 +133,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        containers.add(testContainer);
+        tasks.add(testContainer);
         // remove it
         manager.removeContainer(testContainer);
         // check that it's actually removed
@@ -145,26 +151,26 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // - unrelatedChild
         String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(topParent);
-        containers.add(topParent);
+        tasks.add(topParent);
         String child1 = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(child1);
-        containers.add(child1);
+        tasks.add(child1);
         String subParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(subParent);
-        containers.add(subParent);
+        tasks.add(subParent);
         String subchild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, subParent,
                 sleepCommand);
         assertNotNull(subchild);
-        containers.add(subchild);
+        tasks.add(subchild);
         String unrelatedParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(unrelatedParent);
-        containers.add(unrelatedParent);
+        tasks.add(unrelatedParent);
         String unrelatedChild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, unrelatedParent,
                 sleepCommand);
         assertNotNull(unrelatedChild);
-        containers.add(unrelatedChild);
+        tasks.add(unrelatedChild);
 
         // make sure they are running
         assertContainerIsRunning("Top parent container", topParent);
@@ -196,7 +202,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        containers.add(testContainer);
+        tasks.add(testContainer);
         // get info
         Task infoFromMananger = manager.getContainerInfo(testContainer);
         Task containerInfo = dockerClient.inspectTask(testContainer);
@@ -213,7 +219,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
 
         // compare containerId and retrieved id
         String containerName = manager.getContainerName(containerId);
@@ -271,5 +277,73 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         manager.pullImage(testImage);
         assertTrue("Test image should exist after pulling", imageExists(testImage));
+    }
+
+    @Test(timeout=60000)
+    public void pullUpdatedImage() throws Exception {
+        /*
+        To test with multinode swarm,
+        set registryHost as master node's hostname or IP,
+        add the following to the /etc/docker/daemon.json on the system worker node:
+        {
+          "insecure-registries" : ["YOUR-REGISTRY-HOST-HERE:5000"]
+        }
+        and restart docker on that node.
+        */
+        final String registryHost = "localhost";
+        final String registryHostPort = "5000";
+        final String registryImage = "registry:2";
+        final String testImage = registryHost + ":" + registryHostPort + "/test-image-version";
+
+        // remove image from local cache
+        removeImage(testImage);
+        // start local docker registry
+        dockerClient.pull(registryImage);
+        ContainerConfig.Builder cfgBuilder = ContainerConfig.builder();
+        cfgBuilder.image(registryImage);
+        cfgBuilder.exposedPorts("5000");
+        HostConfig.Builder hostCfgBuilder = HostConfig.builder();
+        hostCfgBuilder.portBindings(ImmutableMap.of("5000",
+                new ArrayList<PortBinding>(Arrays.asList(PortBinding.of("0.0.0.0", registryHostPort)))));
+        cfgBuilder.hostConfig(hostCfgBuilder.build());
+        final String registryContainer = dockerClient.createContainer(cfgBuilder.build()).id();
+        dockerClient.startContainer(registryContainer);
+        containers.add(registryContainer);
+        // build first version of image
+        dockerClient.build(Paths.get("docker/test-image-version-1"), testImage + ":latest");
+        // push it to the registry
+        dockerClient.push(testImage + ":latest");
+        removeImage(testImage);
+        // start a service using the image via the manager
+        String testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
+        tasks.add(testTask);
+        // check if the started service uses the first version of image
+        Integer exitCode = null;
+        while (exitCode == null) {
+            Thread.sleep(500);
+            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+        }
+        assertEquals("Service is using first image version",
+                Integer.valueOf(1), exitCode);
+        manager.removeContainer(testTask);
+        tasks.remove(testTask);
+        // build second version of image
+        dockerClient.build(Paths.get("docker/test-image-version-2"), testImage + ":latest");
+        // push it to the registry
+        dockerClient.push(testImage + ":latest");
+        removeImage(testImage);
+        // restore (rebuild) first version of image locally
+        dockerClient.build(Paths.get("docker/test-image-version-1"), testImage + ":latest");
+        // start a service using the image via the manager
+        testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
+        tasks.add(testTask);
+        // check if the started service uses the second version of image
+        exitCode = null;
+        while (exitCode == null) {
+            Thread.sleep(500);
+            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+        }
+        assertEquals("Service is using second image version",
+                Integer.valueOf(2), exitCode);
     }
 }

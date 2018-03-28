@@ -88,7 +88,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
                 null,
                 new String[] { "sh", "-c", "while :; do sleep 1; done" });
         final String parentName = manager.getContainerName(parentId);
-        containers.add(parentId);
+        tasks.add(parentId);
 
         // create and execute test container
         final String image = "busybox:latest";
