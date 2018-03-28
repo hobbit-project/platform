@@ -51,7 +51,6 @@ import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.RestartPolicy;
-import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceMode;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -509,12 +508,10 @@ public class ContainerManagerImpl implements ContainerManager {
                 if (!serviceTasks.isEmpty()) {
                     TaskStatus status = serviceTasks.get(0).status();
                     if (status.state().equals(TaskStatus.TASK_STATE_PENDING)) {
-                        LOGGER.info("[" + status.err() + "]");
                         if (status.err() != null && status.err().matches("no suitable node.*")) {
                             throw new Exception(status.err());
                         }
                     }
-
                     return !NEW_TASKS_STATES.contains(status.state());
                 }
 

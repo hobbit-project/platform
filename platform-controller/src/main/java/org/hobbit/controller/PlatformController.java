@@ -439,7 +439,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
             IOUtils.closeQuietly((Closeable) queue);
         }
         // Close communication channels
-        IOUtils.closeQuietly(frontEndApiHandler);
+        if (frontEndApiHandler != null) {
+            try {
+                frontEndApiHandler.closeWhenFinished();
+            } catch (Exception e) {
+            }
+        }
         if (frontEnd2Controller != null) {
             try {
                 frontEnd2Controller.close();
