@@ -178,12 +178,22 @@ public class LogsResources {
         //pagination
         Integer offset = 0;
         Integer size = 1000;
+        String lastSortValue = null;
+        String sortValue;
         JSONArray results = new JSONArray();
         while(offset < count) {
-            String searchQuery = createSearchQuery(offset, size, experimentId, type);
+            String searchQuery;
+            if(lastSortValue == null) {
+                searchQuery = createSearchQuery(size, experimentId, type);
+            } else {
+                searchQuery = createSearchQuery(lastSortValue, size, experimentId, type);
+            }
             String queryResults = fireQuery(searchQuery, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
+            JSONObject lastHit = hits.getJSONObject(hits.length()-1);
+            sortValue = lastHit.optJSONArray("sort").toString();
+            lastSortValue = sortValue.substring(1, sortValue.length() - 1);
             results = mergeJSONArrays(results, hits);
             offset += size;
         }
@@ -217,7 +227,22 @@ public class LogsResources {
     private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"from\":"+from.toString()+",\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\" }],";
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"asc\"}],";
+        return createQuery(extension, experimentId, type);
+    }
+
+    private String createSearchQuery(String lastSortValue, Integer size, String experimentId, String type) throws Exception {
+        String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
+                "\"size\":"+size.toString()+","+
+                "\"search_after\": ["+lastSortValue+"]," +
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
+        return createQuery(extension, experimentId, type);
+    }
+
+    private String createSearchQuery(Integer size, String experimentId, String type) throws Exception {
+        String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
+                "\"size\":"+size.toString()+","+
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
         return createQuery(extension, experimentId, type);
     }
 

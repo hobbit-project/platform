@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.hobbit</groupId>
         <artifactId>parent</artifactId>
-        <version>2.0.1</version>
+        <version>2.0.2</version>
         <relativePath>../parent-pom</relativePath>
     </parent>
     <artifactId>platform-controller</artifactId>
@@ -63,7 +63,7 @@
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>docker-client</artifactId>
-            <version>8.9.2</version>
+            <version>8.11.2</version>
         </dependency>
         <!-- JSON lib -->
         <dependency>
@@ -132,6 +132,17 @@
         </dependency>
         <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
     </dependencies>
+    
+    <dependencyManagement>
+        <dependencies>
+            <!-- Necessary to force Maven to choose the latest jackson version -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.9.4</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <finalName>${project.artifactId}</finalName>

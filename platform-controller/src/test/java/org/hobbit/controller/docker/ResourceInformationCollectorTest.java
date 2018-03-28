@@ -23,7 +23,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 sleepCommand);
         assertNotNull(containerId);
-        containers.add(containerId);
+        tasks.add(containerId);
 
         Thread.sleep(20000);
 

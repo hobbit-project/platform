@@ -16,7 +16,9 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import javax.json.Json;
 import javax.json.JsonReader;
@@ -27,8 +29,17 @@ import java.util.List;
 import static org.junit.Assert.*;
 
 public class ExperimentsResourcesTest {
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
     @Test
     public void query() throws Exception {
-        String experimentId = "1515598150763";
+        environmentVariables.set("ELASTICSEARCH_HOST", "localhost");
+        environmentVariables.set("ELASTICSEARCH_HTTP_PORT", "9200");
+
+        String experimentId = "1521118896241";
+        //LogsResources logsResource = new LogsResources();
+        //String logs = logsResource.query(experimentId, "benchmark");
+        //System.out.println(logs);
     }
 }

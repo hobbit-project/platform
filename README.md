@@ -19,10 +19,10 @@
   * [Node.js](https://nodejs.org) v6.9.1
   * [npm](https://www.npmjs.com/) 4.0.2
 * For building and running project components
-  * [Docker](https://www.docker.com/) 1.12.2
+  * [Docker](https://www.docker.com/) 17.12.1-ce
   * [Docker Compose](https://docs.docker.com/compose/) 1.8.1
 
-(Newer versions should work as well)
+(Newer versions should work as well - except for Docker. 18.x is not supported by the Docker client library used in the platform.)
 
 ## Quickstart guide
 

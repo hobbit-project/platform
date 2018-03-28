@@ -44,7 +44,17 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.*;
+import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.docker.ClusterManagerImpl;
+import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.docker.ContainerManagerImpl;
+import org.hobbit.controller.docker.ContainerStateObserver;
+import org.hobbit.controller.docker.ContainerStateObserverImpl;
+import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.GitlabBasedImageManager;
+import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.ResourceInformationCollector;
+import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
@@ -72,8 +82,6 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
 
 /**
@@ -92,7 +100,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *
      * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "2.0.1";
+    public static final String PLATFORM_VERSION = "2.0.2";
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -112,7 +120,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * The handler for requests coming from the front end.
      */
-    protected DefaultConsumer frontEndApiHandler;
+    protected FrontEndApiHandler frontEndApiHandler;
     /**
      * RabbitMQ channel between front end and platform controller.
      */
@@ -198,20 +206,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
-        frontEndApiHandler = new DefaultConsumer(frontEnd2Controller) {
-            @Override
-            public void handleDelivery(String consumerTag, Envelope envelope, BasicProperties properties, byte[] body)
-                    throws IOException {
-                if (body.length > 0) {
-                    BasicProperties replyProperties;
-                    replyProperties = new BasicProperties.Builder().correlationId(properties.getCorrelationId())
-                            .deliveryMode(2).build();
-                    handleFrontEndCmd(body, properties.getReplyTo(), replyProperties);
-                }
-            }
-        };
-        frontEnd2Controller.queueDeclare(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, false, false, true, null);
-        frontEnd2Controller.basicConsume(Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, true, frontEndApiHandler);
+        frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this).queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
         controller2Analysis = cmdQueueFactory.getConnection().createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
@@ -443,6 +438,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if ((queue != null) && (queue instanceof Closeable)) {
             IOUtils.closeQuietly((Closeable) queue);
         }
+        // Close communication channels
+        if (frontEndApiHandler != null) {
+            try {
+                frontEndApiHandler.closeWhenFinished();
+            } catch (Exception e) {
+            }
+        }
         if (frontEnd2Controller != null) {
             try {
                 frontEnd2Controller.close();
@@ -523,7 +525,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         receiveCommand(command, remainingData, sessionId, replyTo);
     }
 
-    protected void handleFrontEndCmd(byte bytes[], String replyTo, BasicProperties replyProperties) {
+    public void handleFrontEndCmd(byte bytes[], String replyTo, BasicProperties replyProperties) {
         if (bytes.length == 0) {
             return;
         }
@@ -615,6 +617,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     // The experiment is not known or the user does not have the right to remove it
                     response = new byte[] { 0 };
                 }
+                break;
             }
             default: {
                 LOGGER.error("Got a request from the front end with an unknown command code {}. It will be ignored.",
