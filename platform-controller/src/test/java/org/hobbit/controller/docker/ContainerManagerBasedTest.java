@@ -19,9 +19,6 @@ package org.hobbit.controller.docker;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
-import com.spotify.docker.client.messages.swarm.SwarmSpec;
-import com.spotify.docker.client.messages.swarm.Version;
 import org.hobbit.controller.DockerBasedTest;
 import org.junit.After;
 import org.junit.Before;
@@ -45,20 +42,20 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
-        for (String containerId : containers) {
-            try {
-                dockerClient.stopContainer(containerId, 5);
-                dockerClient.removeContainer(containerId);
-            } catch (Exception e) {
-                LOGGER.warn("Couldn't cleanup container {}", containerId, e);
-            }
-        }
         for (String taskId : tasks) {
             try {
                 String serviceId = dockerClient.inspectTask(taskId).serviceId();
                 dockerClient.removeService(serviceId);
             } catch (Exception e) {
                 LOGGER.warn("Couldn't cleanup service with task {}", taskId, e);
+            }
+        }
+        for (String containerId : containers) {
+            try {
+                dockerClient.stopContainer(containerId, 5);
+                dockerClient.removeContainer(containerId);
+            } catch (Exception e) {
+                LOGGER.warn("Couldn't cleanup container {}", containerId, e);
             }
         }
     }
