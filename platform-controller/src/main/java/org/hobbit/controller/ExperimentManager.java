@@ -203,14 +203,14 @@ public class ExperimentManager implements Closeable {
                                 maxExecutionTime = timeouts.challengeTimeout;
                                 LOGGER.info("Using challenge timeout: {}", maxExecutionTime);
                             } else {
-                                LOGGER.error("Challenge timeout for given benchmark is not set, using default value..");
+                                LOGGER.warn("Challenge timeout for given benchmark is not set, using default value..");
                             }
                         } else {
                             if (timeouts.benchmarkTimeout != -1) {
                                 maxExecutionTime = timeouts.benchmarkTimeout;
                                 LOGGER.info("Using benchmark timeout:", maxExecutionTime);
                             } else {
-                                LOGGER.error("Benchmark timeout is not set, using default value..");
+                                LOGGER.warn("Benchmark timeout is not set, using default value..");
                             }
                         }
                     } else {
