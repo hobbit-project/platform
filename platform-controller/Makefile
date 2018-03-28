@@ -21,6 +21,10 @@ test: deps
 	PROMETHEUS_HOST=localhost \
 	mvn --update-snapshots clean test
 
+test-single:
+	docker rmi busybox
+	mvn --update-snapshots clean test -Dtest=org.hobbit.controller.docker.ContainerManagerImplTest#startContainer
+
 test-all: test
 
 deps: redis rabbit node-exporter cAdvisor prometheus

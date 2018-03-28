@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
+import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,7 @@ import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.RestartPolicy;
+import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceMode;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -85,6 +87,9 @@ public class ContainerManagerImpl implements ContainerManager {
             ? System.getenv().get(DOCKER_AUTOPULL_ENV_KEY) == "1"
             : true;
 
+    private static final long DOCKER_POLL_INTERVAL = 100;
+    private static final long DOCKER_IMAGE_PULL_MAX_WAITING_TIME = 1200000; // 20 min
+
     /**
      * Default network for new containers
      */
@@ -96,30 +101,17 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Task states which are considered as not running yet.
      */
-    public static final Set<String> NEW_TASKS_STATES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new String[] {
-        TaskStatus.TASK_STATE_NEW,
-        TaskStatus.TASK_STATE_ALLOCATED,
-        TaskStatus.TASK_STATE_PENDING,
-        TaskStatus.TASK_STATE_ASSIGNED,
-        TaskStatus.TASK_STATE_ACCEPTED,
-        TaskStatus.TASK_STATE_PREPARING,
-        TaskStatus.TASK_STATE_READY,
-        TaskStatus.TASK_STATE_STARTING,
-    })));
+    public static final Set<String> NEW_TASKS_STATES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(new String[] { TaskStatus.TASK_STATE_NEW, TaskStatus.TASK_STATE_ALLOCATED,
+                    TaskStatus.TASK_STATE_PENDING, TaskStatus.TASK_STATE_ASSIGNED, TaskStatus.TASK_STATE_ACCEPTED,
+                    TaskStatus.TASK_STATE_PREPARING, TaskStatus.TASK_STATE_READY, TaskStatus.TASK_STATE_STARTING, })));
     /**
      * Task states which are considered as not finished yet.
      */
-    public static final Set<String> UNFINISHED_TASK_STATES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(new String[] {
-        TaskStatus.TASK_STATE_NEW,
-        TaskStatus.TASK_STATE_ALLOCATED,
-        TaskStatus.TASK_STATE_PENDING,
-        TaskStatus.TASK_STATE_ASSIGNED,
-        TaskStatus.TASK_STATE_ACCEPTED,
-        TaskStatus.TASK_STATE_PREPARING,
-        TaskStatus.TASK_STATE_READY,
-        TaskStatus.TASK_STATE_STARTING,
-        TaskStatus.TASK_STATE_RUNNING,
-    })));
+    public static final Set<String> UNFINISHED_TASK_STATES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            new String[] { TaskStatus.TASK_STATE_NEW, TaskStatus.TASK_STATE_ALLOCATED, TaskStatus.TASK_STATE_PENDING,
+                    TaskStatus.TASK_STATE_ASSIGNED, TaskStatus.TASK_STATE_ACCEPTED, TaskStatus.TASK_STATE_PREPARING,
+                    TaskStatus.TASK_STATE_READY, TaskStatus.TASK_STATE_STARTING, TaskStatus.TASK_STATE_RUNNING, })));
     /**
      * Logging separator for type/experiment id.
      */
@@ -133,10 +125,9 @@ public class ContainerManagerImpl implements ContainerManager {
      */
     private final RegistryAuth gitlabAuth;
     /**
-     * Empty authentication configuration.
-     * Docker client's createService() uses ConfigFileRegistryAuthSupplier by default
-     * (if auth is omitted)
-     * and warns about not being able to use it with swarm each time.
+     * Empty authentication configuration. Docker client's createService() uses
+     * ConfigFileRegistryAuthSupplier by default (if auth is omitted) and warns
+     * about not being able to use it with swarm each time.
      */
     private final RegistryAuth nullAuth = RegistryAuth.builder().build();
     /**
@@ -186,7 +177,8 @@ public class ContainerManagerImpl implements ContainerManager {
         // if not found - create new one
         if (hobbitNetwork == null) {
             LOGGER.warn("Could not find hobbit docker network, creating a new one");
-            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).driver("overlay").build();
+            final NetworkConfig networkConfig = NetworkConfig.builder().name(HOBBIT_DOCKER_NETWORK).driver("overlay")
+                    .build();
             dockerClient.createNetwork(networkConfig);
         }
     }
@@ -219,18 +211,6 @@ public class ContainerManagerImpl implements ContainerManager {
         builder.append('-');
         builder.append(uuid);
         return builder.toString();
-    }
-
-    @FunctionalInterface
-    private interface ExceptionBooleanSupplier {
-        boolean getAsBoolean() throws Exception;
-    }
-
-    private static void waitFor(ExceptionBooleanSupplier checkSupplier, long interval) throws Exception {
-        while (!checkSupplier.getAsBoolean()) {
-            // TODO: can use some kind of inverval adjustion
-            Thread.sleep(interval);
-        }
     }
 
     /**
@@ -305,9 +285,10 @@ public class ContainerManagerImpl implements ContainerManager {
             taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
         }
 
-        // hello-world image used in tests (so we can safely remove all containers depending on it)
+        // hello-world image used in tests (so we can safely remove all containers
+        // depending on it)
         // and it does not have anything besides "/hello" executable
-        String[] command = imageName.equals("hello-world") ? new String[]{ "/hello" } : new String[]{  "true" };
+        String[] command = imageName.equals("hello-world") ? new String[] { "/hello" } : new String[] { "true" };
         cfgBuilder.command(command);
 
         ContainerSpec cfg = cfgBuilder.build();
@@ -334,34 +315,42 @@ public class ContainerManagerImpl implements ContainerManager {
             }
             String serviceId = resp.id();
 
+            // create a set to collect the tasks of nodes that have finished the pulling
+            final Set<String> finshedTaskIds = Collections.synchronizedSet(new HashSet<String>());
+
             // wait for any container of that service to start on each node
-            waitFor(() -> {
-                List<Task> pullingTasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceId).build());
-                if (pullingTasks.size() < totalNodes) {
-                    return false;
-                }
-                for (Task pullingTask : pullingTasks) {
-                    String state = pullingTask.status().state();
-                    if (UNFINISHED_TASK_STATES.contains(state)) {
+            try {
+                Waiting.waitFor(() -> {
+                    List<Task> pullingTasks = dockerClient
+                            .listTasks(Task.Criteria.builder().serviceName(serviceId).build());
+                    for (Task pullingTask : pullingTasks) {
+                        String state = pullingTask.status().state();
+                        if (!UNFINISHED_TASK_STATES.contains(state)) {
+                            if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
+                                LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(),
+                                        pullingTask.status().err());
+                                throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ": " + pullingTask.status().err());
+                            }
+                            finshedTaskIds.add(pullingTask.id());
+                        }
+                    }
+                    if (finshedTaskIds.size() >= totalNodes) {
+                        LOGGER.info("Swarm pulled image '{}' ({})", imageName,
+                                pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
+                        return true;
+                    } else {
                         return false;
                     }
-
-                    if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
-                        LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(), pullingTask.status().err());
-                        throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ".");
-                    }
-                }
-
-                LOGGER.info("Swarm pulled image '{}' ({})", imageName,
-                        pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
-
-                return true;
-            }, 100);
+                }, DOCKER_POLL_INTERVAL, DOCKER_IMAGE_PULL_MAX_WAITING_TIME);
+            } catch (InterruptedException e) {
+                LOGGER.warn(
+                        "Interrupted while waiting for the image {} to be pulled. Assuming that pulling was successful. Exception: {}",
+                        imageName, e.getLocalizedMessage());
+            }
 
             dockerClient.removeService(serviceId);
         } catch (Exception e) {
-            LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
-                    + e.getLocalizedMessage());
+            LOGGER.error("Exception while pulling the image \"" + imageName + "\".", e);
         }
     }
 
@@ -428,7 +417,8 @@ public class ContainerManagerImpl implements ContainerManager {
             ClusterManager clusterManager = new ClusterManagerImpl();
             numberOfSwarmNodes = clusterManager.getNumberOfNodes();
         } catch (DockerCertificateException e) {
-            LOGGER.error("Could not initialize Cluster Manager, will use container placement constraints by default. ", e);
+            LOGGER.error("Could not initialize Cluster Manager, will use container placement constraints by default. ",
+                    e);
         } catch (Exception e) {
             LOGGER.error("Could not get number of swarm nodes. ", e);
         }
@@ -437,48 +427,30 @@ public class ContainerManagerImpl implements ContainerManager {
             if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
                     && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
                     || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
-                taskCfgBuilder.placement(
-                        Placement.create(
-                                new ArrayList<String>(
-                                        Arrays.asList("node.labels.org.hobbit.workergroup==system")
-                                )
-                        )
-                );
+                taskCfgBuilder.placement(Placement
+                        .create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==system"))));
                 containerType = Constants.CONTAINER_TYPE_SYSTEM;
             } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
                     && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
-                    || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
+                            || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
                 // defaultEnv.add("constraint:org.hobbit.workergroup==" +
                 // Constants.CONTAINER_TYPE_DATABASE);
                 // defaultEnv.add("constraint:org.hobbit.type==data");
                 // database containers have to be deployed on the benchmark nodes (see
                 // https://github.com/hobbit-project/platform/issues/170)
-                taskCfgBuilder.placement(
-                        Placement.create(
-                                new ArrayList<String>(
-                                        Arrays.asList("node.labels.org.hobbit.workergroup==benchmark")
-                                )
-                        )
-                );
+                taskCfgBuilder.placement(Placement
+                        .create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
             } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
                     && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
-                taskCfgBuilder.placement(
-                        Placement.create(
-                                new ArrayList<String>(
-                                        Arrays.asList("node.labels.org.hobbit.workergroup==benchmark")
-                                )
-                        )
-                );
+                taskCfgBuilder.placement(Placement
+                        .create(new ArrayList<String>(Arrays.asList("node.labels.org.hobbit.workergroup==benchmark"))));
             } else {
-                LOGGER.error(
-                        "Got a request to create a container with type={} and parentType={}. " +
-                                "Got no rule to determine its type. Returning null.",
-                        containerType, parentType);
+                LOGGER.error("Got a request to create a container with type={} and parentType={}. "
+                        + "Got no rule to determine its type. Returning null.", containerType, parentType);
                 return null;
             }
         } else {
-            LOGGER.warn(
-                    "The swarm cluster got only 1 node, I will not use placement constraints.");
+            LOGGER.warn("The swarm cluster got only 1 node, I will not use placement constraints.");
         }
 
         // create env vars to pass
@@ -523,20 +495,43 @@ public class ContainerManagerImpl implements ContainerManager {
 
         serviceCfgBuilder.name(containerName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
+        String serviceId = null;
         try {
             ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
-            String containerId = resp.id();
+            serviceId = resp.id();
+            final String serviceIdForLambda = serviceId;
             // wait for a container of that service to start
             List<Task> serviceTasks = new ArrayList<Task>();
-            waitFor(() -> {
+            Waiting.waitFor(() -> {
                 serviceTasks.clear();
-                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build()));
-                return !serviceTasks.isEmpty() && !NEW_TASKS_STATES.contains(serviceTasks.get(0).status().state());
-            }, 100);
+                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceIdForLambda).build()));
+
+                if (!serviceTasks.isEmpty()) {
+                    TaskStatus status = serviceTasks.get(0).status();
+                    if (status.state().equals(TaskStatus.TASK_STATE_PENDING)) {
+                        LOGGER.info("[" + status.err() + "]");
+                        if (status.err() != null && status.err().matches("no suitable node.*")) {
+                            throw new Exception(status.err());
+                        }
+                    }
+
+                    return !NEW_TASKS_STATES.contains(status.state());
+                }
+
+                return false;
+            }, DOCKER_POLL_INTERVAL);
             String taskId = serviceTasks.get(0).id();
             // return new container id
             return taskId;
         } catch (Exception e) {
+            if (serviceId != null) {
+                try {
+                    dockerClient.removeService(serviceId);
+                } catch (Exception cleanupE) {
+                    LOGGER.error("Couldn't remove service {} which didn't cleanly start", serviceId, cleanupE);
+                }
+            }
+
             LOGGER.error("Couldn't create Docker container. Returning null.", e);
             return null;
         }
@@ -578,11 +573,10 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId) {
+            String[] command, String experimentId) {
         this.experimentId = experimentId;
         return startContainer(imageName, containerType, parentId, env, command);
     }
-
 
     @Override
     public void removeContainer(String taskId) {
@@ -595,26 +589,26 @@ public class ContainerManagerImpl implements ContainerManager {
                 LOGGER.warn("Container for task {} has no exit code, assuming 0", taskId);
                 exitCode = 0;
             }
-            if(DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
-                LOGGER.info("Will not remove container with task id {}. " +
-                        "Development mode is enabled.", taskId);
-            } else if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
+            if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+                LOGGER.info("Will not remove container with task id {}. " + "Development mode is enabled.", taskId);
+            } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
-                LOGGER.info("Will not remove container with task id {}. " +
-                        "ExitCode != 0 and testing mode is enabled.", taskId);
+                LOGGER.info(
+                        "Will not remove container with task id {}. " + "ExitCode != 0 and testing mode is enabled.",
+                        taskId);
             } else {
                 LOGGER.info("Removing service of container with task id {}. ", taskId);
                 dockerClient.removeService(serviceId);
 
                 // wait for the service to disappear
-                waitFor(() -> {
+                Waiting.waitFor(() -> {
                     try {
                         dockerClient.inspectService(serviceId);
                         return false;
                     } catch (ServiceNotFoundException e) {
                         return true;
                     }
-                }, 100);
+                }, DOCKER_POLL_INTERVAL);
             }
         } catch (TaskNotFoundException | ServiceNotFoundException e) {
             LOGGER.error("Couldn't remove container {} because it doesn't exist", taskId);
