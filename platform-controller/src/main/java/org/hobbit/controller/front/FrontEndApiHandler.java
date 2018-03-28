@@ -50,6 +50,11 @@ public class FrontEndApiHandler extends DataReceiverImpl {
         super(queue, null, maxParallelProcessedMsgs);
         this.controller = controller;
     }
+    
+    @Override
+    protected Runnable buildMsgProcessingTask(Delivery delivery) {
+        return new MsgProcessingTask(delivery);
+    }
 
     protected class MsgProcessingTask implements Runnable {
 

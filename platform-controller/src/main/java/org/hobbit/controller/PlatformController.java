@@ -612,6 +612,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     // The experiment is not known or the user does not have the right to remove it
                     response = new byte[] { 0 };
                 }
+                break;
             }
             default: {
                 LOGGER.error("Got a request from the front end with an unknown command code {}. It will be ignored.",
