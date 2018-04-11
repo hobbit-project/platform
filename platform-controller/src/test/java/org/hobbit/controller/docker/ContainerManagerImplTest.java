@@ -346,4 +346,29 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertEquals("Service is using second image version",
                 Integer.valueOf(2), exitCode);
     }
+
+    @Test(timeout=30000)
+    public void environmentNodesInformation() throws Exception {
+        String id = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
+                new String[]{"sh", "-c", "exit $" + Constants.HARDWARE_NUMBER_OF_NODES_KEY});
+        assertNotNull(id);
+        tasks.add(id);
+
+        Integer exitCode = null;
+        while (exitCode == null) {
+            Thread.sleep(500);
+            TaskStatus status = dockerClient.inspectTask(id).status();
+            System.out.println(status.state());
+
+            exitCode = status.containerStatus().exitCode();
+
+            if (status.state().equals(TaskStatus.TASK_STATE_COMPLETE) && exitCode == null) {
+                // assume exit code 0
+                exitCode = 0;
+            }
+        }
+        // starting with 125 there are special docker run / chroot exit codes
+        assertTrue("Amount of nodes passed in environment (got " + exitCode + ")",
+            exitCode > 0 && exitCode < 125);
+    }
 }

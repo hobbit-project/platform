@@ -452,6 +452,9 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.warn("The swarm cluster got only 1 node, I will not use placement constraints.");
         }
 
+        // add hardware information to environment
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_NODES_KEY + "=" + numberOfSwarmNodes);
+
         // create env vars to pass
         if (env != null) {
             defaultEnv.addAll(Arrays.asList(env));
