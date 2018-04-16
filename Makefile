@@ -22,9 +22,14 @@ redeploy-controller:
 start:
 	docker stack deploy --compose-file docker-compose.yml platform
 
-start-dev:
-	docker stack deploy -c docker-compose-dev.yml -c docker-compose.override.yml platform
-	docker stack deploy -c docker-compose-elk.yml elastic
+start-dev: start-dev-platform start-dev-elk
+
+start-dev-platform:
+	docker stack deploy -c docker-compose-dev.yml platform
+
+start-dev-elk:
+	docker stack deploy -c docker-compose-elk.yml elk
+
 
 build: install-parent-pom
 	cd platform-controller && make build
