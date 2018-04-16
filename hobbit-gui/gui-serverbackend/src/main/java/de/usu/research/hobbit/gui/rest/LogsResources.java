@@ -133,7 +133,7 @@ public class LogsResources {
         return Response.ok(logs).build();
     }
 
-    public String query(String experimentId, String type) throws Exception {
+    private String query(String experimentId, String type) throws Exception {
         RestClient restClient = null;
         String esHost = System.getenv("ELASTICSEARCH_HOST");
         String esPort = System.getenv("ELASTICSEARCH_HTTP_PORT");
@@ -155,15 +155,15 @@ public class LogsResources {
         return logs;
     }
 
-    public String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "benchmark", restClient).toString();
     }
 
-    public String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "system", restClient).toString();
     }
 
-    public String getLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getLogs(String experimentId, RestClient restClient) throws Exception {
         JSONArray benchmarkLogs = getLogsByType(experimentId, "benchmark", restClient);
         JSONArray systemLogs = getLogsByType(experimentId, "system", restClient);
         return mergeJSONArrays(benchmarkLogs, systemLogs).toString();
