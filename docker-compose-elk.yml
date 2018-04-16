@@ -6,7 +6,7 @@ services:
       resources:
         limits:
           memory: 8g
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.3
     command: elasticsearch -E network.host=0.0.0.0
     volumes:
       - ./config/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
