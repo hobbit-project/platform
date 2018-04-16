@@ -224,13 +224,6 @@ public class LogsResources {
         return createQuery("", experimentId, type);
     }
 
-    private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
-        String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
-                "\"from\":"+from.toString()+",\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"asc\"}],";
-        return createQuery(extension, experimentId, type);
-    }
-
     private String createSearchQuery(String lastSortValue, Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"size\":"+size.toString()+","+
