@@ -9,7 +9,6 @@ redeploy-gui:
 	docker-compose build
 	docker stack deploy --compose-file docker-compose-dev.yml platform
 
-
 redeploy-storage:
 	cd platform-storage/storage-service && mvn clean package -U
 	docker-compose build
@@ -20,13 +19,12 @@ redeploy-controller:
 	docker-compose build
 	docker stack deploy --compose-file docker-compose-dev.yml platform
 
-
 start:
 	docker stack deploy --compose-file docker-compose.yml platform
 
 start-dev:
-	docker-compose build
-	docker stack deploy --compose-file docker-compose.yml platform
+	docker stack deploy -c docker-compose-dev.yml -c docker-compose.override.yml platform
+	docker stack deploy -c docker-compose-elk.yml elastic
 
 build: install-parent-pom
 	cd platform-controller && make build
@@ -35,10 +33,26 @@ build: install-parent-pom
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
+build-dev-images: build-dev-platform-controller build-dev-gui build-dev-analysis build-dev-storage
+
+build-dev-platform-controller:
+	docker build -t hobbitproject/hobbit-platform-controller:dev ./platform-controller
+
+build-dev-gui:
+	docker build -t hobbitproject/hobbit-gui:dev ./hobbit-gui/gui-serverbackend
+
+build-dev-analysis:
+	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
+
+build-dev-storage:
+	docker build -t hobbitproject/hobbit-storage-service:dev ./platform-storage/storage-service
+
+
+
 create-networks:
-	@docker network inspect hobbit >/dev/null || (docker network create --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
-	@docker network inspect hobbit-core >/dev/null || (docker network create --subnet 172.16.101.0/24 hobbit-core && echo "Created network: hobbit-core")
-	@docker network inspect hobbit-services >/dev/null || (docker network create --subnet 172.16.102.0/24 hobbit-services && echo "Created network: hobbit-services")
+	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
+	@docker network inspect hobbit-core >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.101.0/24 hobbit-core && echo "Created network: hobbit-core")
+	@docker network inspect hobbit-services >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.102.0/24 hobbit-services && echo "Created network: hobbit-services")
 
 set-keycloak-permissions:
 	@chmod --changes 777 config/keycloak
