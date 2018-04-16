@@ -94,6 +94,10 @@ public class GitlabControllerImpl implements GitlabController {
     private LoadingCache<String, Set<String>> visibleProjectsCache;
 
     public GitlabControllerImpl() {
+        this(true, true);
+    }
+
+    public GitlabControllerImpl(boolean startFetchingProjects, boolean useCache) {
         String token = GITLAB_TOKEN;
         if (token == null || token.isEmpty()) {
             // use default "guest" token, to use openly available projects
@@ -104,26 +108,30 @@ public class GitlabControllerImpl implements GitlabController {
         projects = new ArrayList<>();
         readyRunnable = new ArrayList<>();
 
-        visibleProjectsCache = CacheBuilder.newBuilder()
-                .expireAfterAccess(VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS, TimeUnit.SECONDS)
-                .maximumSize(MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE).build(new CacheLoader<String, Set<String>>() {
-
-                    @Override
-                    public Set<String> load(String mail) throws Exception {
-                        return getProjectsOfUser(mail);
-                    }
-
-                });
+        if(useCache) {
+            visibleProjectsCache = CacheBuilder.newBuilder()
+                    .expireAfterAccess(VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS, TimeUnit.SECONDS)
+                    .maximumSize(MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE).build(new CacheLoader<String, Set<String>>() {
+                        @Override
+                        public Set<String> load(String mail) throws Exception {
+                            return getProjectsOfUser(mail);
+                        }
+                    });
+        } else {
+            visibleProjectsCache = null;
+        }
 
         // start fetching projects
-        startFetchingProjects();
+        if(startFetchingProjects) {
+            startFetchingProjects();
+        }
     }
 
     public void runAfterFirstFetch(Runnable r) {
         readyRunnable.add(r);
     }
 
-    private void startFetchingProjects() {
+    public void startFetchingProjects() {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
@@ -232,7 +240,8 @@ public class GitlabControllerImpl implements GitlabController {
         return projects;
     }
 
-    private Project gitlabToProject(GitlabProject project) {
+    @Override
+    public Project gitlabToProject(GitlabProject project) {
         // get default branch
         GitlabBranch b;
         try {
@@ -248,16 +257,15 @@ public class GitlabControllerImpl implements GitlabController {
             byte[] systemCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), SYSTEM_CONFIG_FILENAME);
             systemModel = getCheckedModel(systemCfgBytes, "system", project.getWebUrl());
         } catch (Exception e) {
-            LOGGER.debug("No config files found in", project.getWebUrl());
+            LOGGER.debug("system.ttl configuration file NOT FOUND in {}", project.getWebUrl());
         }
         // read benchmark config
         Model benchmarkModel = null;
         try {
             byte[] benchmarkCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), BENCHMARK_CONFIG_FILENAME);
-            benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark",
-                    project.getWebUrl());
+            benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark", project.getWebUrl());
         } catch (Exception e) {
-            LOGGER.debug("No config files found in", project.getWebUrl());
+            LOGGER.debug("benchmark.ttl configuration file NOT FOUND in {}", project.getWebUrl());
         }
         if ((benchmarkModel != null) || (systemModel != null)) {
             // get user
@@ -285,7 +293,8 @@ public class GitlabControllerImpl implements GitlabController {
         }
     }
 
-    protected Model getCheckedModel(byte modelData[], String modelType, String projectName) {
+    @Override
+    public Model getCheckedModel(byte modelData[], String modelType, String projectName) {
         try {
             Model model = ModelFactory.createDefaultModel();
             model.read(new ByteArrayInputStream(modelData), null, "TTL");
@@ -369,7 +378,15 @@ public class GitlabControllerImpl implements GitlabController {
     public List<Project> getProjectsVisibleForUser(String mail) {
         Set<String> projectNames;
         try {
-            projectNames = visibleProjectsCache.get(mail);
+            if(visibleProjectsCache != null) {
+                projectNames = visibleProjectsCache.get(mail);
+            } else {
+                projectNames = getProjectsOfUser(mail);
+            }
+        } catch (IOException e) {
+            LOGGER.error("Exception while trying to retrieve projects of the user with the mail \"" + mail
+                    + "\". Returning null.", e);
+            return null;
         } catch (ExecutionException e) {
             LOGGER.error("Exception while trying to retrieve projects of the user with the mail \"" + mail
                     + "\". Returning null.", e);
