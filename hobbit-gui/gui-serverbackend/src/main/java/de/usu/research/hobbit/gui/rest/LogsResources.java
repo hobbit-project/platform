@@ -145,12 +145,16 @@ public class LogsResources {
             throw new Exception("ELASTICSEARCH_HOST and ELASTICSEARCH_HTTP_PORT env are not set.");
         }
         String logs = null;
-        if(type.equals("all")) {
-            logs = getLogs(experimentId, restClient);
-        } else if (type.equals("system")) {
-            logs = getSystemLogs(experimentId, restClient);
-        } else if (type.equals("benchmark")) {
-            logs = getBenchmarkLogs(experimentId, restClient);
+        switch(type) {
+            case "all":
+                logs = getLogs(experimentId, restClient);
+                break;
+            case "system":
+                logs = getSystemLogs(experimentId, restClient);
+                break;
+            case "benchmark":
+                logs = getBenchmarkLogs(experimentId, restClient);
+                break;
         }
         return logs;
     }
