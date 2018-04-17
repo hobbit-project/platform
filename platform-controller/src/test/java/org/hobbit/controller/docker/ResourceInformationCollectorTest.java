@@ -8,8 +8,12 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ResourceInformationCollectorTest extends ContainerManagerBasedTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollectorTest.class);
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
@@ -25,14 +29,13 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         assertNotNull(containerId);
         tasks.add(containerId);
 
-        Thread.sleep(20000);
+        Thread.sleep(10000);
 
         ResourceInformationCollector collector = new ResourceInformationCollector(manager);
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
         Assert.assertNotNull(usage);
-
-        System.out.println("Got usage information " + usage.toString());
+        LOGGER.info("Got usage information {}", usage);
 
         Assert.assertNotNull(usage.getCpuStats());
         Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);
@@ -40,5 +43,24 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         Assert.assertTrue(usage.getMemoryStats().getUsageSum() > 0);
         Assert.assertNotNull(usage.getDiskStats());
         Assert.assertTrue(usage.getDiskStats().getFsSizeSum() > 0);
-    }
+
+        // Generate a second container
+        containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull(containerId);
+        tasks.add(containerId);
+
+        Thread.sleep(10000);
+
+        ResourceUsageInformation usage2 = collector.getSystemUsageInformation();
+        Assert.assertNotNull(usage2);
+        LOGGER.info("Got usage information {}", usage2);
+
+        Assert.assertNotNull(usage2.getCpuStats());
+        Assert.assertTrue(usage2.getCpuStats().getTotalUsage() > 0);
+        Assert.assertTrue(usage.getCpuStats().getTotalUsage() <= usage2.getCpuStats().getTotalUsage());
+        Assert.assertNotNull(usage2.getMemoryStats());
+        Assert.assertTrue(usage.getMemoryStats().getUsageSum() <= usage2.getMemoryStats().getUsageSum());
+        Assert.assertNotNull(usage2.getDiskStats());
+        Assert.assertTrue(usage.getDiskStats().getFsSizeSum() <= usage2.getDiskStats().getFsSizeSum());
+    }   // "dd if=/dev/zero of=file.txt count=1024 bs=1048576"
 }
