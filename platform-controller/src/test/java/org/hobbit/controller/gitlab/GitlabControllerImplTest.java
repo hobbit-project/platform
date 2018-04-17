@@ -87,15 +87,15 @@ public class GitlabControllerImplTest {
         // wait for controller to fetch projects
     }
 
-    @Test
-    public void getAllProjects() throws InterruptedException {
-        controller.startFetchingProjects();
-        Thread.sleep(20000);
-        List<Project> projects = controller.getAllProjects();
-        System.out.println(projects);
-        assert(!projects.isEmpty());
-        assert(projects.size() > 10);
-    }
+    //@Test
+    //public void getAllProjects() throws InterruptedException {
+    //    controller.startFetchingProjects();
+    //    Thread.sleep(20000);
+    //    List<Project> projects = controller.getAllProjects();
+    //    System.out.println(projects);
+    //    assert(!projects.isEmpty());
+    //    assert(projects.size() > 10);
+    //}
 
     @Test
     public void gitlabToProject() {
