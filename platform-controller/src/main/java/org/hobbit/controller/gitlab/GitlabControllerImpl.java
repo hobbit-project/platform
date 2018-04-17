@@ -94,11 +94,11 @@ public class GitlabControllerImpl implements GitlabController {
     private LoadingCache<String, Set<String>> visibleProjectsCache;
 
     public GitlabControllerImpl() {
-        this(true, true);
+        String token = GITLAB_TOKEN;
+        this(GITLAB_TOKEN, true, true);
     }
 
-    public GitlabControllerImpl(boolean startFetchingProjects, boolean useCache) {
-        String token = GITLAB_TOKEN;
+    public GitlabControllerImpl(String token, boolean startFetchingProjects, boolean useCache) {
         if (token == null || token.isEmpty()) {
             // use default "guest" token, to use openly available projects
             token = GITLAB_DEFAULT_GUEST_TOKEN;
