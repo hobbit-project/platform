@@ -6,7 +6,7 @@ services:
       resources:
         limits:
           memory: 8g
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.2.3
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
     command: elasticsearch -E network.host=0.0.0.0
     volumes:
       - ./config/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
@@ -30,7 +30,7 @@ services:
       - hobbit-services
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:6.2.3
+    image: docker.elastic.co/logstash/logstash:5.2.2
     command: logstash -f /usr/share/logstash/config/logstash.conf
     environment:
       - constraint:org.hobbit.type==data
@@ -38,7 +38,6 @@ services:
     volumes:
       - ./config/elk/logstash.conf:/usr/share/logstash/config/logstash.conf:ro
       - ./config/elk/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./config/elk/logstash-index-template.json:/usr/share/logstash/config/logstash-index-template.json:ro
     networks:
       - hobbit
       - hobbit-core
@@ -50,14 +49,14 @@ services:
       - elasticsearch
 
   kibana:
-    image: docker.elastic.co/kibana/kibana-oss:6.2.3
+    image: docker.elastic.co/kibana/kibana:5.2.2
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - SERVER_NAME=kibana
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=changeme
-      #- XPACK_SECURITY_ENABLED=false
-      #- XPACK_MONITORING_ENABLED=false
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_MONITORING_ENABLED=false
     networks:
       - hobbit-services
     ports:
