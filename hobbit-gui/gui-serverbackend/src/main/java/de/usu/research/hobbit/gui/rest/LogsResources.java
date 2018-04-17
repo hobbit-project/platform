@@ -16,20 +16,14 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Collections;
 import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -46,10 +40,13 @@ import org.json.JSONObject;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @Path("logs")
 public class LogsResources {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogsResources.class);
 
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. " +
             "Either the experiment has not been finished or it does not exist.";
@@ -75,6 +72,8 @@ public class LogsResources {
         "\"query\" :" +
             "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
         "}";
+
+    private final int MAX_RESULT_SIZE = 500000;
 
     @GET
     @RolesAllowed("system-provider") // Guests can not access this method
@@ -133,7 +132,7 @@ public class LogsResources {
         return Response.ok(logs).build();
     }
 
-    private String query(String experimentId, String type) throws Exception {
+    public String query(String experimentId, String type) throws Exception {
         RestClient restClient = null;
         String esHost = System.getenv("ELASTICSEARCH_HOST");
         String esPort = System.getenv("ELASTICSEARCH_HTTP_PORT");
@@ -179,13 +178,20 @@ public class LogsResources {
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
+        if(count > MAX_RESULT_SIZE) {
+            LOGGER.info("Log size {} of experiment id {} is bigger than {}. Will return only {} first results",
+                    count, experimentId, MAX_RESULT_SIZE, MAX_RESULT_SIZE);
+        }
+
+
         //pagination
         Integer offset = 0;
-        Integer size = 1000;
+        Integer size = 50000;
         String lastSortValue = null;
         String sortValue;
         JSONArray results = new JSONArray();
-        while(offset < count) {
+        float status = 0;
+        while(offset < MAX_RESULT_SIZE && offset < count) {
             String searchQuery;
             if(lastSortValue == null) {
                 searchQuery = createSearchQuery(size, experimentId, type);
@@ -195,12 +201,19 @@ public class LogsResources {
             String queryResults = fireQuery(searchQuery, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
+            if(hits.length() == 0) break;
             JSONObject lastHit = hits.getJSONObject(hits.length()-1);
             sortValue = lastHit.optJSONArray("sort").toString();
             lastSortValue = sortValue.substring(1, sortValue.length() - 1);
             results = mergeJSONArrays(results, hits);
             offset += size;
+            if(offset != 0) {
+                status = ( (float) offset / count) * 100 ;
+            }
+            LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         }
+        status = 100;
+        LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         return results;
     }
 
