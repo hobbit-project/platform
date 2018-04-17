@@ -16,8 +16,6 @@
  */
 package org.hobbit.controller.gitlab;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +23,10 @@ import java.util.List;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.rdf.model.impl.ResourceImpl;
-import org.apache.jena.rdf.model.impl.StatementImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
