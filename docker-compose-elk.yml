@@ -30,7 +30,7 @@ services:
       - hobbit-services
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:5.2.2
+    image: docker.elastic.co/logstash/logstash:6.2.3
     command: logstash -f /usr/share/logstash/config/logstash.conf
     environment:
       - constraint:org.hobbit.type==data
@@ -50,7 +50,7 @@ services:
       - elasticsearch
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:5.2.2
+    image: docker.elastic.co/kibana/kibana:6.2.3
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - SERVER_NAME=kibana
