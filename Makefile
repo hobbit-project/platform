@@ -1,23 +1,14 @@
 # build platform components
 default: build
 
-redeploy: build start
+deploy: create-networks start
 
-redeploy-gui:
-	cd hobbit-gui/gui-client && npm install && npm run build-prod
-	cd hobbit-gui/gui-serverbackend && mvn clean package
-	docker-compose build
-	docker stack deploy --compose-file docker-compose-dev.yml platform
+redeploy: build build-dev-images start-dev-platform
 
-redeploy-storage:
-	cd platform-storage/storage-service && mvn clean package -U
-	docker-compose build
-	docker stack deploy --compose-file docker-compose-dev.yml platform
+redeploy-gui: install-parent-pom build-gui build-dev-gui-image remove-gui-service start-dev-platform
 
-redeploy-controller:
-	cd platform-controller && make build
-	docker-compose build
-	docker stack deploy --compose-file docker-compose-dev.yml platform
+remove-gui-service:
+	docker service rm platform_gui
 
 start:
 	docker stack deploy --compose-file docker-compose.yml platform
@@ -30,29 +21,36 @@ start-dev-platform:
 start-dev-elk:
 	docker stack deploy -c docker-compose-elk.yml elk
 
+build: build-java build-dev-images
 
-build: install-parent-pom
-	cd platform-controller && make build
-	cd platform-storage/storage-service && mvn clean package -U
-	cd analysis-component && mvn clean package -U
+build-java: install-parent-pom build-controller build-storage build-analysis build-gui
+
+build-gui:
 	cd hobbit-gui/gui-client && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
-build-dev-images: build-dev-platform-controller build-dev-gui build-dev-analysis build-dev-storage
+build-controller:
+	cd platform-controller && make build
 
-build-dev-platform-controller:
+build-storage:
+	cd platform-storage/storage-service && mvn clean package -U
+
+build-analysis:
+	cd analysis-component && mvn clean package -U
+
+build-dev-images: build-dev-platform-controller-image build-dev-gui-image build-dev-analysis-image build-dev-storage-image
+
+build-dev-platform-controller-image:
 	docker build -t hobbitproject/hobbit-platform-controller:dev ./platform-controller
 
-build-dev-gui:
+build-dev-gui-image:
 	docker build -t hobbitproject/hobbit-gui:dev ./hobbit-gui/gui-serverbackend
 
-build-dev-analysis:
+build-dev-analysis-image:
 	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
 
-build-dev-storage:
+build-dev-storage-image:
 	docker build -t hobbitproject/hobbit-storage-service:dev ./platform-storage/storage-service
-
-
 
 create-networks:
 	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
