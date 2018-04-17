@@ -5,13 +5,14 @@ services:
     networks:
       - hobbit-core
     environment:
-      - HOBBIT_RABBIT_HOST=rabbit
-      - HOBBIT_REDIS_HOST=redis
-      - DEPLOY_ENV=testing
-#      - GITLAB_USER=
-#      - GITLAB_EMAIL=
-#      - GITLAB_TOKEN=
-#      - CONTAINER_PARENT_CHECK=0
+      HOBBIT_RABBIT_HOST: "rabbit"
+      HOBBIT_REDIS_HOST: "redis"
+      DEPLOY_ENV: "testing"
+      #GITLAB_USER: ""
+      #GITLAB_EMAIL: ""
+      #GITLAB_TOKEN: ""
+      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      SWARM_NODE_NUMBER: "1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -29,6 +30,8 @@ services:
       - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
       - CHECK_REALM_URL=false
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_HTTP_PORT=9200
 
   # Keycloak user management (used by the GUI)
   keycloak:
