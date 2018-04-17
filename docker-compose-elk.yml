@@ -50,14 +50,14 @@ services:
       - elasticsearch
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:6.2.3
+    image: docker.elastic.co/kibana/kibana-oss:6.2.3
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - SERVER_NAME=kibana
       - ELASTICSEARCH_USERNAME=elastic
       - ELASTICSEARCH_PASSWORD=changeme
-      - XPACK_SECURITY_ENABLED=false
-      - XPACK_MONITORING_ENABLED=false
+      #- XPACK_SECURITY_ENABLED=false
+      #- XPACK_MONITORING_ENABLED=false
     networks:
       - hobbit-services
     ports:
