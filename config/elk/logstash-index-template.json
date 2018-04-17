@@ -1,0 +1,9 @@
+{
+  "template": "logstash-*",
+  "settings": {
+    "index": {
+      "sort.field": "date, _uid",
+      "sort.order": "desc, desc"
+    }
+  }
+}

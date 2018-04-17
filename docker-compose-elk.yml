@@ -38,6 +38,7 @@ services:
     volumes:
       - ./config/elk/logstash.conf:/usr/share/logstash/config/logstash.conf:ro
       - ./config/elk/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./config/elk/logstash-index-template.json:/usr/share/logstash/config/logstash-index-template.json:ro
     networks:
       - hobbit
       - hobbit-core
