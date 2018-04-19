@@ -16,20 +16,14 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Collections;
 import java.util.Set;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -46,10 +40,13 @@ import org.json.JSONObject;
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 @Path("logs")
 public class LogsResources {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogsResources.class);
 
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. " +
             "Either the experiment has not been finished or it does not exist.";
@@ -75,6 +72,8 @@ public class LogsResources {
         "\"query\" :" +
             "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
         "}";
+
+    private final int MAX_RESULT_SIZE = 100000;
 
     @GET
     @RolesAllowed("system-provider") // Guests can not access this method
@@ -145,25 +144,29 @@ public class LogsResources {
             throw new Exception("ELASTICSEARCH_HOST and ELASTICSEARCH_HTTP_PORT env are not set.");
         }
         String logs = null;
-        if(type.equals("all")) {
-            logs = getLogs(experimentId, restClient);
-        } else if (type.equals("system")) {
-            logs = getSystemLogs(experimentId, restClient);
-        } else if (type.equals("benchmark")) {
-            logs = getBenchmarkLogs(experimentId, restClient);
+        switch(type) {
+            case "all":
+                logs = getLogs(experimentId, restClient);
+                break;
+            case "system":
+                logs = getSystemLogs(experimentId, restClient);
+                break;
+            case "benchmark":
+                logs = getBenchmarkLogs(experimentId, restClient);
+                break;
         }
         return logs;
     }
 
-    public String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "benchmark", restClient).toString();
     }
 
-    public String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "system", restClient).toString();
     }
 
-    public String getLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getLogs(String experimentId, RestClient restClient) throws Exception {
         JSONArray benchmarkLogs = getLogsByType(experimentId, "benchmark", restClient);
         JSONArray systemLogs = getLogsByType(experimentId, "system", restClient);
         return mergeJSONArrays(benchmarkLogs, systemLogs).toString();
@@ -175,13 +178,26 @@ public class LogsResources {
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
+
+        JSONArray results = new JSONArray();
+        if(count > MAX_RESULT_SIZE) {
+            LOGGER.info("Log size {} of experiment id {} is bigger than {}. Experiment should log less messages.",
+                    count, experimentId, MAX_RESULT_SIZE);
+            JSONObject error = new JSONObject();
+            String errorMessage = String.format("Log size %s of experiment id %s is bigger than %s. Please descrease your experiment logging to retrieve the log messages.", count, experimentId, MAX_RESULT_SIZE);
+            error.put("error", errorMessage);
+            results.put(error);
+            return results;
+        }
+
         //pagination
         Integer offset = 0;
-        Integer size = 1000;
+        Integer size = 10000;
+
         String lastSortValue = null;
         String sortValue;
-        JSONArray results = new JSONArray();
-        while(offset < count) {
+        float status = 0;
+        while(offset < MAX_RESULT_SIZE && offset < count) {
             String searchQuery;
             if(lastSortValue == null) {
                 searchQuery = createSearchQuery(size, experimentId, type);
@@ -191,12 +207,22 @@ public class LogsResources {
             String queryResults = fireQuery(searchQuery, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
+            if(hits.length() == 0) break;
             JSONObject lastHit = hits.getJSONObject(hits.length()-1);
             sortValue = lastHit.optJSONArray("sort").toString();
             lastSortValue = sortValue.substring(1, sortValue.length() - 1);
             results = mergeJSONArrays(results, hits);
             offset += size;
+            if(offset != 0) {
+                status = ( (float) offset / count) * 100 ;
+            }
+            if(offset > count) {
+                status = 100;
+            }
+            LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         }
+        status = 100;
+        LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         return results;
     }
 
@@ -222,13 +248,6 @@ public class LogsResources {
 
     private String createCountQuery(String experimentId, String type) throws Exception {
         return createQuery("", experimentId, type);
-    }
-
-    private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
-        String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
-                "\"from\":"+from.toString()+",\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"asc\"}],";
-        return createQuery(extension, experimentId, type);
     }
 
     private String createSearchQuery(String lastSortValue, Integer size, String experimentId, String type) throws Exception {

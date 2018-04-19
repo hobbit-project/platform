@@ -16,6 +16,9 @@
  */
 package org.hobbit.controller.gitlab;
 
+import org.apache.jena.rdf.model.Model;
+import org.gitlab.api.models.GitlabProject;
+
 import java.util.List;
 
 /**
@@ -25,4 +28,8 @@ public interface GitlabController {
     public List<Project> getAllProjects();
 
     public void stopFetchingProjects();
+
+    public Project gitlabToProject(GitlabProject project);
+
+    public Model getCheckedModel(byte modelData[], String modelType, String projectName);
 }
