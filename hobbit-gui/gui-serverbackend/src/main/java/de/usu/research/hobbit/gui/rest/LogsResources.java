@@ -73,7 +73,7 @@ public class LogsResources {
             "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
         "}";
 
-    private final int MAX_RESULT_SIZE = 500000;
+    private final int MAX_RESULT_SIZE = 100000;
 
     @GET
     @RolesAllowed("system-provider") // Guests can not access this method
@@ -178,18 +178,24 @@ public class LogsResources {
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
-        if(count > MAX_RESULT_SIZE) {
-            LOGGER.info("Log size {} of experiment id {} is bigger than {}. Will return only {} first results",
-                    count, experimentId, MAX_RESULT_SIZE, MAX_RESULT_SIZE);
-        }
 
+        JSONArray results = new JSONArray();
+        if(count > MAX_RESULT_SIZE) {
+            LOGGER.info("Log size {} of experiment id {} is bigger than {}. Experiment should log less messages.",
+                    count, experimentId, MAX_RESULT_SIZE);
+            JSONObject error = new JSONObject();
+            String errorMessage = String.format("Log size %s of experiment id %s is bigger than %s. Please descrease your experiment logging to retrieve the log messages.", count, experimentId, MAX_RESULT_SIZE);
+            error.put("error", errorMessage);
+            results.put(error);
+            return results;
+        }
 
         //pagination
         Integer offset = 0;
-        Integer size = 50000;
+        Integer size = 10000;
+
         String lastSortValue = null;
         String sortValue;
-        JSONArray results = new JSONArray();
         float status = 0;
         while(offset < MAX_RESULT_SIZE && offset < count) {
             String searchQuery;
@@ -209,6 +215,9 @@ public class LogsResources {
             offset += size;
             if(offset != 0) {
                 status = ( (float) offset / count) * 100 ;
+            }
+            if(offset > count) {
+                status = 100;
             }
             LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         }
