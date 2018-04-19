@@ -16,10 +16,17 @@
  */
 package org.hobbit.controller.gitlab;
 
-import static org.junit.Assert.assertNotNull;
-
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.impl.PropertyImpl;
+import org.apache.jena.rdf.model.impl.ResourceImpl;
+import org.gitlab.api.GitlabAPI;
+import org.gitlab.api.models.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -28,20 +35,80 @@ import org.junit.Test;
  */
 public class GitlabControllerImplTest {
     GitlabControllerImpl controller;
+    GitlabProject gitlabProject;
+    GitlabBranch gitlabBranch;
+    GitlabAPI api;
 
     @Before
     public void init() throws InterruptedException {
-        controller = new GitlabControllerImpl();
+        gitlabProject = new GitlabProject();
+        gitlabProject.setId(404);
+        gitlabProject.setName("qabenchmarkcontrollerfortesting");
+        gitlabProject.setNameWithNamespace("Mohammed Abdelgadir / qabenchmarkcontrollerfortesting");
+        gitlabProject.setDescription("(test) QA benchmark-controller (ttl) and image");
+        gitlabProject.setDefaultBranch("master");
+
+        GitlabUser owner = new GitlabUser();
+        owner.setUsername("sjdff1");
+        owner.setName("sjdff1");
+        owner.setState("active");
+        owner.setAvatarUrl("https://secure.gravatar.com/avatar/248dc7b4d869ff34dd97a1f07c00dd63?s=80&d=identicon");
+
+        gitlabProject.setOwner(owner);
+        gitlabProject.setPath("qabenchmarkcontrollerfortesting");
+        gitlabProject.setVisibilityLevel(20);
+        gitlabProject.setPathWithNamespace("weekmo/qabenchmarkcontrollerfortesting");
+        gitlabProject.setSshUrl("git@git.project-hobbit.eu:weekmo/qabenchmarkcontrollerfortesting.git");
+        gitlabProject.setWebUrl("https://git.project-hobbit.eu/weekmo/qabenchmarkcontrollerfortesting");
+        gitlabProject.setHttpUrl("https://git.project-hobbit.eu/weekmo/qabenchmarkcontrollerfortesting.git");
+
+        GitlabNamespace gitlabNamespace = new GitlabNamespace();
+        gitlabNamespace.setName("weekmo");
+        gitlabNamespace.setPath("weekmo");
+
+        gitlabProject.setNamespace(gitlabNamespace);
+        gitlabProject.setCreatorId(90);
+        gitlabProject.setStarCount(0);
+        gitlabProject.setForksCount(0);
+        gitlabProject.setTagList(new ArrayList<>());
+        gitlabProject.setSharedWithGroups(new ArrayList<>());
+
+        gitlabBranch = new GitlabBranch();
+        gitlabBranch.setName("master");
+        GitlabBranchCommit gitlabCommit = new GitlabBranchCommit();
+        gitlabCommit.setId("2a36977cb8307a2d51cc2bfdb426457d99d3a51d");
+        gitlabCommit.setMessage("change the name");
+        gitlabBranch.setCommit(gitlabCommit);
+
+        api = GitlabAPI.connect("https://git.project-hobbit.eu/", "fykySfxWaUyCS1xxTSVy");
+
+
+        controller = new GitlabControllerImpl(false, false);
         // wait for controller to fetch projects
-        Thread.sleep(20000);
+    }
+
+    //@Test
+    //public void getAllProjects() throws InterruptedException {
+    //    controller.startFetchingProjects();
+    //    Thread.sleep(20000);
+    //    List<Project> projects = controller.getAllProjects();
+    //    System.out.println(projects);
+    //    assert(!projects.isEmpty());
+    //    assert(projects.size() > 10);
+    //}
+
+    @Test
+    public void gitlabToProject() {
+        Project project = controller.gitlabToProject(gitlabProject);
+        assert(project.getName().equals("Mohammed Abdelgadir / qabenchmarkcontrollerfortesting"));
     }
 
     @Test
-    public void getAllProjects() {
-        List<Project> projects = controller.getAllProjects();
-        assertNotNull(projects);
-        for(Project project : projects) {
-            System.out.println(project.name.toString());
-        }
+    public void getCheckedModel() throws IOException {
+        byte[] benchmarkCfgBytes = api.getRawFileContent(gitlabProject.getId(), gitlabBranch.getCommit().getId(), "benchmark.ttl");
+        Model checkedModel = controller.getCheckedModel(benchmarkCfgBytes, "benchmark", gitlabProject.getWebUrl());
+        Resource resource = new ResourceImpl("http://w3id.org/gerbil/qa/hobbit/vocab#hasQuestionLanguage");
+        Property property = new PropertyImpl("http://www.w3.org/2000/01/rdf-schema#label");
+        assert(checkedModel.contains(resource, property));
     }
 }
