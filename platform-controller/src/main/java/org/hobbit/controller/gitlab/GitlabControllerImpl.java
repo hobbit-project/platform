@@ -98,7 +98,7 @@ public class GitlabControllerImpl implements GitlabController {
     }
 
     public GitlabControllerImpl(boolean startFetchingProjects, boolean useCache) {
-	this(GITLAB_TOKEN, startFetchingProjects, useCache);
+        this(GITLAB_TOKEN, startFetchingProjects, useCache);
     }
 
     public GitlabControllerImpl(String token, boolean startFetchingProjects, boolean useCache) {

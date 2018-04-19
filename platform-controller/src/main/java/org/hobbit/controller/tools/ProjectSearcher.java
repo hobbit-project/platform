@@ -33,7 +33,7 @@ public class ProjectSearcher {
             }
             searchString = builder.toString();
         }
-        GitlabController controller = new GitlabControllerImpl(args[0]);
+        GitlabController controller = new GitlabControllerImpl(args[0], true, true);
         try {
             // wait until the controller has initialized itself
             List<Project> projects = controller.getAllProjects();
