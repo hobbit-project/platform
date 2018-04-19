@@ -70,15 +70,13 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         Assert.assertTrue(usage.getMemoryStats().getUsageSum() <= usage2.getMemoryStats().getUsageSum());
         Assert.assertNotNull(usage2.getDiskStats());
         Assert.assertTrue(usage.getDiskStats().getFsSizeSum() <= usage2.getDiskStats().getFsSizeSum());
-    } //
+    }
 
     @Test
     public void testIncreasingFsSize() throws Exception {
-        // final String[] command = { "sleep", "30s", "&&", "dd", "if=/dev/zero",
-        // "of=file.txt", "count=1024", "bs=1048576", "&&", "sleep", "60s" };
         ResourceInformationCollector collector = new ResourceInformationCollector(manager);
         final String[] command = { "sh", "-c",
-                "sleep 20s ; dd if=/dev/zero of=file.txt count=1024 bs=1048576 ; sleep 60s" };
+                "sleep 20s ; dd if=/dev/zero of=file.txt count=16024 bs=1048576 ; sleep 60s" };
         LOGGER.info("Creating container...");
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, command);
         assertNotNull(containerId);
@@ -116,7 +114,12 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         // Assert.assertTrue(usage.getMemoryStats().getUsageSum() <
         // usage2.getMemoryStats().getUsageSum());
         Assert.assertNotNull(usage2.getDiskStats());
-        Assert.assertTrue("We expected that the Fssize would be increased when generating a huge file",
-                usage.getDiskStats().getFsSizeSum() < usage2.getDiskStats().getFsSizeSum());
+        // Assert.assertTrue("We expected that the Fssize would be increased when
+        // generating a huge file",
+        // usage.getDiskStats().getFsSizeSum() < usage2.getDiskStats().getFsSizeSum());
+        Assert.assertTrue("We expected that the consumed memory would be increased when generating a huge file",
+                (usage.getMemoryStats().getUsageSum()
+                        + usage.getDiskStats().getFsSizeSum()) < (usage2.getMemoryStats().getUsageSum()
+                                + usage2.getDiskStats().getFsSizeSum()));
     }
 }
