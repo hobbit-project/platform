@@ -61,7 +61,7 @@ test: install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test
-	cd hobbit-gui/gui-client && npm install && npm run lint
+	cd hobbit-gui/gui-client && npm install --verbose && npm run lint
 	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
 
 install-parent-pom:
