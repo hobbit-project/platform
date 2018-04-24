@@ -36,10 +36,11 @@ public class ExperimentsResourcesTest {
     public void query() throws Exception {
         environmentVariables.set("ELASTICSEARCH_HOST", "localhost");
         environmentVariables.set("ELASTICSEARCH_HTTP_PORT", "9200");
+        environmentVariables.set("HOBBIT_RABBIT_HOST", "localhost");
 
-        //String experimentId = "1516967633429";
-        //LogsResources logsResource = new LogsResources();
-        //String logs = logsResource.query(experimentId, "benchmark");
-        //System.out.println(logs);
+//        String experimentId = "1524566673944";
+//        LogsResources logsResource = new LogsResources();
+//        String logs = logsResource.query(experimentId, "system");
+//        System.out.println(logs);
     }
 }
