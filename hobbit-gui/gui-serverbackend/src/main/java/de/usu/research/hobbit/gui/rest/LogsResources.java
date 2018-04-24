@@ -20,10 +20,7 @@ import java.io.*;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Set;
-import java.util.TimeZone;
+import java.util.*;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
@@ -50,6 +47,8 @@ import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper.getTolerantDateTimeValue;
 
 
 @Path("logs")
@@ -174,10 +173,15 @@ public class LogsResources {
         Model experimentModel = getExperimentModel(experimentId);
         String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
         Resource experimentResource = experimentModel.getResource(experimentUri);
-        Statement startTime = experimentModel.getProperty(experimentResource, HOBBIT.startTime);
-        String utcString = startTime.getLiteral().getValue().toString();
-        String[] timeParts = utcString.split("T");
-        return timeParts[0];
+        Calendar cal = getTolerantDateTimeValue(experimentModel, experimentResource, HOBBIT.startTime);
+        SimpleDateFormat esDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if(cal != null) {
+            return esDateFormat.format(cal.getTime()); // or whatever you need
+        } else {
+            LOGGER.error("Experiment with id {} does not have startTime property in the database.", experimentId);
+            LOGGER.error("I set experiment date to 1970-01-01, the log result will be empty.");
+            return "1970-01-01";
+        }
     }
 
     public String query(String experimentId, String type) throws Exception {
