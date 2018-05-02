@@ -17,8 +17,10 @@
 package de.usu.research.hobbit.gui.rest;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.Set;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
@@ -31,9 +33,12 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.elasticsearch.client.RestClient;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.vocab.HOBBIT;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -43,6 +48,8 @@ import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper.getTolerantDateTimeValue;
+
 
 @Path("logs")
 public class LogsResources {
@@ -51,27 +58,43 @@ public class LogsResources {
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. " +
             "Either the experiment has not been finished or it does not exist.";
     private static final String benchmarkQueryBase = "" +
-        "{" +
+    "{" +
         "%s" + // placeholder for _source or other extensions
         "\"query\" : {" +
             "\"constant_score\": {" +
-                    "\"filter\": {" +
-                        "\"bool\": {" +
-                            "\"should\": [" +
-                                "{\"wildcard\": {\"tag\":\"benchmark_sep_%s_sep_*\"}}," +
-                                "{\"wildcard\": {\"tag\":\"data_sep_%s_sep_*\"}}" +
-                            "]" +
-                        "}" +
+                "\"filter\": {" +
+                    "\"bool\": {" +
+                        "\"must\": {" +
+                            "\"range\": { \"@timestamp\": { \"gte\": \"%s\", \"lte\": \"%s||+1d/d\" }}" +
+                        "}," +
+                        "\"should\": [" +
+                            "{\"wildcard\": {\"tag\":\"benchmark_sep_%s_sep_*\"}}," +
+                            "{\"wildcard\": {\"tag\":\"data_sep_%s_sep_*\"}}" +
+                        "]" +
                     "}" +
                 "}" +
             "}" +
-        "}";
+        "}" +
+    "}";
 
-    private static final String systemQueryBase = "{" +
+    private static final String systemQueryBase = "" +
+    "{" +
         "%s" + // placeholder for _source or other extensions
-        "\"query\" :" +
-            "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
-        "}";
+        "\"query\" : {" +
+            "\"constant_score\": {" +
+                "\"filter\": {" +
+                    "\"bool\": {" +
+                        "\"must\": {" +
+                            "\"range\": { \"@timestamp\": { \"gte\": \"%s\", \"lte\": \"%s||+1d/d\" }}" +
+                        "}," +
+                        "\"should\": [" +
+                            "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
+                        "]" +
+                    "}" +
+                "}" +
+            "}" +
+        "}" +
+    "}";
 
     private final int MAX_RESULT_SIZE = 100000;
 
@@ -93,23 +116,12 @@ public class LogsResources {
     @Path("system/query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response systemQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
-        // create experiment URI
-        String experimentUri = Constants.EXPERIMENT_URI_NS + id;
-        // construct query to gather experiment data
-        String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
-        Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-        if (model != null && model.size() > 0) {
-            ExperimentBean experiment = RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri));
-            // Check whether the user is the owner of the system
-            String systemURI = experiment.getSystem().getId();
-            Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
-            if(!userOwnedSystemIds.contains(systemURI)) {
-                // The user is not allowed to see the systems log
-                return Response.status(Status.FORBIDDEN).build();
-            }
-        } else {
-            return Response.status(Status.NO_CONTENT).build();
+        Model model = getExperimentModel(id);
+        Response isAllowed = checkAccessAllowed(model, id, sc);
+        if(isAllowed != null) {
+            return isAllowed;
         }
+
         String logs = query(id, "system");
         if(logs == null) {
             // The experiment is not known
@@ -130,6 +142,46 @@ public class LogsResources {
         }
 
         return Response.ok(logs).build();
+    }
+
+    private Model getExperimentModel(String experimentId) {
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
+        Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+        return model;
+    }
+
+    private Response checkAccessAllowed(Model experimentModel, String experimentId, SecurityContext sc) {
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        // get the date info from model and restrict query by time
+        if (experimentModel != null && experimentModel.size() > 0) {
+            ExperimentBean experiment = RdfModelHelper.createExperimentBean(experimentModel, experimentModel.getResource(experimentUri));
+            // Check whether the user is the owner of the system
+            String systemURI = experiment.getSystem().getId();
+            Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
+            if(!userOwnedSystemIds.contains(systemURI)) {
+                // The user is not allowed to see the systems log
+                return Response.status(Status.FORBIDDEN).build();
+            }
+        } else {
+            return Response.status(Status.NO_CONTENT).build();
+        }
+        return null;
+    }
+
+    private String getExperimentDate(String experimentId) {
+        Model experimentModel = getExperimentModel(experimentId);
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        Resource experimentResource = experimentModel.getResource(experimentUri);
+        Calendar cal = getTolerantDateTimeValue(experimentModel, experimentResource, HOBBIT.startTime);
+        SimpleDateFormat esDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if(cal != null) {
+            return esDateFormat.format(cal.getTime()); // or whatever you need
+        } else {
+            LOGGER.error("Experiment with id {} does not have startTime property in the database.", experimentId);
+            LOGGER.error("I set experiment date to 1970-01-01, the log result will be empty.");
+            return "1970-01-01";
+        }
     }
 
     public String query(String experimentId, String type) throws Exception {
@@ -238,10 +290,13 @@ public class LogsResources {
     }
 
     private String createQuery(String extension, String experimentId, String type) throws Exception {
+        // date
+        String experimentDate = getExperimentDate(experimentId);
+
         if(type.equals("benchmark")) {
-            return String.format(benchmarkQueryBase, extension, experimentId, experimentId);
+            return String.format(benchmarkQueryBase, extension, experimentDate, experimentDate, experimentId, experimentId);
         } else if(type.equals("system")) {
-            return String.format(systemQueryBase, extension, experimentId);
+            return String.format(systemQueryBase, extension, experimentDate, experimentDate, experimentId);
         }
         throw new Exception("Can not generate query of type " + type);
     }
