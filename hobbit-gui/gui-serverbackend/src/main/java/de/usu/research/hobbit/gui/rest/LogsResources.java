@@ -309,14 +309,14 @@ public class LogsResources {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"size\":"+size.toString()+","+
                 "\"search_after\": ["+lastSortValue+"]," +
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}],";
         return createQuery(extension, experimentId, type);
     }
 
     private String createSearchQuery(Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}],";
         return createQuery(extension, experimentId, type);
     }
 
