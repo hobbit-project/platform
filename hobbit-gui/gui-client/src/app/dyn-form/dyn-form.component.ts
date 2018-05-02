@@ -21,4 +21,8 @@ export class DynFormComponent implements OnInit {
   get isValid() {
     return this.form.controls[this.config.id].valid;
   }
+
+  public updateCheckbox(event) {
+    this.form.controls[this.config.id].setValue(event.target.checked);
+  }
 }

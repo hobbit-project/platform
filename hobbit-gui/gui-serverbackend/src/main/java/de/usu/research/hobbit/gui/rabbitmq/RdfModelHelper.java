@@ -392,7 +392,7 @@ public class RdfModelHelper {
         }
     }
 
-    private static Calendar getTolerantDateTimeValue(Model model, Resource resource, Property property) {
+    public static Calendar getTolerantDateTimeValue(Model model, Resource resource, Property property) {
         Calendar cal = RdfHelper.getDateTimeValue(model, resource, property);
         if (cal == null) {
             // try to read date instead

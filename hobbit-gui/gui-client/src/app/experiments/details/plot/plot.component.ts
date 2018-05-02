@@ -1,7 +1,7 @@
 import { Diagram } from './../../../model';
 import { Component, OnInit, Input, ViewChild, ElementRef } from '@angular/core';
-import Chart from 'chart.js';
-import randomColor from 'randomcolor';
+import * as Chart from 'chart.js';
+import * as randomColor from 'randomcolor';
 
 @Component({
   selector: 'app-experiment-plot',
@@ -24,7 +24,7 @@ export class PlotComponent implements OnInit {
   ngOnInit() {
     const chartCanvas = <HTMLCanvasElement>this.canvas.nativeElement;
     const ctx = chartCanvas.getContext('2d');
-    const color = randomColor();
+    const color = randomColor.randomColor();
     const data: any = {
       labels: this.diagram.data.map(d => d.x),
       datasets: [{
@@ -34,7 +34,7 @@ export class PlotComponent implements OnInit {
         backgroundColor: color,
       }],
     };
-    const myChart = new Chart(ctx, {
+    const myChart = new Chart.Chart(ctx, {
       type: 'line',
       data,
       options: {
