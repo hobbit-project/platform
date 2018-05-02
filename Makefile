@@ -32,7 +32,7 @@ build: install-parent-pom
 	cd platform-controller && make build
 	cd platform-storage/storage-service && mvn clean package -U
 	cd analysis-component && mvn clean package -U
-	cd hobbit-gui/gui-client && npm install --verbose && npm run build-prod
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install --verbose && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
 create-networks:
@@ -61,7 +61,7 @@ test: install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test
-	cd hobbit-gui/gui-client && npm install --verbose && npm run lint
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install --verbose && npm run lint
 	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
 
 install-parent-pom:
