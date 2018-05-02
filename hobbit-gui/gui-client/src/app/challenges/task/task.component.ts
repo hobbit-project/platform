@@ -4,8 +4,9 @@ import { ConfirmationService } from 'primeng/primeng';
 import { FormGroup } from '@angular/forms';
 import { BackendService } from './../../backend.service';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Challenge, ChallengeTask, Benchmark, BenchmarkOverview, Role } from './../../model';
+import {Challenge, ChallengeTask, Benchmark, BenchmarkOverview, Role, ConfigParam} from './../../model';
 import { Component, OnInit, ViewChild } from '@angular/core';
+import {ConfigParamRealisation} from '../../model';
 
 @Component({
   selector: 'app-task',
@@ -52,7 +53,7 @@ export class TaskComponent implements OnInit {
           if (this.task.benchmark && this.task.benchmark.id) {
             this.selectedBenchmarkId = this.task.benchmark.id;
             if (this.benchmarks) {
-              this.onChangeBenchmark();
+              this.onChangeBenchmark(this.task.configurationParams);
             }
           }
           this.loaded = true;
@@ -81,16 +82,18 @@ export class TaskComponent implements OnInit {
     return this.selectedBenchmarkId !== undefined;
   }
 
-  onChangeBenchmark() {
+  onChangeBenchmark(configParams?: ConfigParamRealisation[]) {
     const selectedBenchmarkOverview = this.benchmarks.find(b => b.id === this.selectedBenchmarkId);
     this.selectedBenchmark = undefined;
     if (selectedBenchmarkOverview) {
-      if (this.task.benchmark && this.task.benchmark.id === this.selectedBenchmarkId)
+      if (this.task.benchmark && this.task.benchmark.id === this.selectedBenchmarkId) {
         this.selectedBenchmark = this.task.benchmark;
-      else
+        this.selectedBenchmark.configurationParamValues = configParams;
+      } else {
         this.bs.getBenchmarkDetails(this.selectedBenchmarkId).subscribe(data => {
           this.selectedBenchmark = data;
         });
+      }
     }
   }
 
