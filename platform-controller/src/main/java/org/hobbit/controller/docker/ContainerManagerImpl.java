@@ -213,45 +213,6 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     /**
-     * Pulls the image with the given name if it does not appear in the list of
-     * available images.
-     *
-     * @param imageName
-     *            the name of the image that should be pulled
-     */
-    @SuppressWarnings("unused")
-    private void pullImageIfNeeded(String imageName) {
-        // do not pull if env var is set to false
-        if (!DOCKER_AUTOPULL) {
-            return;
-        }
-
-        if (!containsVersionTag(imageName)) {
-            imageName += ":latest";
-        }
-
-        // check if image is already available
-        try {
-            List<Image> images = dockerClient.listImages();
-            for (Image image : images) {
-                if (image.repoTags() != null) {
-                    for (String tag : image.repoTags()) {
-                        if (tag.equals(imageName)) {
-                            return;
-                        }
-                    }
-                }
-            }
-
-            // pull image and wait for the pull to finish
-            pullImage(imageName);
-        } catch (Exception e) {
-            LOGGER.error("Exception while pulling the image \"" + imageName + "\". " + e.getClass().getName() + ": "
-                    + e.getLocalizedMessage());
-        }
-    }
-
-    /**
      * Pulls the image with the given name.
      *
      * @param imageName
