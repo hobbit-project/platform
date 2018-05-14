@@ -16,6 +16,7 @@ public class ProjectSearcher {
         if (args.length < 2) {
             System.out.println(
                     "Error: wrong usage. The following parameters are necessary:\n <security-token> <search-term(s)>");
+            return;
         } else if (args.length == 2) {
             searchString = args[1];
         } else {

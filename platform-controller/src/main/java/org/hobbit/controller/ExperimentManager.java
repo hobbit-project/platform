@@ -397,9 +397,9 @@ public class ExperimentManager implements Closeable {
             // choose the correct graph
             String graphUri = Constants.PUBLIC_RESULT_GRAPH_URI;
             if (experimentStatus.config.challengeUri != null) {
-                // check if challenge is repeatable
+                // check if challenge is repeatable (by selecting data from all graphs)
                 boolean repeatable = false;
-                Model challengeModel = controller.getChallengeFromUri(experimentStatus.config.challengeUri);
+                Model challengeModel = controller.getChallengeFromUri(experimentStatus.config.challengeUri, null);
                 if (challengeModel != null) {
                     Resource challenge = challengeModel.getResource(experimentStatus.config.challengeUri);
                     repeatable = RdfHelper.getLiteral(challengeModel, challenge, HOBBIT.registrationCutoffDate) != null;
@@ -433,6 +433,7 @@ public class ExperimentManager implements Closeable {
                 resultModel = experimentStatus.getResultModel();
             }
             experimentStatus.addMetaDataToResult(controller.imageManager());
+            // Send insert query
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
                 if (resultModel != null) {
                     StringWriter writer = new StringWriter();
@@ -443,6 +444,7 @@ public class ExperimentManager implements Closeable {
             }
             // We have to remove the config from the queue
             controller.queue.remove(experimentStatus.config);
+            // Send experiment URI to the analysis component if the result is public
             if (graphUri.equals(Constants.PUBLIC_RESULT_GRAPH_URI)) {
                 try {
                     controller.analyzeExperiment(experimentStatus.experimentUri);

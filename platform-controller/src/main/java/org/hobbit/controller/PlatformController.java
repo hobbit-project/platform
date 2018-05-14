@@ -641,9 +641,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.debug("Finished handling of front end request.");
     }
 
-    protected Model getChallengeFromUri(String challengeUri) {
-        // get experiments from the challenge
-        String query = SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+    /**
+     * Retrieves model for the given challenge from the given graph (or without selecting a certain graph if the graphUri is {@code null}).
+     * 
+     * @param challengeUri the URI for which the model should be retrieved
+     * @param graphUri the URI from which the data should be retrieved or {@code null} if all graphs should be taken into account.
+     * @return the RDF model of the challenge
+     */
+    protected Model getChallengeFromUri(String challengeUri, String graphUri) {
+        String query = SparqlQueries.getChallengeGraphQuery(challengeUri, graphUri);
         if (query == null) {
             LOGGER.error("Couldn't get challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
                     challengeUri);
@@ -653,7 +659,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     private List<ExperimentConfiguration> getChallengeTasksFromUri(String challengeUri) {
-        Model model = getChallengeFromUri(challengeUri);
+        Model model = getChallengeFromUri(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         if (model == null) {
             LOGGER.error("Couldn't get model for challenge {} . Aborting.", challengeUri);
             return null;
