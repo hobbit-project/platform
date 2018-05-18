@@ -72,6 +72,7 @@ import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.rdf.RdfHelper;
@@ -80,8 +81,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
 
 /**
@@ -109,6 +115,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
+    private static final String RABBIT_MQ_HOST_4_EXPERIMENTS_NAME_KEY = "HOBBIT_RABBIT_HOST_4_EXPERIMENTS";
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -173,19 +180,32 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected Timer challengePublishTimer;
 
+    protected String rabbitMQHostName4Experiments;
+
     @Override
     public void init() throws Exception {
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
+        if (System.getenv().containsKey(RABBIT_MQ_HOST_4_EXPERIMENTS_NAME_KEY)) {
+            rabbitMQHostName4Experiments = System.getenv().get(Constants.RABBIT_MQ_HOST_NAME_KEY);
+            if (!rabbitMQHostName.equals(rabbitMQHostName4Experiments)) {
+                switchCmdToExpRabbit();
+            }
+        } else {
+            // the platform and its experiment are sharing a single RabbitMQ instance
+            rabbitMQHostName4Experiments = rabbitMQHostName;
+        }
 
-        // Set task history limit for swarm cluster to 0 (will remove all terminated containers)
+        // Set task history limit for swarm cluster to 0 (will remove all terminated
+        // containers)
         // Only for prod mode
         clusterManager = new ClusterManagerImpl();
-        if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+        if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
         } else {
-            LOGGER.debug("Production mode. Setting task history limit to 0. All terminated containers will be removed.");
+            LOGGER.debug(
+                    "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
             clusterManager.setTaskHistoryLimit(0);
         }
 
@@ -206,7 +226,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
-        frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this).queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
+        frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
+                .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
         controller2Analysis = cmdQueueFactory.getConnection().createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
@@ -232,6 +253,55 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
         LOGGER.info("Platform controller initialized.");
+    }
+
+    /**
+     * This method closes the command queue and its handling and reopens it on the
+     * RabbitMQ broker which will be used for experiments.
+     * 
+     * @throws Exception
+     */
+    private void switchCmdToExpRabbit() throws Exception {
+        // We have to close the existing command queue
+        try {
+            cmdChannel.close();
+        } catch (Exception e) {
+            LOGGER.warn("Exception while closing command queue. It will be ignored.", e);
+        }
+        IOUtils.closeQuietly(cmdQueueFactory);
+        // temporarily create a new factory to the second broker but keep the reference
+        // to the first broker (XXX this is a dirty workaround to make use of methods
+        // like createConnection())
+        ConnectionFactory tempFactory = connectionFactory;
+        connectionFactory = new ConnectionFactory();
+        connectionFactory.setHost(rabbitMQHostName4Experiments);
+        connectionFactory.setAutomaticRecoveryEnabled(true);
+        // attempt recovery every 10 seconds
+        connectionFactory.setNetworkRecoveryInterval(10000);
+        try {
+            // override the existing command queue factory and the queue itself
+            cmdQueueFactory = new RabbitQueueFactoryImpl(createConnection());
+            cmdChannel = cmdQueueFactory.getConnection().createChannel();
+            String queueName = cmdChannel.queueDeclare().getQueue();
+            cmdChannel.exchangeDeclare(Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "fanout", false, true, null);
+            cmdChannel.queueBind(queueName, Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "");
+
+            Consumer consumer = new DefaultConsumer(cmdChannel) {
+                @Override
+                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+                        byte[] body) throws IOException {
+                    try {
+                        handleCmd(body, properties.getReplyTo());
+                    } catch (Exception e) {
+                        LOGGER.error("Exception while trying to handle incoming command.", e);
+                    }
+                }
+            };
+            cmdChannel.basicConsume(queueName, true, consumer);
+        } finally {
+            // set the factory back
+            connectionFactory = tempFactory;
+        }
     }
 
     /**
@@ -642,10 +712,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * Retrieves model for the given challenge from the given graph (or without selecting a certain graph if the graphUri is {@code null}).
+     * Retrieves model for the given challenge from the given graph (or without
+     * selecting a certain graph if the graphUri is {@code null}).
      * 
-     * @param challengeUri the URI for which the model should be retrieved
-     * @param graphUri the URI from which the data should be retrieved or {@code null} if all graphs should be taken into account.
+     * @param challengeUri
+     *            the URI for which the model should be retrieved
+     * @param graphUri
+     *            the URI from which the data should be retrieved or {@code null} if
+     *            all graphs should be taken into account.
      * @return the RDF model of the challenge
      */
     protected Model getChallengeFromUri(String challengeUri, String graphUri) {
@@ -1024,7 +1098,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
             String serializedBenchParams, String challengUri, String challengTaskUri, Calendar executionDate) {
         String experimentId = generateExperimentId();
-        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId, benchmarkUri, systemUri, userName);
+        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId,
+                benchmarkUri, systemUri, userName);
         queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
                 challengUri, challengTaskUri, executionDate));
         return experimentId;
@@ -1115,7 +1190,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     public String rabbitMQHostName() {
-        return rabbitMQHostName;
+        return rabbitMQHostName4Experiments;
     }
 
     ///// There are some methods that shouldn't be used by the controller and
