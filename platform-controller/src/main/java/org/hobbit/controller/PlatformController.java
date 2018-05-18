@@ -115,7 +115,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
-    private static final String RABBIT_MQ_HOST_4_EXPERIMENTS_NAME_KEY = "HOBBIT_RABBIT_HOST_4_EXPERIMENTS";
+    private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -180,21 +180,29 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected Timer challengePublishTimer;
 
-    protected String rabbitMQHostName4Experiments;
+    protected String rabbitMQExperimentsHostName;
 
     @Override
     public void init() throws Exception {
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-        if (System.getenv().containsKey(RABBIT_MQ_HOST_4_EXPERIMENTS_NAME_KEY)) {
-            rabbitMQHostName4Experiments = System.getenv().get(Constants.RABBIT_MQ_HOST_NAME_KEY);
-            if (!rabbitMQHostName.equals(rabbitMQHostName4Experiments)) {
+        if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
+            rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
+            if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
                 switchCmdToExpRabbit();
+                LOGGER.info("Using {} as message broker for experiments.", rabbitMQExperimentsHostName);
+            } else {
+                LOGGER.warn(
+                        "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
+                        rabbitMQHostName);
             }
         } else {
             // the platform and its experiment are sharing a single RabbitMQ instance
-            rabbitMQHostName4Experiments = rabbitMQHostName;
+            rabbitMQExperimentsHostName = rabbitMQHostName;
+            LOGGER.warn(
+                    "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
+                    rabbitMQHostName);
         }
 
         // Set task history limit for swarm cluster to 0 (will remove all terminated
@@ -274,7 +282,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // like createConnection())
         ConnectionFactory tempFactory = connectionFactory;
         connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost(rabbitMQHostName4Experiments);
+        connectionFactory.setHost(rabbitMQExperimentsHostName);
         connectionFactory.setAutomaticRecoveryEnabled(true);
         // attempt recovery every 10 seconds
         connectionFactory.setNetworkRecoveryInterval(10000);
@@ -1190,7 +1198,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     public String rabbitMQHostName() {
-        return rabbitMQHostName4Experiments;
+        return rabbitMQExperimentsHostName;
     }
 
     ///// There are some methods that shouldn't be used by the controller and
