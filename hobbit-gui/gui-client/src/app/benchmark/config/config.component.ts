@@ -43,7 +43,15 @@ export class ConfigComponent implements OnInit, OnChanges {
       if (config.required)
         validators.push(Validators.required);
 
-      group[config.id] = this.formBuilder.control(config.defaultValue, validators);
+      let value = config.defaultValue;
+      if (this.benchmark.configurationParamValues) {
+        const currentValue = this.benchmark.configurationParamValues.find(c => c.id === config.id);
+        if (currentValue) {
+          value = currentValue.value;
+        }
+      }
+
+      group[config.id] = this.formBuilder.control(value, validators);
       this.config.push(config);
       this.configMap[config.id] = config;
     }
