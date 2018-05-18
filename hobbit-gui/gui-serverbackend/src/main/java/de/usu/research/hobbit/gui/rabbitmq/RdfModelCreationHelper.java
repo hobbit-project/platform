@@ -406,12 +406,13 @@ public class RdfModelCreationHelper {
         model.remove(model.listStatements(challenge, null, (RDFNode) null).toList().stream()
                 .filter(s -> !CHALLENGE_MODEL_PREDICATES.contains(s.getPredicate().getURI()))
                 .collect(Collectors.toList()));
-        // XXX TEMPORARILY: remove all KPISeq information
+        // Go through all tasks
         ResIterator taskIterator = model.listSubjectsWithProperty(HOBBIT.isTaskOf, challenge);
         Resource task;
         List<Statement> stmtsToRemove = new ArrayList<Statement>();
         while (taskIterator.hasNext()) {
             task = taskIterator.next();
+            // XXX TEMPORARILY: remove all KPISeq information
             List<Statement> temp = model.listStatements(task, HOBBIT.rankingKPIs, (RDFNode) null).toList();
             stmtsToRemove.addAll(temp);
             for (Statement s : temp) {
@@ -420,6 +421,9 @@ public class RdfModelCreationHelper {
                             .addAll(model.listStatements(s.getObject().asResource(), null, (RDFNode) null).toList());
                 }
             }
+            // Remove all registration information since they are handled by a different method
+            stmtsToRemove.addAll(model.listStatements(task, HOBBIT.involvesSystemInstance, (RDFNode) null).toList());
         }
+        model.remove(stmtsToRemove);
     }
 }

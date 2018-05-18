@@ -256,6 +256,7 @@ public class ChallengesResources {
                     RdfModelCreationHelper.reduceModelToChallenge(oldModel, oldModel.getResource(challenge.getId()));
                     Model newModel = RdfModelCreationHelper.createNewModel();
                     RdfModelCreationHelper.addChallenge(challenge, newModel);
+                    RdfModelCreationHelper.reduceModelToChallenge(newModel, newModel.getResource(challenge.getId()));
                     // Create update query from difference
                     storageClient.sendUpdateQuery(SparqlQueries.getUpdateQueryFromDiff(oldModel, newModel,
                             Constants.CHALLENGE_DEFINITION_GRAPH_URI));
