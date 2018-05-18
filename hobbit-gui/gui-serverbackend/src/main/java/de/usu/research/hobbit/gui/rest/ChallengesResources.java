@@ -96,13 +96,14 @@ public class ChallengesResources {
                 list.addAll(challenges.stream().filter(ChallengeBean::isVisible).collect(Collectors.toList()));
             }
         }
-        return Response.ok(new GenericEntity<List<ChallengeBean>>(list){}).build();
+        return Response.ok(new GenericEntity<List<ChallengeBean>>(list) {
+        }).build();
     }
 
     /**
      * Adds benchmark and system labels and descriptions to the given challenge
-     * bean. The given user info is used to check the access of the user
-     * regarding this information.
+     * bean. The given user info is used to check the access of the user regarding
+     * this information.
      *
      * @param challenge
      *            the challenge bean that should be updated with the retrieved
@@ -110,8 +111,7 @@ public class ChallengesResources {
      * @param userInfo
      *            the information about the requesting user
      * @throws Exception
-     *             if the communication with the platform controller does not
-     *             work
+     *             if the communication with the platform controller does not work
      */
     @Deprecated
     protected void addInfoFromController(ChallengeBean challenge, UserInfoBean userInfo) throws Exception {
@@ -141,7 +141,8 @@ public class ChallengesResources {
         ChallengeBean bean = ChallengesResources.getChallenge(id, sc);
         if (bean != null)
             return Response.ok(bean).build();
-        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found"))
+                .build();
     }
 
     static ChallengeBean getChallenge(String id, SecurityContext sc) {
@@ -211,7 +212,8 @@ public class ChallengesResources {
                     return Response.ok(InfoBean.withMessage("Challenge was already closed")).build();
                 }
             } else {
-                return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
+                return Response.status(Response.Status.NOT_FOUND)
+                        .entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
             }
         } else {
             PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
@@ -219,12 +221,13 @@ public class ChallengesResources {
                 try {
                     client.closeChallenge(id);
                     return Response.ok(InfoBean.withMessage("Challenge has been closed")).build();
-                }
-                catch (IOException ex) {
-                    return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
+                } catch (IOException ex) {
+                    return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                            .entity(InfoBean.withMessage(ex.getMessage())).build();
                 }
             } else {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage("Couldn't get platform controller client.")).build();
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(InfoBean.withMessage("Couldn't get platform controller client.")).build();
             }
         }
     }
@@ -240,7 +243,7 @@ public class ChallengesResources {
         if (Application.isUsingDevDb()) {
             String updatedId = getDevDb().updateChallenge(challenge);
             if (updatedId != null) {
-                return Response.ok(new IdBean(updatedId)).build() ;
+                return Response.ok(new IdBean(updatedId)).build();
             }
         } else {
             StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
@@ -250,6 +253,7 @@ public class ChallengesResources {
                         SparqlQueries.getChallengeGraphQuery(id, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
                 // update the model only if it has been found
                 if (oldModel != null) {
+                    RdfModelCreationHelper.reduceModelToChallenge(oldModel, oldModel.getResource(challenge.getId()));
                     Model newModel = RdfModelCreationHelper.createNewModel();
                     RdfModelCreationHelper.addChallenge(challenge, newModel);
                     // Create update query from difference
@@ -264,7 +268,8 @@ public class ChallengesResources {
             }
             return Response.ok(new IdBean(id)).build();
         }
-        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found"))
+                .build();
     }
 
     @DELETE
@@ -296,6 +301,7 @@ public class ChallengesResources {
                 }
             }
         }
-        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found")).build();
+        return Response.status(Response.Status.NOT_FOUND).entity(InfoBean.withMessage("Challenge " + id + " not found"))
+                .build();
     }
 }
