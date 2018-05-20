@@ -707,7 +707,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             LOGGER.error("Exception while hadling front end request.", e);
         } finally {
             if (replyTo != null) {
-                LOGGER.info("Replying to " + replyTo);
+                LOGGER.trace("Replying to " + replyTo);
                 try {
                     frontEnd2Controller.basicPublish("", replyTo, replyProperties,
                             response != null ? response : new byte[0]);
