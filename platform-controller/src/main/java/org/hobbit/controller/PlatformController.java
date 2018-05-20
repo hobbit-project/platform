@@ -18,6 +18,7 @@ package org.hobbit.controller;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -103,10 +105,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * The current version of the platform.
-     *
-     * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "2.0.2";
+    public static final String PLATFORM_VERSION = readVersion();
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -1238,5 +1238,27 @@ public class PlatformController extends AbstractCommandReceivingComponent
     @Deprecated
     protected void sendToCmdQueue(byte command, byte data[], BasicProperties props) throws IOException {
         sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_PLATFORM_COMPONENTS, command, data, props);
+    }
+
+    private static String readVersion() {
+        String version = "UNKNOWN";
+        String versionKey = "org.hobbit.controller.PlatformController.version";
+        InputStream is = null;
+        try {
+            is = PlatformController.class.getResourceAsStream("/hobbit.version");
+            Properties versionProps = new Properties();
+            versionProps.load(is);
+            if (versionProps.containsKey(versionKey)) {
+                version = versionProps.getProperty(versionKey);
+            } else {
+                LOGGER.error("The loaded version file does not contain the version property. Returning default value.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Couldn't get version file. Returning default value.", e);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+        LOGGER.info("Platform has version {}", version);
+        return version;
     }
 }
