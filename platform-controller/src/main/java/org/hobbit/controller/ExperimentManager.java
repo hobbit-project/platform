@@ -391,6 +391,7 @@ public class ExperimentManager implements Closeable {
                     + " has been finished. Removing it from the queue and setting the config to null.");
             // Close the experiment to stop its internal timer
             IOUtils.closeQuietly(experimentStatus);
+            long endTimestamp = System.currentTimeMillis();
             // TODO add information about the hardware
 
             // Store the result model in DB
@@ -432,7 +433,7 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
                 resultModel = experimentStatus.getResultModel();
             }
-            experimentStatus.addMetaDataToResult(controller.imageManager());
+            experimentStatus.addMetaDataToResult(controller.imageManager(), endTimestamp);
             // Send insert query
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
                 if (resultModel != null) {
