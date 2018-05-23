@@ -9,6 +9,15 @@ import org.hobbit.controller.gitlab.GitlabController;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.gitlab.Project;
 
+/**
+ * A simple command line tool that searches for the given term(s) in all
+ * available benchmark and system definitions.
+ * 
+ * arguments: <security-token> <search-term(s)>
+ * 
+ * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
+ *
+ */
 public class ProjectSearcher {
 
     public static void main(String[] args) throws InterruptedException {

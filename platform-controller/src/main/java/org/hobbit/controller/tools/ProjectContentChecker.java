@@ -15,6 +15,18 @@ import org.hobbit.controller.gitlab.Project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A small command line tool that loads all benchmark and system definitions and
+ * executes the given SPARQL CONSTRUCT query for each of them. If the result
+ * model is not empty, it is printed.
+ * 
+ * arguments: <security-token> <SPARQL-construct-Query>
+ * 
+ * Note that the SPARQL query is allowed to contain whitespaces.
+ * 
+ * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
+ *
+ */
 public class ProjectContentChecker {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ProjectContentChecker.class);
@@ -74,7 +86,7 @@ public class ProjectContentChecker {
 
     public static void printModel(Model model) {
         StmtIterator iterator = model.listStatements();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             System.out.println(iterator.next().toString());
         }
     }

@@ -12,6 +12,14 @@ import org.hobbit.controller.gitlab.Project;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 
+/**
+ * A simple command line tool to determine the number of systems, system instances and benchmarks that are defined in Gitlab.
+ * 
+ * arguments: <security-token> 
+ * 
+ * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
+ *
+ */
 public class ProjectCounter {
 
     public static void main(String[] args) throws InterruptedException {
