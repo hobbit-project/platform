@@ -817,6 +817,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri,
                 Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
+        if (challengeModel == null) {
+            LOGGER.error("Couldn't retrieve challenge {}. Aborting.", challengeUri);
+            return;
+        }
         ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         if (!challengeIterator.hasNext()) {
             LOGGER.error("Couldn't retrieve challenge " + challengeUri + ". Aborting.");
@@ -924,6 +928,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengesModel = storage.sendConstructQuery(query);
+        if (challengesModel == null) {
+            LOGGER.error("Couldn't retrieve repeatable challenges. Aborting.");
+            return;
+        }
+
         ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         Resource challenge;
         Calendar registrationCutoffDate;
@@ -991,6 +1000,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // publication dates
         Model challengesModel = storage.sendConstructQuery(
                 SparqlQueries.getChallengePublishInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        if (challengesModel == null) {
+            LOGGER.error("Couldn't retrieve challenges to publish. Aborting.");
+            return;
+        }
         ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         Resource challenge;
         Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
