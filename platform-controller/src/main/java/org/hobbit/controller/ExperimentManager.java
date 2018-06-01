@@ -24,7 +24,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
@@ -88,10 +87,10 @@ public class ExperimentManager implements Closeable {
      */
     private PlatformController controller;
     /**
-     * Mutex used to synchronize the access to the {@link #experimentStatus}
-     * instance.
+     * Object used as mutex used to synchronize the access to the
+     * {@link #experimentStatus} instance.
      */
-    private Semaphore experimentMutex = new Semaphore(1);
+    private Object experimentMutex = new Object();
     /**
      * Status of the current experiment. <code>null</code> if no benchmark is
      * running.
@@ -143,129 +142,126 @@ public class ExperimentManager implements Closeable {
      * experiment waiting in the queue.
      */
     public void createNextExperiment() {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            return;
-        }
-        try {
-            // if there is no benchmark running, the queue has been
-            // initialized and cluster is healthy
-            if ((experimentStatus == null) && (controller.queue != null)) {
-                ClusterManager clusterManager = this.controller.clusterManager;
-                boolean isClusterHealthy = clusterManager.isClusterHealthy();
-                if(!isClusterHealthy) {
-                    LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
-                                 "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
-                                 " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                                 " Current number of nodes: "+clusterManager.getNumberOfNodes());
-                    return;
-                }
-                ExperimentConfiguration config = controller.queue.getNextExperiment();
-                LOGGER.debug("Trying to start the next benchmark.");
-                if (config == null) {
-                    LOGGER.debug("There is no experiment to start.");
-                    return;
-                }
-                LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
-                        + " and system " + config.systemUri + " to the queue.");
-                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id));
+        synchronized (experimentMutex) {
+            try {
+                // if there is no benchmark running, the queue has been
+                // initialized and cluster is healthy
+                if ((experimentStatus == null) && (controller.queue != null)) {
+                    ClusterManager clusterManager = this.controller.clusterManager;
+                    boolean isClusterHealthy = clusterManager.isClusterHealthy();
+                    if (!isClusterHealthy) {
+                        LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. "
+                                + "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable."
+                                + " Expected number of nodes: " + clusterManager.getExpectedNumberOfNodes()
+                                + " Current number of nodes: " + clusterManager.getNumberOfNodes());
+                        return;
+                    }
+                    ExperimentConfiguration config = controller.queue.getNextExperiment();
+                    LOGGER.debug("Trying to start the next benchmark.");
+                    if (config == null) {
+                        LOGGER.debug("There is no experiment to start.");
+                        return;
+                    }
+                    LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
+                            + " and system " + config.systemUri + " to the queue.");
+                    experimentStatus = new ExperimentStatus(config,
+                            PlatformController.generateExperimentUri(config.id));
 
-                BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
-                if ((benchmark == null) || (benchmark.mainImage == null)) {
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                            this, defaultMaxExecutionTime);
-                    experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
-                    throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
-                }
+                    BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
+                    if ((benchmark == null) || (benchmark.mainImage == null)) {
+                        experimentStatus = new ExperimentStatus(config,
+                                PlatformController.generateExperimentUri(config.id), this, defaultMaxExecutionTime);
+                        experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
+                        throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
+                    }
 
-                SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
-                if ((system == null) || (system.mainImage == null)) {
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
-                            this, defaultMaxExecutionTime);
-                    experimentStatus.addError(HobbitErrors.SystemImageMissing);
-                    throw new Exception("Couldn't find image name for system " + config.systemUri);
-                }
+                    SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
+                    if ((system == null) || (system.mainImage == null)) {
+                        experimentStatus = new ExperimentStatus(config,
+                                PlatformController.generateExperimentUri(config.id), this, defaultMaxExecutionTime);
+                        experimentStatus.addError(HobbitErrors.SystemImageMissing);
+                        throw new Exception("Couldn't find image name for system " + config.systemUri);
+                    }
 
-                prefetchImages(benchmark, system);
+                    prefetchImages(benchmark, system);
 
-                // time an experiment has to terminate after it has been started
-                long maxExecutionTime = defaultMaxExecutionTime;
+                    // time an experiment has to terminate after it has been started
+                    long maxExecutionTime = defaultMaxExecutionTime;
 
-                // try to load benchmark timeouts from config file
-                try {
-                    HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
-                    HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
-                    if (timeouts != null) {
-                        if (config.challengeUri != null) {
-                            if (timeouts.challengeTimeout != -1) {
-                                maxExecutionTime = timeouts.challengeTimeout;
-                                LOGGER.info("Using challenge timeout: {}", maxExecutionTime);
+                    // try to load benchmark timeouts from config file
+                    try {
+                        HobbitConfig hobbitCfg = HobbitConfig.loadConfig();
+                        HobbitConfig.TimeoutConfig timeouts = hobbitCfg.getTimeout(config.benchmarkUri);
+                        if (timeouts != null) {
+                            if (config.challengeUri != null) {
+                                if (timeouts.challengeTimeout != -1) {
+                                    maxExecutionTime = timeouts.challengeTimeout;
+                                    LOGGER.info("Using challenge timeout: {}", maxExecutionTime);
+                                } else {
+                                    LOGGER.warn(
+                                            "Challenge timeout for given benchmark is not set, using default value..");
+                                }
                             } else {
-                                LOGGER.warn("Challenge timeout for given benchmark is not set, using default value..");
+                                if (timeouts.benchmarkTimeout != -1) {
+                                    maxExecutionTime = timeouts.benchmarkTimeout;
+                                    LOGGER.info("Using benchmark timeout:", maxExecutionTime);
+                                } else {
+                                    LOGGER.warn("Benchmark timeout is not set, using default value..");
+                                }
                             }
                         } else {
-                            if (timeouts.benchmarkTimeout != -1) {
-                                maxExecutionTime = timeouts.benchmarkTimeout;
-                                LOGGER.info("Using benchmark timeout:", maxExecutionTime);
-                            } else {
-                                LOGGER.warn("Benchmark timeout is not set, using default value..");
-                            }
+                            LOGGER.error("Timeouts for given benchmark are not set, using default value..");
                         }
-                    } else {
-                        LOGGER.error("Timeouts for given benchmark are not set, using default value..");
+                    } catch (Exception e) {
+                        LOGGER.error("Could not load timeouts config ({}). Using default value {}ms.", e.getMessage(),
+                                defaultMaxExecutionTime);
                     }
-                } catch (Exception e) {
-                    LOGGER.error("Could not load timeouts config ({}). Using default value {}ms.", e.getMessage(),
-                            defaultMaxExecutionTime);
+
+                    // start experiment timer/status
+                    experimentStatus.startAbortionTimer(this, maxExecutionTime);
+                    experimentStatus.setState(States.INIT);
+
+                    LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
+                    String containerId = controller.containerManager.startContainer(benchmark.mainImage,
+                            Constants.CONTAINER_TYPE_BENCHMARK, null,
+                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                    Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                    Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
+                                    Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
+                                    Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
+                            null, config.id);
+                    if (containerId == null) {
+                        experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
+                        throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
+                    }
+
+                    experimentStatus.setBenchmarkContainer(containerId);
+
+                    LOGGER.info("Creating system " + system.mainImage);
+                    String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
+                    containerId = controller.containerManager.startContainer(system.mainImage,
+                            Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
+                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                                    Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
+                                    Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
+                            null, config.id);
+                    if (containerId == null) {
+                        LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
+                        forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
+                        throw new Exception("Couldn't start the system " + config.systemUri);
+                    } else {
+                        experimentStatus.setSystemContainer(containerId);
+                    }
+                    LOGGER.info("Finished starting of new experiment.");
                 }
-
-                // start experiment timer/status
-                experimentStatus.startAbortionTimer(this, maxExecutionTime);
-                experimentStatus.setState(States.INIT);
-
-                LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
-                String containerId = controller.containerManager.startContainer(benchmark.mainImage,
-                        Constants.CONTAINER_TYPE_BENCHMARK, null,
-                        new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
-                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
-                                Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                        null, config.id);
-                if (containerId == null) {
-                    experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
-                    throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
+            } catch (Exception e) {
+                LOGGER.error("Exception while trying to start a new benchmark. Removing it from the queue.", e);
+                // Add an error if there is a model but no error was added
+                if (experimentStatus != null) {
+                    experimentStatus.addErrorIfNonPresent(HobbitErrors.UnexpectedError);
                 }
-
-                experimentStatus.setBenchmarkContainer(containerId);
-
-                LOGGER.info("Creating system " + system.mainImage);
-                String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
-                containerId = controller.containerManager.startContainer(system.mainImage,
-                        Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
-                        new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
-                                Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                        null, config.id);
-                if (containerId == null) {
-                    LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
-                    forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
-                    throw new Exception("Couldn't start the system " + config.systemUri);
-                } else {
-                    experimentStatus.setSystemContainer(containerId);
-                }
+                handleExperimentTermination_unsecured();
             }
-        } catch (Exception e) {
-            LOGGER.error("Exception while trying to start a new benchmark. Removing it from the queue.", e);
-            // Add an error if there is a model but no error was added
-            if (experimentStatus != null) {
-                experimentStatus.addErrorIfNonPresent(HobbitErrors.UnexpectedError);
-            }
-            handleExperimentTermination_unsecured();
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -323,16 +319,8 @@ public class ExperimentManager implements Closeable {
      *            RDF model
      */
     public void setResultModel(byte[] data, Function<? super byte[], ? extends Model> function) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             setResultModel_unsecured(function.apply(data));
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -343,16 +331,8 @@ public class ExperimentManager implements Closeable {
      *            the result model
      */
     public void setResultModel(Model model) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             setResultModel_unsecured(model);
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -376,12 +356,8 @@ public class ExperimentManager implements Closeable {
      * synchronized way.
      */
     public synchronized void handleExperimentTermination() {
-        try {
-            experimentMutex.acquire();
+        synchronized (experimentMutex) {
             handleExperimentTermination_unsecured();
-            experimentMutex.release();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
         }
     }
 
@@ -411,14 +387,14 @@ public class ExperimentManager implements Closeable {
                 }
             }
 
-            //if cluster is not healthy add error message to experimentStatus
+            // if cluster is not healthy add error message to experimentStatus
             try {
                 ClusterManager clusterManager = this.controller.clusterManager;
                 boolean isHealthy = clusterManager.isClusterHealthy();
-                if(!isHealthy) {
-                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down." +
-                            " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                            " Current number of nodes: "+clusterManager.getNumberOfNodes());
+                if (!isHealthy) {
+                    LOGGER.error("Cluster became unhealthy during the experiment! Some nodes are down."
+                            + " Expected number of nodes: " + clusterManager.getExpectedNumberOfNodes()
+                            + " Current number of nodes: " + clusterManager.getNumberOfNodes());
 
                     experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
                 }
@@ -490,13 +466,7 @@ public class ExperimentManager implements Closeable {
      */
     public void notifyTermination(String containerId, int exitCode) {
         boolean consumed = false;
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             if (experimentStatus != null) {
                 // If this container is the benchmark controller of the
                 // current
@@ -520,8 +490,6 @@ public class ExperimentManager implements Closeable {
                     consumed = true;
                 }
             }
-        } finally {
-            experimentMutex.release();
         }
         if (!consumed) {
             LOGGER.info("Sending broadcast message...");
@@ -556,13 +524,7 @@ public class ExperimentManager implements Closeable {
      *            <code>false</code> if the benchmark controller is ready
      */
     public void systemOrBenchmarkReady(boolean systemReportedReady) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning.", e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             // If there is an experiment waiting with the state INIT and if
             // both - system and benchmark are ready
             if ((experimentStatus != null) && (experimentStatus.setReadyAndCheck(systemReportedReady)
@@ -581,8 +543,6 @@ public class ExperimentManager implements Closeable {
                     }
                 }
             }
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -651,18 +611,10 @@ public class ExperimentManager implements Closeable {
      * {@link ExperimentStatus.States#EVALUATION}.
      */
     public void taskGenFinished() {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error("Interrupted while waiting for the experiment mutex. Returning empty status.", e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             if (experimentStatus != null) {
                 experimentStatus.setState(ExperimentStatus.States.EVALUATION);
             }
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -677,15 +629,7 @@ public class ExperimentManager implements Closeable {
      */
     public void notifyExpRuntimeExpired(ExperimentStatus expiredState) {
         Objects.requireNonNull(expiredState);
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error(
-                    "Interrupted while waiting for the experiment mutex. The experiment abortion time won't be checked.",
-                    e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             // If this is the currently running experiment
             if ((experimentStatus != null) && (expiredState.experimentUri.equals(expiredState.experimentUri))) {
                 // If the experiment hasn't been stopped
@@ -698,8 +642,6 @@ public class ExperimentManager implements Closeable {
                 LOGGER.warn(
                         "Got a timeout notification for an experiment that does not match the current experiment. It will be ignored.");
             }
-        } finally {
-            experimentMutex.release();
         }
     }
 
@@ -710,15 +652,7 @@ public class ExperimentManager implements Closeable {
      *            the id of the experiment that should be stopped
      */
     public void stopExperimentIfRunning(String experimentId) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error(
-                    "Interrupted while waiting for the experiment mutex. Won't check the experiment regarding the requested termination.",
-                    e);
-            return;
-        }
-        try {
+        synchronized (experimentMutex) {
             // If this is the currently running experiment
             if ((experimentStatus != null) && (experimentStatus.config.id.equals(experimentId))) {
                 // If the experiment hasn't been stopped
@@ -728,8 +662,6 @@ public class ExperimentManager implements Closeable {
                     forceBenchmarkTerminate_unsecured(HobbitErrors.TerminatedByUser);
                 }
             }
-        } finally {
-            experimentMutex.release();
         }
     }
 

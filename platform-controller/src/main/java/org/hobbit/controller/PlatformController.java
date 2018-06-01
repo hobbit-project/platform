@@ -679,6 +679,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 String userName = RabbitMQUtils.readString(buffer);
                 // Get the experiment from the queue
                 ExperimentConfiguration config = queue.getExperiment(experimentId);
+                if(config == null) {
+                    // The experiment is not known
+                    response = new byte[] { 1 };
+                }
                 // Check whether the use has the right to terminate the experiment
                 if ((config != null) && (config.userName != null) && (config.userName.equals(userName))) {
                     // Remove the experiment from the queue
@@ -692,7 +696,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                         response = new byte[] { 0 };
                     }
                 } else {
-                    // The experiment is not known or the user does not have the right to remove it
+                    // The user does not have the right to remove the experiment
                     response = new byte[] { 0 };
                 }
                 break;
