@@ -27,6 +27,8 @@ import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -100,7 +102,9 @@ public class GitlabControllerImplTest {
     @Test
     public void gitlabToProject() {
         Project project = controller.gitlabToProject(gitlabProject);
-        assert(project.getName().equals("Mohammed Abdelgadir / qabenchmarkcontrollerfortesting"));
+        assertNotNull("Project shouldn't be null", project);
+        assertEquals("Project name",
+                "Mohammed Abdelgadir / qabenchmarkcontrollerfortesting", project.getName());
     }
 
     @Test
