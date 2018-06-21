@@ -44,29 +44,29 @@ public class GitlabControllerImplTest {
     @Before
     public void init() throws InterruptedException {
         gitlabProject = new GitlabProject();
-        gitlabProject.setId(404);
-        gitlabProject.setName("qabenchmarkcontrollerfortesting");
-        gitlabProject.setNameWithNamespace("Mohammed Abdelgadir / qabenchmarkcontrollerfortesting");
-        gitlabProject.setDescription("(test) QA benchmark-controller (ttl) and image");
+        gitlabProject.setId(526);
+        gitlabProject.setName("testing-benchmark");
+        gitlabProject.setNameWithNamespace("gitadmin / testing-benchmark");
+        gitlabProject.setDescription("A benchmark for platform-controller tests.");
         gitlabProject.setDefaultBranch("master");
 
         GitlabUser owner = new GitlabUser();
-        owner.setUsername("sjdff1");
-        owner.setName("sjdff1");
+        owner.setUsername("gitadmin");
+        owner.setName("gitadmin");
         owner.setState("active");
-        owner.setAvatarUrl("https://secure.gravatar.com/avatar/248dc7b4d869ff34dd97a1f07c00dd63?s=80&d=identicon");
+        owner.setAvatarUrl("https://secure.gravatar.com/avatar/73ee2127ad0f938995a7b5fb9b3417d8?s=46&d=identicon");
 
         gitlabProject.setOwner(owner);
-        gitlabProject.setPath("qabenchmarkcontrollerfortesting");
+        gitlabProject.setPath("testing-benchmark");
         gitlabProject.setVisibilityLevel(20);
-        gitlabProject.setPathWithNamespace("weekmo/qabenchmarkcontrollerfortesting");
-        gitlabProject.setSshUrl("git@git.project-hobbit.eu:weekmo/qabenchmarkcontrollerfortesting.git");
-        gitlabProject.setWebUrl("https://git.project-hobbit.eu/weekmo/qabenchmarkcontrollerfortesting");
-        gitlabProject.setHttpUrl("https://git.project-hobbit.eu/weekmo/qabenchmarkcontrollerfortesting.git");
+        gitlabProject.setPathWithNamespace("gitadmin/testing-benchmark");
+        gitlabProject.setSshUrl("git@git.project-hobbit.eu:gitadmin/testing-benchmark.git");
+        gitlabProject.setWebUrl("https://git.project-hobbit.eu/gitadmin/testing-benchmark");
+        gitlabProject.setHttpUrl("https://git.project-hobbit.eu/gitadmin/testing-benchmark.git");
 
         GitlabNamespace gitlabNamespace = new GitlabNamespace();
-        gitlabNamespace.setName("weekmo");
-        gitlabNamespace.setPath("weekmo");
+        gitlabNamespace.setName("gitadmin");
+        gitlabNamespace.setPath("gitadmin");
 
         gitlabProject.setNamespace(gitlabNamespace);
         gitlabProject.setCreatorId(90);
@@ -78,8 +78,8 @@ public class GitlabControllerImplTest {
         gitlabBranch = new GitlabBranch();
         gitlabBranch.setName("master");
         GitlabBranchCommit gitlabCommit = new GitlabBranchCommit();
-        gitlabCommit.setId("2a36977cb8307a2d51cc2bfdb426457d99d3a51d");
-        gitlabCommit.setMessage("change the name");
+        gitlabCommit.setId("2192a05e8ecda70511b2aa112e6618d0f3de3220");
+        gitlabCommit.setMessage("Fix syntax errors");
         gitlabBranch.setCommit(gitlabCommit);
 
         api = GitlabAPI.connect("https://git.project-hobbit.eu/", "fykySfxWaUyCS1xxTSVy");
@@ -104,14 +104,14 @@ public class GitlabControllerImplTest {
         Project project = controller.gitlabToProject(gitlabProject);
         assertNotNull("Project shouldn't be null", project);
         assertEquals("Project name",
-                "Mohammed Abdelgadir / qabenchmarkcontrollerfortesting", project.getName());
+                "gitadmin / testing-benchmark", project.getName());
     }
 
     @Test
     public void getCheckedModel() throws IOException {
         byte[] benchmarkCfgBytes = api.getRawFileContent(gitlabProject.getId(), gitlabBranch.getCommit().getId(), "benchmark.ttl");
         Model checkedModel = controller.getCheckedModel(benchmarkCfgBytes, "benchmark", gitlabProject.getWebUrl());
-        Resource resource = new ResourceImpl("http://w3id.org/gerbil/qa/hobbit/vocab#hasQuestionLanguage");
+        Resource resource = new ResourceImpl("http://w3id.org/hobbit/platform-benchmark/vocab#seed");
         Property property = new PropertyImpl("http://www.w3.org/2000/01/rdf-schema#label");
         assert checkedModel.contains(resource, property) :
                 "Benchmark model should contain " + resource + " " + property;
