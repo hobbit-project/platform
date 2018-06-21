@@ -341,10 +341,17 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
-            // Convert data byte array to config data structure
-            StartCommandData startParams = deserializeStartCommandData(data);
-            // trigger creation
-            String containerName = createContainer(startParams);
+            StartCommandData startParams = null;
+            String containerName = "";
+            if (expManager.isExpRunning(sessionId)) {
+                // Convert data byte array to config data structure
+                startParams = deserializeStartCommandData(data);
+                // trigger creation
+                containerName = createContainer(startParams);
+            } else {
+                LOGGER.error(
+                        "Got a request to start a container for experiment {} which is either not running or was already stopped. Returning null;");
+            }
             if (replyTo != null) {
                 try {
                     cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC,
@@ -352,7 +359,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
                     errMsgBuilder.append("Error, couldn't sent response after creation of container (");
-                    errMsgBuilder.append(startParams.toString());
+                    if (startParams != null) {
+                        errMsgBuilder.append(startParams.toString());
+                    }
                     errMsgBuilder.append(") to replyTo=");
                     errMsgBuilder.append(replyTo);
                     errMsgBuilder.append(".");
@@ -369,22 +378,22 @@ public class PlatformController extends AbstractCommandReceivingComponent
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
-            expManager.systemOrBenchmarkReady(false);
+            expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
         case Commands.SYSTEM_READY_SIGNAL: {
-            expManager.systemOrBenchmarkReady(true);
+            expManager.systemOrBenchmarkReady(true, sessionId);
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
-            expManager.taskGenFinished();
+            expManager.taskGenFinished(sessionId);
             break;
         }
         case Commands.BENCHMARK_FINISHED_SIGNAL: {
             if ((data == null) || (data.length == 0)) {
                 LOGGER.error("Got no result model from the benchmark controller.");
             } else {
-                expManager.setResultModel(data, RabbitMQUtils::readModel);
+                expManager.setResultModel(sessionId, data, RabbitMQUtils::readModel);
             }
             break;
         }
@@ -679,7 +688,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 String userName = RabbitMQUtils.readString(buffer);
                 // Get the experiment from the queue
                 ExperimentConfiguration config = queue.getExperiment(experimentId);
-                if(config == null) {
+                if (config == null) {
                     // The experiment is not known
                     response = new byte[] { 1 };
                 }

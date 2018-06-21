@@ -312,15 +312,22 @@ public class ExperimentManager implements Closeable {
      * {@link #experimentStatus} object and therefore blocking all other operations
      * on that object.
      *
+     * @param sessionId
+     *            the experiment ID to which the result model belongs to
      * @param data
      *            binary data containing a serialized RDF model
      * @param function
      *            a deserialization function transforming the binary data into an
      *            RDF model
      */
-    public void setResultModel(byte[] data, Function<? super byte[], ? extends Model> function) {
+    public void setResultModel(String sessionId, byte[] data, Function<? super byte[], ? extends Model> function) {
         synchronized (experimentMutex) {
-            setResultModel_unsecured(function.apply(data));
+            if ((experimentStatus != null) && (experimentStatus.config != null)
+                    && (sessionId.equals(experimentStatus.config.id))) {
+                setResultModel_unsecured(function.apply(data));
+            } else {
+                LOGGER.warn("Got result model for {} which is not running.", sessionId);
+            }
         }
     }
 
@@ -523,25 +530,31 @@ public class ExperimentManager implements Closeable {
      *            <code>true</code> if the message was sent by the system,
      *            <code>false</code> if the benchmark controller is ready
      */
-    public void systemOrBenchmarkReady(boolean systemReportedReady) {
+    public void systemOrBenchmarkReady(boolean systemReportedReady, String sessionId) {
         synchronized (experimentMutex) {
-            // If there is an experiment waiting with the state INIT and if
-            // both - system and benchmark are ready
-            if ((experimentStatus != null) && (experimentStatus.setReadyAndCheck(systemReportedReady)
-                    && (experimentStatus.getState() == ExperimentStatus.States.INIT))) {
-                try {
-                    startBenchmark_unsecured();
-                } catch (IOException e) {
-                    // Let's retry this
+            if ((experimentStatus != null) && (experimentStatus.config != null)
+                    && (sessionId.equals(experimentStatus.config.id))) {
+                // If there is an experiment waiting with the state INIT and if
+                // both - system and benchmark are ready
+                if ((experimentStatus != null) && (experimentStatus.setReadyAndCheck(systemReportedReady)
+                        && (experimentStatus.getState() == ExperimentStatus.States.INIT))) {
                     try {
                         startBenchmark_unsecured();
-                    } catch (IOException e2) {
-                        LOGGER.error("Couldn't sent start signal to the benchmark controller. Terminating experiment.",
-                                e2);
-                        // We have to terminate the experiment
-                        forceBenchmarkTerminate_unsecured(HobbitErrors.UnexpectedError);
+                    } catch (IOException e) {
+                        // Let's retry this
+                        try {
+                            startBenchmark_unsecured();
+                        } catch (IOException e2) {
+                            LOGGER.error(
+                                    "Couldn't sent start signal to the benchmark controller. Terminating experiment.",
+                                    e2);
+                            // We have to terminate the experiment
+                            forceBenchmarkTerminate_unsecured(HobbitErrors.UnexpectedError);
+                        }
                     }
                 }
+            } else {
+                LOGGER.warn("Got a ready message for benchmark or system of {} which is not running.", sessionId);
             }
         }
     }
@@ -610,10 +623,13 @@ public class ExperimentManager implements Closeable {
      * Changes the state of the internal experiment to
      * {@link ExperimentStatus.States#EVALUATION}.
      */
-    public void taskGenFinished() {
+    public void taskGenFinished(String sessionId) {
         synchronized (experimentMutex) {
-            if (experimentStatus != null) {
+            if ((experimentStatus != null) && (experimentStatus.config != null)
+                    && (sessionId.equals(experimentStatus.config.id))) {
                 experimentStatus.setState(ExperimentStatus.States.EVALUATION);
+            } else {
+                LOGGER.warn("Got a taskGenFinished message of {} which is not running.", sessionId);
             }
         }
     }
@@ -654,7 +670,8 @@ public class ExperimentManager implements Closeable {
     public void stopExperimentIfRunning(String experimentId) {
         synchronized (experimentMutex) {
             // If this is the currently running experiment
-            if ((experimentStatus != null) && (experimentStatus.config.id.equals(experimentId))) {
+            if ((experimentStatus != null) && (experimentStatus.config != null)
+                    && (experimentStatus.config.id.equals(experimentId))) {
                 // If the experiment hasn't been stopped
                 if (experimentStatus.getState() != States.STOPPED) {
                     LOGGER.error("The experiment {} was stopped by the user. Forcing termination.",
@@ -668,6 +685,18 @@ public class ExperimentManager implements Closeable {
     @Override
     public void close() throws IOException {
         expStartTimer.cancel();
+    }
+
+    public boolean isExpRunning(String sessionId) {
+        // copy the pointer to the experiment status to make sure that we can
+        // read it even if another thread sets the pointer to null. This gives
+        // us the possibility to read the status without acquiring the
+        // experimentMutex.
+        ExperimentStatus currentStatus = experimentStatus;
+        // Make sure that there is an experiment running with the given ID and that has
+        // not been already stopped
+        return (currentStatus != null) && (currentStatus.config != null) && (sessionId.equals(currentStatus.config.id))
+                && (currentStatus.getState() != States.STOPPED);
     }
 
 }
