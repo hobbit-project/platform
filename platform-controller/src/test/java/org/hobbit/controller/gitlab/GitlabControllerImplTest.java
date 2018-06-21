@@ -113,6 +113,7 @@ public class GitlabControllerImplTest {
         Model checkedModel = controller.getCheckedModel(benchmarkCfgBytes, "benchmark", gitlabProject.getWebUrl());
         Resource resource = new ResourceImpl("http://w3id.org/gerbil/qa/hobbit/vocab#hasQuestionLanguage");
         Property property = new PropertyImpl("http://www.w3.org/2000/01/rdf-schema#label");
-        assert(checkedModel.contains(resource, property));
+        assert checkedModel.contains(resource, property) :
+                "Benchmark model should contain " + resource + " " + property;
     }
 }
