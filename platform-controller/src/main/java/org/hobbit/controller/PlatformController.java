@@ -182,6 +182,20 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected String rabbitMQExperimentsHostName;
 
+    /**
+     * Default constructor.
+     */
+    public PlatformController() {
+    }
+
+    /**
+     * Constructor needed for testing.
+     */
+    public PlatformController(ExperimentManager expManager) {
+        this.expManager = expManager;
+        expManager.setController(this);
+    }
+
     @Override
     public void init() throws Exception {
         // First initialize the super class
@@ -246,7 +260,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
-        expManager = new ExperimentManager(this);
+        if (expManager == null) {
+            expManager = new ExperimentManager(this);
+        }
 
         // schedule challenges re-publishing
         // TODO RC rename this timer
@@ -350,7 +366,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 containerName = createContainer(startParams);
             } else {
                 LOGGER.error(
-                        "Got a request to start a container for experiment {} which is either not running or was already stopped. Returning null;");
+                        "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.", sessionId);
             }
             if (replyTo != null) {
                 try {

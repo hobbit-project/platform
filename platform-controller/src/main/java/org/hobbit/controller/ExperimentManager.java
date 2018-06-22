@@ -95,11 +95,11 @@ public class ExperimentManager implements Closeable {
      * Status of the current experiment. <code>null</code> if no benchmark is
      * running.
      */
-    private ExperimentStatus experimentStatus = null;
+    protected ExperimentStatus experimentStatus = null;
     /**
      * Timer used to trigger the creation of the next benchmark.
      */
-    private Timer expStartTimer;
+    protected Timer expStartTimer;
 
     public ExperimentManager(PlatformController controller) {
         this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
@@ -699,4 +699,7 @@ public class ExperimentManager implements Closeable {
                 && (currentStatus.getState() != States.STOPPED);
     }
 
+    public void setController(PlatformController controller) {
+        this.controller = controller;
+    }
 }
