@@ -28,9 +28,48 @@
 
 The platform can be started pretty fast by cloning the repository and executing
 ```sh
-make build install
+make build
 ```
 This will compile the project and execute all necessary default configuration steps described below. After that, `make start` will start the platform.
+
+Edit docker-compose-dev.yml to GITLAB\_USER GITLAB\_EMAIL and GITLAB\_TOKEN:
+```
+version: '3.3'
+services:
+  platform-controller:
+    image: hobbitproject/hobbit-platform-controller:dev
+    networks:
+      - hobbit-core
+    environment:
+      HOBBIT_RABBIT_HOST: "rabbit"
+      HOBBIT_REDIS_HOST: "redis"
+      DEPLOY_ENV: "testing"
+      GITLAB_USER: "gitlabuser"
+      GITLAB_EMAIL: "gitlabuser@example.com"
+      GITLAB_TOKEN: "gitlabtoken"
+      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      SWARM_NODE_NUMBER: "1"
+```
+
+For Elasticsearch stack you need to configure `vm.max_map_count`:
+```
+$ sudo vim /etc/sysctl.conf
+# add line:
+vm.max_map_count=262144
+$ sudo sysctl -p
+```
+
+Start the platform:
+```
+make start
+```
+
+The following interfaces will be available for you:
+* localhost:8080 (GUI) - default credential below (e.g. challenge-organiser/hobbit)
+* localhost:5601 (Kibana)
+* localhost:8181 (Keycloak) - admin credentials: admin/H160bbit
+* localhost:8081 (RabbitMQ)
+* localhost:8890 (Virtuoso)
 
 ## Preparing
 

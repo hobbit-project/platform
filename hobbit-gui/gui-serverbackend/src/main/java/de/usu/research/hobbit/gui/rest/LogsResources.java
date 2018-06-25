@@ -16,20 +16,16 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
+import java.io.*;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 import javax.annotation.security.RolesAllowed;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.SecurityContext;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -37,44 +33,70 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.nio.entity.NStringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.Statement;
 import org.elasticsearch.client.RestClient;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.vocab.HOBBIT;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper.getTolerantDateTimeValue;
 
 
 @Path("logs")
 public class LogsResources {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogsResources.class);
 
     private static final String UNKNOWN_EXP_ERROR_MSG = "Could not find results for this experiments. " +
             "Either the experiment has not been finished or it does not exist.";
     private static final String benchmarkQueryBase = "" +
-        "{" +
+    "{" +
         "%s" + // placeholder for _source or other extensions
         "\"query\" : {" +
             "\"constant_score\": {" +
-                    "\"filter\": {" +
-                        "\"bool\": {" +
-                            "\"should\": [" +
-                                "{\"wildcard\": {\"tag\":\"benchmark_sep_%s_sep_*\"}}," +
-                                "{\"wildcard\": {\"tag\":\"data_sep_%s_sep_*\"}}" +
-                            "]" +
-                        "}" +
+                "\"filter\": {" +
+                    "\"bool\": {" +
+                        "\"must\": {" +
+                            "\"range\": { \"@timestamp\": { \"gte\": \"%s\", \"lte\": \"%s||+1d/d\" }}" +
+                        "}," +
+                        "\"should\": [" +
+                            "{\"wildcard\": {\"tag\":\"benchmark_sep_%s_sep_*\"}}," +
+                            "{\"wildcard\": {\"tag\":\"data_sep_%s_sep_*\"}}" +
+                        "]" +
                     "}" +
                 "}" +
             "}" +
-        "}";
+        "}" +
+    "}";
 
-    private static final String systemQueryBase = "{" +
+    private static final String systemQueryBase = "" +
+    "{" +
         "%s" + // placeholder for _source or other extensions
-        "\"query\" :" +
-            "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
-        "}";
+        "\"query\" : {" +
+            "\"constant_score\": {" +
+                "\"filter\": {" +
+                    "\"bool\": {" +
+                        "\"must\": {" +
+                            "\"range\": { \"@timestamp\": { \"gte\": \"%s\", \"lte\": \"%s||+1d/d\" }}" +
+                        "}," +
+                        "\"should\": [" +
+                            "{\"wildcard\": {\"tag\":\"system_sep_%s_sep_*\"}}" +
+                        "]" +
+                    "}" +
+                "}" +
+            "}" +
+        "}" +
+    "}";
+
+    private final int MAX_RESULT_SIZE = 100000;
 
     @GET
     @RolesAllowed("system-provider") // Guests can not access this method
@@ -94,23 +116,12 @@ public class LogsResources {
     @Path("system/query")
     @Produces(MediaType.APPLICATION_JSON)
     public Response systemQuery(@QueryParam("id") String id, @Context SecurityContext sc) throws Exception {
-        // create experiment URI
-        String experimentUri = Constants.EXPERIMENT_URI_NS + id;
-        // construct query to gather experiment data
-        String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
-        Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
-        if (model != null && model.size() > 0) {
-            ExperimentBean experiment = RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri));
-            // Check whether the user is the owner of the system
-            String systemURI = experiment.getSystem().getId();
-            Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
-            if(!userOwnedSystemIds.contains(systemURI)) {
-                // The user is not allowed to see the systems log
-                return Response.status(Status.FORBIDDEN).build();
-            }
-        } else {
-            return Response.status(Status.NO_CONTENT).build();
+        Model model = getExperimentModel(id);
+        Response isAllowed = checkAccessAllowed(model, id, sc);
+        if(isAllowed != null) {
+            return isAllowed;
         }
+
         String logs = query(id, "system");
         if(logs == null) {
             // The experiment is not known
@@ -133,6 +144,46 @@ public class LogsResources {
         return Response.ok(logs).build();
     }
 
+    private Model getExperimentModel(String experimentId) {
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
+        Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+        return model;
+    }
+
+    private Response checkAccessAllowed(Model experimentModel, String experimentId, SecurityContext sc) {
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        // get the date info from model and restrict query by time
+        if (experimentModel != null && experimentModel.size() > 0) {
+            ExperimentBean experiment = RdfModelHelper.createExperimentBean(experimentModel, experimentModel.getResource(experimentUri));
+            // Check whether the user is the owner of the system
+            String systemURI = experiment.getSystem().getId();
+            Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
+            if(!userOwnedSystemIds.contains(systemURI)) {
+                // The user is not allowed to see the systems log
+                return Response.status(Status.FORBIDDEN).build();
+            }
+        } else {
+            return Response.status(Status.NO_CONTENT).build();
+        }
+        return null;
+    }
+
+    private String getExperimentDate(String experimentId) {
+        Model experimentModel = getExperimentModel(experimentId);
+        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        Resource experimentResource = experimentModel.getResource(experimentUri);
+        Calendar cal = getTolerantDateTimeValue(experimentModel, experimentResource, HOBBIT.startTime);
+        SimpleDateFormat esDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        if(cal != null) {
+            return esDateFormat.format(cal.getTime()); // or whatever you need
+        } else {
+            LOGGER.error("Experiment with id {} does not have startTime property in the database.", experimentId);
+            LOGGER.error("I set experiment date to 1970-01-01, the log result will be empty.");
+            return "1970-01-01";
+        }
+    }
+
     public String query(String experimentId, String type) throws Exception {
         RestClient restClient = null;
         String esHost = System.getenv("ELASTICSEARCH_HOST");
@@ -145,25 +196,29 @@ public class LogsResources {
             throw new Exception("ELASTICSEARCH_HOST and ELASTICSEARCH_HTTP_PORT env are not set.");
         }
         String logs = null;
-        if(type.equals("all")) {
-            logs = getLogs(experimentId, restClient);
-        } else if (type.equals("system")) {
-            logs = getSystemLogs(experimentId, restClient);
-        } else if (type.equals("benchmark")) {
-            logs = getBenchmarkLogs(experimentId, restClient);
+        switch(type) {
+            case "all":
+                logs = getLogs(experimentId, restClient);
+                break;
+            case "system":
+                logs = getSystemLogs(experimentId, restClient);
+                break;
+            case "benchmark":
+                logs = getBenchmarkLogs(experimentId, restClient);
+                break;
         }
         return logs;
     }
 
-    public String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getBenchmarkLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "benchmark", restClient).toString();
     }
 
-    public String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getSystemLogs(String experimentId, RestClient restClient) throws Exception {
         return getLogsByType(experimentId, "system", restClient).toString();
     }
 
-    public String getLogs(String experimentId, RestClient restClient) throws Exception {
+    private String getLogs(String experimentId, RestClient restClient) throws Exception {
         JSONArray benchmarkLogs = getLogsByType(experimentId, "benchmark", restClient);
         JSONArray systemLogs = getLogsByType(experimentId, "system", restClient);
         return mergeJSONArrays(benchmarkLogs, systemLogs).toString();
@@ -175,13 +230,26 @@ public class LogsResources {
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
+
+        JSONArray results = new JSONArray();
+        if(count > MAX_RESULT_SIZE) {
+            LOGGER.info("Log size {} of experiment id {} is bigger than {}. Experiment should log less messages.",
+                    count, experimentId, MAX_RESULT_SIZE);
+            JSONObject error = new JSONObject();
+            String errorMessage = String.format("Log size %s of experiment id %s is bigger than %s. Please descrease your experiment logging to retrieve the log messages.", count, experimentId, MAX_RESULT_SIZE);
+            error.put("error", errorMessage);
+            results.put(error);
+            return results;
+        }
+
         //pagination
         Integer offset = 0;
-        Integer size = 1000;
+        Integer size = 10000;
+
         String lastSortValue = null;
         String sortValue;
-        JSONArray results = new JSONArray();
-        while(offset < count) {
+        float status = 0;
+        while(offset < MAX_RESULT_SIZE && offset < count) {
             String searchQuery;
             if(lastSortValue == null) {
                 searchQuery = createSearchQuery(size, experimentId, type);
@@ -191,12 +259,22 @@ public class LogsResources {
             String queryResults = fireQuery(searchQuery, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
+            if(hits.length() == 0) break;
             JSONObject lastHit = hits.getJSONObject(hits.length()-1);
             sortValue = lastHit.optJSONArray("sort").toString();
             lastSortValue = sortValue.substring(1, sortValue.length() - 1);
             results = mergeJSONArrays(results, hits);
             offset += size;
+            if(offset != 0) {
+                status = ( (float) offset / count) * 100 ;
+            }
+            if(offset > count) {
+                status = 100;
+            }
+            LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         }
+        status = 100;
+        LOGGER.info("Retrieving logs for experiment id: {}, {}%", experimentId, status);
         return results;
     }
 
@@ -212,10 +290,13 @@ public class LogsResources {
     }
 
     private String createQuery(String extension, String experimentId, String type) throws Exception {
+        // date
+        String experimentDate = getExperimentDate(experimentId);
+
         if(type.equals("benchmark")) {
-            return String.format(benchmarkQueryBase, extension, experimentId, experimentId);
+            return String.format(benchmarkQueryBase, extension, experimentDate, experimentDate, experimentId, experimentId);
         } else if(type.equals("system")) {
-            return String.format(systemQueryBase, extension, experimentId);
+            return String.format(systemQueryBase, extension, experimentDate, experimentDate, experimentId);
         }
         throw new Exception("Can not generate query of type " + type);
     }
@@ -224,25 +305,18 @@ public class LogsResources {
         return createQuery("", experimentId, type);
     }
 
-    private String createSearchQuery(Integer from, Integer size, String experimentId, String type) throws Exception {
-        String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
-                "\"from\":"+from.toString()+",\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"asc\"}],";
-        return createQuery(extension, experimentId, type);
-    }
-
     private String createSearchQuery(String lastSortValue, Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"size\":"+size.toString()+","+
                 "\"search_after\": ["+lastSortValue+"]," +
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}],";
         return createQuery(extension, experimentId, type);
     }
 
     private String createSearchQuery(Integer size, String experimentId, String type) throws Exception {
         String extension = "\"_source\": [\"@timestamp\", \"image_name\", \"container_name\", \"container_id\", \"message\"]," +
                 "\"size\":"+size.toString()+","+
-                "\"sort\": [{ \"@timestamp\" : \"desc\"}, {\"_uid\" : \"desc\"}],";
+                "\"sort\": [{ \"@timestamp\" : \"desc\"}],";
         return createQuery(extension, experimentId, type);
     }
 

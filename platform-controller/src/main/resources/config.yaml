@@ -1,4 +1,4 @@
 timeouts:
   'http://my.test.benchmark': # benchmark URL
-    benchmark: 1200 # in seconds
-    challenge: 1200 # in seconds
+    benchmark: 1200000 # in ms
+    challenge: 1200000 # in ms
