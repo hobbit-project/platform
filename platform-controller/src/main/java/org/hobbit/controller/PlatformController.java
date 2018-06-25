@@ -18,6 +18,7 @@ package org.hobbit.controller;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -72,6 +74,7 @@ import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.rdf.RdfHelper;
@@ -80,8 +83,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
 
 /**
@@ -97,10 +105,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * The current version of the platform.
-     *
-     * TODO Find a way to load the version automatically from the pom file.
      */
-    public static final String PLATFORM_VERSION = "2.0.2";
+    public static final String PLATFORM_VERSION = readVersion();
 
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -109,6 +115,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
+    private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -173,19 +180,40 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected Timer challengePublishTimer;
 
+    protected String rabbitMQExperimentsHostName;
+
     @Override
     public void init() throws Exception {
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
+        if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
+            rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
+            if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
+                switchCmdToExpRabbit();
+                LOGGER.info("Using {} as message broker for experiments.", rabbitMQExperimentsHostName);
+            } else {
+                LOGGER.warn(
+                        "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
+                        rabbitMQHostName);
+            }
+        } else {
+            // the platform and its experiment are sharing a single RabbitMQ instance
+            rabbitMQExperimentsHostName = rabbitMQHostName;
+            LOGGER.warn(
+                    "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
+                    rabbitMQHostName);
+        }
 
-        // Set task history limit for swarm cluster to 0 (will remove all terminated containers)
+        // Set task history limit for swarm cluster to 0 (will remove all terminated
+        // containers)
         // Only for prod mode
         clusterManager = new ClusterManagerImpl();
-        if(DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+        if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
         } else {
-            LOGGER.debug("Production mode. Setting task history limit to 0. All terminated containers will be removed.");
+            LOGGER.debug(
+                    "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
             clusterManager.setTaskHistoryLimit(0);
         }
 
@@ -206,7 +234,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
-        frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this).queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
+        frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
+                .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
         controller2Analysis = cmdQueueFactory.getConnection().createChannel();
         controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
@@ -232,6 +261,55 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
         LOGGER.info("Platform controller initialized.");
+    }
+
+    /**
+     * This method closes the command queue and its handling and reopens it on the
+     * RabbitMQ broker which will be used for experiments.
+     * 
+     * @throws Exception
+     */
+    private void switchCmdToExpRabbit() throws Exception {
+        // We have to close the existing command queue
+        try {
+            cmdChannel.close();
+        } catch (Exception e) {
+            LOGGER.warn("Exception while closing command queue. It will be ignored.", e);
+        }
+        IOUtils.closeQuietly(cmdQueueFactory);
+        // temporarily create a new factory to the second broker but keep the reference
+        // to the first broker (XXX this is a dirty workaround to make use of methods
+        // like createConnection())
+        ConnectionFactory tempFactory = connectionFactory;
+        connectionFactory = new ConnectionFactory();
+        connectionFactory.setHost(rabbitMQExperimentsHostName);
+        connectionFactory.setAutomaticRecoveryEnabled(true);
+        // attempt recovery every 10 seconds
+        connectionFactory.setNetworkRecoveryInterval(10000);
+        try {
+            // override the existing command queue factory and the queue itself
+            cmdQueueFactory = new RabbitQueueFactoryImpl(createConnection());
+            cmdChannel = cmdQueueFactory.getConnection().createChannel();
+            String queueName = cmdChannel.queueDeclare().getQueue();
+            cmdChannel.exchangeDeclare(Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "fanout", false, true, null);
+            cmdChannel.queueBind(queueName, Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "");
+
+            Consumer consumer = new DefaultConsumer(cmdChannel) {
+                @Override
+                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
+                        byte[] body) throws IOException {
+                    try {
+                        handleCmd(body, properties.getReplyTo());
+                    } catch (Exception e) {
+                        LOGGER.error("Exception while trying to handle incoming command.", e);
+                    }
+                }
+            };
+            cmdChannel.basicConsume(queueName, true, consumer);
+        } finally {
+            // set the factory back
+            connectionFactory = tempFactory;
+        }
     }
 
     /**
@@ -629,7 +707,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             LOGGER.error("Exception while hadling front end request.", e);
         } finally {
             if (replyTo != null) {
-                LOGGER.info("Replying to " + replyTo);
+                LOGGER.trace("Replying to " + replyTo);
                 try {
                     frontEnd2Controller.basicPublish("", replyTo, replyProperties,
                             response != null ? response : new byte[0]);
@@ -641,9 +719,19 @@ public class PlatformController extends AbstractCommandReceivingComponent
         LOGGER.debug("Finished handling of front end request.");
     }
 
-    protected Model getChallengeFromUri(String challengeUri) {
-        // get experiments from the challenge
-        String query = SparqlQueries.getChallengeGraphQuery(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
+    /**
+     * Retrieves model for the given challenge from the given graph (or without
+     * selecting a certain graph if the graphUri is {@code null}).
+     * 
+     * @param challengeUri
+     *            the URI for which the model should be retrieved
+     * @param graphUri
+     *            the URI from which the data should be retrieved or {@code null} if
+     *            all graphs should be taken into account.
+     * @return the RDF model of the challenge
+     */
+    protected Model getChallengeFromUri(String challengeUri, String graphUri) {
+        String query = SparqlQueries.getChallengeGraphQuery(challengeUri, graphUri);
         if (query == null) {
             LOGGER.error("Couldn't get challenge {} because the needed SPARQL query couldn't be loaded. Aborting.",
                     challengeUri);
@@ -653,7 +741,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     private List<ExperimentConfiguration> getChallengeTasksFromUri(String challengeUri) {
-        Model model = getChallengeFromUri(challengeUri);
+        Model model = getChallengeFromUri(challengeUri, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         if (model == null) {
             LOGGER.error("Couldn't get model for challenge {} . Aborting.", challengeUri);
             return null;
@@ -729,6 +817,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri,
                 Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
+        if (challengeModel == null) {
+            LOGGER.error("Couldn't retrieve challenge {}. Aborting.", challengeUri);
+            return;
+        }
         ResIterator challengeIterator = challengeModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         if (!challengeIterator.hasNext()) {
             LOGGER.error("Couldn't retrieve challenge " + challengeUri + ". Aborting.");
@@ -836,6 +928,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengesModel = storage.sendConstructQuery(query);
+        if (challengesModel == null) {
+            LOGGER.error("Couldn't retrieve repeatable challenges. Aborting.");
+            return;
+        }
+
         ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         Resource challenge;
         Calendar registrationCutoffDate;
@@ -903,6 +1000,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // publication dates
         Model challengesModel = storage.sendConstructQuery(
                 SparqlQueries.getChallengePublishInfoQuery(null, Constants.CHALLENGE_DEFINITION_GRAPH_URI));
+        if (challengesModel == null) {
+            LOGGER.error("Couldn't retrieve challenges to publish. Aborting.");
+            return;
+        }
         ResIterator challengeIterator = challengesModel.listResourcesWithProperty(RDF.type, HOBBIT.Challenge);
         Resource challenge;
         Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
@@ -1018,7 +1119,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
             String serializedBenchParams, String challengUri, String challengTaskUri, Calendar executionDate) {
         String experimentId = generateExperimentId();
-        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId, benchmarkUri, systemUri, userName);
+        LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId,
+                benchmarkUri, systemUri, userName);
         queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
                 challengUri, challengTaskUri, executionDate));
         return experimentId;
@@ -1109,7 +1211,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     public String rabbitMQHostName() {
-        return rabbitMQHostName;
+        return rabbitMQExperimentsHostName;
     }
 
     ///// There are some methods that shouldn't be used by the controller and
@@ -1149,5 +1251,27 @@ public class PlatformController extends AbstractCommandReceivingComponent
     @Deprecated
     protected void sendToCmdQueue(byte command, byte data[], BasicProperties props) throws IOException {
         sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_PLATFORM_COMPONENTS, command, data, props);
+    }
+
+    private static String readVersion() {
+        String version = "UNKNOWN";
+        String versionKey = "org.hobbit.controller.PlatformController.version";
+        InputStream is = null;
+        try {
+            is = PlatformController.class.getResourceAsStream("/hobbit.version");
+            Properties versionProps = new Properties();
+            versionProps.load(is);
+            if (versionProps.containsKey(versionKey)) {
+                version = versionProps.getProperty(versionKey);
+            } else {
+                LOGGER.error("The loaded version file does not contain the version property. Returning default value.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Couldn't get version file. Returning default value.", e);
+        } finally {
+            IOUtils.closeQuietly(is);
+        }
+        LOGGER.info("Platform has version {}", version);
+        return version;
     }
 }

@@ -18,8 +18,13 @@ package de.usu.research.hobbit.gui.rabbitmq;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 import org.apache.jena.datatypes.DatatypeFormatException;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
@@ -27,8 +32,11 @@ import org.apache.jena.rdf.model.Literal;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Seq;
+import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.sparql.vocabulary.FOAF;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
@@ -61,6 +69,11 @@ public class RdfModelCreationHelper {
     public static final String KPI_SEQ_APPENDIX = "_KPIs";
 
     public static final TimeZone DEFAULT_TIME_ZONE = TimeZone.getTimeZone("GMT");
+
+    private static final Set<String> CHALLENGE_MODEL_PREDICATES = new HashSet<String>(
+            Arrays.asList(RDF.type.toString(), RDFS.label.toString(), RDFS.comment.toString(), FOAF.homepage.toString(),
+                    HOBBIT.organizer.toString(), HOBBIT.executionDate.toString(), HOBBIT.publicationDate.toString(),
+                    HOBBIT.visible.toString(), HOBBIT.closed.toString()));
 
     /**
      * Creates a new RDF model with some predefined prefixes.
@@ -111,7 +124,7 @@ public class RdfModelCreationHelper {
         if (challenge.getHomepage() != null) {
             String challengeHomepage = challenge.getHomepage();
             // If the homepage does not start with http:// or https://
-            if((!challengeHomepage.startsWith("http://")) && (!challengeHomepage.startsWith("https://"))) {
+            if ((!challengeHomepage.startsWith("http://")) && (!challengeHomepage.startsWith("https://"))) {
                 challengeHomepage = "http://" + challengeHomepage;
             }
             try {
@@ -377,5 +390,40 @@ public class RdfModelCreationHelper {
         // XSDDatatype.XSDdateTime);
         String str = date.format(DateTimeFormatter.ISO_DATE_TIME);
         return model.createTypedLiteral(XSDDatatype.XSDdateTime.parseValidated(str), XSDDatatype.XSDdateTime);
+    }
+
+    /**
+     * This method removes all triples from the given model which can not be
+     * represented as bean. It is necessary to do that before comparing two RDF
+     * models with each other if one of the has been created from a challenge bean
+     * using {@link #addChallenge(ChallengeBean, Model)}.
+     * 
+     * @param model
+     */
+    public static void reduceModelToChallenge(Model model, Resource challenge) {
+        // remove all statements that have the challenge as subject but not one of the
+        // allowed predicates
+        model.remove(model.listStatements(challenge, null, (RDFNode) null).toList().stream()
+                .filter(s -> !CHALLENGE_MODEL_PREDICATES.contains(s.getPredicate().getURI()))
+                .collect(Collectors.toList()));
+        // Go through all tasks
+        ResIterator taskIterator = model.listSubjectsWithProperty(HOBBIT.isTaskOf, challenge);
+        Resource task;
+        List<Statement> stmtsToRemove = new ArrayList<Statement>();
+        while (taskIterator.hasNext()) {
+            task = taskIterator.next();
+            // XXX TEMPORARILY: remove all KPISeq information
+            List<Statement> temp = model.listStatements(task, HOBBIT.rankingKPIs, (RDFNode) null).toList();
+            stmtsToRemove.addAll(temp);
+            for (Statement s : temp) {
+                if (s.getObject().isResource()) {
+                    stmtsToRemove
+                            .addAll(model.listStatements(s.getObject().asResource(), null, (RDFNode) null).toList());
+                }
+            }
+            // Remove all registration information since they are handled by a different method
+            stmtsToRemove.addAll(model.listStatements(task, HOBBIT.involvesSystemInstance, (RDFNode) null).toList());
+        }
+        model.remove(stmtsToRemove);
     }
 }

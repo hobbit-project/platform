@@ -509,8 +509,10 @@ public class ExperimentStatus implements Closeable {
      * @param imageManager
      *            used to get RDF models for the benchmark and the system of this
      *            experiment
+     * @param endTimeStamp
+     *            point in time at which the experiment ended
      */
-    public void addMetaDataToResult(ImageManager imageManager) {
+    public void addMetaDataToResult(ImageManager imageManager, long endTimeStamp) {
         try {
             modelMutex.acquire();
         } catch (InterruptedException e) {
@@ -538,6 +540,10 @@ public class ExperimentStatus implements Closeable {
                     resultModel.add(systemModel);
                 }
             }
+            // Add end date
+            Calendar endDate = Calendar.getInstance();
+            endDate.setTimeInMillis(endTimeStamp);
+            resultModel.add(resultModel.getResource(experimentUri), HOBBIT.endTime, resultModel.createTypedLiteral(endDate));
 
             // Remove statements that shouldn't be part of the result model.
             List<Statement> removableStatements = resultModel.listStatements(null, HOBBIT.imageName, (RDFNode) null)
