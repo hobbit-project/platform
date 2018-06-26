@@ -257,6 +257,7 @@ public class ContainerManagerImpl implements ContainerManager {
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         Integer totalNodes;
         try {
+            // TODO: use ClusterManager
             totalNodes = dockerClient.listNodes().size();
         } catch (Exception e) {
             LOGGER.error("Couldn't retrieve list of swarm nodes!");
@@ -373,9 +374,13 @@ public class ContainerManagerImpl implements ContainerManager {
         // benchmark (in case of the benchmark controller) and the container has
         // type "system"
         Integer numberOfSwarmNodes = Integer.MAX_VALUE;
+        Integer numberOfSystemSwarmNodes = Integer.MAX_VALUE;
+        Integer numberOfBenchmarkSwarmNodes = Integer.MAX_VALUE;
         try {
             ClusterManager clusterManager = new ClusterManagerImpl();
             numberOfSwarmNodes = clusterManager.getNumberOfNodes();
+            numberOfSystemSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
+            numberOfBenchmarkSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=benchmark");
         } catch (DockerCertificateException e) {
             LOGGER.error("Could not initialize Cluster Manager, will use container placement constraints by default. ",
                     e);
@@ -415,6 +420,8 @@ public class ContainerManagerImpl implements ContainerManager {
 
         // add hardware information to environment
         defaultEnv.add(Constants.HARDWARE_NUMBER_OF_NODES_KEY + "=" + numberOfSwarmNodes);
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY + "=" + numberOfSystemSwarmNodes);
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY + "=" + numberOfBenchmarkSwarmNodes);
 
         // create env vars to pass
         if (env != null) {

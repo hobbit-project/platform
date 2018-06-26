@@ -67,7 +67,7 @@
             <dependency>
                 <groupId>org.hobbit</groupId>
                 <artifactId>core</artifactId>
-                <version>1.0.10-SNAPSHOT</version>
+                <version>1.0.12-SNAPSHOT</version>
             </dependency>
             <!-- RabbitMQ -->
             <dependency>

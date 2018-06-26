@@ -26,6 +26,15 @@ public interface ClusterManager {
     public Integer getNumberOfNodes() throws DockerException, InterruptedException;
 
     /**
+     * Get number of nodes in the cluster
+     *
+     * @param label
+     *            the label to filter nodes
+     * @return number of nodes with the specified label
+     */
+    public Integer getNumberOfNodes(String label) throws DockerException, InterruptedException;
+
+    /**
      * Get the health status of the cluster
      *
      * @return boolean (is cluster healthy?)

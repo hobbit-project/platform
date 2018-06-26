@@ -34,6 +34,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
@@ -347,10 +348,9 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
                 Integer.valueOf(2), exitCode);
     }
 
-    @Test(timeout=30000)
-    public void environmentNodesInformation() throws Exception {
+    private Integer getContainerEnvValue(String envVariable) throws DockerException, InterruptedException {
         String id = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
-                new String[]{"sh", "-c", "exit $" + Constants.HARDWARE_NUMBER_OF_NODES_KEY});
+                new String[]{"sh", "-c", "exit $" + envVariable});
         assertNotNull(id);
         tasks.add(id);
 
@@ -367,8 +367,32 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
                 exitCode = 0;
             }
         }
-        // starting with 125 there are special docker run / chroot exit codes
-        assertTrue("Amount of nodes passed in environment (got " + exitCode + ")",
-            exitCode > 0 && exitCode < 125);
+
+        assertTrue("Exit code should be < 125 (special `docker run` and `chroot` exit codes)", exitCode < 125);
+        return exitCode;
+    }
+
+    @Test(timeout=60000)
+    public void environmentNodesInformation() throws Exception {
+        Integer nodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_NODES_KEY);
+        Integer systemNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY);
+        Integer benchmarkNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY);
+
+        assertTrue("Total nodes should be > 0 (got " + nodes + ")",
+            nodes > 0);
+
+        assertTrue("System nodes should be <= total nodes (got " + systemNodes + " <= " + nodes + ")",
+            systemNodes <= nodes);
+
+        assertTrue("Benchmark nodes should be <= total nodes (got " + benchmarkNodes + " <= " + nodes + ")",
+            benchmarkNodes <= nodes);
+
+        if (nodes > 1) {
+            assertTrue("System nodes should be > 0 (got " + systemNodes + ")",
+                systemNodes > 0);
+
+            assertTrue("Benchmark nodes should be > 0 (got " + benchmarkNodes + ")",
+                benchmarkNodes > 0);
+        }
     }
 }
