@@ -8,9 +8,9 @@ services:
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
       DEPLOY_ENV: "testing"
-      #GITLAB_USER: ""
-      #GITLAB_EMAIL: ""
-      #GITLAB_TOKEN: ""
+      GITLAB_USER: "${GITLAB_USER}"
+      GITLAB_EMAIL: "${GITLAB_EMAIL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
       LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
     volumes:
@@ -35,7 +35,7 @@ services:
 
   # Keycloak user management (used by the GUI)
   keycloak:
-    image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak:1.0.0
+    image: hobbitproject/hobbit-keycloak:latest
     ports:
       - "8181:8080"
     networks:
@@ -75,6 +75,7 @@ services:
   vos:
     image: openlink/virtuoso_opensource:v07.20.3217
     hostname: vos
+    container_name: vos
     stop_signal: SIGINT
     stop_grace_period: 2m
     volumes:
