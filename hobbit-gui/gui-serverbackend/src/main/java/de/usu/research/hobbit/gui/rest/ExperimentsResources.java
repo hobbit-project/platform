@@ -93,24 +93,30 @@ public class ExperimentsResources {
                     // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
+                        LOGGER.trace("Got result for {} from the public graph.", id);
                         results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                        LOGGER.trace("Added result bean of {} to the list of results.", id);
                     } else {
+                        LOGGER.trace("Got result for {} from the public graph. Trying the private graph.", id);
                         // if public experiment is not found
                         // try requesting model from private graph
                         query = SparqlQueries.getExperimentGraphQuery(experimentUri,
                                 Constants.PRIVATE_RESULT_GRAPH_URI);
                         model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                         if (model != null && model.size() > 0) {
+                            LOGGER.trace("Got result for {} from the private graph.", id);
                             // get current experiment system
                             Resource subj = model.getResource(experimentUri);
                             Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
                             if (system != null) {
+                                LOGGER.trace("Check visibility of system {}.", system.getURI());
                                 String systemURI = system.getURI();
                                 userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model,
                                             model.getResource(experimentUri)));
+                                    LOGGER.trace("Added result bean of {} to the list of results.", id);
                                 }
                             }
                         } else {
