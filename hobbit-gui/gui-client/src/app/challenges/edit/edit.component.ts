@@ -140,7 +140,7 @@ export class EditComponent implements OnInit {
 
   closeChallenge() {
     this.confirmationService.confirm({
-      message: 'Closing a challenge cannot be rolled back! Are you sure?',
+      message: 'Closing a challenge cannot be rolled back! If you haven\'t set up the execution date, challenge will be executed immediately. Are you sure?',
       header: 'Close Confirmation',
       icon: 'fa fa-archive',
       accept: () => {
