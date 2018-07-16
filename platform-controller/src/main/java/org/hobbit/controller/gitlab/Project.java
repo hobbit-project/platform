@@ -43,6 +43,7 @@ public class Project {
     /**
      * Name of the owner of the project in which the files have been found.
      */
+    @Deprecated
     public String user;
     /**
      * Name of the owner of this project
@@ -98,6 +99,7 @@ public class Project {
     /**
      * @return the user
      */
+    @Deprecated
     public String getUser() {
         return user;
     }
@@ -105,6 +107,7 @@ public class Project {
     /**
      * @param user the user to set
      */
+    @Deprecated
     public void setUser(String user) {
         this.user = user;
     }
