@@ -272,11 +272,18 @@ public class GitlabControllerImpl implements GitlabController {
         }
         if ((benchmarkModel != null) || (systemModel != null)) {
             // get user
-            String user = project.getOwner().getEmail();
-            Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
-                    project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
-            return p;
+            GitlabUser owner = project.getOwner();
+            if(owner != null) {
+                String user = project.getOwner().getEmail();
+                Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
+                        project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
+                return p;
+            } else {
+                LOGGER.warn("The project {} has no owner.", project.getNameWithNamespace());
+                return null;
+            }
         } else {
+            // There is no data which is interesting for us. We can ignore this project.
             return null;
         }
     }
