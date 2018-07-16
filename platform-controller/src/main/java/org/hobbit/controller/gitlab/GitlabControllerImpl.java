@@ -274,7 +274,7 @@ public class GitlabControllerImpl implements GitlabController {
             // get user
             GitlabUser owner = project.getOwner();
             if(owner != null) {
-                String user = project.getOwner().getEmail();
+                String user = owner.getEmail();
                 Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
                         project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
                 return p;
