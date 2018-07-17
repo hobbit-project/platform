@@ -6,6 +6,7 @@ services:
       - hobbit-core
     environment:
       HOBBIT_RABBIT_HOST: "rabbit"
+      HOBBIT_RABBIT_EXPERIMENTS_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
       DEPLOY_ENV: "testing"
       GITLAB_USER: "${GITLAB_USER}"
