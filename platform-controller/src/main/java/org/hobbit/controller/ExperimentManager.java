@@ -449,6 +449,7 @@ public class ExperimentManager implements Closeable {
             if (graphUri.equals(Constants.PUBLIC_RESULT_GRAPH_URI)) {
                 try {
                     controller.analyzeExperiment(experimentStatus.experimentUri);
+                    LOGGER.info("Sent {} to the analysis component.", experimentStatus.experimentUri);
                 } catch (IOException e) {
                     LOGGER.error("Could not send task \"{}\" to AnalyseQueue.",
                             experimentStatus.getConfig().challengeTaskUri);

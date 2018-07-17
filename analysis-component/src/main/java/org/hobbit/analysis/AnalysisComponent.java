@@ -171,11 +171,11 @@ public class AnalysisComponent extends AbstractComponent {
                             updatedModel = model.getUpdatedModel();
                         }
                         catch (Exception e){
-                            LOGGER.error("Error in analyzing data. Have to abort analysis...");
+                            LOGGER.error("Error in analyzing data. Have to abort analysis...", e);
                         }
                     }
                 } catch (Exception e) {
-                    LOGGER.error("Error in pre-processing : " + e.toString());
+                    LOGGER.error("Error in pre-processing. ", e);
                 }
                 if (updatedModel != null) {
                     try {
@@ -188,7 +188,7 @@ public class AnalysisComponent extends AbstractComponent {
                         LOGGER.info("Sending the enhanced model to storage...");
                         storage.sendUpdateQuery(sparqlUpdateQuery);
                     } catch (Exception e) {
-                        LOGGER.error("Error when updating model: " + e.toString());
+                        LOGGER.error("Error when updating model.", e);
                     }
                 } else {
                     LOGGER.error("Model did not update properly! No result model from the analysis.");
@@ -298,7 +298,7 @@ public class AnalysisComponent extends AbstractComponent {
                 clusterLabel = clusterLabels[clustersSorted.indexOf(clusterNumber)];
                 this.belongsToCluster = clusterLabel;
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error while assigning cluster to instance.", e);
             }
             return clusterNumber;
         }
@@ -313,7 +313,7 @@ public class AnalysisComponent extends AbstractComponent {
                 this.clusterModel.setNumClusters(3);
                 this.clusterModel.setDisplayStdDevs(true);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error while setting cluster model.", e);
             }
             //set distance function
             //model.setDistanceFunction(new weka.core.ManhattanDistance());
@@ -339,7 +339,7 @@ public class AnalysisComponent extends AbstractComponent {
                 clustersSorted = sortedClusters;
             }
             catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error while building clusters.", e);
             }
 
         }
@@ -380,7 +380,7 @@ public class AnalysisComponent extends AbstractComponent {
                 this.importantFeatures = namesString;
             }
             catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error during feature analysis.", e);
             }
 
         }
@@ -399,7 +399,7 @@ public class AnalysisComponent extends AbstractComponent {
                 //test an instance
                 this.modelPrediction = regressionModel.classifyInstance(this.predictionDataset.get(0));
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.error("Error while predicting performance.", e);
             }
 
 
@@ -833,7 +833,7 @@ public class AnalysisComponent extends AbstractComponent {
                 queryResultModel = this.storage.sendConstructQuery(query);
             }
             catch (Exception e){
-                LOGGER.error("Error when sending sparql query to storage : " + e);
+                LOGGER.error("Error when sending sparql query to storage.", e);
             }
 
             return queryResultModel;
