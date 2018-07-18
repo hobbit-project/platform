@@ -13,13 +13,18 @@ remove-gui-service:
 start:
 	docker stack deploy --compose-file docker-compose.yml platform
 
-start-dev: start-dev-platform start-dev-elk
+start-dev: start-rabbitmq-cluster start-dev-platform
+
+start-dev-elk: start-rabbitmq-cluster start-dev-platform start-dev-elk
+
+start-rabbitmq-cluster:
+	cd rabbitmq-cluster && make start
 
 start-dev-platform:
-	docker stack deploy -c docker-compose-dev.yml platform
+	docker-compose -f docker-compose-dev.yml up -d
 
 start-dev-elk:
-	docker stack deploy -c docker-compose-elk.yml elk
+	docker-compose -f docker-compose-elk.yml up -d
 
 build: build-java build-dev-images
 
