@@ -53,15 +53,15 @@ services:
       - HOBBIT_RABBIT_HOST=rabbit
 
   # message bus
-  #rabbit:
-  #  image: rabbitmq:management
-  #  networks:
-  #    - hobbit
-  #    - hobbit-core
-  #  ports:
-  #    - "8081:15672"
-  #    # Forwarding the port for testing
-  #    - "5672:5672"
+  rabbit:
+    image: rabbitmq:management
+    networks:
+      - hobbit
+      - hobbit-core
+    ports:
+      - "8081:15672"
+      # Forwarding the port for testing
+      - "5672:5672"
 
   # DB for controller
   redis:
