@@ -1,11 +1,10 @@
-import { MessageService } from 'primeng/components/common/messageservice';
-import { plainToClass } from 'class-transformer';
-import { System, Benchmark, BenchmarkOverview } from './../model';
-import { Router } from '@angular/router';
-import { BackendService } from './../backend.service';
-import { Component, OnInit, ViewChild, TemplateRef } from '@angular/core';
-import { FormGroup } from '@angular/forms';
-import { BsModalService, BsModalRef } from 'ngx-bootstrap/modal';
+import {MessageService} from 'primeng/components/common/messageservice';
+import {Benchmark, BenchmarkOverview, System} from '../model';
+import {Router} from '@angular/router';
+import {BackendService} from '../backend.service';
+import {Component, OnInit, ViewChild} from '@angular/core';
+import {FormGroup} from '@angular/forms';
+import {BsModalService} from 'ngx-bootstrap/modal';
 
 @Component({
   selector: 'app-benchmark',
@@ -49,6 +48,7 @@ export class BenchmarkComponent implements OnInit {
 
   onChangeBenchmark(event) {
     this.configFormGroup = new FormGroup({});
+    this.selectedSystem = null;
 
     const selectedBenchmarkOverview = this.benchmarks.find(b => b.id === event);
     if (selectedBenchmarkOverview) {
@@ -71,14 +71,6 @@ export class BenchmarkComponent implements OnInit {
       messages.unshift({ severity: 'warn', summary: 'Invalid Systems', detail: '' });
     this.messageService.addAll(messages);
     return systems.filter(s => s.errorMessage === undefined && !s.errorMessage);
-  }
-
-  onChangeSystem(event) {
-    if (this.selectedBenchmark && event) {
-      this.selectedSystem = this.selectedBenchmark.systems.find(x => x.id === event);
-    } else {
-      this.selectedSystem = undefined;
-    }
   }
 
   onSubmitConfig(event) {
