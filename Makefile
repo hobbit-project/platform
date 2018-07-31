@@ -62,9 +62,9 @@ set-keycloak-permissions:
 	@chmod --changes 666 config/keycloak/keycloak.h2.db
 
 setup-virtuoso:
-	docker-compose up -d virtuoso
+	docker-compose up -d vos
 	./run-storage-init.sh; true
-	docker-compose stop virtuoso
+	docker-compose stop vos
 	docker rm vos
 
 install: create-networks set-keycloak-permissions setup-virtuoso

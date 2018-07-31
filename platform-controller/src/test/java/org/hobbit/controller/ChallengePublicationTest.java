@@ -53,7 +53,7 @@ public class ChallengePublicationTest {
 
     @Test
     @SuppressWarnings("resource")
-    public void test() {
+    public void testChallengePublication() {
         // Load data
         DummyStorage storage = new DummyStorage("org/hobbit/controller/UnpublishedChallengeConfigGraph.ttl",
                 "org/hobbit/controller/UnpublishedChallengePrivateGraph.ttl", null);
@@ -72,6 +72,20 @@ public class ChallengePublicationTest {
                 storage.getDataset().getNamedModel(Constants.CHALLENGE_DEFINITION_GRAPH_URI));
         compareModels(expectedStorage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI),
                 storage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI));
+    }
+
+    @Test
+    public void testChallengePublicationWhenStorageFails() {
+        FailingStorage storage = new FailingStorage("org/hobbit/controller/UnpublishedChallengeConfigGraph.ttl",
+                "org/hobbit/controller/UnpublishedChallengePrivateGraph.ttl", null);
+        ExperimentQueue queue = new DummyQueue();
+        ExperimentAnalyzer analyzer = new DummyAnalyzer();
+
+        try {
+            PlatformController.republishChallenges(storage, queue, analyzer);
+        } catch (NullPointerException e) {
+            Assert.fail("Should not throw " + e);
+        }
     }
 
     @Test
@@ -108,6 +122,23 @@ public class ChallengePublicationTest {
                 storage.getDataset().getNamedModel(Constants.PRIVATE_RESULT_GRAPH_URI));
     }
 
+    @Test
+    public void testRepeatableChallengeWhenStorageFails() {
+        DummyStorage storage = new FailingStorage("org/hobbit/controller/InitialRepeatableChallengeConfigGraph.ttl",
+                "org/hobbit/controller/InitialRepeatableChallengePrivateGraph.ttl", null);
+
+        Calendar now = Calendar.getInstance(Constants.DEFAULT_TIME_ZONE);
+        now.set(2016, Calendar.DECEMBER, 24, 12, 0, 0);
+        now.set(Calendar.MILLISECOND, 0);
+
+        try {
+            PlatformController.scheduleDateOfNextExecution(storage, "http://example.org/Challenge1", now);
+            PlatformController.scheduleDateOfNextExecution(storage, "http://example.org/Challenge1", null);
+        } catch (NullPointerException e) {
+            Assert.fail("Should not throw " + e);
+        }
+    }
+
     protected static void compareModels(Model expectedResult, Model result) {
         String expectedModelString = expectedResult.toString();
         String resultModelString = result.toString();
@@ -123,7 +154,7 @@ public class ChallengePublicationTest {
                 statements.size() == 0);
     }
 
-    protected static final class DummyStorage extends StorageServiceClient {
+    protected static class DummyStorage extends StorageServiceClient {
 
         private static final Logger LOGGER = LoggerFactory.getLogger(DummyStorage.class);
 
@@ -279,6 +310,22 @@ public class ChallengePublicationTest {
 
         public List<String> getUris() {
             return uris;
+        }
+    }
+
+    protected static class FailingStorage extends DummyStorage {
+        public FailingStorage(String configGraphFile, String privateGraphFile, String publicGraphFile) {
+            super(configGraphFile, privateGraphFile, publicGraphFile);
+        }
+
+        @Override
+        public Model sendConstructQuery(String query) {
+            return null;
+        }
+
+        @Override
+        public ResultSet sendSelectQuery(String query) {
+            return null;
         }
     }
 

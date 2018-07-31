@@ -111,7 +111,7 @@ public class GitlabControllerImpl implements GitlabController {
         projects = new ArrayList<>();
         readyRunnable = new ArrayList<>();
 
-        if(useCache) {
+        if (useCache) {
             visibleProjectsCache = CacheBuilder.newBuilder()
                     .expireAfterAccess(VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS, TimeUnit.SECONDS)
                     .maximumSize(MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE).build(new CacheLoader<String, Set<String>>() {
@@ -125,7 +125,7 @@ public class GitlabControllerImpl implements GitlabController {
         }
 
         // start fetching projects
-        if(startFetchingProjects) {
+        if (startFetchingProjects) {
             startFetchingProjects();
         }
     }
@@ -272,11 +272,19 @@ public class GitlabControllerImpl implements GitlabController {
         }
         if ((benchmarkModel != null) || (systemModel != null)) {
             // get user
-            String user = project.getOwner().getEmail();
+            String user = null;
+            GitlabUser owner = project.getOwner();
+            if (owner != null) {
+                user = owner.getEmail();
+            } else {
+                String warning = "The project " + project.getNameWithNamespace() + " has no owner.";
+                handleErrorMsg(warning, null, false);
+            }
             Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
                     project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
             return p;
         } else {
+            // There is no data which is interesting for us. We can ignore this project.
             return null;
         }
     }
@@ -305,20 +313,44 @@ public class GitlabControllerImpl implements GitlabController {
         } catch (Exception e) {
             String parsingError = "Couldn't parse " + modelType + " model from " + projectName
                     + ". It won't be available. " + e.getMessage();
-            if (parsingErrors.contains(parsingError)) {
-                LOGGER.info(parsingError + " (Error already reported before)");
-            } else {
-                LOGGER.info("Couldn't parse " + modelType + " model from " + projectName + ". It won't be available.",
-                        e);
-                sortedParsingErrors.addLast(parsingError);
-                parsingErrors.add(parsingError);
-                // If the cached errors become to long, remove the oldest
-                if (sortedParsingErrors.size() > MAX_PARSING_ERRORS) {
-                    parsingErrors.remove(sortedParsingErrors.pop());
-                }
-            }
+            handleErrorMsg(parsingError, e, true);
         }
         return null;
+    }
+
+    /**
+     * Method for handling errors occurring when crawling gitlab (mainly parsing
+     * errors). Since the class is crawling Gitlab regularly, logging errors every
+     * time is not necessary.
+     * 
+     * @param message
+     *            the error message that should be logged
+     * @param e
+     *            the exception that should be logged (only if the error hasn't been
+     *            logged before). Can be {@code null}.
+     * @param logMsgIfAlreadyKnown
+     *            if {@code true} the message will be logged even if it has been
+     *            logged before. If the flag is set to {@code false} redundant
+     *            messages will be ignored.
+     */
+    protected void handleErrorMsg(String message, Exception e, boolean logMsgIfAlreadyKnown) {
+        if (parsingErrors.contains(message)) {
+            if (logMsgIfAlreadyKnown) {
+                LOGGER.info(message + " (Error already reported before)");
+            }
+        } else {
+            if(e != null) {
+                LOGGER.info(message, e);
+            } else {
+                LOGGER.info(message);
+            }
+            sortedParsingErrors.addLast(message);
+            parsingErrors.add(message);
+            // If the cached errors become to long, remove the oldest
+            if (sortedParsingErrors.size() > MAX_PARSING_ERRORS) {
+                parsingErrors.remove(sortedParsingErrors.pop());
+            }
+        }
     }
 
     /**
@@ -381,7 +413,7 @@ public class GitlabControllerImpl implements GitlabController {
     public List<Project> getProjectsVisibleForUser(String mail) {
         Set<String> projectNames;
         try {
-            if(visibleProjectsCache != null) {
+            if (visibleProjectsCache != null) {
                 projectNames = visibleProjectsCache.get(mail);
             } else {
                 projectNames = getProjectsOfUser(mail);

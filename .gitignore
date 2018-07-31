@@ -12,3 +12,4 @@ dependency-reduced-pom.xml
 docker-compose.override.yml
 *.iml
 .idea
+set-env.sh
