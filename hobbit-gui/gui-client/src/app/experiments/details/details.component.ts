@@ -146,14 +146,22 @@ export class DetailsComponent implements OnInit, OnChanges {
     ];
   }
 
-  download(path: string) {
-    this.bs.getLogFile(path).subscribe(log => {
+  download(path: string, format: string) {
+    this.bs.getLogFile(path, format).subscribe(log => {
       const link = document.createElement('a');
-      link.download = 'log.txt';
-      const blob = new Blob([log], { type: 'text/plain' });
+      link.download = `log.${format.toLowerCase()}`;
+      const blob = new Blob([log], { type: this.getMimeType(format) });
       link.href = window.URL.createObjectURL(blob);
       link.click();
     });
+  }
+
+  private getMimeType(format: string): string {
+    if (format === 'JSON')
+      return 'application/json';
+    if (format === 'CSV')
+      return 'text/comma-separated-values';
+    return 'text/plain';
   }
 
 }
