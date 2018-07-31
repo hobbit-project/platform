@@ -25,6 +25,8 @@ export class ConfigComponent implements OnInit, OnChanges {
   public config: ConfigParamDefinition[] = [];
   private configMap: { [s: string]: ConfigParamDefinition } = {};
 
+  private previousBenchmark: Benchmark = null;
+
   constructor(private formBuilder: FormBuilder) { }
 
   ngOnInit() {
@@ -32,6 +34,10 @@ export class ConfigComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
+    if (this.previousBenchmark === this.benchmark) {
+      return;
+    }
+
     this.loaded = false;
     const group: { [s: string]: FormControl } = {};
     this.config = [];
@@ -56,6 +62,7 @@ export class ConfigComponent implements OnInit, OnChanges {
       this.configMap[config.id] = config;
     }
     this.formGroup = new FormGroup(group);
+    this.previousBenchmark = this.benchmark;
     this.loaded = true;
   }
 
