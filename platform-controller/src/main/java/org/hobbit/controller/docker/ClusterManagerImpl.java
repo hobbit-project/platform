@@ -10,9 +10,6 @@ import com.spotify.docker.client.messages.Info;
 import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
 import com.spotify.docker.client.messages.swarm.SwarmSpec;
 import com.spotify.docker.client.messages.swarm.Version;
-import org.hobbit.controller.ExperimentManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
@@ -27,7 +24,7 @@ public class ClusterManagerImpl implements ClusterManager {
      * Docker client instance
      */
     private DockerClient dockerClient;
-    private Integer expectedNumberOfNodes = 0;
+    private long expectedNumberOfNodes = 0;
     private String SWARM_NODE_NUMBER = null;
 
     public ClusterManagerImpl() throws DockerCertificateException {
@@ -44,13 +41,12 @@ public class ClusterManagerImpl implements ClusterManager {
         return dockerClient.info();
     }
 
-    public Integer getNumberOfNodes() throws DockerException, InterruptedException {
-        final Info info = getClusterInfo();
-        return info.swarm().nodes();
+    public long getNumberOfNodes() throws DockerException, InterruptedException {
+        return dockerClient.listNodes().stream().filter(n->n.status().state().equalsIgnoreCase("ready")).count();
     }
 
     public boolean isClusterHealthy() throws DockerException, InterruptedException {
-        Integer numberOfNodes = getNumberOfNodes();
+        long numberOfNodes = getNumberOfNodes();
         if(numberOfNodes >= expectedNumberOfNodes) {
             return true;
         }
@@ -58,7 +54,7 @@ public class ClusterManagerImpl implements ClusterManager {
         return false;
     }
 
-    public Integer getExpectedNumberOfNodes() {
+    public long getExpectedNumberOfNodes() {
         return expectedNumberOfNodes;
     }
 

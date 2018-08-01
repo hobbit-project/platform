@@ -63,7 +63,7 @@ public class GitlabControllerImpl implements GitlabController {
 
     // Gitlab URL and access token
     private static final String GITLAB_URL = System.getProperty(GITLAB_URL_KEY, "https://git.project-hobbit.eu/");
-    private static final String GITLAB_TOKEN = System.getenv(GITLAB_TOKEN_KEY);
+    private static final String GITLAB_TOKEN =  System.getenv(GITLAB_TOKEN_KEY);
     private static final String GITLAB_DEFAULT_GUEST_TOKEN = "fykySfxWaUyCS1xxTSVy";
 
     // HobbitConfig filenames
@@ -290,18 +290,19 @@ public class GitlabControllerImpl implements GitlabController {
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {
-        GitlabControllerImpl c = new GitlabControllerImpl();
-        Thread.sleep(3000);
+        GitlabControllerImpl c = new GitlabControllerImpl(System.getenv(GITLAB_TOKEN), true, true);
+        Thread.sleep(40000);
         List<Project> projects = c.getAllProjects();
+        c.stopFetchingProjects();
         for (Project p : projects) {
-            System.out.println(p);
+            System.out.println(p.getName());
         }
-        LOGGER.info("Request Systems for user gerbil@informatik.uni-leipzig.de");
-        Set<String> userProjects = c.getProjectsOfUser("gerbil@informatik.uni-leipzig.de");
-        LOGGER.info("Found {} projects", userProjects.size());
-        for (String p : userProjects) {
-            System.out.println(p);
-        }
+//        LOGGER.info("Request Systems for user gerbil@informatik.uni-leipzig.de");
+//        Set<String> userProjects = c.getProjectsOfUser("gerbil@informatik.uni-leipzig.de");
+//        LOGGER.info("Found {} projects", userProjects.size());
+//        for (String p : userProjects) {
+//            System.out.println(p);
+//        }
     }
 
     @Override

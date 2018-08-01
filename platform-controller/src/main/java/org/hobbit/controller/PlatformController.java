@@ -57,8 +57,6 @@ import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.front.FrontEndApiHandler;
-import org.hobbit.controller.health.ClusterHealthChecker;
-import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -146,11 +144,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * The queue containing experiments that are waiting for their execution.
      */
     protected ExperimentQueue queue;
-    /**
-     * Health checker used to make sure that the cluster has the preconfigured
-     * hardware.
-     */
-    protected ClusterHealthChecker healthChecker = new ClusterHealthCheckerImpl();
     /**
      * A simple mutex that is used to wait for a termination signal for the
      * controller.

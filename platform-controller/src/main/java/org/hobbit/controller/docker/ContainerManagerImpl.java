@@ -41,7 +41,6 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.RegistryAuth;
@@ -372,7 +371,7 @@ public class ContainerManagerImpl implements ContainerManager {
         // would like to have OR if there is no parent or the parent is a
         // benchmark (in case of the benchmark controller) and the container has
         // type "system"
-        Integer numberOfSwarmNodes = Integer.MAX_VALUE;
+        long numberOfSwarmNodes = Integer.MAX_VALUE;
         try {
             ClusterManager clusterManager = new ClusterManagerImpl();
             numberOfSwarmNodes = clusterManager.getNumberOfNodes();
