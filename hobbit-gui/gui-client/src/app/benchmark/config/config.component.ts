@@ -43,7 +43,7 @@ export class ConfigComponent implements OnInit, OnChanges {
     this.config = [];
     this.configMap = {};
 
-    if (this.benchmark.configurationParams != undefined && this.benchmark.configurationParams != null) {
+    if (this.benchmark.configurationParams !== undefined && this.benchmark.configurationParams !== null) {
       for (let i = 0; i < this.benchmark.configurationParams.length; i++) {
         const config = this.benchmark.configurationParams[i];
         const validators = [];
