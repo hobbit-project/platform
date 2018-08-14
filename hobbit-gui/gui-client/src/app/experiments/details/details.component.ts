@@ -104,10 +104,10 @@ export class DetailsComponent implements OnInit, OnChanges {
     }
 
     this.rows.push(this.buildRow('Logs', 'Benchmark Log', '', t => [
-      t.benchmarkLogAvailable ? 'benchmark/query?id=' + t.id : null, 'Download'
+      t.benchmarkLogAvailable ? [`benchmark/query?id=${t.id}`, `${t.id} benchmark log`] : null, 'Download'
     ]));
     this.rows.push(this.buildRow('Logs', 'System Log', '', t => [
-      t.systemLogAvailable ? 'system/query?id=' + t.id : null, 'Download'
+      t.systemLogAvailable ? [`system/query?id=${t.id}`, `${t.id} system log`] : null, 'Download'
     ]));
 
     this.rows.sort((a, b) => {
@@ -146,11 +146,12 @@ export class DetailsComponent implements OnInit, OnChanges {
     ];
   }
 
-  download(path: string, format: string) {
-    this.bs.getLogFile(path, format).subscribe(log => {
+  download(path: [string], format: string) {
+    this.bs.getLogFile(path[0], format).subscribe(log => {
+      const fileName = `${path[1]}.${format.toLowerCase()}`;
       const link = document.createElement('a');
       link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(log));
-      link.setAttribute('download', `log.${format.toLowerCase()}`);
+      link.setAttribute('download', fileName);
       link.style.display = 'none';
       document.body.appendChild(link);
 
