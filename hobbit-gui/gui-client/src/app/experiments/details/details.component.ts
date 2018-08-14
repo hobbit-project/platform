@@ -150,7 +150,7 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.bs.getLogFile(path, format).subscribe(log => {
       const link = document.createElement('a');
       link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(log));
-      link.setAttribute('download', `log.${format.toLowerCase()});
+      link.setAttribute('download', `log.${format.toLowerCase()}`);
       link.style.display = 'none';
       document.body.appendChild(link);
 
