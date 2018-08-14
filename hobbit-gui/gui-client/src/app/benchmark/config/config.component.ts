@@ -1,6 +1,6 @@
-import { FormGroup, FormControl, Validators, FormBuilder, AbstractControl } from '@angular/forms';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output } from '@angular/core';
+import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
 import { Benchmark, ConfigParamDefinition, ConfigParamRealisation, System } from './../../model';
-import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
 
 @Component({
   selector: 'app-benchmark-config',
@@ -25,6 +25,8 @@ export class ConfigComponent implements OnInit, OnChanges {
   public config: ConfigParamDefinition[] = [];
   private configMap: { [s: string]: ConfigParamDefinition } = {};
 
+  private previousBenchmark: Benchmark = null;
+
   constructor(private formBuilder: FormBuilder) { }
 
   ngOnInit() {
@@ -32,30 +34,37 @@ export class ConfigComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
+    if (this.previousBenchmark === this.benchmark) {
+      return;
+    }
+
     this.loaded = false;
     const group: { [s: string]: FormControl } = {};
     this.config = [];
     this.configMap = {};
 
-    for (let i = 0; i < this.benchmark.configurationParams.length; i++) {
-      const config = this.benchmark.configurationParams[i];
-      const validators = [];
-      if (config.required)
-        validators.push(Validators.required);
+    if (this.benchmark.configurationParams !== undefined && this.benchmark.configurationParams !== null) {
+      for (let i = 0; i < this.benchmark.configurationParams.length; i++) {
+        const config = this.benchmark.configurationParams[i];
+        const validators = [];
+        if (config.required)
+          validators.push(Validators.required);
 
-      let value = config.defaultValue;
-      if (this.benchmark.configurationParamValues) {
-        const currentValue = this.benchmark.configurationParamValues.find(c => c.id === config.id);
-        if (currentValue) {
-          value = currentValue.value;
+        let value = config.defaultValue;
+        if (this.benchmark.configurationParamValues) {
+          const currentValue = this.benchmark.configurationParamValues.find(c => c.id === config.id);
+          if (currentValue) {
+            value = currentValue.value;
+          }
         }
-      }
 
-      group[config.id] = this.formBuilder.control(value, validators);
-      this.config.push(config);
-      this.configMap[config.id] = config;
+        group[config.id] = this.formBuilder.control(value, validators);
+        this.config.push(config);
+        this.configMap[config.id] = config;
+      }
     }
     this.formGroup = new FormGroup(group);
+    this.previousBenchmark = this.benchmark;
     this.loaded = true;
   }
 

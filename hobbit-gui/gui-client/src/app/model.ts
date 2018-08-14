@@ -76,7 +76,7 @@ export class ConfigParam extends NamedEntity {
     }
 
     getInputType(): string {
-        if (this.isNumber())
+        if (this.isNumber() || this.isFloatingPointNumber())
             return 'number';
         if (this.isText())
             return 'text';

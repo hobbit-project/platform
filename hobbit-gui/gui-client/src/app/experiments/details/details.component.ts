@@ -1,6 +1,6 @@
 import { Router } from '@angular/router';
-import { BackendService } from './../../backend.service';
-import { ConfigParamRealisation, Experiment, NamedEntity } from './../../model';
+import { BackendService } from '../../backend.service';
+import { ConfigParamRealisation, Experiment, NamedEntity } from '../../model';
 import { Component, OnInit, Input, OnChanges } from '@angular/core';
 
 class TableRow {
@@ -149,10 +149,13 @@ export class DetailsComponent implements OnInit, OnChanges {
   download(path: string, format: string) {
     this.bs.getLogFile(path, format).subscribe(log => {
       const link = document.createElement('a');
-      link.download = `log.${format.toLowerCase()}`;
-      const blob = new Blob([log], { type: this.getMimeType(format) });
-      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(log));
+      link.setAttribute('download', `log.${format.toLowerCase()});
+      link.style.display = 'none';
+      document.body.appendChild(link);
+
       link.click();
+      document.body.removeChild(link);
     });
   }
 
