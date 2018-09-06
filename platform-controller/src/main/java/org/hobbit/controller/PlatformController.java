@@ -109,17 +109,38 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * The current version of the platform.
      */
     public static final String PLATFORM_VERSION = readVersion();
-
+    /**
+     * Type of deployment.
+     */
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
+    /**
+     * Value of deployment type if the platform is deployed in testing mode.
+     */
     private static final String DEPLOY_ENV_TESTING = "testing";
+    /**
+     * Value of deployment type if the platform is deployed in develop mode.
+     */
     private static final String DEPLOY_ENV_DEVELOP = "develop";
+    /**
+     * Key of the environmental variable used to define whether a parent check for
+     * newly created containers is necessary or not.
+     */
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
+    /**
+     * Flag indicating whether a parent check for
+     * newly created containers is necessary or not.
+     */
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
+    /**
+     * Environmental variable key for the RabbitMQ broker host name used for experiments.
+     */
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
 
-    // every 60 mins
+    /**
+     * Time interval after which challenges are checked for being published.
+     */
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
 
     /**
@@ -168,20 +189,30 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Last experiment id that has been used.
      */
     private long lastIdTime = 0;
-
+    /**
+     * Client to communicate with the storage service.
+     */
     protected StorageServiceClient storage;
-
+    /**
+     * Manager used to handle currently running experiments.
+     */
     protected ExperimentManager expManager;
-
+    /**
+     * Client of resource information collector service.
+     */
     protected ResourceInformationCollector resInfoCollector;
-
+    /**
+     * Manager handling cluster related data.
+     */
     protected ClusterManager clusterManager;
 
     /**
-     * Timer used to trigger publishing of challenges
+     * Timer used to trigger publishing of challenges.
      */
     protected Timer challengePublishTimer;
-
+    /**
+     * Name of the RabbitMQ broker used for experiments.
+     */
     protected String rabbitMQExperimentsHostName;
 
     @Override
@@ -239,7 +270,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
                 .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
-        sender2Analysis = DataSenderImpl.builder().queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
+        sender2Analysis = DataSenderImpl.builder()
+                .queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
 
         queue = new ExperimentQueueImpl();
 
