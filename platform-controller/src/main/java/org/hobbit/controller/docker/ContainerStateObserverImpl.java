@@ -29,8 +29,6 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.swarm.Task;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
 
-import sun.misc.Signal;
-
 /**
  * This class implements the {@link ContainerStateObserver} interface by
  * starting a scheduled job that retrieves a list of containers and their status
@@ -129,7 +127,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                         } else {
                             // assume container was stopped by the platform
                             LOGGER.info("Couldn't get the status of container {}. Assuming it was stopped by the platform.", id);
-                            exitStatus = 128 + new Signal("KILL").getNumber(); // 137
+                            exitStatus = 137; //128 + new Signal("KILL").getNumber(); // 137
                         }
 
                         if (exitStatus != null) {

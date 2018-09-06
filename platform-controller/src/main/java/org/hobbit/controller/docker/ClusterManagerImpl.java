@@ -10,9 +10,6 @@ import com.spotify.docker.client.messages.Info;
 import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
 import com.spotify.docker.client.messages.swarm.SwarmSpec;
 import com.spotify.docker.client.messages.swarm.Version;
-import org.hobbit.controller.ExperimentManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
