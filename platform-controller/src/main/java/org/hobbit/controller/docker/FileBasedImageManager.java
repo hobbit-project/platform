@@ -33,7 +33,7 @@ import org.hobbit.core.data.SystemMetaData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileBasedImageManager implements ImageManager {
+public class FileBasedImageManager extends AbstactImageManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedImageManager.class);
 
@@ -54,6 +54,7 @@ public class FileBasedImageManager implements ImageManager {
 
     public FileBasedImageManager(String inputFolder) {
         this.inputFolder = inputFolder;
+        timer = new Timer();
         startFetchingFiles();
     }
 
@@ -117,13 +118,23 @@ public class FileBasedImageManager implements ImageManager {
                 f.getAbsolutePath(), DEFAULT_DATE));
     }
 
+//    @Override
+//    public List<BenchmarkMetaData> getBenchmarks() {
+//        return new ArrayList<>(benchmarks);
+//    }
+//
+//    @Override
+//    public List<SystemMetaData> getSystems() {
+//        return new ArrayList<>(systems);
+//    }
+
     @Override
-    public List<BenchmarkMetaData> getBenchmarks() {
+    protected List<BenchmarkMetaData> getUncheckedBenchmarks() {
         return new ArrayList<>(benchmarks);
     }
 
     @Override
-    public List<SystemMetaData> getSystems() {
+    protected List<SystemMetaData> getUncheckedSystems() {
         return new ArrayList<>(systems);
     }
 

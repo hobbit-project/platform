@@ -53,8 +53,10 @@ import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.FileBasedImageManager;
 import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.ImageManagerFacade;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.health.ClusterHealthChecker;
@@ -137,6 +139,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Environmental variable key for the RabbitMQ broker host name used for experiments.
      */
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
+    /**
+     * Environmental variable key for the local metadata directory.
+     */
+    private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIR";
 
     /**
      * Time interval after which challenges are checked for being published.
@@ -207,9 +213,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
     protected ClusterManager clusterManager;
 
     /**
-     * Timer used to trigger publishing of challenges.
+     * Timer used to trigger publishing of challenges and checking for repeatable challenges.
      */
-    protected Timer challengePublishTimer;
+    protected Timer challengeCheckTimer;
     /**
      * Name of the RabbitMQ broker used for experiments.
      */
@@ -263,7 +269,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
 
-        imageManager = new GitlabBasedImageManager();
+        List<ImageManager> managers = new ArrayList<ImageManager>();
+        if(System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
+            managers.add(new FileBasedImageManager(System.getenv().get(LOCAL_METADATA_DIR_KEY)));
+        } else {
+            LOGGER.info("Using default directory for local metadata.");
+            managers.add(new FileBasedImageManager());
+        }
+        managers.add(new GitlabBasedImageManager());
+        imageManager = new ImageManagerFacade(managers);
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
@@ -282,10 +296,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
         expManager = new ExperimentManager(this);
 
         // schedule challenges re-publishing
-        // TODO RC rename this timer
-        challengePublishTimer = new Timer();
+        challengeCheckTimer = new Timer();
         PlatformController controller = this;
-        challengePublishTimer.schedule(new TimerTask() {
+        challengeCheckTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 checkRepeatableChallenges();
