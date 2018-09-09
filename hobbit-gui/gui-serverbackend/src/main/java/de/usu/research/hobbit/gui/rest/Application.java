@@ -57,6 +57,7 @@ public class Application extends ResourceConfig {
     public static final String PROPERTIES_FILE = "config.properties";
     private static Properties properties = new Properties();
     private volatile static Boolean isUsingDevDb = null;
+    private volatile static Long storageServiceTimeout = null;
 
     private Properties readProperties() {
         InputStream inputStream = getClass().getClassLoader().getResourceAsStream(PROPERTIES_FILE);
@@ -93,6 +94,13 @@ public class Application extends ResourceConfig {
             isUsingDevDb = Boolean.valueOf(properties.getProperty("useDevDb", "false"));
         }
         return isUsingDevDb;
+    }
+
+    public static long storageServiceTimeout() {
+        if (storageServiceTimeout == null) {
+            storageServiceTimeout = Long.valueOf(properties.getProperty("storageServiceTimeout", "0"));
+        }
+        return storageServiceTimeout;
     }
 
     public static String[] getRoleNames(SecurityContext sc) {
