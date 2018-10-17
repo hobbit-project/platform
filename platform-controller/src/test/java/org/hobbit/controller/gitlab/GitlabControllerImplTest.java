@@ -58,7 +58,7 @@ public class GitlabControllerImplTest {
 
         gitlabProject.setOwner(owner);
         gitlabProject.setPath("testing-benchmark");
-        gitlabProject.setVisibilityLevel(20);
+        gitlabProject.setVisibility("public");
         gitlabProject.setPathWithNamespace("gitadmin/testing-benchmark");
         gitlabProject.setSshUrl("git@git.project-hobbit.eu:gitadmin/testing-benchmark.git");
         gitlabProject.setWebUrl("https://git.project-hobbit.eu/gitadmin/testing-benchmark");

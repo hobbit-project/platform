@@ -74,9 +74,9 @@ public class GitlabControllerImpl implements GitlabController {
     private static final int MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE = 50;
     private static final int VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS = 30;
 
-    protected static final int GITLAB_VISIBILITY_PUBLIC_ID = 20;
-    protected static final int GITLAB_VISIBILITY_PROTECTED_ID = 10;
-    protected static final int GITLAB_VISIBILITY_PRIVATE_ID = 0;
+    protected static final String GITLAB_VISIBILITY_PUBLIC = "public";
+    protected static final String GITLAB_VISIBILITY_PROTECTED = "internal";
+    protected static final String GITLAB_VISIBILITY_PRIVATE = "private";
 
     // gitlab api
     private GitlabAPI api;
@@ -281,7 +281,7 @@ public class GitlabControllerImpl implements GitlabController {
                 handleErrorMsg(warning, null, false);
             }
             Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
-                    project.getCreatedAt(), project.getVisibilityLevel() == GITLAB_VISIBILITY_PRIVATE_ID);
+                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.
