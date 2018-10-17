@@ -36,6 +36,7 @@ import org.junit.Test;
  * Created by Timofey Ermilov on 17/10/2016.
  */
 public class GitlabControllerImplTest {
+    private static final String GITLAB_URL = "https://git.project-hobbit.eu/";
     GitlabControllerImpl controller;
     GitlabProject gitlabProject;
     GitlabBranch gitlabBranch;
@@ -61,8 +62,8 @@ public class GitlabControllerImplTest {
         gitlabProject.setVisibility("public");
         gitlabProject.setPathWithNamespace("gitadmin/testing-benchmark");
         gitlabProject.setSshUrl("git@git.project-hobbit.eu:gitadmin/testing-benchmark.git");
-        gitlabProject.setWebUrl("https://git.project-hobbit.eu/gitadmin/testing-benchmark");
-        gitlabProject.setHttpUrl("https://git.project-hobbit.eu/gitadmin/testing-benchmark.git");
+        gitlabProject.setWebUrl(GITLAB_URL + "gitadmin/testing-benchmark");
+        gitlabProject.setHttpUrl(GITLAB_URL + "gitadmin/testing-benchmark.git");
 
         GitlabNamespace gitlabNamespace = new GitlabNamespace();
         gitlabNamespace.setName("gitadmin");
@@ -82,7 +83,7 @@ public class GitlabControllerImplTest {
         gitlabCommit.setMessage("Fix syntax errors");
         gitlabBranch.setCommit(gitlabCommit);
 
-        api = GitlabAPI.connect("https://git.project-hobbit.eu/", "fykySfxWaUyCS1xxTSVy");
+        api = GitlabAPI.connect(GITLAB_URL, "fykySfxWaUyCS1xxTSVy");
 
 
         controller = new GitlabControllerImpl(false, false);
