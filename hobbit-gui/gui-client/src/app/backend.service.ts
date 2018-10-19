@@ -100,8 +100,8 @@ export class BackendService {
     return this.http.get('BACKEND/rest/system-provider/systems').map(res => res);
   }
 
-  getLogFile(url: string) {
-    return this.http.get('BACKEND/rest/logs/' + url, { responseType: 'text' });
+  getLogFile(url: string, format: string) {
+    return this.http.get('BACKEND/rest/logs/' + url + '&format=' + format, { responseType: 'text' });
   }
 
 }
