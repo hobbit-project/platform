@@ -225,8 +225,9 @@ public class LogsResources {
     }
 
     private JSONArray getLogsByType(String experimentId, String type, RestClient restClient) throws Exception {
+        String experimentDate = getExperimentDate(experimentId);
         String countQuery = createCountQuery(experimentId, type);
-        String countJsonString = fireQuery(countQuery, "count", restClient);
+        String countJsonString = fireQuery(countQuery, experimentDate, "count", restClient);
         JSONObject jsonObject = new JSONObject(countJsonString);
         Integer count = Integer.parseInt(jsonObject.get("count").toString());
 
@@ -256,7 +257,7 @@ public class LogsResources {
             } else {
                 searchQuery = createSearchQuery(lastSortValue, size, experimentId, type);
             }
-            String queryResults = fireQuery(searchQuery, "search", restClient);
+            String queryResults = fireQuery(searchQuery, experimentDate, "search", restClient);
             JSONObject queryResultsJson = new JSONObject(queryResults);
             JSONArray hits = queryResultsJson.getJSONObject("hits").getJSONArray("hits");
             if(hits.length() == 0) break;
@@ -320,11 +321,27 @@ public class LogsResources {
         return createQuery(extension, experimentId, type);
     }
 
-    private String fireQuery(String query, String type, RestClient restClient) throws IOException {
+    private String fireQuery(String query, String experimentDate, String type, RestClient restClient) throws IOException {
         HttpEntity entity = new NStringEntity(query, ContentType.APPLICATION_JSON);
+
+        SimpleDateFormat esDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat logstashDateFormat = new SimpleDateFormat("yyyy.MM.dd");
+        String experimentDate1 = "";
+        String experimentDate2 = "";
+        try {
+            Date experimentDateParsed = esDateFormat.parse(experimentDate);
+            experimentDate1 = logstashDateFormat.format(experimentDateParsed);
+            experimentDateParsed.setDate(experimentDateParsed.getDate() + 1);
+            experimentDate2 = logstashDateFormat.format(experimentDateParsed);
+        } catch (ParseException e) {
+            // Leave dates empty.
+            // The following request will try to query all indexes,
+            // which will fail if there are too many.
+        }
+
         org.elasticsearch.client.Response response = restClient.performRequest(
                 "GET",
-                "/logstash*/_"+type,
+                "/logstash-"+experimentDate1+"*,logstash-"+experimentDate2+"*/_"+type,
                 Collections.singletonMap("pretty", "true"),
                 entity
         );

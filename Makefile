@@ -13,20 +13,25 @@ remove-gui-service:
 start:
 	docker stack deploy --compose-file docker-compose.yml platform
 
-start-dev: start-dev-platform start-dev-elk
+start-dev: start-rabbitmq-cluster start-dev-platform
+
+start-dev-elk: start-rabbitmq-cluster start-dev-platform start-dev-elk
+
+start-rabbitmq-cluster:
+	cd rabbitmq-cluster && make start
 
 start-dev-platform:
-	docker stack deploy -c docker-compose-dev.yml platform
+	docker-compose -f docker-compose-dev.yml up -d
 
 start-dev-elk:
-	docker stack deploy -c docker-compose-elk.yml elk
+	docker-compose -f docker-compose-elk.yml up -d
 
 build: build-java build-dev-images
 
 build-java: install-parent-pom build-controller build-storage build-analysis build-gui
 
 build-gui:
-	cd hobbit-gui/gui-client && npm install && npm run build-prod
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
 build-controller:
@@ -62,9 +67,9 @@ set-keycloak-permissions:
 	@chmod --changes 666 config/keycloak/keycloak.h2.db
 
 setup-virtuoso:
-	docker-compose up -d virtuoso
+	docker-compose up -d vos
 	./run-storage-init.sh; true
-	docker-compose stop virtuoso
+	docker-compose stop vos
 	docker rm vos
 
 install: create-networks set-keycloak-permissions setup-virtuoso
@@ -78,7 +83,7 @@ test: install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test
-	cd hobbit-gui/gui-client && npm install && npm run lint
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install --verbose && npm run lint
 	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
 
 install-parent-pom:

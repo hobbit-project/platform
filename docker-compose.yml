@@ -1,24 +1,25 @@
 version: '3.3'
 services:
   platform-controller:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-controller-image
+    image: hobbitproject/hobbit-platform-controller:latest
     networks:
       - hobbit-core
     environment:
-      - HOBBIT_RABBIT_HOST=rabbit
-      - HOBBIT_REDIS_HOST=redis
-      - DEPLOY_ENV=testing
-#      - GITLAB_USER=
-#      - GITLAB_EMAIL=
-#      - GITLAB_TOKEN=
-#      - CONTAINER_PARENT_CHECK=0
+      HOBBIT_RABBIT_HOST: "rabbit"
+      HOBBIT_RABBIT_EXPERIMENTS_HOST: "rabbit"
+      HOBBIT_REDIS_HOST: "redis"
+      DEPLOY_ENV: "testing"
+      GITLAB_USER: "${GITLAB_USER}"
+      GITLAB_EMAIL: "${GITLAB_EMAIL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
+      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      SWARM_NODE_NUMBER: "1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
   # HOBBIT GUI
   gui:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-gui-image
-
+    image: hobbitproject/hobbit-gui:latest
     ports:
       - "8080:8080"
     networks:
@@ -26,13 +27,16 @@ services:
       - hobbit
     environment:
       - HOBBIT_RABBIT_HOST=rabbit
-      - KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      #- KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
       - CHECK_REALM_URL=false
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_HTTP_PORT=9200
 
   # Keycloak user management (used by the GUI)
   keycloak:
-    image: git.project-hobbit.eu:4567/gitadmin/hobbit-keycloak:1.0.0
+    image: hobbitproject/hobbit-keycloak:latest
     ports:
       - "8181:8080"
     networks:
@@ -42,7 +46,7 @@ services:
 
   # HOBBIT Analysis component
   analysis:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-analysis-image
+    image: hobbitproject/hobbit-analysis-component:latest
     networks:
       - hobbit-core
     environment:
@@ -72,6 +76,7 @@ services:
   vos:
     image: openlink/virtuoso_opensource:v07.20.3217
     hostname: vos
+    container_name: vos
     stop_signal: SIGINT
     stop_grace_period: 2m
     volumes:
@@ -83,7 +88,7 @@ services:
 
   # Storage service
   storage-service:
-    image: git.project-hobbit.eu:4567/gitadmin/platform-storage-image
+    image: hobbitproject/hobbit-storage-service:latest
     networks:
       - hobbit-core
     environment:
