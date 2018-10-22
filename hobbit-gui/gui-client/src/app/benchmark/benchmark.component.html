@@ -14,9 +14,10 @@
 
     <div *ngIf="selectedBenchmark?.systems" class="form-group">
       <label for="system">System</label>
-      <select class="form-control" id="system" required name="system" [title]="selectedSystem ? selectedSystem.description : ''"
-        [ngModel]="configModel.system" (ngModelChange)="onChangeSystem($event)">
-        <option *ngFor="let s of selectedBenchmark.systems" [value]="s.id" [title]="s.description">{{s.name}}</option>
+      <select class="form-control" id="system" required name="system" [(ngModel)]="selectedSystem"
+        [title]="selectedSystem ? selectedSystem.description : ''">
+        <option [ngValue]="null">Please select a system</option>
+        <option *ngFor="let s of selectedBenchmark.systems" [ngValue]="s" [title]="s.description">{{s.name}}</option>
       </select>
     </div>
   </form>

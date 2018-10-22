@@ -1,6 +1,6 @@
 import { Router } from '@angular/router';
-import { BackendService } from './../../backend.service';
-import { ConfigParamRealisation, Experiment, NamedEntity } from './../../model';
+import { BackendService } from '../../backend.service';
+import { ConfigParamRealisation, Experiment, NamedEntity } from '../../model';
 import { Component, OnInit, Input, OnChanges } from '@angular/core';
 
 class TableRow {
@@ -104,10 +104,10 @@ export class DetailsComponent implements OnInit, OnChanges {
     }
 
     this.rows.push(this.buildRow('Logs', 'Benchmark Log', '', t => [
-      t.benchmarkLogAvailable ? 'benchmark/query?id=' + t.id : null, 'Download'
+      t.benchmarkLogAvailable ? [`benchmark/query?id=${t.id}`, `${t.id} benchmark log`] : null, 'Download'
     ]));
     this.rows.push(this.buildRow('Logs', 'System Log', '', t => [
-      t.systemLogAvailable ? 'system/query?id=' + t.id : null, 'Download'
+      t.systemLogAvailable ? [`system/query?id=${t.id}`, `${t.id} system log`] : null, 'Download'
     ]));
 
     this.rows.sort((a, b) => {
@@ -146,14 +146,26 @@ export class DetailsComponent implements OnInit, OnChanges {
     ];
   }
 
-  download(path: string) {
-    this.bs.getLogFile(path).subscribe(log => {
+  download(path: [string], format: string) {
+    this.bs.getLogFile(path[0], format).subscribe(log => {
+      const fileName = `${path[1]}.${format.toLowerCase()}`;
       const link = document.createElement('a');
-      link.download = 'log.txt';
-      const blob = new Blob([log], { type: 'text/plain' });
-      link.href = window.URL.createObjectURL(blob);
+      link.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(log));
+      link.setAttribute('download', fileName);
+      link.style.display = 'none';
+      document.body.appendChild(link);
+
       link.click();
+      document.body.removeChild(link);
     });
+  }
+
+  private getMimeType(format: string): string {
+    if (format === 'JSON')
+      return 'application/json';
+    if (format === 'CSV')
+      return 'text/comma-separated-values';
+    return 'text/plain';
   }
 
 }
