@@ -19,9 +19,11 @@ package de.usu.research.hobbit.gui.rest;
 import static de.usu.research.hobbit.gui.rabbitmq.RdfModelHelper.getTolerantDateTimeValue;
 
 import java.io.IOException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
