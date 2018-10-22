@@ -73,6 +73,8 @@ import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
+import org.hobbit.core.rabbit.DataSender;
+import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
@@ -129,9 +131,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected FrontEndApiHandler frontEndApiHandler;
     /**
-     * RabbitMQ channel between front end and platform controller.
+     * RabbitMQ data sender to the analyser platform.
      */
-    protected Channel controller2Analysis;
+    protected DataSender sender2Analysis;
     /**
      * A manager for Docker containers.
      */
@@ -237,8 +239,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
                 .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
-        controller2Analysis = cmdQueueFactory.getConnection().createChannel();
-        controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
+        sender2Analysis = DataSenderImpl.builder().queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
 
         queue = new ExperimentQueueImpl();
 
@@ -529,9 +530,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
             } catch (Exception e) {
             }
         }
-        if (controller2Analysis != null) {
+        if (sender2Analysis != null) {
             try {
-                controller2Analysis.close();
+                sender2Analysis.close();
             } catch (Exception e) {
             }
         }
@@ -544,8 +545,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     @Override
     public void analyzeExperiment(String uri) throws IOException {
-        controller2Analysis.basicPublish("", Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME,
-                MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(uri));
+        sender2Analysis.sendData(RabbitMQUtils.writeString(uri));
     }
 
     /**

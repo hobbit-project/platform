@@ -17,6 +17,7 @@
 package de.usu.research.hobbit.gui.rabbitmq;
 
 import org.hobbit.storage.client.StorageServiceClient;
+import de.usu.research.hobbit.gui.rest.Application;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,11 @@ public class StorageServiceClientSingleton {
         if (instance == null) {
             try {
                 instance = StorageServiceClient.create(RabbitMQConnectionSingleton.getConnection().getConnection());
+
+                long timeout = Application.storageServiceTimeout();
+                if (timeout != 0) {
+                    instance.setMaxWaitingTime(timeout);
+                }
             } catch (Exception e) {
                 LOGGER.error("Exception while trying to create RabbitRpcClient. Returning null.", e);
             }

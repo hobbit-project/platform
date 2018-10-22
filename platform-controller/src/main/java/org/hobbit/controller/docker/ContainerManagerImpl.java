@@ -41,7 +41,6 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.RegistryAuth;
@@ -257,6 +256,7 @@ public class ContainerManagerImpl implements ContainerManager {
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         Integer totalNodes;
         try {
+            // TODO: use ClusterManager
             totalNodes = dockerClient.listNodes().size();
         } catch (Exception e) {
             LOGGER.error("Couldn't retrieve list of swarm nodes!");
@@ -368,14 +368,14 @@ public class ContainerManagerImpl implements ContainerManager {
             }
         }
 
-        // If the parent has "system" --> we do not care what the container
-        // would like to have OR if there is no parent or the parent is a
-        // benchmark (in case of the benchmark controller) and the container has
-        // type "system"
-        Integer numberOfSwarmNodes = Integer.MAX_VALUE;
+        int numberOfSwarmNodes = 0;
+        int numberOfSystemSwarmNodes = 0;
+        int numberOfBenchmarkSwarmNodes = 0;
         try {
             ClusterManager clusterManager = new ClusterManagerImpl();
             numberOfSwarmNodes = clusterManager.getNumberOfNodes();
+            numberOfSystemSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
+            numberOfBenchmarkSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=benchmark");
         } catch (DockerCertificateException e) {
             LOGGER.error("Could not initialize Cluster Manager, will use container placement constraints by default. ",
                     e);
@@ -384,6 +384,10 @@ public class ContainerManagerImpl implements ContainerManager {
         }
 
         if (numberOfSwarmNodes > 1) {
+            // If the parent has "system" --> we do not care what the container
+            // would like to have OR if there is no parent or the parent is a
+            // benchmark (in case of the benchmark controller) and the container has
+            // type "system"
             if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
                     && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
                     || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
@@ -412,6 +416,11 @@ public class ContainerManagerImpl implements ContainerManager {
         } else {
             LOGGER.warn("The swarm cluster got only 1 node, I will not use placement constraints.");
         }
+
+        // add hardware information to environment
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_NODES_KEY + "=" + numberOfSwarmNodes);
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY + "=" + numberOfSystemSwarmNodes);
+        defaultEnv.add(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY + "=" + numberOfBenchmarkSwarmNodes);
 
         // create env vars to pass
         if (env != null) {
