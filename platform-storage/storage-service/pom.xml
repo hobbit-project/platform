@@ -71,6 +71,13 @@
             <type>pom</type>
             <version>3.6.0</version>
         </dependency>
+        <!-- ~~~~~~~~~~~~~~~~~~~ Logging ~~~~~~~~~~~~~~~~~~~~~~ -->
+        <!-- slf4j: Logging Binding -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
         <!-- ~~~~~~~~~~~~~~~~~~~ Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
         <!-- JUnit -->
         <dependency>
