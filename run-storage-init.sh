@@ -1,8 +1,8 @@
 #!/bin/bash
 # Runs the initialization script for the Storage of the HOBBIT Platform.
-VOS_CONTAINER_ID=$(docker ps -a | grep vos | cut -d' ' -f 1)
-VOS_CONTAINER_NUMBER=$(docker ps -a | grep vos | cut -d' ' -f 1 | wc -l)
-if [ "$VOS_CONTAINER_NUMBER" = "1" ]; then
+VOS_CONTAINER_ID=$(docker ps -aqf "name=vos")
+VOS_CONTAINER_NUMBER=$(docker ps -aqf "name=vos" | wc -l)
+if [ "$VOS_CONTAINER_NUMBER" -eq "1" ]; then
   docker exec -it $VOS_CONTAINER_ID bash ./storage-init.sh
 else
   echo "Can not determine vos container name..."
