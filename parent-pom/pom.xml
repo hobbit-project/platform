@@ -1,19 +1,19 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <groupId>org.hobbit</groupId>
     <artifactId>parent</artifactId>
     <version>2.0.6</version>
-	<packaging>pom</packaging>
+    <packaging>pom</packaging>
 
-	<!-- PROPERTIES -->
-	<properties>
-		<java.version>1.8</java.version>
-		<slf4j.version>1.7.10</slf4j.version>
-		<lucene.version>4.4.0</lucene.version>
-		<junit.version>4.8.2</junit.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
+    <!-- PROPERTIES -->
+    <properties>
+        <java.version>1.8</java.version>
+        <slf4j.version>1.7.10</slf4j.version>
+        <lucene.version>4.4.0</lucene.version>
+        <junit.version>4.8.2</junit.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <!-- LICENSE -->
     <licenses>
@@ -23,8 +23,8 @@
         </license>
     </licenses>
     <inceptionYear>2017</inceptionYear>
-    
-	<!-- REPOSITORIES -->
+
+    <!-- REPOSITORIES -->
     <repositories>
         <repository>
             <id>maven.aksw.internal</id>
@@ -60,14 +60,14 @@
         </pluginRepository>
     </pluginRepositories>
 
-	<!-- DEPENDENCIES -->
-	<dependencyManagement>
-		<dependencies>
+    <!-- DEPENDENCIES -->
+    <dependencyManagement>
+        <dependencies>
             <!-- HOBBIT core library -->
             <dependency>
                 <groupId>org.hobbit</groupId>
                 <artifactId>core</artifactId>
-                <version>1.0.12</version>
+                <version>1.0.13</version>
             </dependency>
             <!-- RabbitMQ -->
             <dependency>
@@ -106,72 +106,72 @@
                 <version>1.16.0</version>
                 <scope>test</scope>
             </dependency>
-            <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ --> 
-	        <!-- Apache Commons IO -->
-	        <dependency>
-	            <groupId>commons-io</groupId>
-	            <artifactId>commons-io</artifactId>
-	            <version>2.4</version>
-	        </dependency>
-	        <!-- Apache Commons Collections -->
-	        <dependency>
-	            <groupId>commons-collections</groupId>
-	            <artifactId>commons-collections</artifactId>
+            <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+            <!-- Apache Commons IO -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.4</version>
+            </dependency>
+            <!-- Apache Commons Collections -->
+            <dependency>
+                <groupId>commons-collections</groupId>
+                <artifactId>commons-collections</artifactId>
                 <version>3.2.1</version>
-	        </dependency>
-	        <!-- Apache Commons Lang 3 -->
-	        <dependency>
-	            <groupId>org.apache.commons</groupId>
-	            <artifactId>commons-lang3</artifactId>
-	            <version>3.3.2</version>
-	        </dependency>
-	        <!-- High Performance Primitive Collections -->
-	        <dependency>
-	            <groupId>com.carrotsearch</groupId>
-	            <artifactId>hppc</artifactId>
-	            <version>0.6.1</version>
-	        </dependency>
-	        <!-- Jackson datatype serialization (for HPPC datatypes) -->
-	        <dependency>
-	            <groupId>com.fasterxml.jackson.datatype</groupId>
-	            <artifactId>jackson-datatype-hppc</artifactId>
-	            <version>2.5.1</version>
-	        </dependency>
+            </dependency>
+            <!-- Apache Commons Lang 3 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.3.2</version>
+            </dependency>
+            <!-- High Performance Primitive Collections -->
+            <dependency>
+                <groupId>com.carrotsearch</groupId>
+                <artifactId>hppc</artifactId>
+                <version>0.6.1</version>
+            </dependency>
+            <!-- Jackson datatype serialization (for HPPC datatypes) -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-hppc</artifactId>
+                <version>2.5.1</version>
+            </dependency>
         </dependencies>
-	</dependencyManagement>
+    </dependencyManagement>
 
-	<!-- BUILD -->
-	<build>
-		<plugins>
-			<!-- Compiler plugin -->
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.2</version>
-				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
-				</configuration>
-			</plugin>
-			<!-- Source plugin for creating source file jar -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.4</version>
-				<executions>
-					<execution>
-						<id>attach-sources-package</id>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-        			<execution>
-						<id>attach-sources-deploy</id>
-						<phase>deploy</phase>
-			          	<goals><goal>jar-no-fork</goal></goals> 
-        			</execution>
-				</executions>
-			</plugin>
+    <!-- BUILD -->
+    <build>
+        <plugins>
+            <!-- Compiler plugin -->
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.2</version>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                </configuration>
+            </plugin>
+            <!-- Source plugin for creating source file jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources-package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>attach-sources-deploy</id>
+                        <phase>deploy</phase>
+                          <goals><goal>jar-no-fork</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Javadoc plugin for generating documentation -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -191,15 +191,15 @@
                     </execution>
                 </executions>
             </plugin>
-			<!-- Resources management plugin -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-resources-plugin</artifactId>
-				<version>2.7</version>
-				<configuration>
-					<encoding>UTF-8</encoding>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+            <!-- Resources management plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>2.7</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
