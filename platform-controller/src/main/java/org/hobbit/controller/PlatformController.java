@@ -53,8 +53,10 @@ import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.docker.FileBasedImageManager;
 import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
+import org.hobbit.controller.docker.ImageManagerFacade;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.health.ClusterHealthChecker;
@@ -79,6 +81,7 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
@@ -118,6 +121,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
+    private static final String LOCAL_METADATA_DIRECTORY_KEY = "LOCAL_METADATA_DIRECTORY";
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -232,14 +236,22 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
 
-        imageManager = new GitlabBasedImageManager();
+        // Create the image manager including a local directory or not
+        String localMetaDir = EnvVariables.getString(LOCAL_METADATA_DIRECTORY_KEY, (String) null);
+        if (localMetaDir != null) {
+            imageManager = new ImageManagerFacade(new FileBasedImageManager(localMetaDir),
+                    new GitlabBasedImageManager());
+        } else {
+            imageManager = new GitlabBasedImageManager();
+        }
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
         frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
                 .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
-        sender2Analysis = DataSenderImpl.builder().queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
+        sender2Analysis = DataSenderImpl.builder()
+                .queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
 
         queue = new ExperimentQueueImpl();
 
