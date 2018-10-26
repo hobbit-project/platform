@@ -54,6 +54,7 @@ public class FileBasedImageManager implements ImageManager {
 
     public FileBasedImageManager(String inputFolder) {
         this.inputFolder = inputFolder;
+        timer = new Timer();
         startFetchingFiles();
     }
 
