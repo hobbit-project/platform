@@ -149,17 +149,11 @@ public class GitlabControllerImpl implements GitlabController {
             List<Project> newProjects = Collections.EMPTY_LIST;
             Set<String> newProjectUris = new HashSet<String>();
             try {
-                // Get all projects visible to the user
-                List<GitlabProject> gitProjects;
-                if (api.getUser().isAdmin()) {
-                    // Get all Projects as Sudo, as "visible" is
-                    // restricted even though user has sudo access
-                    gitProjects = api.getAllProjects();
-                } else {
-                    // If the user does not have sudo access use all the
-                    // visible projects.
-                    gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
-                }
+                // In GitLab API V4, `/projects/visible` & `/projects/all`
+                // are consolidated into `/projects`
+                // and can be used with or without authorization.
+                List<GitlabProject> gitProjects = api.getAllProjects();
+
                 LOGGER.info("Projects: " + gitProjects.size());
 
                 newProjects = gitProjects.parallelStream()
