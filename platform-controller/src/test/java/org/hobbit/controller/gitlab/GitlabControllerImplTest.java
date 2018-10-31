@@ -28,7 +28,9 @@ import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,15 +92,14 @@ public class GitlabControllerImplTest {
         // wait for controller to fetch projects
     }
 
-    //@Test
-    //public void getAllProjects() throws InterruptedException {
-    //    controller.startFetchingProjects();
-    //    Thread.sleep(20000);
-    //    List<Project> projects = controller.getAllProjects();
-    //    System.out.println(projects);
-    //    assert(!projects.isEmpty());
-    //    assert(projects.size() > 10);
-    //}
+    @Test
+    public void getAllProjects() {
+        controller.fetchProjects();
+        List<Project> projects = controller.getAllProjects();
+
+        assertFalse("Projects are empty", projects.isEmpty());
+        assertTrue("There are more than 10 projects", projects.size() > 10);
+    }
 
     @Test
     public void gitlabToProject() {
