@@ -352,6 +352,26 @@ public class GitlabControllerImpl implements GitlabController {
     }
 
     /**
+     * Workaround an exception thrown by api.getUser().isAdmin().
+     *
+     * @return whether the platform's gitlab user is admin
+     * @throws IOException
+     *             If the Gitlab API throws an IOException
+     */
+    protected boolean isAdmin() throws IOException {
+        GitlabUser user = api.getUser();
+        if (user == null) {
+            return false;
+        }
+        try {
+            return user.isAdmin();
+        } catch (NullPointerException e) {
+            // that happens when no gitlab account is configured for platform
+            return false;
+        }
+    }
+
+    /**
      * If the Gitlab API is used with an admin account, this method returns the
      * names of the projects that are visible for this user. Otherwise, it returns
      * all project names that are known.
@@ -365,7 +385,7 @@ public class GitlabControllerImpl implements GitlabController {
      */
     protected Set<String> getProjectsOfUser(String mail) throws IOException {
         // If we have admin access
-        if (api.getUser().isAdmin()) {
+        if (isAdmin()) {
             GitlabUser user = getUserByMail(mail);
             if (user == null) {
                 LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
