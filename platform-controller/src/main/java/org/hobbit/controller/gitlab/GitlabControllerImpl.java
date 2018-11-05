@@ -401,7 +401,8 @@ public class GitlabControllerImpl implements GitlabController {
         }
         List<GitlabUser> users = api.getUsers();
         for (GitlabUser user : users) {
-            if (user.getEmail().equals(mail)) {
+            String email = user.getEmail();
+            if (email != null && email.equals(mail)) {
                 return user;
             }
         }
