@@ -138,76 +138,74 @@ public class GitlabControllerImpl implements GitlabController {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                try {
-                    @SuppressWarnings("unchecked")
-                    List<Project> newProjects = Collections.EMPTY_LIST;
-                    Set<String> newProjectUris = new HashSet<String>();
-                    try {
-                        // Get all projects visible to the user
-                        List<GitlabProject> gitProjects;
-                        if (api.getUser().isAdmin()) {
-                            // Get all Projects as Sudo, as "visible" is
-                            // restricted even though user has sudo access
-                            gitProjects = api.getAllProjects();
-                        } else {
-                            // If the user does not have sudo access use all the
-                            // visible projects.
-                            gitProjects = api.retrieve().getAll("/projects/visible", GitlabProject[].class);
-                        }
-                        LOGGER.info("Projects: " + gitProjects.size());
-
-                        newProjects = gitProjects.parallelStream()
-                                // Map every gitlab project to a project object (or null_)
-                                .map(p -> gitlabToProject(p))
-                                // Filter all projects that couldn't be converted
-                                .filter(p -> p != null)
-                                // Filter all projects that didn't contain any benchmark or system definition
-                                .filter(p -> ((p.benchmarkModel != null)
-                                        && (p.benchmarkModel.contains(null, RDF.type, HOBBIT.Benchmark)))
-                                        || ((p.systemModel != null)
-                                                && (p.systemModel.contains(null, RDF.type, HOBBIT.SystemInstance))))
-                                // Put remaining projects in a list
-                                .collect(Collectors.toList());
-                        for (Project project : newProjects) {
-                            newProjectUris.add(project.name);
-                        }
-                    } catch (Exception | Error e) {
-                        LOGGER.error("Couldn't get all gitlab projects.", e);
-                    }
-
-                    if (projects == null) {
-                        // This is the first fetching of projects -> we might
-                        // have
-                        // to notify threads that are waiting for that
-                        projects = newProjects;
-                        projectUris = newProjectUris;
-                        synchronized (this) {
-                            this.notifyAll();
-                        }
-                    } else {
-                        // update cached version
-                        projects = newProjects;
-                        projectUris = newProjectUris;
-                    }
-                    // indicate that projects were fetched
-                    if (!projectsFetched) {
-                        projectsFetched = true;
-                        for (Runnable r : readyRunnable) {
-                            r.run();
-                        }
-                    }
-                } catch (Throwable t) {
-                    LOGGER.error("Got an uncatched throwable.", t);
-                }
+                fetchProjects();
             }
         }, 0, repeatInterval);
+    }
+
+    protected void fetchProjects() {
+        try {
+            @SuppressWarnings("unchecked")
+            List<Project> newProjects = Collections.EMPTY_LIST;
+            Set<String> newProjectUris = new HashSet<String>();
+            try {
+                // In GitLab API V4, `/projects/visible` & `/projects/all`
+                // are consolidated into `/projects`
+                // and can be used with or without authorization.
+                List<GitlabProject> gitProjects = api.getAllProjects();
+
+                LOGGER.info("Projects: " + gitProjects.size());
+
+                newProjects = gitProjects.parallelStream()
+                        // Map every gitlab project to a project object (or null_)
+                        .map(p -> gitlabToProject(p))
+                        // Filter all projects that couldn't be converted
+                        .filter(p -> p != null)
+                        // Filter all projects that didn't contain any benchmark or system definition
+                        .filter(p -> ((p.benchmarkModel != null)
+                                && (p.benchmarkModel.contains(null, RDF.type, HOBBIT.Benchmark)))
+                                || ((p.systemModel != null)
+                                        && (p.systemModel.contains(null, RDF.type, HOBBIT.SystemInstance))))
+                        // Put remaining projects in a list
+                        .collect(Collectors.toList());
+                for (Project project : newProjects) {
+                    newProjectUris.add(project.name);
+                }
+            } catch (Exception | Error e) {
+                LOGGER.error("Couldn't get all gitlab projects.", e);
+            }
+
+            if (projects == null) {
+                // This is the first fetching of projects -> we might
+                // have
+                // to notify threads that are waiting for that
+                projects = newProjects;
+                projectUris = newProjectUris;
+                synchronized (this) {
+                    this.notifyAll();
+                }
+            } else {
+                // update cached version
+                projects = newProjects;
+                projectUris = newProjectUris;
+            }
+            // indicate that projects were fetched
+            if (!projectsFetched) {
+                projectsFetched = true;
+                for (Runnable r : readyRunnable) {
+                    r.run();
+                }
+            }
+        } catch (Throwable t) {
+            LOGGER.error("Got an uncatched throwable.", t);
+        }
     }
 
     /**
      * Collects the URIs of benchmarks and systems defined within the given project
      * element and streams them as pairs of the benchmark and system URIs as keys
      * and the given project object as value.
-     * 
+     *
      * @param p
      *            the project from which the benchmark and system URIs should be
      *            read
@@ -322,7 +320,7 @@ public class GitlabControllerImpl implements GitlabController {
      * Method for handling errors occurring when crawling gitlab (mainly parsing
      * errors). Since the class is crawling Gitlab regularly, logging errors every
      * time is not necessary.
-     * 
+     *
      * @param message
      *            the error message that should be logged
      * @param e
@@ -354,10 +352,30 @@ public class GitlabControllerImpl implements GitlabController {
     }
 
     /**
+     * Workaround an exception thrown by api.getUser().isAdmin().
+     *
+     * @return whether the platform's gitlab user is admin
+     * @throws IOException
+     *             If the Gitlab API throws an IOException
+     */
+    protected boolean isAdmin() throws IOException {
+        GitlabUser user = api.getUser();
+        if (user == null) {
+            return false;
+        }
+        try {
+            return user.isAdmin();
+        } catch (NullPointerException e) {
+            // that happens when no gitlab account is configured for platform
+            return false;
+        }
+    }
+
+    /**
      * If the Gitlab API is used with an admin account, this method returns the
      * names of the projects that are visible for this user. Otherwise, it returns
      * all project names that are known.
-     * 
+     *
      * @param mail
      *            the e-mail address of the user for which the project names should
      *            be retrieved
@@ -367,7 +385,7 @@ public class GitlabControllerImpl implements GitlabController {
      */
     protected Set<String> getProjectsOfUser(String mail) throws IOException {
         // If we have admin access
-        if (api.getUser().isAdmin()) {
+        if (isAdmin()) {
             GitlabUser user = getUserByMail(mail);
             if (user == null) {
                 LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
@@ -389,7 +407,7 @@ public class GitlabControllerImpl implements GitlabController {
 
     /**
      * Tries to find the GitlabUser with the given mail address.
-     * 
+     *
      * @param mail
      *            the mail address of the user
      * @return the GitlabUser object for the user or {@code null} if it could not be
@@ -403,7 +421,8 @@ public class GitlabControllerImpl implements GitlabController {
         }
         List<GitlabUser> users = api.getUsers();
         for (GitlabUser user : users) {
-            if (user.getEmail().equals(mail)) {
+            String email = user.getEmail();
+            if (email != null && email.equals(mail)) {
                 return user;
             }
         }
