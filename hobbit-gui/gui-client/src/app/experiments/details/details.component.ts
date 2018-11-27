@@ -66,7 +66,10 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows.push(this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => DetailsComponent.safeNameAndDescription(t.benchmark)));
     this.rows.push(this.buildRow('Experiment', 'System', 'The system evaluated', t => DetailsComponent.safeNameAndDescription(t.system)));
     this.rows.push(this.buildRow('Experiment', 'Challenge Task', 'The challenge task performed', t => DetailsComponent.safeNameAndDescription(t.challengeTask)));
-    this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
+
+    if (this.experiments.some(experiment => experiment.error !== undefined)) {
+      this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
+    }
 
     for (const key of Object.keys(experimentParameterSamples)) {
       const bp = experimentParameterSamples[key];
