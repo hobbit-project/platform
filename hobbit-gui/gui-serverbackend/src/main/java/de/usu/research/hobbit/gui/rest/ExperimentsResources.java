@@ -68,7 +68,7 @@ public class ExperimentsResources {
     @GET
     @Path("query")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response query(@QueryParam("id") String idsCommaSep, @QueryParam("challenge-task-id") String challengeTaskId,
+    public Response query(@QueryParam("id") String idsCommaSep, @QueryParam("benchmark-id") String benchmarkId, @QueryParam("challenge-task-id") String challengeTaskId,
             @Context SecurityContext sc) {
         List<ExperimentBean> results = null;
         String[] ids = null;
@@ -165,7 +165,22 @@ public class ExperimentsResources {
                         }
                     }
                 }
+                // If the user is asking for experiments of a certain benchmark
+            } else if (benchmarkId != null) {
+                LOGGER.debug("Querying experiment results for benchmark " + benchmarkId);
+                // create experiment URI from public results graph
+                String query = SparqlQueries.getExperimentGraphOfBenchmarksQuery(Arrays.asList(benchmarkId),
+                        Constants.PUBLIC_RESULT_GRAPH_URI);
+                // get public experiment
+                Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
+                // if model is public and available - go with it
+                if (model != null && model.size() > 0) {
+                    results = RdfModelHelper.createExperimentBeans(model);
                 // If the user is asking for experiments of a certain challenge task
+                } else {
+                    LOGGER.info("Couldn't find experiments for benchmark {}. Returning empty list.", benchmarkId);
+                    results = new ArrayList<>(0);
+                }
             } else if (challengeTaskId != null) {
                 LOGGER.debug("Querying experiment results for challenge task " + challengeTaskId);
                 // create experiment URI from public results graph

@@ -25,7 +25,7 @@ export class LeaderboardDetailsComponent implements OnChanges {
   ngOnChanges() {
     this.loaded = false;
 
-    this.bs.queryExperiments(undefined, this.challengeTaskId).subscribe(data => {
+    this.bs.queryExperiments(undefined, undefined, this.challengeTaskId).subscribe(data => {
 
       this.experiments = [];
       const systems = {};

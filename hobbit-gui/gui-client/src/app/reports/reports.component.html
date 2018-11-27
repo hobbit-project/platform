@@ -1,0 +1,24 @@
+<div class="container">
+  <app-page-header>
+    <h1>Reports</h1>
+  </app-page-header>
+
+  <form>
+    <div class="form-group">
+      <label for="benchmark">Benchmark</label>
+      <select *ngIf="benchmarks" class="form-control" id="benchmark" required [title]="selectedBenchmark ? selectedBenchmark.description : ''"
+        [ngModel]="configModel.benchmark" (ngModelChange)="onChangeBenchmark($event)" name="benchmark">
+        <option *ngFor="let b of benchmarks" [value]="b.id" [title]="b.description">{{b.name}}</option>
+      </select>
+    </div>
+  </form>
+
+  <div *ngIf="selectedBenchmark">
+    <app-page-header>
+      <h2>Results</h2>
+    </app-page-header>
+
+    <app-experiments-details [benchmarkId]="selectedBenchmark.id" [excludeErrors]=true [distinctBySystem]=true [limit]=7>
+    </app-experiments-details>
+  </div>
+</div>

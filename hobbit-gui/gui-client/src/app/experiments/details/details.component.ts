@@ -19,7 +19,19 @@ export class DetailsComponent implements OnInit, OnChanges {
   idsCommaSeparated: string;
 
   @Input()
+  benchmarkId: string;
+
+  @Input()
   challengeTaskId: string;
+
+  @Input()
+  excludeErrors: boolean;
+
+  @Input()
+  distinctBySystem: boolean;
+
+  @Input()
+  limit: number;
 
   loaded: Boolean;
   experiments: Experiment[];
@@ -34,11 +46,34 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows = null;
     this.loaded = false;
 
-    this.bs.queryExperiments(this.idsCommaSeparated, this.challengeTaskId).subscribe(data => {
+    this.bs.queryExperiments(this.idsCommaSeparated, this.benchmarkId, this.challengeTaskId).subscribe(data => {
       this.experiments = data;
 
       if (this.experiments == null)
         this.router.navigateByUrl('404', { skipLocationChange: true });
+
+      // FIXME: should be server-side
+      if (this.excludeErrors) {
+        this.experiments = this.experiments.filter(experiment => experiment.error === undefined);
+      }
+
+      // FIXME: should be server-side
+      if (this.distinctBySystem) {
+        // sort experiments by date
+        this.experiments = this.experiments.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+        // use only one experiment from each system
+        const systemAmount = {};
+        this.experiments = this.experiments.filter(experiment => {
+          systemAmount[experiment.system.id] = (systemAmount[experiment.system.id] || 0) + 1;
+          return systemAmount[experiment.system.id] === 1;
+        });
+      }
+
+      // FIXME: should be server-side
+      if (this.limit) {
+        console.log("limit " + this.limit);
+        this.experiments = this.experiments.slice(0, this.limit);
+      }
 
       if (this.experiments.length !== 0)
         this.buildTableRows();

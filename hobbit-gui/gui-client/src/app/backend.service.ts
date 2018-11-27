@@ -71,10 +71,12 @@ export class BackendService {
     return this.http.get(`BACKEND/rest/experiments/count-by-challenge/${encodeURIComponent(challengeId)}`).map(res => plainToClass(ExperimentCount, res));
   }
 
-  queryExperiments(ids?: string, challengeTaskId?: string): Observable<Experiment[]> {
+  queryExperiments(ids?: string, benchmarkId?: string, challengeTaskId?: string): Observable<Experiment[]> {
     let params = new HttpParams();
     if (ids)
       params = params.set('id', ids);
+    if (benchmarkId)
+      params = params.set('benchmark-id', benchmarkId);
     if (challengeTaskId)
       params = params.set('challenge-task-id', challengeTaskId);
     return this.http.get('BACKEND/rest/experiments/query', { params: params }).map(res => plainToClass(Experiment, res));
