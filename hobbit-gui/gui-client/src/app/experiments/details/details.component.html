@@ -2,49 +2,56 @@
   <div *ngIf="!rows">
     <p>No experiment results found</p>
   </div>
-  <div *ngIf="rows">
-    <div class="row">
-      <div class="col-md-12">
-        <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true" rowGroupMode="subheader" groupField="group"
-          expandableRowGroups="true" [expandedRowsGroups]="['Experiment', 'Parameter', 'KPIs', 'Logs']" [sortableRowGroup]="false">
-          <ng-template pTemplate="rowgroupheader" let-rowData>
-            <strong>{{rowData.group}}</strong>
-          </ng-template>
-          <p-column header="Experiment ID" styleClass="dataTableWrapping">
-            <ng-template let-row="rowData" pTemplate="body">
-              <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
-            </ng-template>
-          </p-column>
-          <p-column *ngFor="let ex of experiments; let i = index" styleClass="dataTableWrapping">
-            <ng-template pTemplate="header">
-              <span title="Experiment ID">{{ex.id}}</span>
-            </ng-template>
-            <ng-template pTemplate="body" let-row="rowData">
-              <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]; else notError" class="alert alert-danger" role="alert" [title]="row.values[i]">
-                {{row.values[i]}}
-              </div>
 
-              <ng-template #notError>
-                <div *ngIf="row.group === 'Logs'; else plots">
-                  <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'JSON')">JSON</button>
-                  <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'CSV')">CSV</button>
-                  <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'TXT')">TXT</button>
+  <p-tabView *ngIf="rows">
+    <p-tabPanel header="Details">
+      <div class="row">
+        <div class="col-md-12">
+          <p-dataTable [value]="rows" resizableColumns="true" reorderableColumns="true" rowGroupMode="subheader" groupField="group"
+            expandableRowGroups="true" [expandedRowsGroups]="['Experiment', 'Parameter', 'KPIs', 'Logs']" [sortableRowGroup]="false">
+            <ng-template pTemplate="rowgroupheader" let-rowData>
+              <strong>{{rowData.group}}</strong>
+            </ng-template>
+            <p-column header="Experiment ID" styleClass="dataTableWrapping">
+              <ng-template let-row="rowData" pTemplate="body">
+                <span *ngIf="row.kpiSample" [title]="row.kpiSample.description ? row.kpiSample.description : ''">{{row.kpiSample.name}}</span>
+              </ng-template>
+            </p-column>
+            <p-column *ngFor="let ex of details; let i = index" styleClass="dataTableWrapping">
+              <ng-template pTemplate="header">
+                <span title="Experiment ID">{{ex.id}}</span>
+              </ng-template>
+              <ng-template pTemplate="body" let-row="rowData">
+                <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]; else notError" class="alert alert-danger" role="alert" [title]="row.values[i]">
+                  {{row.values[i]}}
                 </div>
 
-                <ng-template #plots>
-                  <div *ngIf="row.group === 'Plots'; else defaultStyle">
-                    <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                <ng-template #notError>
+                  <div *ngIf="row.group === 'Logs'; else plots">
+                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'JSON')">JSON</button>
+                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'CSV')">CSV</button>
+                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'TXT')">TXT</button>
                   </div>
 
-                  <ng-template #defaultStyle>
-                    <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+                  <ng-template #plots>
+                    <div *ngIf="row.group === 'Plots'; else defaultStyle">
+                      <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                    </div>
+
+                    <ng-template #defaultStyle>
+                      <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
+                    </ng-template>
                   </ng-template>
                 </ng-template>
               </ng-template>
-            </ng-template>
-          </p-column>
-        </p-dataTable>
+            </p-column>
+          </p-dataTable>
+        </div>
       </div>
-    </div>
-  </div>
+    </p-tabPanel>
+    <p-tabPanel *ngIf="comparable" header="Plots">
+      <app-experiment-compare [experiments]="experiments">
+      </app-experiment-compare>
+    </p-tabPanel>
+  </p-tabView>
 </div>

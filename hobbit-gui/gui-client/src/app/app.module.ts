@@ -14,7 +14,7 @@ import { RouterModule, Routes, Router } from '@angular/router';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { SlimLoadingBarModule, SlimLoadingBarService } from 'ng2-slim-loading-bar';
 import { ModalModule } from 'ngx-bootstrap/modal';
-import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule, MessagesModule } from 'primeng/primeng';
+import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModule, MessagesModule, TabViewModule } from 'primeng/primeng';
 import { MessageService } from 'primeng/components/common/messageservice';
 import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar/navbar.component';
@@ -39,6 +39,7 @@ import { LeaderboardsComponent } from './challenges/leaderboards/leaderboards.co
 import { LeaderboardDetailsComponent } from './challenges/leaderboards/details/details.component';
 import { ViewComponent } from './benchmark/status/view/view.component';
 import { RoundProgressModule } from 'angular-svg-round-progressbar';
+import { CompareComponent } from './experiments/details/compare/compare.component';
 import { PlotComponent } from './experiments/details/plot/plot.component';
 import { BackButtonComponent } from './common/back-button.component';
 
@@ -118,6 +119,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     LeaderboardDetailsComponent,
     StatusComponent,
     ViewComponent,
+    CompareComponent,
     PlotComponent,
     BackButtonComponent
   ],
@@ -134,6 +136,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     CalendarModule,
     ConfirmDialogModule,
     MessagesModule,
+    TabViewModule,
     RoundProgressModule
   ],
   providers: [

@@ -35,7 +35,9 @@ export class DetailsComponent implements OnInit, OnChanges {
 
   loaded: Boolean;
   experiments: Experiment[];
+  details: Experiment[];
   rows: TableRow[];
+  comparable: boolean;
 
   constructor(private bs: BackendService, private router: Router) { }
 
@@ -43,7 +45,10 @@ export class DetailsComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
+    this.comparable = null;
     this.rows = null;
+    this.experiments = null;
+    this.details = null;
     this.loaded = false;
 
     this.bs.queryExperiments(this.idsCommaSeparated, this.benchmarkId, this.challengeTaskId).subscribe(data => {
@@ -57,13 +62,14 @@ export class DetailsComponent implements OnInit, OnChanges {
         this.experiments = this.experiments.filter(experiment => experiment.error === undefined);
       }
 
-      // FIXME: should be server-side
+      this.details = this.experiments;
+
       if (this.distinctBySystem) {
         // sort experiments by date
-        this.experiments = this.experiments.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
+        this.details = this.details.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
         // use only one experiment from each system
         const systemAmount = {};
-        this.experiments = this.experiments.filter(experiment => {
+        this.details = this.details.filter(experiment => {
           systemAmount[experiment.system.id] = (systemAmount[experiment.system.id] || 0) + 1;
           return systemAmount[experiment.system.id] === 1;
         });
@@ -71,11 +77,14 @@ export class DetailsComponent implements OnInit, OnChanges {
 
       // FIXME: should be server-side
       if (this.limit) {
-        this.experiments = this.experiments.slice(0, this.limit);
+        this.details = this.details.slice(0, this.limit);
       }
 
-      if (this.experiments.length !== 0)
-        this.buildTableRows(this.experiments);
+      if (this.details.length !== 0)
+        this.buildTableRows(this.details);
+
+      this.comparable = this.experiments.length > 1
+          && new Set(this.experiments.map(experiment => experiment.benchmark.id)).size === 1;
     });
     this.loaded = true;
   }
