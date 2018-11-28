@@ -75,16 +75,16 @@ export class DetailsComponent implements OnInit, OnChanges {
       }
 
       if (this.experiments.length !== 0)
-        this.buildTableRows();
+        this.buildTableRows(this.experiments);
     });
     this.loaded = true;
   }
 
-  private buildTableRows() {
+  private buildTableRows(experiments) {
     const kpiSamples = {};
     const experimentParameterSamples = {};
 
-    for (const ex of this.experiments) {
+    for (const ex of experiments) {
       for (const bp of ex.benchmark.configurationParamValues) {
         if (!experimentParameterSamples[bp.id])
           experimentParameterSamples[bp.id] = bp;
@@ -101,7 +101,7 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows.push(this.buildRow('Experiment', 'System', 'The system evaluated', t => DetailsComponent.safeNameAndDescription(t.system)));
     this.rows.push(this.buildRow('Experiment', 'Challenge Task', 'The challenge task performed', t => DetailsComponent.safeNameAndDescription(t.challengeTask)));
 
-    if (this.experiments.some(experiment => experiment.error !== undefined)) {
+    if (experiments.some(experiment => experiment.error !== undefined)) {
       this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
     }
 
@@ -125,7 +125,7 @@ export class DetailsComponent implements OnInit, OnChanges {
 
 
     const diagrams = {};
-    for (const ex of this.experiments) {
+    for (const ex of experiments) {
       for (const diag of ex.diagrams) {
         diagrams[diag.name] = diag.description;
       }
