@@ -60,7 +60,7 @@ export class DetailsComponent implements OnInit, OnChanges {
       // FIXME: should be server-side
       if (this.distinctBySystem) {
         // sort experiments by date
-        this.experiments = this.experiments.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+        this.experiments = this.experiments.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
         // use only one experiment from each system
         const systemAmount = {};
         this.experiments = this.experiments.filter(experiment => {
@@ -71,7 +71,6 @@ export class DetailsComponent implements OnInit, OnChanges {
 
       // FIXME: should be server-side
       if (this.limit) {
-        console.log("limit " + this.limit);
         this.experiments = this.experiments.slice(0, this.limit);
       }
 
