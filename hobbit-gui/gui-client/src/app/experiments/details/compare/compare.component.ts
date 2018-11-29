@@ -80,8 +80,21 @@ export class CompareComponent implements OnInit {
         },
       };
       if ([
-        'xsd:unsignedInt',
+        'xsd:byte',
+        'xsd:decimal',
         'xsd:double',
+        'xsd:int',
+        'xsd:integer',
+        'xsd:long',
+        'xsd:negativeInteger',
+        'xsd:nonNegativeInteger',
+        'xsd:nonPositiveInteger',
+        'xsd:positiveInteger',
+        'xsd:short',
+        'xsd:unsignedByte',
+        'xsd:unsignedInt',
+        'xsd:unsignedLong',
+        'xsd:unsignedShort',
       ].indexOf(this.selectedParameter.datatype) === -1) {
         Object.assign(xAxis, {
           labels: Array.from(new Set(this.experiments.map(experiment => (experiment.benchmark.configurationParamValues.find(p => p.id === this.selectedParameter.id) || {value: undefined}).value))),
