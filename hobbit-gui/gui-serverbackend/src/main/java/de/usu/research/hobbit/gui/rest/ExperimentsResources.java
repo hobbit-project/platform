@@ -169,7 +169,7 @@ public class ExperimentsResources {
             } else if (benchmarkId != null) {
                 LOGGER.debug("Querying experiment results for benchmark " + benchmarkId);
                 // create experiment URI from public results graph
-                String query = SparqlQueries.getExperimentGraphOfBenchmarksQuery(Arrays.asList(benchmarkId),
+                String query = SparqlQueries.getExperimentGraphOfBenchmarkQuery(benchmarkId,
                         Constants.PUBLIC_RESULT_GRAPH_URI);
                 // get public experiment
                 Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
