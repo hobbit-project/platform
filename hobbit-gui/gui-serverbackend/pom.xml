@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- This file is part of gui-serverbackend. gui-serverbackend is free software: 
-    you can redistribute it and/or modify it under the terms of the GNU General 
-    Public License as published by the Free Software Foundation, either version 
-    3 of the License, or (at your option) any later version. gui-serverbackend 
-    is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-    without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-    PURPOSE. See the GNU General Public License for more details. You should 
-    have received a copy of the GNU General Public License along with gui-serverbackend. 
+<!-- This file is part of gui-serverbackend. gui-serverbackend is free software:
+    you can redistribute it and/or modify it under the terms of the GNU General
+    Public License as published by the Free Software Foundation, either version
+    3 of the License, or (at your option) any later version. gui-serverbackend
+    is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+    without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+    PURPOSE. See the GNU General Public License for more details. You should
+    have received a copy of the GNU General Public License along with gui-serverbackend.
     If not, see <http://www.gnu.org/licenses/>. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -57,7 +57,7 @@
             <groupId>org.glassfish.jersey.containers</groupId>
             <!-- use the following artifactId if you need servlet 2.x compatibility -->
             <!--<artifactId>jersey-container-servlet-core</artifactId> -->
-            <!-- use the following artifactId if you don't need servlet 2.x 
+            <!-- use the following artifactId if you don't need servlet 2.x
                 compatibility -->
             <artifactId>jersey-container-servlet</artifactId>
         </dependency>
@@ -88,7 +88,7 @@
             <artifactId>elasticsearch-rest-client</artifactId>
             <version>6.1.1</version>
         </dependency>
-        <!-- JAXB dependency - necessary to work with Java 9 
+        <!-- JAXB dependency - necessary to work with Java 9
         <dependency>
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
@@ -200,8 +200,8 @@
                         </jettyXml>
                     </configuration>
                     <dependencies>
-                        <!-- The original dependency that was replaced by 
-                            our workaround <dependency> <groupId>org.keycloak</groupId> <artifactId>keycloak-jetty93-adapter</artifactId> 
+                        <!-- The original dependency that was replaced by
+                            our workaround <dependency> <groupId>org.keycloak</groupId> <artifactId>keycloak-jetty93-adapter</artifactId>
                             <version>${keycloak.version}</version> </dependency> -->
                         <dependency>
                             <groupId>org.hobbit</groupId>
@@ -210,7 +210,7 @@
                         </dependency>
                     </dependencies>
                 </plugin>
-                <!--This plugin's configuration is used to store Eclipse 
+                <!--This plugin's configuration is used to store Eclipse
                     m2e settings only. It has no influence on the Maven build itself. -->
                 <plugin>
                     <groupId>org.eclipse.m2e</groupId>
@@ -262,8 +262,8 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <!-- for "HowTo use https / ssl with Maven Jetty Plugin?" 
-                        see http://stackoverflow.com/questions/3794892/howto-use-https-ssl-with-maven-mortbay-jetty-plugin 
+                    <!-- for "HowTo use https / ssl with Maven Jetty Plugin?"
+                        see http://stackoverflow.com/questions/3794892/howto-use-https-ssl-with-maven-mortbay-jetty-plugin
                         and http://www.eclipse.org/jetty/documentation/current/jetty-maven-plugin.html -->
                     <keystore>${project.build.directory}/jetty-ssl.keystore</keystore>
                     <dname>cn=127.0.0.1</dname><!-- put your CN here -->

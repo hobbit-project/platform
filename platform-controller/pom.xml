@@ -43,7 +43,7 @@
             <groupId>org.hobbit</groupId>
             <artifactId>core</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
@@ -132,7 +132,7 @@
         </dependency>
         <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
     </dependencies>
-    
+
     <dependencyManagement>
         <dependencies>
             <!-- Necessary to force Maven to choose the latest jackson version -->
@@ -212,7 +212,7 @@
                 <directory>src/main/resources</directory>
             </resource>
             <resource>
-                <!-- Note that the properties files will be filtered. If mvn finds known 
+                <!-- Note that the properties files will be filtered. If mvn finds known
                     place holders they will be replaced -->
                 <directory>src/main/filtered</directory>
                 <filtering>true</filtering>
