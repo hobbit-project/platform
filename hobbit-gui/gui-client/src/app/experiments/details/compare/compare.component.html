@@ -1,0 +1,22 @@
+<form>
+  <div class="form-group">
+    <label for="parameters">Parameter</label>
+    <select class="form-control" id="parameters" required [title]="selectedParameter ? selectedParameter.description : ''"
+      [ngModel]="configModel.parameter" (ngModelChange)="onChangeParameter($event)" name="parameters">
+      <option *ngFor="let p of parameters" [value]="p.id" [title]="p.description">{{p.name}}</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="kpis">KPI</label>
+    <select class="form-control" id="kpis" required [title]="selectedKPI ? selectedKPI.description : ''"
+      [ngModel]="configModel.kpi" (ngModelChange)="onChangeKPI($event)" name="kpis">
+      <option *ngFor="let k of kpis" [value]="k.id" [title]="k.description">{{k.name}}</option>
+    </select>
+  </div>
+</form>
+
+<div style="overflow-x: scroll;">
+  <canvas #canvas width="600" height="400">
+  </canvas>
+</div>

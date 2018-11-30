@@ -19,11 +19,25 @@ export class DetailsComponent implements OnInit, OnChanges {
   idsCommaSeparated: string;
 
   @Input()
+  benchmarkId: string;
+
+  @Input()
   challengeTaskId: string;
+
+  @Input()
+  excludeErrors: boolean;
+
+  @Input()
+  distinctBySystem: boolean;
+
+  @Input()
+  limit: number;
 
   loaded: Boolean;
   experiments: Experiment[];
+  details: Experiment[];
   rows: TableRow[];
+  comparable: boolean;
 
   constructor(private bs: BackendService, private router: Router) { }
 
@@ -31,26 +45,55 @@ export class DetailsComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
+    this.comparable = null;
     this.rows = null;
+    this.experiments = null;
+    this.details = null;
     this.loaded = false;
 
-    this.bs.queryExperiments(this.idsCommaSeparated, this.challengeTaskId).subscribe(data => {
+    this.bs.queryExperiments(this.idsCommaSeparated, this.benchmarkId, this.challengeTaskId).subscribe(data => {
       this.experiments = data;
 
       if (this.experiments == null)
         this.router.navigateByUrl('404', { skipLocationChange: true });
 
-      if (this.experiments.length !== 0)
-        this.buildTableRows();
+      // FIXME: should be server-side
+      if (this.excludeErrors) {
+        this.experiments = this.experiments.filter(experiment => experiment.error === undefined);
+      }
+
+      this.details = this.experiments;
+
+      if (this.distinctBySystem) {
+        // sort experiments by date
+        this.details = this.details.sort((a, b) => parseInt(b.id, 10) - parseInt(a.id, 10));
+        // use only one experiment from each system
+        const systemAmount = {};
+        this.details = this.details.filter(experiment => {
+          systemAmount[experiment.system.id] = (systemAmount[experiment.system.id] || 0) + 1;
+          return systemAmount[experiment.system.id] === 1;
+        });
+      }
+
+      // FIXME: should be server-side
+      if (this.limit) {
+        this.details = this.details.slice(0, this.limit);
+      }
+
+      if (this.details.length !== 0)
+        this.buildTableRows(this.details);
+
+      this.comparable = this.experiments.length > 1
+          && new Set(this.experiments.map(experiment => experiment.benchmark.id)).size === 1;
     });
     this.loaded = true;
   }
 
-  private buildTableRows() {
+  private buildTableRows(experiments) {
     const kpiSamples = {};
     const experimentParameterSamples = {};
 
-    for (const ex of this.experiments) {
+    for (const ex of experiments) {
       for (const bp of ex.benchmark.configurationParamValues) {
         if (!experimentParameterSamples[bp.id])
           experimentParameterSamples[bp.id] = bp;
@@ -66,7 +109,10 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows.push(this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => DetailsComponent.safeNameAndDescription(t.benchmark)));
     this.rows.push(this.buildRow('Experiment', 'System', 'The system evaluated', t => DetailsComponent.safeNameAndDescription(t.system)));
     this.rows.push(this.buildRow('Experiment', 'Challenge Task', 'The challenge task performed', t => DetailsComponent.safeNameAndDescription(t.challengeTask)));
-    this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
+
+    if (experiments.some(experiment => experiment.error !== undefined)) {
+      this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
+    }
 
     for (const key of Object.keys(experimentParameterSamples)) {
       const bp = experimentParameterSamples[key];
@@ -88,14 +134,13 @@ export class DetailsComponent implements OnInit, OnChanges {
 
 
     const diagrams = {};
-    for (const ex of this.experiments) {
+    for (const ex of experiments) {
       for (const diag of ex.diagrams) {
         diagrams[diag.name] = diag.description;
       }
     }
     for (let i = 0; i < Object.keys(diagrams).length; i++) {
       const name = Object.keys(diagrams)[i];
-      console.log(name);
       const row = this.buildRow('Plots', name, diagrams[name], e => {
         const res = e.diagrams.find(d => d.name === name);
         return [res, name];

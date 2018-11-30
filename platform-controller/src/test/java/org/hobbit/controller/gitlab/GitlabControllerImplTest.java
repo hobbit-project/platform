@@ -19,6 +19,7 @@ package org.hobbit.controller.gitlab;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Property;
@@ -28,7 +29,9 @@ import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -90,15 +93,31 @@ public class GitlabControllerImplTest {
         // wait for controller to fetch projects
     }
 
-    //@Test
-    //public void getAllProjects() throws InterruptedException {
-    //    controller.startFetchingProjects();
-    //    Thread.sleep(20000);
-    //    List<Project> projects = controller.getAllProjects();
-    //    System.out.println(projects);
-    //    assert(!projects.isEmpty());
-    //    assert(projects.size() > 10);
-    //}
+    @Test
+    public void getAllProjects() {
+        controller.fetchProjects();
+        List<Project> projects = controller.getAllProjects();
+
+        assertFalse("Projects are empty", projects.isEmpty());
+        assertTrue("There are more than 10 projects", projects.size() > 10);
+    }
+
+    @Test
+    public void getProjectsOfUnknownUser() throws IOException {
+        Set<String> projects = controller.getProjectsOfUser("nonexisting@example.com");
+        assertEquals("Empty project list for unknown user", 0, projects.size());
+    }
+
+    /* this only works when gitlab credentials are configured
+    @Test
+    public void getProjectsOfRegularUser() throws IOException {
+        int rs = controller.getProjectsOfUser("gerbil@informatik.uni-leipzig.de").size();
+        assertTrue("Non-empty project list for regular user (" + rs + ")", rs > 0);
+
+        int as = controller.getProjectsOfUser("gitadmin@project-hobbit.eu").size();
+        assertTrue("Non-empty project list for admin user (" + as + ")", as > 0);
+    }
+    */
 
     @Test
     public void gitlabToProject() {

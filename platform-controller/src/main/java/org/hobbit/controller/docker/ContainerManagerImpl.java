@@ -224,6 +224,8 @@ public class ContainerManagerImpl implements ContainerManager {
             return;
         }
 
+        LOGGER.info("Pulling the image \"{}\"", imageName);
+
         ServiceSpec.Builder serviceCfgBuilder = ServiceSpec.builder();
         TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
         ContainerSpec.Builder cfgBuilder = ContainerSpec.builder();
@@ -274,6 +276,7 @@ public class ContainerManagerImpl implements ContainerManager {
                 resp = dockerClient.createService(serviceCfg, nullAuth);
             }
             String serviceId = resp.id();
+            LOGGER.info("Pulling service id: {}", serviceId);
 
             // create a set to collect the tasks of nodes that have finished the pulling
             final Set<String> finshedTaskIds = Collections.synchronizedSet(new HashSet<String>());
@@ -295,7 +298,7 @@ public class ContainerManagerImpl implements ContainerManager {
                         }
                     }
                     if (finshedTaskIds.size() >= totalNodes) {
-                        LOGGER.info("Swarm pulled image '{}' ({})", imageName,
+                        LOGGER.info("Swarm pulled the image \"{}\" ({})", imageName,
                                 pullingTasks.stream().map(t -> t.status().state()).collect(Collectors.joining(", ")));
                         return true;
                     } else {
@@ -489,10 +492,12 @@ public class ContainerManagerImpl implements ContainerManager {
             }, DOCKER_POLL_INTERVAL);
             String taskId = serviceTasks.get(0).id();
             // return new container id
+            LOGGER.info("Container {} created", taskId);
             return taskId;
         } catch (Exception e) {
             if (serviceId != null) {
                 try {
+                    LOGGER.info("Removing service {} which didn't cleanly start", serviceId);
                     dockerClient.removeService(serviceId);
                 } catch (Exception cleanupE) {
                     LOGGER.error("Couldn't remove service {} which didn't cleanly start", serviceId, cleanupE);
