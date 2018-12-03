@@ -109,7 +109,7 @@ public class ExperimentQueueImpl implements ExperimentQueue, Closeable {
     }
 
     @Override
-    public void add(ExperimentConfiguration experiment) {
+    public void add(ExperimentConfiguration experiment){
         Gson gson = new Gson();
         String typeKey, queueKey;
         if ((experiment.challengeUri != null) && (experiment.challengeTaskUri != null)) {

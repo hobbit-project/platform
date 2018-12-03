@@ -28,6 +28,7 @@ import java.util.List;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.gson.Gson;
@@ -133,7 +134,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
     }
 
     @Test
-    public void addThenNextTest() {
+    public void addThenNextTest(){
         // create test config
         ExperimentConfiguration cfg = new ExperimentConfiguration();
         cfg.id = "1";
@@ -156,6 +157,7 @@ public class ExperimentQueueImplTest extends RedisBasedTest {
         next = queue.getNextExperiment();
         assertNull(next);
     }
+
 
     @After
     public void close() {

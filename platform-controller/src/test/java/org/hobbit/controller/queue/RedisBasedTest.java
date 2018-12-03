@@ -33,7 +33,7 @@ public class RedisBasedTest {
 
     @Before
     public void initRedis() {
-        // init redis redisConnection
+        // setAsEnvVariables redis redisConnection
         redisClient = RedisClient.create("redis://localhost");
         redisConnection = redisClient.connect();
         redisSyncCommands = redisConnection.sync();

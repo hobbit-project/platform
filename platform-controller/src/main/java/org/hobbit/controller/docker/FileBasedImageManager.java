@@ -35,9 +35,9 @@ import org.slf4j.LoggerFactory;
 
 public class FileBasedImageManager implements ImageManager {
 
+    public static final String FILE_BASED_IMAGE_MANAGER_FOLDER_KEY = "FILE_BASED_IMAGE_MANAGER_FOLDER";
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedImageManager.class);
-
-    private static final String DEFAULT_DEF_FOLDER = "metadata";
+    private static final String DEFAULT_DEF_FOLDER = "config/metadata";
     private static final Date DEFAULT_DATE = new Date(0);
 
     private final String inputFolder;
@@ -49,12 +49,13 @@ public class FileBasedImageManager implements ImageManager {
     private List<SystemMetaData> systems = Collections.EMPTY_LIST;
 
     public FileBasedImageManager() {
-        this(DEFAULT_DEF_FOLDER);
+        this((System.getenv().containsKey(FILE_BASED_IMAGE_MANAGER_FOLDER_KEY) ?  System.getenv().get(FILE_BASED_IMAGE_MANAGER_FOLDER_KEY) : DEFAULT_DEF_FOLDER));
+
     }
 
     public FileBasedImageManager(String inputFolder) {
         this.inputFolder = inputFolder;
-        timer = new Timer();
+        this.timer = new Timer();
         startFetchingFiles();
     }
 

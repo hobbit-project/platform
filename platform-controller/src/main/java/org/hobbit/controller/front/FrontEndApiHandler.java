@@ -101,7 +101,7 @@ public class FrontEndApiHandler extends DataReceiverImpl {
          * 
          * @param controller
          *            the platform controller that is called if data is incoming
-         * @return this builder instance
+         * @return this stacksBuilder instance
          */
         public Builder platformController(PlatformController controller) {
             this.controller = controller;
@@ -113,7 +113,7 @@ public class FrontEndApiHandler extends DataReceiverImpl {
          * 
          * @param queue
          *            the queue that is used to receive data
-         * @return this builder instance
+         * @return this stacksBuilder instance
          */
         public Builder queue(RabbitQueue queue) {
             this.queue = queue;
@@ -129,7 +129,7 @@ public class FrontEndApiHandler extends DataReceiverImpl {
          *            the queue factory used to create a queue
          * @param queueName
          *            the name of the newly created queue
-         * @return this builder instance
+         * @return this stacksBuilder instance
          */
         public Builder queue(RabbitQueueFactory factory, String queueName) {
             this.factory = factory;
@@ -144,7 +144,7 @@ public class FrontEndApiHandler extends DataReceiverImpl {
          * @param maxParallelProcessedMsgs
          *            the maximum number of incoming messages that are processed in
          *            parallel
-         * @return this builder instance
+         * @return this stacksBuilder instance
          */
         public Builder maxParallelProcessedMsgs(int maxParallelProcessedMsgs) {
             this.maxParallelProcessedMsgs = maxParallelProcessedMsgs;

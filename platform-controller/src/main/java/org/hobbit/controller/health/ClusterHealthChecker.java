@@ -18,7 +18,7 @@ package org.hobbit.controller.health;
 
 /**
  * A class implementing this interface is able to check whether all given nodes
- * are part of the Docker Swarm cluster.
+ * are part of the Docker Swarm interfaces.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *

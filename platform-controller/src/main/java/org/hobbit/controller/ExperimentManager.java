@@ -19,21 +19,16 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 
+import com.spotify.docker.client.messages.Volume;
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.rdf.model.Model;
-import org.apache.jena.rdf.model.NodeIterator;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.ResIterator;
-import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.*;
+import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.vocabulary.RDF;
+import org.hobbit.controller.docker.CloudClusterManager;
 import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
@@ -56,6 +51,8 @@ import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.exceptions.DockerException;
 
+import static org.hobbit.controller.docker.DockerUtility.getDockerClient;
+
 /**
  * This class encapsulates (and synchronizes) all methods that are applied on a
  * running experiment.
@@ -66,6 +63,8 @@ import com.spotify.docker.client.exceptions.DockerException;
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
     private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
+    public static final String MAX_EXECUTION_TIME_KEY = "MAX_EXECUTION_TIME";
+
 
     /**
      * Time interval the experiment manager waits before it checks for the an
@@ -82,7 +81,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Default time an experiment has to terminate after it has been started.
      */
-    public long defaultMaxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
+    public long defaultMaxExecutionTime;
     /**
      * The controller this manager belongs to.
      */
@@ -101,6 +100,8 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     private Timer expStartTimer;
+    private String systemTaskId;
+    private Volume systemAdapterVolume;
 
     public ExperimentManager(PlatformController controller) {
         this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
@@ -113,8 +114,9 @@ public class ExperimentManager implements Closeable {
         try {
             // TODO environment variable should have been used there
             // TODO global static method in hobbit core for retrieving values like this
-            defaultMaxExecutionTime = Long
-                    .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+            defaultMaxExecutionTime = (System.getenv().containsKey(MAX_EXECUTION_TIME_KEY) ? Long
+                    .parseLong(System.getenv().get(MAX_EXECUTION_TIME_KEY)):DEFAULT_MAX_EXECUTION_TIME);
+
         } catch (Exception e) {
             LOGGER.debug("Could not get execution time from env, using default value..");
         }
@@ -142,7 +144,7 @@ public class ExperimentManager implements Closeable {
      * Creates the next experiment if there is no experiment running and there is an
      * experiment waiting in the queue.
      */
-    public void createNextExperiment() {
+    public void createNextExperiment(){
         try {
             experimentMutex.acquire();
         } catch (InterruptedException e) {
@@ -151,26 +153,55 @@ public class ExperimentManager implements Closeable {
         }
         try {
             // if there is no benchmark running, the queue has been
-            // initialized and cluster is healthy
+            // initialized and interfaces is healthy
+
+            //ResourceUsageInformation su = controller.getResInfoCollector().getSystemUsageInformation();
             if ((experimentStatus == null) && (controller.queue != null)) {
                 ClusterManager clusterManager = this.controller.clusterManager;
-                boolean isClusterHealthy = clusterManager.isClusterHealthy();
-                if(!isClusterHealthy) {
-                    LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
-                                 "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
-                                 " Expected number of nodes: "+clusterManager.getExpectedNumberOfNodes()+
-                                 " Current number of nodes: "+clusterManager.getNumberOfNodes());
+
+                if(clusterManager instanceof CloudClusterManager)
+                    ((CloudClusterManager) clusterManager).reactOnQueue(controller.queue);
+
+
+                if(controller.queue.listAll().size()==0)
                     return;
-                }
+
+
                 ExperimentConfiguration config = controller.queue.getNextExperiment();
                 LOGGER.debug("Trying to start the next benchmark.");
                 if (config == null) {
                     LOGGER.debug("There is no experiment to start.");
                     return;
                 }
+
+
+                if(!(clusterManager instanceof CloudClusterManager) && !clusterManager.isClusterHealthy()) {
+                    LOGGER.error("Can not start next experiment in the queue, cluster is NOT HEALTHY. " +
+                            "Check your cluster consistency or adjust SWARM_NODE_NUMBER environment variable." +
+                            " Expected number of nodes: " + clusterManager.getExpectedNumberOfNodes() +
+                            " Current number of nodes: " + clusterManager.getNumberOfNodes());
+                    return;
+                }
+
+
                 LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                         + " and system " + config.systemUri + " to the queue.");
+
                 experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id));
+
+                if(clusterManager instanceof CloudClusterManager){
+                    CloudClusterManager cloudClusterManager = (CloudClusterManager)clusterManager;
+                    String clusterConfiguration = getClusterConfiguration(config);
+                    try {
+                        experimentStatus.setState(States.CLOUD_RESOURCES_PREPARATION);
+                        cloudClusterManager.createCluster(clusterConfiguration);
+                        experimentStatus.setState(States.PREPARATION);
+                    }
+                    catch (Exception e) {
+                        LOGGER.error("Could not create cluster: {}",e.getLocalizedMessage());
+                        return;
+                    }
+                }
 
                 BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                 if ((benchmark == null) || (benchmark.mainImage == null)) {
@@ -225,13 +256,14 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.startAbortionTimer(this, maxExecutionTime);
                 experimentStatus.setState(States.INIT);
 
+                String serializedBenchmarkParams = getSerializedBenchmarkParams(config, benchmark);
                 LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
                 String containerId = controller.containerManager.startContainer(benchmark.mainImage,
                         Constants.CONTAINER_TYPE_BENCHMARK, null,
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
-                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
+                                Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + serializedBenchmarkParams /*config.serializedBenchParams*/,
                                 Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
                         null, config.id);
                 if (containerId == null) {
@@ -242,19 +274,22 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.setBenchmarkContainer(containerId);
 
                 LOGGER.info("Creating system " + system.mainImage);
+
                 String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
-                containerId = controller.containerManager.startContainer(system.mainImage,
+                systemAdapterVolume = getDockerClient().createVolume();
+                systemTaskId = controller.containerManager.startContainer(system.mainImage,
                         Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                        null, config.id);
-                if (containerId == null) {
+                        null, config.id, new String[]{ systemAdapterVolume.name()+":/share" });
+
+                if (systemTaskId == null) {
                     LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
                     throw new Exception("Couldn't start the system " + config.systemUri);
                 } else {
-                    experimentStatus.setSystemContainer(containerId);
+                    experimentStatus.setSystemContainer(systemTaskId);
                 }
             }
         } catch (Exception e) {
@@ -269,19 +304,49 @@ public class ExperimentManager implements Closeable {
         }
     }
 
+    protected static String getSerializedBenchmarkParams(ExperimentConfiguration config, BenchmarkMetaData benchmark) {
+
+
+        Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
+        Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
+        Property defaultValProperty = benchmark.rdfModel.getProperty("http://w3id.org/hobbit/vocab#defaultValue");
+        if (benchmark.rdfModel.contains(null, RDF.type, HOBBIT.Parameter)){
+
+            // Get an iterator for all these parameters
+            ResIterator iterator = benchmark.rdfModel.listResourcesWithProperty(RDF.type, HOBBIT.Parameter);
+            while (iterator.hasNext()) {
+                // Get the parameter
+                Property parameter = benchParams.getProperty(((Resource)iterator.next()).getURI());
+                NodeIterator benchParamValue = benchParams.listObjectsOfProperty(experiment, parameter);
+                if(!benchParamValue.hasNext()){
+
+                    NodeIterator defaultParamValue = benchmark.rdfModel.listObjectsOfProperty(parameter, defaultValProperty);
+                    while (defaultParamValue.hasNext()) {
+                        Literal valueLiteral = (Literal) defaultParamValue.next();
+                        benchParams.add(experiment, parameter, valueLiteral.getString());
+                    }
+                }
+            }
+        }
+
+        return RabbitMQUtils.writeModel2String(benchParams);
+    }
+
     // FIXME add javadoc
     // Static method for easier testing
     protected static String getSerializedSystemParams(ExperimentConfiguration config, BenchmarkMetaData benchmark,
             SystemMetaData system) {
+
         Model systemModel = MetaDataFactory.getModelWithUniqueSystem(system.rdfModel, config.systemUri);
+        Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
+        Resource systemResource = systemModel.getResource(config.systemUri);
+        Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
+
         // Check the benchmark model for parameters that should be forwarded to the
         // system
-        if (benchmark.rdfModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)) {
-            Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
+        if (benchmark.rdfModel.contains(null, RDF.type, HOBBIT.ForwardedParameter)){
             Property parameter;
             NodeIterator objIterator;
-            Resource systemResource = systemModel.getResource(config.systemUri);
-            Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
             // Get an iterator for all these parameters
             ResIterator iterator = benchmark.rdfModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
             while (iterator.hasNext()) {
@@ -295,7 +360,45 @@ public class ExperimentManager implements Closeable {
                 }
             }
         }
+        //adding parameters from system.ttl
+        if (system.rdfModel.contains(null, RDF.type, HOBBIT.Parameter)){
+            NodeIterator objIterator;
+            // Get an iterator for all these parameters
+            Property defaultValProperty = system.rdfModel.getProperty("http://w3id.org/hobbit/vocab#defaultValue");
+            ResIterator iterator = system.rdfModel.listResourcesWithProperty(RDF.type, HOBBIT.Parameter);
+            while (iterator.hasNext()) {
+                Property parameter = system.rdfModel.getProperty(((Resource)iterator.next()).getURI());
+                objIterator = system.rdfModel.listObjectsOfProperty(parameter, defaultValProperty);
+                // If there is a value, add it to the system model
+                while (objIterator.hasNext()) {
+                    Literal valueLiteral = (Literal)objIterator.next();
+                    systemModel.add(systemResource, parameter, valueLiteral.getString());
+                    //benchParams.remove(experiment, parameter, node);
+                }
+            }
+        }
+        //config.serializedBenchParams = RabbitMQUtils.writeModel2String(benchParams);
         return RabbitMQUtils.writeModel2String(systemModel);
+    }
+
+    public static String getClusterConfiguration(ExperimentConfiguration config) {
+
+        // Check the benchmark model for parameters that should be forwarded to the
+        // system
+
+        Model benchParams = RabbitMQUtils.readModel(config.serializedBenchParams);
+
+        Property parameter;
+        //NodeIterator objIterator;
+        //Resource systemResource = systemModel.getResource(config.systemUri);
+        Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
+        NodeIterator objIterator = benchParams.listObjectsOfProperty(experiment, new PropertyImpl(config.benchmarkUri+"#clusterConfig"));
+        while (objIterator.hasNext()) {
+            String ret = objIterator.next().asLiteral().getString();
+            return ret;
+        }
+
+        return "";//RabbitMQUtils.writeModel2String(systemModel);
     }
 
     protected void prefetchImages(BenchmarkMetaData benchmark, SystemMetaData system) throws Exception {
@@ -306,6 +409,7 @@ public class ExperimentManager implements Closeable {
         usedImages.addAll(benchmark.usedImages);
         // pull all used images
         for (String image : usedImages) {
+            LOGGER.info("Prefetching image {}", image);
             controller.containerManager.pullImage(image);
         }
     }
@@ -449,8 +553,7 @@ public class ExperimentManager implements Closeable {
             if (graphUri.equals(Constants.PUBLIC_RESULT_GRAPH_URI)) {
                 try {
                     controller.analyzeExperiment(experimentStatus.experimentUri);
-                    LOGGER.info("Sent {} to the analysis component.", experimentStatus.experimentUri);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     LOGGER.error("Could not send task \"{}\" to AnalyseQueue.",
                             experimentStatus.getConfig().challengeTaskUri);
                 }
@@ -459,6 +562,14 @@ public class ExperimentManager implements Closeable {
             // controller.publishChallengeForExperiment(experimentStatus.config);
             // Remove the experiment status object
             experimentStatus = null;
+
+            if(systemAdapterVolume!=null) {
+                try {
+                    getDockerClient().removeVolume(systemAdapterVolume);
+                } catch (Exception e) {
+                    LOGGER.error("Failed to remove volume: {}", e.getLocalizedMessage());
+                }
+            }
         }
     }
 
@@ -530,7 +641,7 @@ public class ExperimentManager implements Closeable {
             // data) comprising a command that indicates that a
             // container terminated and the container name
             String containerName = controller.containerManager.getContainerName(containerId);
-            if (containerName != null) {
+            if (containerName != null){
                 try {
                     controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
                             Commands.DOCKER_CONTAINER_TERMINATED,
@@ -711,14 +822,14 @@ public class ExperimentManager implements Closeable {
      *            the id of the experiment that should be stopped
      */
     public void stopExperimentIfRunning(String experimentId) {
-        try {
-            experimentMutex.acquire();
-        } catch (InterruptedException e) {
-            LOGGER.error(
-                    "Interrupted while waiting for the experiment mutex. Won't check the experiment regarding the requested termination.",
-                    e);
-            return;
-        }
+//        try {
+//            experimentMutex.acquire();
+//        } catch (InterruptedException e) {
+//            LOGGER.error(
+//                    "Interrupted while waiting for the experiment mutex. Won't check the experiment regarding the requested termination.",
+//                    e);
+//            return false;
+//        }
         try {
             // If this is the currently running experiment
             if ((experimentStatus != null) && (experimentStatus.config.id.equals(experimentId))) {
@@ -727,11 +838,43 @@ public class ExperimentManager implements Closeable {
                     LOGGER.error("The experiment {} was stopped by the user. Forcing termination.",
                             experimentStatus.experimentUri);
                     forceBenchmarkTerminate_unsecured(HobbitErrors.TerminatedByUser);
+                    //experimentStatus.setState(States.STOPPED);
+                    handleExperimentTermination_unsecured();
                 }
             }
         } finally {
-            experimentMutex.release();
+            //experimentMutex.release();
         }
+
+    }
+
+    public String getSystemTaskId() {
+        return systemTaskId;
+    }
+
+//    public String getSystemContainerId() {
+//
+//        if(systemTaskId==null)
+//            return null;
+//        try {
+//            Task task = controller.containerManager.getContainerInfo(systemTaskId);
+//            while(task.status()==null ||
+//                  task.status().containerStatus()==null ||
+//                  task.status().containerStatus().containerId()==null){
+//                LOGGER.debug("Waiting for task status");
+//                Thread.sleep(500);
+//            }
+//            String ret = task.status().containerStatus().containerId().substring(0, 12);
+//            return ret;
+//
+//        } catch (Exception e) {
+//            LOGGER.error("Failed to get systemContainerId: {}", e.getLocalizedMessage());
+//        }
+//        return null;
+//    }
+
+    public Volume getSystemContainerVolume() {
+        return systemAdapterVolume;
     }
 
     @Override

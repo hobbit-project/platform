@@ -18,8 +18,11 @@ package org.hobbit.controller.docker;
 
 import java.util.List;
 
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.LogStream;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
 
 /**
@@ -120,7 +123,7 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command);
+            String[] command, String[] volumePaths);
 
     /**
      * Starts the container with the given image name.
@@ -143,6 +146,26 @@ public interface ContainerManager {
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, String experimentId);
 
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
+     * @param command
+     *            commands that should be executed
+     * @param experimentId
+     *            experimentId to add to GELF tag
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] command, String experimentId, String[] volumePaths);
     /**
      * Stops the container with the given container Id.
      *
@@ -244,4 +267,13 @@ public interface ContainerManager {
      *         container can not be found or an error occurs.
      */
     public ContainerStats getStats(String containerId);
+
+    public List<Service> listServices();
+
+    public Task inspectTask(String taskId);
+
+    public LogStream serviceLogs(String serviceId, DockerClient.LogsParam... params);
+
+    public boolean execAsyncCommand(String containerId, String[] command);
+
 }

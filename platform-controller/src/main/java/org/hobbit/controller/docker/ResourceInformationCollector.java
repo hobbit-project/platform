@@ -74,6 +74,19 @@ public class ResourceInformationCollector {
                 .label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_SYSTEM).build());
     }
 
+    public ResourceUsageInformation getBenchmarkUsageInformation() {
+        return getUsageInformation(Task.Criteria.builder()
+                .label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_BENCHMARK).build());
+    }
+
+    public String getPrometheusHost() {
+        return prometheusHost;
+    }
+
+    public String getPrometheusPort() {
+        return prometheusPort;
+    }
+
     public ResourceUsageInformation getUsageInformation(Task.Criteria criteria) {
         List<Task> tasks = manager.getContainers(criteria);
         
@@ -125,6 +138,28 @@ public class ResourceInformationCollector {
         StringBuilder builder = new StringBuilder();
         builder.append("http://").append(prometheusHost).append(':').append(prometheusPort)
                 .append("/api/v1/query?query=")
+                // append metric
+                .append(metric)
+                // append filter
+                .append("{container_label_com_docker_swarm_task_id=\"").append(taskId).append("\"}");
+        URL url = new URL(builder.toString());
+        String content = IOUtils.toString(url.openConnection().getInputStream());
+        LOGGER.debug("Prometheus response: {}", content);
+        JsonParser parser = new JsonParser();
+        JsonObject root = parser.parse(content).getAsJsonObject();
+        JsonArray result = root.get("data").getAsJsonObject().get("result").getAsJsonArray();
+        if (result.size() > 0) {
+            return result.get(0).getAsJsonObject().get("value").getAsJsonArray().get(1).getAsString();
+        } else {
+            LOGGER.warn("Didn't got a result when requesting {} for {}. Returning null", metric, taskId);
+            return null;
+        }
+    }
+
+    private String requestPrometheusRange1(String taskId, String metric) throws IOException, MalformedURLException {
+        StringBuilder builder = new StringBuilder();
+        builder.append("http://").append(prometheusHost).append(':').append(prometheusPort)
+                .append("/api/v1/query_range?query=")
                 // append metric
                 .append(metric)
                 // append filter

@@ -22,14 +22,7 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.io.Charsets;
@@ -46,42 +39,27 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ClusterManagerImpl;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerManagerImpl;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.FileBasedImageManager;
-import org.hobbit.controller.docker.GitlabBasedImageManager;
-import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ImageManagerFacade;
-import org.hobbit.controller.docker.ResourceInformationCollector;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
+import org.hobbit.controller.queue.CloudBasedExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
+import org.hobbit.controller.utils.ServiceLogsReader;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
-import org.hobbit.core.data.BenchmarkMetaData;
-import org.hobbit.core.data.StartCommandData;
-import org.hobbit.core.data.StopCommandData;
-import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.data.*;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
-import org.hobbit.core.rabbit.DataSender;
-import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
-import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
@@ -113,15 +91,23 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     public static final String PLATFORM_VERSION = readVersion();
 
-    private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
+    private static final String DEPLOY_ENV = System.getenv().containsKey("DEPLOY_ENV")?System.getenv().get("DEPLOY_ENV"): "production";
     private static final String DEPLOY_ENV_TESTING = "testing";
     private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
+
+    public static final String FILE_BASED_IMAGE_MANAGER_KEY ="FILE_BASED_IMAGE_MANAGER";
+    public static final String ALLOW_ASYNC_CONTAINER_COMMANDS_KEY ="ALLOW_ASYNC_CONTAINER_COMMANDS";
+    public static final String SERVICE_LOGS_READER_KEY = "SERVICE_LOGS_READER";
+    public static final String USE_CLOUD_KEY ="USE_CLOUD";
+
+
+    private static boolean ALLOW_ASYNC_CONTAINER_COMMANDS;
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
-    private static final String LOCAL_METADATA_DIRECTORY_KEY = "LOCAL_METADATA_DIRECTORY";
+
 
     // every 60 mins
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
@@ -135,9 +121,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected FrontEndApiHandler frontEndApiHandler;
     /**
-     * RabbitMQ data sender to the analyser platform.
+     * RabbitMQ channel between front end and platform controller.
      */
-    protected DataSender sender2Analysis;
+    protected Channel controller2Analysis;
     /**
      * A manager for Docker containers.
      */
@@ -177,7 +163,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected ExperimentManager expManager;
 
-    protected ResourceInformationCollector resInfoCollector;
+    private ResourceInformationCollector resInfoCollector;
 
     protected ClusterManager clusterManager;
 
@@ -186,7 +172,11 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected Timer challengePublishTimer;
 
-    protected String rabbitMQExperimentsHostName;
+    protected String prometheusHost;
+    protected String prometheusPort;
+
+    public String rabbitMQExperimentsHostName;
+    protected ContainerStateObserver serviceLogsReader;
 
     @Override
     public void init() throws Exception {
@@ -196,7 +186,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
             rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
             if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
-                switchCmdToExpRabbit();
+                switchCmdToExpRabbit(rabbitMQExperimentsHostName);
                 LOGGER.info("Using {} as message broker for experiments.", rabbitMQExperimentsHostName);
             } else {
                 LOGGER.warn(
@@ -211,49 +201,77 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     rabbitMQHostName);
         }
 
+
+        if(System.getenv().containsKey(USE_CLOUD_KEY)
+                && (System.getenv().get(USE_CLOUD_KEY).toLowerCase().equals("true")
+                || System.getenv().get(USE_CLOUD_KEY).equals("1"))){
+            clusterManager = new CloudClusterManager(this);
+            containerManager = new CloudContainerManager(clusterManager);
+            queue = new CloudBasedExperimentQueue();
+        }else{
+            clusterManager = new ClusterManagerImpl();
+            containerManager = new ContainerManagerImpl(clusterManager);
+            queue = new ExperimentQueueImpl();
+        }
+
+        ALLOW_ASYNC_CONTAINER_COMMANDS = (
+                System.getenv().containsKey(ALLOW_ASYNC_CONTAINER_COMMANDS_KEY)
+                && (System.getenv().get(ALLOW_ASYNC_CONTAINER_COMMANDS_KEY).toLowerCase().equals("true")
+                || System.getenv().get(ALLOW_ASYNC_CONTAINER_COMMANDS_KEY).equals("1")) ? true: false);
+
+        if(ALLOW_ASYNC_CONTAINER_COMMANDS)
+            LOGGER.info("Async container commands are allowed");
+        else
+            LOGGER.info("Async container commands are prohibited");
+
+        LOGGER.info("Container manager initialized.");
+
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
         // Only for prod mode
-        clusterManager = new ClusterManagerImpl();
+
         if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
+
         } else {
             LOGGER.debug(
                     "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
-            clusterManager.setTaskHistoryLimit(0);
+            try {
+                clusterManager.setTaskHistoryLimit(0);
+            }
+            catch (Exception e){
+                LOGGER.error("Failed to set task history limit: {}",e.getLocalizedMessage());
+            }
         }
 
-        // create container manager
-        containerManager = new ContainerManagerImpl();
-        LOGGER.debug("Container manager initialized.");
+        if(System.getenv().containsKey(SERVICE_LOGS_READER_KEY) &&
+                (System.getenv().get(SERVICE_LOGS_READER_KEY).toLowerCase().equals("true") || System.getenv().get(SERVICE_LOGS_READER_KEY).equals("1"))) {
+            LOGGER.debug("Enabling service logs output to console");
+            serviceLogsReader = new ServiceLogsReader(containerManager, 1000);
+            containerManager.addContainerObserver(serviceLogsReader);
+            serviceLogsReader.startObserving();
+        }
+
+
         // Create container observer (polls status every 5s)
         containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
-        resInfoCollector = new ResourceInformationCollector(containerManager);
 
         containerObserver.startObserving();
+
         LOGGER.debug("Container observer initialized.");
 
-        // Create the image manager including a local directory or not
-        String localMetaDir = EnvVariables.getString(LOCAL_METADATA_DIRECTORY_KEY, (String) null);
-        if (localMetaDir != null) {
-            imageManager = new ImageManagerFacade(new FileBasedImageManager(localMetaDir),
-                    new GitlabBasedImageManager());
-        } else {
-            imageManager = new GitlabBasedImageManager();
-        }
+        imageManager = (System.getenv().containsKey(FILE_BASED_IMAGE_MANAGER_KEY)?new FileBasedImageManager(): new GitlabBasedImageManager()) ;
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
         frontEndApiHandler = (new FrontEndApiHandler.Builder()).platformController(this)
                 .queue(incomingDataQueueFactory, Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME).build();
 
-        sender2Analysis = DataSenderImpl.builder()
-                .queue(outgoingDataQueuefactory, Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME).build();
-
-        queue = new ExperimentQueueImpl();
+        controller2Analysis = cmdQueueFactory.getConnection().createChannel();
+        controller2Analysis.queueDeclare(Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME, false, false, true, null);
 
         storage = StorageServiceClient.create(outgoingDataQueuefactory.getConnection());
 
@@ -273,7 +291,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
-        LOGGER.info("Platform controller initialized.");
+        LOGGER.info("Platform controller initialized. {} experiments in the queue", queue.listAll().size());
     }
 
     /**
@@ -282,20 +300,29 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * 
      * @throws Exception
      */
-    private void switchCmdToExpRabbit() throws Exception {
+    public void switchCmdToExpRabbit(String targetHost) throws Exception {
+        if(targetHost==null)
+            targetHost = rabbitMQHostName;
         // We have to close the existing command queue
         try {
-            cmdChannel.close();
+            if(cmdChannel.isOpen())
+                cmdChannel.close();
         } catch (Exception e) {
             LOGGER.warn("Exception while closing command queue. It will be ignored.", e);
         }
+
         IOUtils.closeQuietly(cmdQueueFactory);
         // temporarily create a new factory to the second broker but keep the reference
         // to the first broker (XXX this is a dirty workaround to make use of methods
         // like createConnection())
         ConnectionFactory tempFactory = connectionFactory;
         connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost(rabbitMQExperimentsHostName);
+        if(targetHost.contains(":")){
+            String[] splitted = targetHost.split(":");
+            connectionFactory.setHost(splitted[0]);
+            connectionFactory.setPort(Integer.parseInt(splitted[1]));
+        }else
+            connectionFactory.setHost(targetHost);
         connectionFactory.setAutomaticRecoveryEnabled(true);
         // attempt recovery every 10 seconds
         connectionFactory.setNetworkRecoveryInterval(10000);
@@ -323,6 +350,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
             // set the factory back
             connectionFactory = tempFactory;
         }
+    }
+
+
+    public void setPrometheusHost(String targetHost){
+        prometheusHost = targetHost;
+    }
+
+    public void setPrometheusPort(String targetPort){
+        prometheusPort = targetPort;
     }
 
     /**
@@ -404,8 +440,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
         case Commands.REQUEST_SYSTEM_RESOURCES_USAGE: {
             // FIXME use the session id to make sure that only containers of this session
             // are observed
-            ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
-            LOGGER.info("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
+
+            ResourceUsageInformation resUsage = getResInfoCollector().getSystemUsageInformation();
+            LOGGER.debug("Returning system usage information: {}", resUsage != null ? resUsage.toString() : "null");
             if (replyTo != null) {
                 byte[] response;
                 if (resUsage != null) {
@@ -423,8 +460,68 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     LOGGER.error(errMsgBuilder.toString(), e);
                 }
             }
+            break;
         }
+
+        //functions below require an extended Core interfaces  (see also other sections on this file)
+//        case Commands.REQUEST_BENCHMARK_RESOURCES_USAGE: {
+//            // FIXME use the session id to make sure that only containers of this session
+//            // are observed
+//
+//            ResourceUsageInformation resUsage = getResInfoCollector().getBenchmarkUsageInformation();
+//            LOGGER.debug("Returning benchmark usage information: {}", resUsage != null ? resUsage.toString() : "null");
+//            if (replyTo != null) {
+//                byte[] response;
+//                if (resUsage != null) {
+//                    response = RabbitMQUtils.writeString(gson.toJson(resUsage));
+//                } else {
+//                    response = new byte[0];
+//                }
+//                try {
+//                    cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, response);
+//                } catch (IOException e) {
+//                    StringBuilder errMsgBuilder = new StringBuilder();
+//                    errMsgBuilder.append("Error, couldn't sent the request resource usage statistics to replyTo=");
+//                    errMsgBuilder.append(replyTo);
+//                    errMsgBuilder.append(".");
+//                    LOGGER.error(errMsgBuilder.toString(), e);
+//                }
+//            }
+//            break;
+//        }
+//            case Commands.EXECUTE_ASYNC_COMMAND: {
+//                if (ALLOW_ASYNC_CONTAINER_COMMANDS){
+//                    ExecuteCommandData executeCommandParams = deserializeExecuteCommandData(data);
+//                    String taskId = executeCommandParams.containerId;
+//                    LOGGER.debug("Executing command to container: {}", taskId);
+//                    Boolean result0 = containerManager.execAsyncCommand(taskId, executeCommandParams.command);
+//                    String result = (result0?"Succeeded":"Failed");
+//                    LOGGER.debug("Sending {} result for command to container: {}", result, executeCommandParams.containerId);
+//                    if (replyTo != null){
+//                        try {
+//                            cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(result));
+//                        } catch (IOException e) {
+//                            StringBuilder errMsgBuilder = new StringBuilder();
+//                            errMsgBuilder.append("Error, couldn't sent response after creation of container (");
+//                            errMsgBuilder.append(executeCommandParams.toString());
+//                            errMsgBuilder.append(") to replyTo=");
+//                            errMsgBuilder.append(replyTo);
+//                            errMsgBuilder.append(".");
+//                            LOGGER.error(errMsgBuilder.toString(), e);
+//                        }
+//                    }
+//
+//                }else
+//                    LOGGER.warn("Command execution for containers is prohibited");
+//                break;
+//            }
         }
+    }
+
+    public ResourceInformationCollector getResInfoCollector() {
+        if(resInfoCollector==null || !resInfoCollector.getPrometheusHost().equals(prometheusHost) || !resInfoCollector.getPrometheusPort().equals(prometheusPort))
+            resInfoCollector = new ResourceInformationCollector(containerManager, prometheusHost, prometheusPort);
+        return resInfoCollector;
     }
 
     private StopCommandData deserializeStopCommandData(byte[] data) {
@@ -443,6 +540,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
         return gson.fromJson(dataString, StartCommandData.class);
     }
 
+    //functions below require an extended Core interfaces  (see also other sections on this file)
+//    private ExecuteCommandData deserializeExecuteCommandData(byte[] data) {
+//        if (data == null) {
+//            return null;
+//        }
+//        String dataString = RabbitMQUtils.readString(data);
+//        return gson.fromJson(dataString, ExecuteCommandData.class);
+//    }
+
     /**
      * Creates and starts a container based on the given {@link StartCommandData}
      * instance.
@@ -452,17 +558,32 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
-        String parentId = containerManager.getContainerId(data.parent);
+        String parentId = (data.parent!=null? containerManager.getContainerId(data.parent): null);
         if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }
-        String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
-                null);
-        if (containerId == null) {
+
+        String[] volumes = new String[]{};
+
+        //functions below require an extended Core interfaces  (see also other sections on this file)
+//        String[] command = null;
+//        if(ALLOW_ASYNC_CONTAINER_COMMANDS)
+//            command = data.command;
+//        else
+//            LOGGER.warn("Command execution for containers is prohibited");
+//
+//
+//        if(expManager.getSystemTaskId()!=null && expManager.getSystemTaskId().equals(parentId))
+//            volumes = new String[]{ expManager.getSystemContainerVolume().name()+":/share" };
+
+        String taskId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables, null, volumes);
+        if (taskId == null) {
             return null;
         } else {
-            return containerManager.getContainerName(containerId);
+            //String ret = containerManager.getContainerId(taskId);
+            String ret = containerManager.getContainerName(taskId);
+            return ret;
         }
     }
 
@@ -492,6 +613,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
         expManager.notifyTermination(containerId, exitCode);
         // Remove the container from the observer
         containerObserver.removedObservedContainer(containerId);
+        if(serviceLogsReader!=null)
+            serviceLogsReader.removedObservedContainer(containerId);
+
         // If we should remove all containers created by us
         if (!DEPLOY_ENV.equals(DEPLOY_ENV_TESTING)) {
             // If we remove this container, we have to make sure that there are
@@ -510,6 +634,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
         } catch (Exception e) {
             LOGGER.error("Couldn't stop the container observer.", e);
         }
+
+        try {
+            if (serviceLogsReader != null) {
+                serviceLogsReader.stopObserving();
+            }
+        } catch (Exception e) {
+            LOGGER.error("Couldn't stop the container logs reader.", e);
+        }
+
         // get all remaining containers from the observer, terminate and remove them. Do
         // not try to get the list from the container manager since he will return all
         // containers regardless whether the platform created them or not.
@@ -523,6 +656,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 }
             }
         }
+
         // Close the storage client
         IOUtils.closeQuietly(storage);
         // Close the queue if this is needed
@@ -542,9 +676,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
             } catch (Exception e) {
             }
         }
-        if (sender2Analysis != null) {
+        if (controller2Analysis != null) {
             try {
-                sender2Analysis.close();
+                controller2Analysis.close();
             } catch (Exception e) {
             }
         }
@@ -557,7 +691,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     @Override
     public void analyzeExperiment(String uri) throws IOException {
-        sender2Analysis.sendData(RabbitMQUtils.writeString(uri));
+        controller2Analysis.basicPublish("", Constants.CONTROLLER_2_ANALYSIS_QUEUE_NAME,
+                MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(uri));
     }
 
     /**
@@ -694,6 +829,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 // Check whether the use has the right to terminate the experiment
                 if ((config != null) && (config.userName != null) && (config.userName.equals(userName))) {
                     // Remove the experiment from the queue
+
                     if (queue.remove(config)) {
                         // call the Experiment Manager to cancel the experiment if it is running
                         expManager.stopExperimentIfRunning(experimentId);
@@ -1133,8 +1269,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         String experimentId = generateExperimentId();
         LOGGER.info("Adding experiment {} with benchmark {}, system {} and user {} to the queue.", experimentId,
                 benchmarkUri, systemUri, userName);
-        queue.add(new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName,
-                challengUri, challengTaskUri, executionDate));
+        ExperimentConfiguration configuration = new ExperimentConfiguration(experimentId, benchmarkUri, serializedBenchParams, systemUri, userName, challengUri, challengTaskUri, executionDate);
+        queue.add(configuration);
         return experimentId;
     }
 

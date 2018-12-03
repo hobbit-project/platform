@@ -18,13 +18,19 @@ package org.hobbit.controller;
 
 import java.util.List;
 
+import com.spotify.docker.client.exceptions.DockerException;
 import org.apache.commons.compress.utils.IOUtils;
+import org.hobbit.core.Constants;
+import org.hobbit.utils.docker.DockerHelper;
 import org.junit.After;
 import org.junit.Before;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.messages.Image;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 /**
  * Created by Timofey Ermilov on 02/09/16.
@@ -32,7 +38,12 @@ import com.spotify.docker.client.messages.Image;
 public class DockerBasedTest {
     protected DockerClient dockerClient;
     protected static final String busyboxImageName = "busybox:latest";
+    protected static final String benchmarkImageName = "git.project-hobbit.eu:4567/smirnp/sml-benchmark-v2/benchmark-controller";
+
     protected static final String[] sleepCommand = { "sleep", "60s" };
+
+    @Rule
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     protected boolean findImageWithTag(final String id, final List<Image> images) {
         if (images != null) {
@@ -51,13 +62,24 @@ public class DockerBasedTest {
 
     @Before
     public void initClient() throws Exception {
+
+
+
         dockerClient = DefaultDockerClient.fromEnv().build();
+
+    }
+
+    @Test
+    public void pullImageTest() throws DockerException, InterruptedException {
         // check if busybox is present
         List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.allImages());
-        if (!findImageWithTag(busyboxImageName, images)) {
-            dockerClient.pull(busyboxImageName);
+        String imageName = benchmarkImageName;
+        if (!findImageWithTag(imageName, images)) {
+            dockerClient.pull(imageName);
+
         }
     }
+
 
     @After
     public void close() throws Exception {

@@ -1,0 +1,707 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Docker Swarm - Manager'
+
+# https://github.com/pgarbe/containers_on_aws
+
+Parameters:
+
+  ParentVPCStack:
+    Description: 'Stack name of parent VPC stack based on vpc/vpc-*azs.yaml template.'
+    Type: String
+
+  KeyName:
+    Description: 'Optional key pair of the ec2-user to establish a SSH connection to the EC2 instance.'
+    Type: String
+
+  IAMUserSSHAccess:
+    Description: 'Synchronize public keys of IAM users to enable personalized SSH access (Doc: https://cloudonaut.io/manage-aws-ec2-ssh-access-with-iam/).'
+    Type: String
+    Default: false
+    AllowedValues:
+    - true
+    - false
+
+  InstanceType:
+    Description: 'The instance type for the EC2 instance.'
+    Type: String
+    Default: 't2.medium'
+
+  DesiredCapacity:
+    Description: 'The number of manager nodes'
+    Type: Number
+    Default: 1
+    AllowedValues: [1,3,5,7]
+
+  MaxSize:
+    Description: 'MaxSize of manager nodes'
+    Type: Number
+    Default: 1
+
+  ManagerSubnetsReach:
+    Description: 'Should the managers have direct access to the Internet or do you prefer private subnets with NAT?'
+    Type: String
+    Default: Private
+    AllowedValues:
+    - Public
+    - Private
+
+#  SwarmManagerAutoScalingGroup:
+#    Description: AutoScaling Group of Swarm managers
+#    Type: String
+
+#  SecurityGroups:
+#    Description: Security group for which are allowed to talk to ASG
+#    Type: CommaDelimitedList
+
+  ParentSecurityGroupsStack:
+      Description: 'ParentSecurityGroupsStack'
+      Type: String
+
+  TargetGroups:
+    Description: Security group for which are allowed to talk to ASG
+    Type: CommaDelimitedList
+    Default: ''
+
+  DockerVersion:
+    Description: 'Specifies the version of the Docker engine'
+    Type: String
+    Default: "17.12.1"
+
+  DockerRepository:
+    Description: 'Specifies if stable or edge repository should be used'
+    Type: String
+    Default: stable
+    AllowedValues:
+    - stable
+    - edge
+
+  JoinToken:
+    Description: 'The token to join the swarm cluster as a manager node'
+    Type: String
+    Default: ''
+    NoEcho: true
+
+#  JoinTokenKmsKey:
+#    Description: 'KMS key to decrypt swarm join tokens'
+#    Type: String
+
+  ParentKeysManagementStack:
+    Description: 'ParentKeysManagementStack'
+    Type: String
+
+  BucketName:
+    Description: 'Bucket name for placing join tokens'
+    Type: String
+    Default: ''
+    NoEcho: true
+  Tag:
+    Type: String
+    Default: 'Hobbit'
+
+#  ParentVPCClusterId:
+#    Description: 'ID of parent VPC cluster based on vpc/vpc-*azs.yaml template.'
+#    Type: String
+
+#  NatInstanceIP:
+#    Description: 'Public IP address of VPC NAT to access the S3 bucket'
+#    Type: String
+
+Conditions:
+
+  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+  HasIAMUserSSHAccess: !Equals [!Ref IAMUserSSHAccess, 'true']
+  HasSwarmJoinToken: !Not [!Equals [!Ref JoinToken, '']]
+
+
+Resources:
+
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref IAMRole
+
+  IAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            - 'logs:DescribeLogStreams'
+            Resource:
+            - 'arn:aws:logs:*:*:*'
+      - PolicyName: asg
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'autoscaling:DescribeAutoScalingGroups'
+            - 'autoscaling:DescribeAutoScalingInstances'
+            - 'ec2:DescribeInstances'
+            Resource:
+            - '*'
+      - PolicyName: kms
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'kms:Decrypt'
+            - 'kms:DescribeKey'
+            Resource:
+             'Fn::ImportValue': !Sub '${ParentKeysManagementStack}-SwarmTokenKeyArn'
+            #- !Ref JoinTokenKmsKey
+
+  IAMPolicySSHAccess:
+    Type: 'AWS::IAM::Policy'
+    Condition: HasIAMUserSSHAccess
+    Properties:
+      Roles:
+      - !Ref IAMRole
+      PolicyName: iam
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'iam:ListUsers'
+          Resource:
+          - '*'
+        - Effect: Allow
+          Action:
+          - 'iam:ListSSHPublicKeys'
+          - 'iam:GetSSHPublicKey'
+          Resource:
+          - !Sub 'arn:aws:iam::${AWS::AccountId}:user/*'
+
+  S3Endpoint:
+      Type: 'AWS::EC2::VPCEndpoint'
+      Properties:
+        VpcId: {'Fn::ImportValue': !Sub '${ParentVPCStack}-VPC'}
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+            - Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              Resource:
+              - !Sub 'arn:aws:s3:::${BucketName}'
+              - !Sub 'arn:aws:s3:::${BucketName}/*'
+              Effect: Allow
+              Principal: '*'
+        RouteTableIds:
+          - {'Fn::ImportValue': !Sub '${ParentVPCStack}-RouteTableAPrivate'}
+          - {'Fn::ImportValue': !Sub '${ParentVPCStack}-RouteTableAPublic' }
+        ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+
+  S3BucketPolicy:
+      Type: 'AWS::S3::BucketPolicy'
+      Properties:
+        Bucket: !Sub '${BucketName}'
+        PolicyDocument:
+          Statement:
+            - Sid: Access-to-specific-VPCE-only
+              Effect: Allow
+              Principal: "*"
+              Action:
+                - 's3:PutObject'
+                - 's3:GetObject'
+              Resource:
+                - !Sub 'arn:aws:s3:::${BucketName}'
+                - !Sub 'arn:aws:s3:::${BucketName}/*'
+              Condition:
+                StringEquals:
+                  'aws:sourceVpce': !Ref S3Endpoint
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      #AutoScalingGroupName: !Ref SwarmManagerAutoScalingGroup
+      # AvailabilityZones: !Ref AvailabilityZones
+      VPCZoneIdentifier:
+      - 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetA${ManagerSubnetsReach}'
+      #- 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetB${ManagerSubnetsReach}'
+      #- 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetC${ManagerSubnetsReach}'
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 0
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+      #TargetGroupARNs: !Ref TargetGroups
+      MetricsCollection:
+      - Granularity: 1Minute
+        Metrics:
+        - GroupInServiceInstances
+      Tags:
+      - Key: Cluster
+        Value: !Ref Tag
+        PropagateAtLaunch: true
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
+        PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT180M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !Ref DesiredCapacity
+        MaxBatchSize: '1'
+        PauseTime: PT180M
+        SuspendProcesses:
+        - AlarmNotification
+        WaitOnResourceSignals: 'true'
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            !If
+            - HasSwarmJoinToken
+            - !If [HasIAMUserSSHAccess, [docker-ubuntu, swarm-join], [docker-ubuntu, swarm-join]]
+            - !If [HasIAMUserSSHAccess, [docker-ubuntu, swarm-init, hobbit], [docker-ubuntu, swarm-init, hobbit]]
+#            - !If [HasIAMUserSSHAccess, [hobbit], [hobbit]]
+
+        ssh-access:
+          files:
+            '/opt/authorized_keys_command.sh':
+              content: |
+                #!/bin/bash -e
+                if [ -z "$1" ]; then
+                  exit 1
+                fi
+                SaveUserName="$1"
+                SaveUserName=${SaveUserName//"+"/".plus."}
+                SaveUserName=${SaveUserName//"="/".equal."}
+                SaveUserName=${SaveUserName//","/".comma."}
+                SaveUserName=${SaveUserName//"@"/".at."}
+                aws iam list-ssh-public-keys --user-name "$SaveUserName" --query "SSHPublicKeys[?Status == 'Active'].[SSHPublicKeyId]" --output text | while read KeyId; do
+                  aws iam get-ssh-public-key --user-name "$SaveUserName" --ssh-public-key-id "$KeyId" --encoding SSH --query "SSHPublicKey.SSHPublicKeyBody" --output text
+                done
+              mode: '000755'
+              owner: root
+              group: root
+            '/opt/import_users.sh':
+              content: |
+                #!/bin/bash
+                aws iam list-users --query "Users[].[UserName]" --output text | while read User; do
+                  SaveUserName="$User"
+                  SaveUserName=${SaveUserName//"+"/".plus."}
+                  SaveUserName=${SaveUserName//"="/".equal."}
+                  SaveUserName=${SaveUserName//","/".comma."}
+                  SaveUserName=${SaveUserName//"@"/".at."}
+                  if id -u "$SaveUserName" >/dev/null 2>&1; then
+                    echo "$SaveUserName exists"
+                  else
+                    #sudo will read each file in /etc/sudoers.d, skipping file names that end in ‘~’ or contain a ‘.’ character to avoid causing problems with package manager or editor temporary/backup files.
+                    SaveUserFileName=$(echo "$SaveUserName" | tr "." " ")
+                    /usr/sbin/adduser "$SaveUserName"
+                    echo "$SaveUserName ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$SaveUserFileName"
+                  fi
+                done
+              mode: '000755'
+              owner: root
+              group: root
+            '/etc/cron.d/import_users':
+              content: |
+                */10 * * * * root /opt/import_users.sh
+              mode: '000644'
+              owner: root
+              group: root
+          commands:
+            'a_configure_sshd_command':
+              command: 'sed -i "s:#AuthorizedKeysCommand none:AuthorizedKeysCommand /opt/authorized_keys_command.sh:g" /etc/ssh/sshd_config'
+            'b_configure_sshd_commanduser':
+              command: 'sed -i "s:#AuthorizedKeysCommandUser nobody:AuthorizedKeysCommandUser nobody:g" /etc/ssh/sshd_config'
+            'c_import_users':
+              command: './import_users.sh'
+              cwd: '/opt'
+          services:
+            sysvinit:
+              sshd:
+                enabled: true
+                ensureRunning: true
+                commands:
+                - 'a_configure_sshd_command'
+                - 'b_configure_sshd_commanduser'
+
+        docker-ubuntu:
+          commands:
+            'a_start_installation':
+               command: 'echo "docker-ubuntu started" >> /home/ubuntu/docker.log'
+            'b_get_certificates':
+              command: 'sudo apt-get install apt-transport-https ca-certificates curl software-properties-common htop socat -y'
+            'c_set_gpg_key':
+              command: 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
+            'd_add_fingerprint':
+              command: 'sudo apt-key fingerprint 0EBFCD88'
+            'e_add_docker_repo':
+              command: !Sub 'sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) ${DockerRepository}"'
+            'f_update_aptget':
+              command: 'sudo apt-get update'
+            'g_install_docker':
+              command: !Sub 'sudo apt-get install -y docker-ce=${DockerVersion}~ce-0~ubuntu'
+#            'g_start_service':
+#              command: 'sudo service docker start'
+            'h_add_ubuntu_user_to_docker_group':
+              command: 'sudo usermod -aG docker ubuntu'
+            'i_verify_installation':
+              command: 'sudo docker run hello-world'
+            'k_verify_installation':
+              command: 'docker run hello-world >> /home/ubuntu/docker.log'
+            'm_report_installation':
+              command: 'echo "docker-ubuntu finished correctly" >> /home/ubuntu/docker.log'
+        swarm-init:
+          commands:
+            'a_init_swarm':
+              command: !Sub |
+                 echo "init_swarm" >> /home/ubuntu/init.log
+                 docker swarm init >> /home/ubuntu/swarm.log
+                 docker swarm join-token worker | grep token | awk '{ print $5 }' > /home/ubuntu/token
+
+                 docker swarm join-token worker | awk '{ if(NR==3) print }' >> /home/ubuntu/worker_join.sh
+                 echo "Uploading token to S3" >> /home/ubuntu/swarm.log
+                 echo "sudo aws s3 cp /home/ubuntu/token s3://${BucketName}/token --region ${AWS::Region}" >> /home/ubuntu/swarm.log
+                 aws s3 cp /home/ubuntu/worker_join.sh s3://${BucketName}/worker_join.sh --region ${AWS::Region} > /home/ubuntu/swarm.log
+                 echo "Upload to S3 should be finished" >> /home/ubuntu/swarm.log
+
+                 NODE_ID=$(docker info | grep NodeID | awk '{print $2}')
+                 echo "Adding labels (master/data) to $NODE_ID" >> /home/ubuntu/swarm.log
+
+                 docker node update $NODE_ID --label-add org.hobbit.type=master
+                 docker node update $NODE_ID --label-add org.hobbit.workergroup=master
+                 docker node update $NODE_ID --label-add org.hobbit.name=master
+              #aws s3 mb s3://${BucketName} --region ${AWS::Region}
+#             #aws s3 cp /home/ubuntu/token s3://${BucketName}/token --region ${AWS::Region} > /home/ubuntu/swarm.log
+#                 docker node update $NODE_ID --label-add org.hobbit.type=data
+#                 docker node update $NODE_ID --label-add org.hobbit.workergroup=data
+#                 docker node update $NODE_ID --label-add org.hobbit.name=data
+
+            'b_swarm_healthcheck':
+              command: 'docker node ls >> /home/ubuntu/swarm.log'
+
+        swarm-join:
+          commands:
+            'a_join_swarm':
+              command: !Sub |
+                echo "swarm-join -> a_join_swarm" >> /home/ubuntu/init.log
+                # Decrypt join token via KMS
+                echo -n "${JoinToken}" | base64 --decode > ciphertextblob
+                JOIN_TOKEN=$(aws kms decrypt --region ${AWS::Region} --ciphertext-blob fileb://ciphertextblob --query Plaintext --output text | base64 --decode)
+
+                INSTANCE_ID="`wget -q -O - http://instance-data/latest/meta-data/instance-id`"
+                ASG_NAME=$(aws autoscaling describe-auto-scaling-instances --instance-ids $INSTANCE_ID --region ${AWS::Region} --query AutoScalingInstances[].AutoScalingGroupName --output text)
+
+                for ID in $(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME --region ${AWS::Region} --query AutoScalingGroups[].Instances[].InstanceId --output text);
+                do
+                  # Ignore "myself"
+                  if [ "$ID" == "$INSTANCE_ID" ] ; then
+                      continue;
+                  fi
+
+                  IP=$(aws ec2 describe-instances --instance-ids $ID --region ${AWS::Region} --query Reservations[].Instances[].PrivateIpAddress --output text)
+                  if [ ! -z "$IP" ] ; then
+                    echo "Try to join swarm with IP $IP"
+
+                    # Join the swarm; if it fails try the next one
+                    docker swarm join --token $JOIN_TOKEN $IP:2377 && break || continue
+                  fi
+                done
+
+            'b_swarm_healthcheck':
+              command: 'docker node ls >> /home/ubuntu/swarm.log'
+
+        hobbit:
+          commands:
+            'a_install_prereqs':
+              command: !Sub |
+                echo "installing prereqs" >> /home/ubuntu/init.log
+                sudo apt-get install make maven supervisor socat -y
+                echo "installing docker compose" >> /home/ubuntu/init.log
+                sudo curl -L https://github.com/docker/compose/releases/download/1.22.0/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+                sudo chmod +x /usr/local/bin/docker-compose >> /home/ubuntu/docker.log
+                sudo ln /usr/local/bin/docker-compose /usr/bin/docker-compose >> /home/ubuntu/docker.log
+                echo "prereqs installed" >> /home/ubuntu/init.log
+
+            'b_start_socat_daemon':
+                command: !Sub |
+                  cat > /opt/getNodeIps.sh << 'EOL'
+                    NODES=$(docker node ls --format "{{.Hostname}} {{.Status}}" | grep Ready | awk '{print $1}')
+                    LINE=""
+                    for NODE in $NODES;
+                    do
+                    CID=$(echo $NODE | cut -c4-15)
+                    CID2=$(echo $CID | tr - .)
+                    LINE="$LINE '$CID2:$2',"
+                    done
+                    echo $LINE
+                  EOL
+
+                  cat > /opt/updatePrometheus.sh << 'EOL'
+                    cp /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf.template /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf
+                    LINE=$(sh /opt/getNodeIps.sh container-exporter 9104)
+                    sed -i "s~'container-exporter:9104'~$LINE~g" /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf
+                    LINE=$(sh /opt/getNodeIps.sh cAdvisor 8081)
+                    sed -i "s~'cAdvisor:8081'~$LINE~g" /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf
+                    LINE=$(sh /opt/getNodeIps.sh node-exporter 9100)
+                    sed -i "s~'node-exporter:9100'~$LINE~g" /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf
+                    sed -i "s~',]~']~g" /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf
+                    echo "stopping working prometheus" >> /var/log/prometheusLoop.log
+                    sudo docker stop $(sudo docker ps --filter "name=prometheus" --format "{{.ID}}")
+                    cAdvisorID=$(sudo docker ps --filter "name=cAdvisor" --format "{{.ID}}")
+                    exporterID=$(sudo docker ps --filter "name=node-exporter" --format "{{.ID}}")
+                    echo "starting prometheus" >> /var/log/prometheusLoop.log
+                    echo "docker run --name prometheus -d --net hobbit-core -p 9090:9090 --link $cAdvisorID:cAdvisor --link $exporterID:node-exporter --rm -v /opt/hobbit-platform-2.0.5/config/prometheus:/config prom/prometheus --config.file=/config/prometheus.conf" >> /home/ubuntu/hobbit.log
+                    docker run --name prometheus -d --net hobbit-core -p 9090:9090 --link $cAdvisorID:cAdvisor --link $exporterID:node-exporter --rm -v /opt/hobbit-platform-2.0.5/config/prometheus:/config prom/prometheus --config.file=/config/prometheus.conf
+                  EOL
+
+                  sudo install -m 777 /dev/null /var/log/socat.log
+                  echo "creating /opt/getmsg.sh" >> /home/ubuntu/init.log
+                  cat > /opt/getmsg.sh << 'EOL'
+                        read MESSAGE
+                        COMMAND="sudo docker node update $MESSAGE"
+                        echo $COMMAND >> /var/log/socat.log
+                        exec $COMMAND
+                  EOL
+                  sudo chmod +x /opt/getmsg.sh
+
+                  sudo install -m 777 /dev/null /var/log/prometheusLoop.log
+                  cat > /home/ubuntu/prometheusLoop.sh << 'EOL'
+                      while :
+                      do
+                        LINE=$(sh /opt/getNodeIps.sh container-exporter 9104)
+                        if [ "$LINE" != "$PREVLINE" ]
+                          then
+                          date >> /var/log/prometheusLoop.log
+                          sudo sh /opt/updatePrometheus.sh >> /var/log/prometheusLoop.log
+                        fi
+                        PREVLINE=$LINE
+                        sleep 15
+                      done
+                  EOL
+
+                  echo "Configuring /etc/supervisor/supervisord.conf" >> /home/ubuntu/init.log
+                  cat > /etc/supervisor/supervisord.conf << 'EOL'
+                  [supervisord]
+                  [program:hobbit-socat]
+                  command=/usr/bin/socat -u tcp-l:4444,fork system:/opt/getmsg.sh
+                  autostart=true
+                  autorestart=true
+                  [program:update-prometheus]
+                  command=/bin/bash /home/ubuntu/prometheusLoop.sh
+                  autostart=true
+                  autorestart=true
+                  EOL
+
+                  echo "restarting supervisor service" >> /home/ubuntu/init.log
+                  sudo service supervisor restart
+                  echo "socat_daemon should be started" >> /home/ubuntu/init.log
+            'c_install_hobbit':
+                command: !Sub |
+                  echo "modifying docker service" >> /home/ubuntu/hobbit.log
+                  sudo sed -i "s~-H fd://~-H tcp://0.0.0.0:2376 -H unix:///var/run/docker.sock~g" /lib/systemd/system/docker.service
+                  echo "reloading service daemon" >> /home/ubuntu/hobbit.log
+                  sudo systemctl daemon-reload
+                  echo "restaring service" >> /home/ubuntu/hobbit.log
+                  sudo service docker restart
+                  echo "checking 2376 port with netstat" >> /home/ubuntu/hobbit.log
+                  netstat -atn | grep 2376 >> /home/ubuntu/hobbit.log
+
+                  echo "cloning hobbit_platform" >> /home/ubuntu/init.log
+                  sudo git clone https://github.com/hobbit-project/platform.git /opt/hobbit-platform-2.0.5 >> /home/ubuntu/hobbit.log
+                  cd /opt/hobbit-platform-2.0.5/
+                  echo "switching branch to 2.0.5" >> /home/ubuntu/hobbit.log
+                  sudo git checkout tags/v2.0.5 >> /home/ubuntu/hobbit.log
+
+                  echo "creating networks" >> /home/ubuntu/hobbit.log
+                  sudo make create-networks
+
+                  echo "creating prometheus.conf.template" >> /home/ubuntu/hobbit.log
+                  sudo mkdir /opt/hobbit-platform-2.0.5/config/prometheus
+                  cat > /opt/hobbit-platform-2.0.5/config/prometheus/prometheus.conf.template << 'EOL'
+                  global:
+                    scrape_interval: 15s
+                    evaluation_interval: 15s
+                  scrape_configs:
+                  - job_name: container-metrics
+                    static_configs:
+                      - targets: ['container-exporter:9104']
+                  - job_name: cadvisor-metrics
+                    static_configs:
+                      - targets: ['cAdvisor:8081']
+                  - job_name: node-metrics
+                    static_configs:
+                      - targets: ['node-exporter:9100']
+                  EOL
+
+                  echo "Rabbit should container started. Checking port 5672" >> /home/ubuntu/hobbit.log
+                  netstat -atn | grep 5672 >> /home/ubuntu/hobbit.log
+
+                  echo "starting node-exporter" >> /home/ubuntu/hobbit.log
+                  docker run -d --name node-exporter -p 9100:9100 --rm prom/node-exporter
+
+                  echo "starting container-exporter" >> /home/ubuntu/hobbit.log
+                  docker run -d --name container-exporter -p 9104:9104 --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v /sys/fs/cgroup:/cgroup:rw prom/container-exporter
+
+                  echo "starting cAdvisor" >> /home/ubuntu/hobbit.log
+                  docker run -d --name cAdvisor -p 8081:8080 --rm -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -v /dev/disk:/dev/disk:ro google/cadvisor
+
+                  echo "install_hobbit finished. exiting" >> /home/ubuntu/init.log
+                  cat > /opt/hobbit-platform-2.0.5/docker-compose-rabbit.yml << 'EOL'
+                  version: '3.3'
+                  services:
+                   rabbit:
+                     image: rabbitmq:management
+                     deploy:
+                       replicas: 1
+                       restart_policy:
+                         condition: any
+                         delay: 15s
+                       placement:
+                         constraints:
+                           - node.labels.org.hobbit.type == master
+                     networks:
+                     - hobbit
+                     - hobbit-core
+                     ports:
+                     - "8081:15672"
+                     - "5672:5672"
+                  networks:
+                    hobbit:
+                      external:
+                        name: hobbit
+                    hobbit-core:
+                      external:
+                        name: hobbit-core
+                  EOL
+                  sudo docker stack deploy --compose-file /opt/hobbit-platform-2.0.5/docker-compose-rabbit.yml hobbit
+
+#                  echo "starting rabbit service" >> /home/ubuntu/hobbit.log
+#                  sudo sed -i "s~8081:15672~8082:15672~g" /opt/hobbit-platform-2.0.5/docker-compose.yml
+#                  sudo docker-compose up -d rabbit
+
+#docker service create -d --name cAdvisor -p 8081:8080 --rm -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -v /dev/disk:/dev/disk:ro google/cadvisor
+#                  echo "starting keycloak & gui" >> /home/ubuntu/hobbit.log
+#                  sudo docker-compose up -d keycloak gui
+# sudo sed -i "s~-H fd://~-H tcp://0.0.0.0:2376 -H unix:///var/run/docker.sock~g" /etc/systemd/system/docker.service
+#                  echo "export GITLAB_USER=${GitlabUser} >> /etc/environment"
+#                  echo "export GITLAB_EMAIL=${GitlabEmail} >> /etc/environment"
+#                  echo "export GITLAB_TOKEN=${GitlabToken} >> /etc/environment"
+#
+#                  source /etc/environment
+#
+#                  echo "creating networks" >> /home/ubuntu/hobbit.log
+#                  make create-networks >> /home/ubuntu/hobbit.log
+#
+#                  echo "pulling images" >> /home/ubuntu/hobbit.log
+#                  sudo docker-compose pull >> /home/ubuntu/hobbit.log
+#
+#                  echo "pulling elk images" >> /home/ubuntu/hobbit.log
+#                  sudo docker-compose -f /opt/hobbit-platform-2.0.5/docker-compose-elk.yml pull >> /home/ubuntu/hobbit.log
+#
+#                  echo "configuring virtuoso" >> /home/ubuntu/hobbit.log
+#                  make setup-virtuoso >> /home/ubuntu/hobbit.log
+#
+#                  sudo chmod 777 /etc/sysctl.conf
+#                  sudo echo "vm.max_map_count=262144" >> /etc/sysctl.conf
+#                  sudo sysctl -p
+#
+#                  sudo sed -i "s/-Xms8g/-Xms2g/g" /opt/hobbit-platform-2.0.5/config/elk/jvm.options
+#                  sudo sed -i "s/-Xmx8g/-Xmx2g/g" /opt/hobbit-platform-2.0.5/config/elk/jvm.options
+#                  echo "starting elk" >> /home/ubuntu/hobbit.log
+#                  sudo docker stack deploy --compose-file /opt/hobbit-platform-2.0.5/docker-compose-elk.yml elk >> /home/ubuntu/hobbit.log
+#
+#                  echo "starting platform" >> /home/ubuntu/hobbit.log
+#                  sudo docker stack deploy --compose-file /opt/hobbit-platform-2.0.5/docker-compose.yml platform >> /home/ubuntu/hobbit.log
+#
+#                  echo "everything should be started" >> /home/ubuntu/hobbit.log
+#                  echo "killing all docker daemons" >> /home/ubuntu/hobbit.log
+#                  sudo kill -9 $(sudo ps -aux | grep docker | awk '{print $2}')
+    Properties:
+      ImageId: ami-de8fb135 # Ubuntu 16.04
+      InstanceType: !Ref InstanceType
+      #SecurityGroups: !Ref SecurityGroups
+      SecurityGroups:
+        - 'Fn::ImportValue': !Sub '${ParentSecurityGroupsStack}-SecurityGroup'
+#        - 'Fn::ImportValue': !Sub '${ParentNATStack}-SecurityGroup'
+
+      IamInstanceProfile: !Ref InstanceProfile
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref 'AWS::NoValue']
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: '30'
+#      - DeviceName: "/dev/xvdcz"
+#        Ebs:
+#          VolumeSize: '22'
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash -xe
+          echo "Executing user data" >> /home/ubuntu/init.log
+
+          echo "Checking internet connection" >> /home/ubuntu/init.log
+          cat > /opt/ping.sh << 'EOL'
+              ping -c4 8.8.8.8
+              if [ $? -eq 0 ]; then
+                  echo "8.8.8.8 is reachable" >> /home/ubuntu/init.log
+              else
+                  echo "8.8.8.8 is not reachable" >> /home/ubuntu/init.log
+                  sudo sh /opt/ping.sh
+              fi
+          EOL
+          sudo sh /opt/ping.sh
+
+          echo "sudo apt-get update" >> /home/ubuntu/init.log
+          sudo apt-get update
+
+          #echo "sudo apt-get -y upgrade" >> /home/ubuntu/init.log
+          #sudo apt-get -y upgrade
+
+          echo "sudo apt install -y awscli" >> /home/ubuntu/init.log
+          # Install AWSCli
+          sudo apt install -y awscli
+
+          # Install cfn-init for Ubuntu
+          apt-get -y install python-setuptools
+          echo "apt-get -y install python-setuptools" >> /home/ubuntu/init.log
+          easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          ln -s /root/aws-cfn-bootstrap-latest/init/ubuntu/cfn-hup /etc/init.d/cfn-hup
+
+          echo "Creating cfn script" >> /home/ubuntu/init.log
+          echo "echo 'Starting launch configuration' >> /home/ubuntu/init.log" >> /home/ubuntu/cfn.sh
+          echo "cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfiguration" >> /home/ubuntu/cfn.sh
+          echo "cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup" >> /home/ubuntu/cfn.sh
+          echo "echo 'Signals should be sent' >> /home/ubuntu/init.log" >> /home/ubuntu/cfn.sh
+          echo "Executing cfn script" >> /home/ubuntu/init.log
+          sudo sh /home/ubuntu/cfn.sh >> /home/ubuntu/init.log
+
+
+# cfn-init -v --region eu-central-1 --stack swarm-manager --resource LaunchConfiguration
+# cfn-signal -s true --region eu-central-1 --stack swarm-manager --resource AutoScalingGroup
+
+#Outputs:
+#  AutoScalingGroup:
+#    Description: 'Use this AutoScaling Group to identify Swarm Managers.'
+#    Value: !Ref AutoScalingGroup
+#    Export:
+#          Name: !Sub '${AWS::StackName}-AutoScalingGroup'
+

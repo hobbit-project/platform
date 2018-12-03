@@ -57,6 +57,7 @@ public class ExperimentStatus implements Closeable {
      *
      */
     public static enum States {
+        CLOUD_RESOURCES_PREPARATION("The platform is preparing cloud resources for the experiment."),
         /**
          * The platform is still preparing the experiment, e.g., pulling Docker images.
          */
@@ -142,7 +143,7 @@ public class ExperimentStatus implements Closeable {
      * experiment URI and the current system time as start time.
      * 
      * @param config
-     *            the configuration of the experiment
+     *            the configurationString of the experiment
      * @param experimentUri
      *            the URI of the experiment
      */
@@ -157,7 +158,7 @@ public class ExperimentStatus implements Closeable {
      * manager which will be used to abort the experiment if the time is exceeded.
      * 
      * @param config
-     *            the configuration of the experiment
+     *            the configurationString of the experiment
      * @param experimentUri
      *            the URI of the experiment
      * @param startTimeStamp
@@ -175,7 +176,7 @@ public class ExperimentStatus implements Closeable {
      * exceeded.
      * 
      * @param config
-     *            the configuration of the experiment
+     *            the configurationString of the experiment
      * @param experimentUri
      *            the URI of the experiment
      * @param manager
@@ -197,7 +198,7 @@ public class ExperimentStatus implements Closeable {
      * manager which will be used to abort the experiment if the time is exceeded.
      * 
      * @param config
-     *            the configuration of the experiment
+     *            the configurationString of the experiment
      * @param experimentUri
      *            the URI of the experiment
      * @param manager

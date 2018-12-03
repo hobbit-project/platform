@@ -1,0 +1,457 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Docker Swarm - Worker'
+
+
+Parameters:
+
+  ParentVPCStack:
+    Description: 'Stack name of parent VPC stack based on vpc/vpc-*azs.yaml template.'
+    Type: String
+
+  KeyName:
+    Description: 'Optional key pair of the ec2-user to establish a SSH connection to the EC2 instance.'
+    Type: String
+    Default: ''
+
+  IAMUserSSHAccess:
+    Description: 'Synchronize public keys of IAM users to enable personalized SSH access (Doc: https://cloudonaut.io/manage-aws-ec2-ssh-access-with-iam/).'
+    Type: String
+    Default: false
+    AllowedValues:
+    - true
+    - false
+
+  InstanceType:
+    Description: 'The instance type for the EC2 instance.'
+    Type: String
+    Default: 't2.micro'
+
+  DesiredCapacity:
+    Description: 'The number of worker nodes'
+    Type: Number
+    Default: 1
+
+  WorkerSubnetsReach:
+    Description: 'Should the managers have direct access to the Internet or do you prefer private subnets with NAT?'
+    Type: String
+    Default: Private
+    AllowedValues:
+    - Public
+    - Private
+
+  WorkerType:
+    Description: 'WorkerType to be specified in HOBBIT labels'
+    Type: String
+    Default: ''
+    NoEcho: true
+
+#  SecurityGroups:
+#    Description: Security group for which are allowed to talk to ASG
+#    Type: CommaDelimitedList
+
+  ParentSecurityGroupsStack:
+      Description: 'ParentSecurityGroupsStack'
+      Type: String
+
+  TargetGroups:
+    Description: Security group for which are allowed to talk to ASG
+    Type: CommaDelimitedList
+    Default: ''
+
+  DockerVersion:
+    Description: 'Specifies the version of the Docker engine'
+    Type: String
+    Default: "17.03.0"
+
+  DockerRepository:
+    Description: 'Specifies if stable or edge repository should be used'
+    Type: String
+    Default: stable
+    AllowedValues:
+    - stable
+    - edge
+
+  ParentKeysManagementStack:
+    Description: 'ParentKeysManagementStack'
+    Type: String
+
+  BucketName:
+    Description: 'Bucket name for placing join tokens'
+    Type: String
+    Default: ''
+  Tag:
+    Type: String
+    Default: 'Hobbit'
+Conditions:
+
+  HasKeyName: !Not [!Equals [!Ref KeyName, '']]
+  HasIAMUserSSHAccess: !Equals [!Ref IAMUserSSHAccess, 'true']
+
+Resources:
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: '/'
+      Roles:
+      - !Ref IAMRole
+
+  IAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Path: '/'
+      Policies:
+      - PolicyName: logs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            - 'logs:DescribeLogStreams'
+            Resource:
+            - 'arn:aws:logs:*:*:*'
+      - PolicyName: asg
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'autoscaling:DescribeAutoScalingGroups'
+            - 'autoscaling:DescribeAutoScalingInstances'
+            - 'ec2:DescribeInstances'
+            Resource:
+            - '*'
+      - PolicyName: kms
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'kms:Decrypt'
+            - 'kms:DescribeKey'
+            Resource:
+              'Fn::ImportValue': !Sub '${ParentKeysManagementStack}-SwarmTokenKeyArn'
+            #- !Ref JoinTokenKmsKey
+
+  IAMPolicySSHAccess:
+    Type: 'AWS::IAM::Policy'
+    Condition: HasIAMUserSSHAccess
+    Properties:
+      Roles:
+      - !Ref IAMRole
+      PolicyName: iam
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action:
+          - 'iam:ListUsers'
+          Resource:
+          - '*'
+        - Effect: Allow
+          Action:
+          - 'iam:ListSSHPublicKeys'
+          - 'iam:GetSSHPublicKey'
+          Resource:
+          - !Sub 'arn:aws:iam::${AWS::AccountId}:user/*'
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      # AvailabilityZones: !Ref AvailabilityZones
+      VPCZoneIdentifier:
+      - 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetA${WorkerSubnetsReach}'
+      #- 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetB${WorkerSubnetsReach}'
+      #- 'Fn::ImportValue': !Sub '${ParentVPCStack}-SubnetC${WorkerSubnetsReach}'
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 0
+      MaxSize: !Ref DesiredCapacity
+      DesiredCapacity: !Ref DesiredCapacity
+      #TargetGroupARNs: !Ref TargetGroups
+      MetricsCollection:
+      - Granularity: 1Minute
+        Metrics:
+        - GroupInServiceInstances
+      Tags:
+      - Key: Cluster
+        Value: !Ref Tag
+        PropagateAtLaunch: true
+      - Key: Name
+        Value: !Sub ${AWS::StackName}
+        PropagateAtLaunch: 'true'
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: !Ref DesiredCapacity
+        MaxBatchSize: '1'
+        PauseTime: PT10M
+        SuspendProcesses:
+        - AlarmNotification
+        WaitOnResourceSignals: 'true'
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            #!If [HasIAMUserSSHAccess, [docker-ubuntu, swarm], [docker-ubuntu, swarm]]
+            !If [HasIAMUserSSHAccess, [docker-ubuntu, swarm], [docker-ubuntu, swarm]]
+            #!If [HasIAMUserSSHAccess, [ssh-access, docker-ubuntu, swarm], [docker-ubuntu, swarm]]
+#        ssh-access:
+#          files:
+#            '/opt/authorized_keys_command.sh':
+#              content: |
+#                #!/bin/bash -e
+#                if [ -z "$1" ]; then
+#                  exit 1
+#                fi
+#                SaveUserName="$1"
+#                SaveUserName=${SaveUserName//"+"/".plus."}
+#                SaveUserName=${SaveUserName//"="/".equal."}
+#                SaveUserName=${SaveUserName//","/".comma."}
+#                SaveUserName=${SaveUserName//"@"/".at."}
+#                aws iam list-ssh-public-keys --user-name "$SaveUserName" --query "SSHPublicKeys[?Status == 'Active'].[SSHPublicKeyId]" --output text | while read KeyId; do
+#                  aws iam get-ssh-public-key --user-name "$SaveUserName" --ssh-public-key-id "$KeyId" --encoding SSH --query "SSHPublicKey.SSHPublicKeyBody" --output text
+#                done
+#              mode: '000755'
+#              owner: root
+#              group: root
+#            '/opt/import_users.sh':
+#              content: |
+#                #!/bin/bash
+#                aws iam list-users --query "Users[].[UserName]" --output text | while read User; do
+#                  SaveUserName="$User"
+#                  SaveUserName=${SaveUserName//"+"/".plus."}
+#                  SaveUserName=${SaveUserName//"="/".equal."}
+#                  SaveUserName=${SaveUserName//","/".comma."}
+#                  SaveUserName=${SaveUserName//"@"/".at."}
+#                  if id -u "$SaveUserName" >/dev/null 2>&1; then
+#                    echo "$SaveUserName exists"
+#                  else
+#                    #sudo will read each file in /etc/sudoers.d, skipping file names that end in ‘~’ or contain a ‘.’ character to avoid causing problems with package manager or editor temporary/backup files.
+#                    SaveUserFileName=$(echo "$SaveUserName" | tr "." " ")
+#                    /usr/sbin/adduser "$SaveUserName"
+#                    echo "$SaveUserName ALL=(ALL) NOPASSWD:ALL" > "/etc/sudoers.d/$SaveUserFileName"
+#                  fi
+#                done
+#              mode: '000755'
+#              owner: root
+#              group: root
+#            '/etc/cron.d/import_users':
+#              content: |
+#                */10 * * * * root /opt/import_users.sh
+#              mode: '000644'
+#              owner: root
+#              group: root
+#          commands:
+#            'a_configure_sshd_command':
+#              command: 'sed -i "s:#AuthorizedKeysCommand none:AuthorizedKeysCommand /opt/authorized_keys_command.sh:g" /etc/ssh/sshd_config'
+#            'b_configure_sshd_commanduser':
+#              command: 'sed -i "s:#AuthorizedKeysCommandUser nobody:AuthorizedKeysCommandUser nobody:g" /etc/ssh/sshd_config'
+#            'c_import_users':
+#              command: './import_users.sh'
+#              cwd: '/opt'
+#          services:
+#            sysvinit:
+#              sshd:
+#                enabled: true
+#                ensureRunning: true
+#                commands:
+#                - 'a_configure_sshd_command'
+#                - 'b_configure_sshd_commanduser'
+
+        docker-ubuntu:
+          commands:
+            'a_install_prereqs':
+              command: 'sudo apt-get install apt-transport-https ca-certificates curl software-properties-common htop supervisor -y'
+            'b_set_gpg_key':
+              command: 'curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
+            'c_add_fingerprint':
+              command: 'sudo apt-key fingerprint 0EBFCD88'
+            'd_add_docker_repo':
+              command: !Sub 'sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) ${DockerRepository}"'
+            'e_update_aptget':
+              command: 'sudo apt-get update'
+            'f_install_docker':
+              command: !Sub 'sudo apt-get install -y docker-ce=${DockerVersion}~ce-0~ubuntu'
+            'g_create_service':
+              command: 'sudo service docker start'
+            'h_add_ubuntu_user_to_docker_group':
+              command: 'sudo usermod -aG docker ubuntu'
+            'i_verify_installation':
+              command: 'sudo docker run hello-world'
+            'k_verify_installation':
+              command: 'docker run hello-world'
+        swarm:
+          commands:
+            'a_join_swarm':
+              command: !Sub |
+                echo "swarm -> a_join_swarm" >> /home/ubuntu/swarm.log
+
+                cat > /home/ubuntu/joinSwarmIfNeeded.sh << 'EOL'
+                  date
+                  FORMERMANAGER=$(cat /home/ubuntu/worker_join.sh | awk '{print $6}' | tr ":" "\n" | awk '{if(NR==1)print}')
+                  echo "Former manager: $FORMERMANAGER"
+                  echo "Downloading worker_join.sh from the s3"
+                  aws s3api get-object --bucket ${BucketName} --key worker_join.sh /home/ubuntu/worker_join.sh --region=${AWS::Region}
+                  NEWMANAGER=$(cat /home/ubuntu/worker_join.sh | awk '{print $6}' | tr ":" "\n" | awk '{if(NR==1)print}')
+                  echo "New manager: $NEWMANAGER"
+                  if [ "$NEWMANAGER" != "$FORMERMANAGER" ]
+                    then
+                      echo "Leaving former swarm at $FORMERMANAGER"
+                      docker swarm leave
+                      echo "Killing all running containers"
+                      sudo docker rm $(sudo docker stop $(sudo docker ps -a | awk '{print $1}'))
+                      echo "Joining new swarm at $NEWMANAGER"
+                      sh /home/ubuntu/worker_join.sh
+                      echo "sudo sh /home/ubuntu/sendLabels.sh ${WorkerType} $NEWMANAGER"
+                      sudo chmod 777 /etc/hosts
+                      sudo sed -i "s~$FORMERMANAGER~#$FORMERMANAGER~g" /etc/hosts
+                      sudo echo "$NEWMANAGER rabbit" >> /etc/hosts
+                    fi
+                  sudo sh /home/ubuntu/sendLabels.sh ${WorkerType} $NEWMANAGER
+                EOL
+
+                cat > /home/ubuntu/sendLabels.sh << 'EOL'
+                        echo "Sending labels to master $2"
+                        NODE_ID=$(docker info | grep NodeID | awk '{print $2}')
+                        IP=$(docker info | grep Name | awk '{print $2}' | cut -c4-15)
+
+                        echo 'echo "$NODE_ID --label-add org.hobbit.type=worker" | netcat $2 4444'
+                        echo 'echo "$NODE_ID --label-add org.hobbit.workergroup=$1" | netcat $2 4444'
+                        echo 'echo "$NODE_ID --label-add org.hobbit.name=$1_worker_$IP" | netcat $2 4444'
+
+                        echo "$NODE_ID --label-add org.hobbit.type=worker" | netcat $2 4444
+                        echo "$NODE_ID --label-add org.hobbit.workergroup=$1" | netcat $2 4444
+                        echo "$NODE_ID --label-add org.hobbit.name=$1_worker_$IP" | netcat $2 4444
+                        echo "Labels should be sent"
+                EOL
+
+                cat > /home/ubuntu/joinLoop.sh << 'EOL'
+                    sudo install -m 777 /dev/null /var/log/joinLoop.log
+                    while :
+                    do
+                      sudo sh /home/ubuntu/joinSwarmIfNeeded.sh > /var/log/joinLoop.log
+                      sleep 15
+                    done
+                EOL
+
+                echo "adding joinLoop to /etc/supervisor/supervisord.conf" >> /home/ubuntu/init.log
+                cat > /etc/supervisor/supervisord.conf << 'EOL'
+                [supervisord]
+                [program:joinLoop]
+                command=/bin/bash /home/ubuntu/joinLoop.sh
+                autostart=true
+                autorestart=true
+                EOL
+
+                echo "restarting supervisor service" >> /home/ubuntu/init.log
+                sudo service supervisor restart &
+                echo "join_loop should be started" >> /home/ubuntu/init.log
+
+                echo "starting node-exporter" >> /home/ubuntu/hobbit.log
+                docker run -d --name node-exporter -p 9100:9100 --rm prom/node-exporter
+
+                echo "starting container-exporter" >> /home/ubuntu/hobbit.log
+                docker run -d --name container-exporter -p 9104:9104 --rm -v /var/run/docker.sock:/var/run/docker.sock:ro -v /sys/fs/cgroup:/cgroup:rw prom/container-exporter
+
+                echo "starting cAdvisor" >> /home/ubuntu/hobbit.log
+                docker run -d --name cAdvisor -p 8081:8080 --rm -v /:/rootfs:ro -v /var/run:/var/run:rw -v /sys:/sys:ro -v /var/lib/docker/:/var/lib/docker:ro -v /dev/disk:/dev/disk:ro google/cadvisor
+
+              #                for ID in $(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names ${SwarmManagerAutoScalingGroup} --region ${AWS::Region} --query AutoScalingGroups[].Instances[].InstanceId --output text);
+#                  do
+#                    IP=$(aws ec2 describe-instances --instance-ids $ID --region ${AWS::Region} --query Reservations[].Instances[].PrivateIpAddress --output text)
+#                    if [ ! -z "$IP" ] ; then
+#                      #echo "Try to join swarm with IP $IP" >> /home/ubuntu/init.log
+#                      # Join the swarm; if it fails try the next one
+#
+#                      #echo "docker swarm join --token $JOIN_TOKEN $IP:2377" >> /home/ubuntu/swarm.log
+#                      #docker swarm join --token $JOIN_TOKEN $IP:2377 && break || continue
+#
+#                      #NODE_ADDRESS=$(docker info | grep "Node Address" | awk '{print $3}')
+#                      echo "Sending labels to master (NODE_ID is $NODE_ID)" >> /home/ubuntu/swarm.log
+#
+#                      cat > /home/ubuntu/labels.sh << 'EOL'
+#                      NODE_ID=$(docker info | grep NodeID | awk '{print $2}')
+#                      echo 'echo "$NODE_ID --label-add org.hobbit.type=worker" | netcat $2 4444'
+#                      echo "$NODE_ID --label-add org.hobbit.type=worker" | netcat $2 4444
+#                      echo 'echo "$NODE_ID --label-add org.hobbit.workergroup=$1" | netcat $2 4444'
+#                      echo "$NODE_ID --label-add org.hobbit.workergroup=$1" | netcat $2 4444
+#                      echo 'echo "$NODE_ID --label-add org.hobbit.name=worker" | netcat $2 4444'
+#                      echo "$NODE_ID --label-add org.hobbit.name=worker" | netcat $2 4444
+#                      EOL
+#
+#                      echo "sudo /home/ubuntu/labels.sh ${WorkerType} $IP" >> /home/ubuntu/swarm.log
+#                      sudo sh /home/ubuntu/labels.sh ${WorkerType} $IP >> /home/ubuntu/swarm.log
+#
+#                      #echo "abc --label-add org.hobbit.type=data" | netcat localhost 4444
+#                      #echo "$NODE_ID --label-add org.hobbit.type=worker" | netcat $IP 4444
+#                      #echo "$NODE_ID --label-add org.hobbit.workergroup=${WorkerType}" | netcat $IP 4444
+#                      #echo "$NODE_ID --label-add org.hobbit.name=worker" | netcat $IP 4444
+#
+#                      echo "Labels should be sent to master" >> /home/ubuntu/swarm.log
+#
+#                      echo "$IP rabbit" >> /etc/hosts
+#                    fi
+#                  done
+
+            'b_swarm_healthcheck':
+              command:
+                echo "swarm -> b_swarm_healthcheck" >> /home/ubuntu/init.log
+                docker info --format "{{.Swarm.NodeID}}" >> /home/ubuntu/init.log
+
+    Properties:
+      ImageId: ami-de8fb135 # Ubuntu 16.04
+      InstanceType: !Ref InstanceType
+      SecurityGroups:
+      - 'Fn::ImportValue': !Sub '${ParentSecurityGroupsStack}-SecurityGroup'
+#      - !Ref SwarmSecurityGroup
+
+      IamInstanceProfile: !Ref InstanceProfile
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref 'AWS::NoValue']
+      BlockDeviceMappings:
+      - DeviceName: "/dev/sda1"
+        Ebs:
+          VolumeSize: '30'
+      UserData:
+        "Fn::Base64": !Sub |
+          #!/bin/bash -xe
+
+
+          echo "Executing user data" >> /home/ubuntu/init.log
+
+          sudo apt-get update
+          sudo apt-get -y upgrade
+
+          # Install AWSCli
+          sudo apt install -y awscli
+
+          # Install cfn-init for Ubuntu
+          apt-get -y install python-setuptools
+          easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          ln -s /root/aws-cfn-bootstrap-latest/init/ubuntu/cfn-hup /etc/init.d/cfn-hup
+
+          echo "Creating cfn script" >> /home/ubuntu/init.log
+          echo "cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource LaunchConfiguration" >> /home/ubuntu/cfn.sh
+          echo "cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource AutoScalingGroup" >> /home/ubuntu/cfn.sh
+          echo "echo 'Signals should be sent' >> /home/ubuntu/init.log" >> /home/ubuntu/cfn.sh
+
+          sh /home/ubuntu/cfn.sh >> /home/ubuntu/init.log
+
+#Outputs:
+#  SwarmManagerAutoScalingGroup:
+#    Value: !Sub 'arn:aws:s3:::${BucketName}/*'

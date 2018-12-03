@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Docker Swarm - SecurityGroups'
+
+
+Parameters:
+
+  ParentVPCStack:
+    Description: 'Stack name of parent VPC stack based on vpc/vpc-*azs.yaml template.'
+    Type: String
+
+  ParentSSHBastionStack:
+    Description: 'Optional Stack name of parent SSH bastion host/instance stack based on vpc/vpc-ssh-bastion.yaml template.'
+    Type: String
+    Default: ''
+
+
+Conditions:
+  HasSSHBastionSecurityGroup: !Not [!Equals [!Ref ParentSSHBastionStack, '']]
+  HasNotSSHBastionSecurityGroup: !Equals [!Ref ParentSSHBastionStack, '']
+
+Resources:
+
+  SwarmSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub ${AWS::StackName}
+      VpcId:
+        'Fn::ImportValue': !Sub '${ParentVPCStack}-VPC'
+
+  SecurityGroupInSSHBastion:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Condition: HasSSHBastionSecurityGroup
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: 
+        'Fn::ImportValue': !Sub '${ParentSSHBastionStack}-SecurityGroup'
+  SecurityGroupInSSHBastion2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Condition: HasNotSSHBastionSecurityGroup
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId:
+        'Fn::ImportValue': !Sub '${ParentVPCStack}-BastionSecurityGroup'
+
+  SecurityGroupPing:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: icmp
+      FromPort: 8
+      ToPort: 0
+      CidrIp: {'Fn::ImportValue': !Sub '${ParentVPCStack}-CidrBlock'}
+      Description: "Echo requests from other machines of the VPC cluster"
+
+  SecurityGroupInClusterDocker1:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: tcp
+      FromPort: 2376
+      ToPort: 2376
+      SourceSecurityGroupId:
+        'Fn::ImportValue': !Sub '${ParentVPCStack}-BastionSecurityGroup'
+
+  SecurityGroupInClusterRabbit:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5672
+      ToPort: 5672
+      SourceSecurityGroupId:
+        'Fn::ImportValue': !Sub '${ParentVPCStack}-BastionSecurityGroup'
+
+  SecurityGroupInClusterDocker2:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      SourceSecurityGroupId: !Ref SwarmSecurityGroup
+
+  SecurityGroupInClusterDocker7946Udp:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: udp
+      FromPort: 7946
+      ToPort: 7946
+      SourceSecurityGroupId: !Ref SwarmSecurityGroup
+
+  SecurityGroupInSwarmOverlayNetwork:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      GroupId: !Ref SwarmSecurityGroup
+      IpProtocol: udp
+      FromPort: 4789
+      ToPort: 4789
+      SourceSecurityGroupId: !Ref SwarmSecurityGroup
+
+
+Outputs:
+
+  SecurityGroup:
+    Description: Security group for internal swarm communication
+    Value: !Ref SwarmSecurityGroup
+    Export:
+          Name: !Sub '${AWS::StackName}-SecurityGroup'

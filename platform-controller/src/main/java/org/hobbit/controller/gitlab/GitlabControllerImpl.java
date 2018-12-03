@@ -74,9 +74,9 @@ public class GitlabControllerImpl implements GitlabController {
     private static final int MAX_SIZE_OF_PROJECT_VISIBILITY_CHACHE = 50;
     private static final int VISIBILITY_CACHE_ELEMENT_LIFETIME_IN_SECS = 30;
 
-    protected static final String GITLAB_VISIBILITY_PUBLIC = "public";
-    protected static final String GITLAB_VISIBILITY_PROTECTED = "internal";
-    protected static final String GITLAB_VISIBILITY_PRIVATE = "private";
+    protected static final int GITLAB_VISIBILITY_PUBLIC_ID = 20;
+    protected static final int GITLAB_VISIBILITY_PROTECTED_ID = 10;
+    protected static final int GITLAB_VISIBILITY_PRIVATE_ID = 0;
 
     // gitlab api
     private GitlabAPI api;
@@ -108,7 +108,7 @@ public class GitlabControllerImpl implements GitlabController {
         }
         api = GitlabAPI.connect(GITLAB_URL, token);
         timer = new Timer();
-        projects = new ArrayList<>();
+        //projects = new ArrayList<>();
         readyRunnable = new ArrayList<>();
 
         if (useCache) {
@@ -260,7 +260,7 @@ public class GitlabControllerImpl implements GitlabController {
             byte[] systemCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), SYSTEM_CONFIG_FILENAME);
             systemModel = getCheckedModel(systemCfgBytes, "system", project.getWebUrl());
         } catch (Exception e) {
-            LOGGER.debug("system.ttl configuration file NOT FOUND in {}", project.getWebUrl());
+            LOGGER.debug("system.ttl configurationString file NOT FOUND in {}", project.getWebUrl());
         }
         // read benchmark config
         Model benchmarkModel = null;
@@ -268,7 +268,7 @@ public class GitlabControllerImpl implements GitlabController {
             byte[] benchmarkCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), BENCHMARK_CONFIG_FILENAME);
             benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark", project.getWebUrl());
         } catch (Exception e) {
-            LOGGER.debug("benchmark.ttl configuration file NOT FOUND in {}", project.getWebUrl());
+            LOGGER.debug("benchmark.ttl configurationString file NOT FOUND in {}", project.getWebUrl());
         }
         if ((benchmarkModel != null) || (systemModel != null)) {
             // get user
@@ -281,7 +281,7 @@ public class GitlabControllerImpl implements GitlabController {
                 handleErrorMsg(warning, null, false);
             }
             Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
-                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
+                    project.getCreatedAt(), project.getVisibility().equals(GITLAB_VISIBILITY_PRIVATE_ID));
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.
@@ -373,7 +373,7 @@ public class GitlabControllerImpl implements GitlabController {
                 LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
                 return new TreeSet<>();
             }
-            // List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
+            //List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
             List<GitlabProject> gitProjects = getProjectsVisibleForUser(user);
             Set<String> projectNames = new HashSet<String>();
             for (GitlabProject p : gitProjects) {

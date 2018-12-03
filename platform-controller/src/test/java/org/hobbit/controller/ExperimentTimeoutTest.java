@@ -6,6 +6,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.LogStream;
+import com.spotify.docker.client.messages.swarm.Service;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -104,7 +107,7 @@ public class ExperimentTimeoutTest {
 
         @Override
         public void init() throws Exception {
-            // do not init the super class
+            // do not setAsEnvVariables the super class
         }
 
         @Override
@@ -199,15 +202,24 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
-        public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                String[] command) {
-            return imageName;
+        public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command, String[] volumePaths) {
+            return null;
         }
+
+//        @Override
+//        public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command) {
+//            return imageName;
+//        }
 
         @Override
         public String startContainer(String imageName, String containerType, String parentId, String[] env,
                                      String[] command, String experimentId) {
             return imageName;
+        }
+
+        @Override
+        public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command, String experimentId, String[] volumePaths) {
+            return null;
         }
 
         @Override
@@ -274,6 +286,27 @@ public class ExperimentTimeoutTest {
         public ContainerStats getStats(String containerId) {
             return null;
         }
+
+        @Override
+        public List<Service> listServices() {
+            return null;
+        }
+
+        @Override
+        public Task inspectTask(String taskId) {
+            return null;
+        }
+
+        @Override
+        public LogStream serviceLogs(String var1, DockerClient.LogsParam... var2) {
+            return null;
+        }
+
+        @Override
+        public boolean execAsyncCommand(String containerId, String[] command) {
+            return true;
+        }
+
 
     }
 

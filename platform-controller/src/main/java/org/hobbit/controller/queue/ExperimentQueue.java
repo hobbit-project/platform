@@ -60,11 +60,11 @@ public interface ExperimentQueue {
     public List<ExperimentConfiguration> listAll();
 
     /**
-     * Retrieves the experiment configuration with the given experiment id.
+     * Retrieves the experiment configurationString with the given experiment id.
      * 
      * @param experimentId
      *            the id of the experiment that should be retrieved
-     * @return the experiment configuration or {@code null} if such an experiment
+     * @return the experiment configurationString or {@code null} if such an experiment
      *         can not be found
      */
     public ExperimentConfiguration getExperiment(String experimentId);

@@ -28,7 +28,7 @@ public class ClusterHealthCheckerImpl implements ClusterHealthChecker {
     public boolean isClusterHealthy(String[] clusterNodes) {
         // TODO get the list of available nodes from the Docker Swarm service
         // TODO compare the lists and make sure that all given nodes are
-        // available in the cluster
+        // available in the interfaces
         return false;
     }
 

@@ -7,10 +7,12 @@ import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
-import com.spotify.docker.client.messages.swarm.Node;
 import com.spotify.docker.client.messages.swarm.OrchestrationConfig;
 import com.spotify.docker.client.messages.swarm.SwarmSpec;
 import com.spotify.docker.client.messages.swarm.Version;
+import org.hobbit.controller.ExperimentManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * ClusterManager implementation
@@ -24,12 +26,12 @@ public class ClusterManagerImpl implements ClusterManager {
     /**
      * Docker client instance
      */
-    private DockerClient dockerClient;
+    //private DockerClient dockerClient;
     private Integer expectedNumberOfNodes = 0;
     private String SWARM_NODE_NUMBER = null;
 
     public ClusterManagerImpl() throws DockerCertificateException {
-        dockerClient = DockerUtility.getDockerClient();
+
         SWARM_NODE_NUMBER = System.getenv("SWARM_NODE_NUMBER");
         if(SWARM_NODE_NUMBER == null) {
             expectedNumberOfNodes = 1;
@@ -38,31 +40,25 @@ public class ClusterManagerImpl implements ClusterManager {
         }
     }
 
-    public Info getClusterInfo() throws DockerException, InterruptedException {
-        return dockerClient.info();
-    }
-
-    public int getNumberOfNodes() throws DockerException, InterruptedException {
-        final Info info = getClusterInfo();
-        return info.swarm().nodes();
-    }
-
-    public int getNumberOfNodes(String label) throws DockerException, InterruptedException {
-        /*
-        // doesn't work
-        Node.Criteria criteria = Node.Criteria.builder().label(label).build();
-        return dockerClient.listNodes(criteria).size();
-        */
-        final String[] parts = label.split("=");
-        int number = 0;
-        for (Node node : dockerClient.listNodes()) {
-            if (node.spec().labels().containsKey(parts[0])) {
-                if (parts.length == 1 || node.spec().labels().get(parts[0]).equals(parts[1])) {
-                    number++;
-                }
-            }
+    public DockerClient getDockerClient(){
+        DockerClient dockerClient = null;
+        try {
+            dockerClient = DockerUtility.getDockerClient();
+        } catch (DockerCertificateException e) {
+            LOGGER.error(e.getMessage());
         }
-        return number;
+        return dockerClient;
+    }
+
+    public Info getClusterInfo() throws DockerException, InterruptedException {
+        return getDockerClient().info();
+    }
+
+    public Integer getNumberOfNodes() throws DockerException, InterruptedException {
+        //final Info info = getClusterInfo();
+        //return info.swarm().nodes();
+        String test="123";
+        return (int)getDockerClient().listNodes().stream().filter(n->n.status().state().equals("ready")).count();
     }
 
     public boolean isClusterHealthy() throws DockerException, InterruptedException {
@@ -74,7 +70,7 @@ public class ClusterManagerImpl implements ClusterManager {
         return false;
     }
 
-    public int getExpectedNumberOfNodes() {
+    public Integer getExpectedNumberOfNodes() {
         return expectedNumberOfNodes;
     }
 
@@ -82,7 +78,7 @@ public class ClusterManagerImpl implements ClusterManager {
         OrchestrationConfig orchestrationConfig = OrchestrationConfig.builder()
                 .taskHistoryRetentionLimit(0)
                 .build();
-        SwarmSpec currentSwarmSpec = dockerClient.inspectSwarm().swarmSpec();
+        SwarmSpec currentSwarmSpec = getDockerClient().inspectSwarm().swarmSpec();
         SwarmSpec updatedSwarmSpec = SwarmSpec.builder()
                 .orchestration(orchestrationConfig)
                 .caConfig(currentSwarmSpec.caConfig())
@@ -93,12 +89,12 @@ public class ClusterManagerImpl implements ClusterManager {
                 .raft(currentSwarmSpec.raft())
                 .taskDefaults(currentSwarmSpec.taskDefaults())
                 .build();
-        Version swarmVersion = dockerClient.inspectSwarm().version();
-        dockerClient.updateSwarm(swarmVersion.index(), updatedSwarmSpec);
+        Version swarmVersion = getDockerClient().inspectSwarm().version();
+        getDockerClient().updateSwarm(swarmVersion.index(), updatedSwarmSpec);
     }
 
-    public int getTaskHistoryLimit() throws DockerException, InterruptedException {
-        SwarmSpec currentSwarmSpec = dockerClient.inspectSwarm().swarmSpec();
+    public Integer getTaskHistoryLimit() throws DockerException, InterruptedException {
+        SwarmSpec currentSwarmSpec = getDockerClient().inspectSwarm().swarmSpec();
         return currentSwarmSpec.orchestration().taskHistoryRetentionLimit();
     }
 }

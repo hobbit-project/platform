@@ -22,6 +22,8 @@ import java.util.List;
 import org.hobbit.controller.DockerBasedTest;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,9 +37,15 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
     protected List<String> containers = new ArrayList<String>();
     protected List<String> tasks = new ArrayList<String>();
 
+
     @Before
     public void initManager() throws Exception {
-        manager = new ContainerManagerImpl();
+        //manager = new ContainerManagerImpl();
+    }
+
+    @Test
+    public void pullImage(){
+        manager.pullImage("git.project-hobbit.eu:4567/smirnp/sml-benchmark-v2/benchmark-controller");
     }
 
     @After
