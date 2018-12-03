@@ -70,9 +70,15 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         // Cloud extension parameters
         environmentVariables.set(USE_CLOUD_KEY, "true");
         environmentVariables.set(CLOUD_VPC_CLUSTER_NAME_KEY, "hobbit");
-        environmentVariables.set(CLOUD_EXPIRE_TIMEOUT_MIN_KEY, "-1");
+        environmentVariables.set(CLOUD_EXPIRE_TIMEOUT_MIN_KEY, "-1"); //-1 unlimited
         environmentVariables.set(CLOUD_SSH_KEY_NAME_KEY, "hobbit_2");
         environmentVariables.set(CLOUD_SSH_KEY_FILE_PATH_KEY, "ssh/hobbit_2.pem");
+
+        //Setup this vars for your environment or define them here for the test
+//        environmentVariables.set("AWS_ACCESS_KEY_ID", System.getenv("AWS_ACCESS_KEY_ID"));
+//        environmentVariables.set("AWS_SECRET_KEY", System.getenv("AWS_SECRET_KEY"));
+//        environmentVariables.set("AWS_ROLE_ARN", System.getenv("AWS_ROLE_ARN"));
+//        environmentVariables.set("AWS_REGION", System.getenv("AWS_REGION"));
 
 
         //environmentVariables.set("DOCKER_HOST", "tcp://localhost:2376"); - might be needed for testing
@@ -93,9 +99,10 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         environmentVariables.set("DEPLOY_ENV", "testing");
         //environmentVariables.set("LOGGING_GELF_ADDRESS", "udp://localhost:12201");
 
-        environmentVariables.set("GITLAB_USER", System.getenv("GITLAB_USER"));
-        environmentVariables.set("GITLAB_EMAIL", System.getenv("GITLAB_EMAIL"));
-        environmentVariables.set("GITLAB_TOKEN", System.getenv("GITLAB_TOKEN"));
+        //Setup this vars for your environment or define them here for the test
+//        environmentVariables.set("GITLAB_USER", System.getenv("GITLAB_USER"));
+//        environmentVariables.set("GITLAB_EMAIL", System.getenv("GITLAB_EMAIL"));
+//        environmentVariables.set("GITLAB_TOKEN", System.getenv("GITLAB_TOKEN"));
 
         environmentVariables.set("HOBBIT_REDIS_HOST", "redis");
         environmentVariables.set("CONTAINER_PARENT_CHECK", "0");
