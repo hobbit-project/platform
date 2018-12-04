@@ -21,9 +21,12 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
     @Before
     public void setEnv() {
-        environmentVariables.set(ResourceInformationCollector.PROMETHEUS_HOST_KEY, "localhost");
-        environmentVariables.set(ResourceInformationCollector.PROMETHEUS_PORT_KEY,
-                ResourceInformationCollector.PROMETHEUS_PORT_DEFAULT);
+        environmentVariables.set(
+                ResourceInformationCollectorImpl.PROMETHEUS_HOST_KEY,
+                ResourceInformationCollectorImpl.PROMETHEUS_HOST_DEFAULT);
+        environmentVariables.set(
+                ResourceInformationCollectorImpl.PROMETHEUS_PORT_KEY,
+                ResourceInformationCollectorImpl.PROMETHEUS_PORT_DEFAULT);
     }
 
     @Test
@@ -36,7 +39,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
         Thread.sleep(10000);
 
-        ResourceInformationCollector collector = new ResourceInformationCollector(manager);
+        ResourceInformationCollector collector = new ResourceInformationCollectorImpl(manager);
         LOGGER.info("Requesting usage information...");
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
@@ -74,7 +77,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
     @Test
     public void testIncreasingFsSize() throws Exception {
-        ResourceInformationCollector collector = new ResourceInformationCollector(manager);
+        ResourceInformationCollector collector = new ResourceInformationCollectorImpl(manager);
         final String[] command = { "sh", "-c",
                 "sleep 20s ; dd if=/dev/zero of=file.txt count=16024 bs=1048576 ; sleep 60s" };
         LOGGER.info("Creating container...");

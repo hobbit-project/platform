@@ -58,6 +58,7 @@ import org.hobbit.controller.docker.GitlabBasedImageManager;
 import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.docker.ImageManagerFacade;
 import org.hobbit.controller.docker.ResourceInformationCollector;
+import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.health.ClusterHealthChecker;
 import org.hobbit.controller.health.ClusterHealthCheckerImpl;
@@ -231,7 +232,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
-        resInfoCollector = new ResourceInformationCollector(containerManager);
+        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
