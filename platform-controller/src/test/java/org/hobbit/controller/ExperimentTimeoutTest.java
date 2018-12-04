@@ -72,13 +72,13 @@ public class ExperimentTimeoutTest {
         // Give the system some time to tidy up
         Thread.sleep(1000);
         // Check queue
-        Assert.assertEquals(0, controller.queue.listAll().size());
+        Assert.assertEquals("Queue size after experiment termination by timeout", 0, controller.queue.listAll().size());
         // Check status
         ControllerStatus status = new ControllerStatus();
         manager.addStatusInfo(status, "");
-        Assert.assertNull(status.experiment);
+        Assert.assertNull("Status of the running experiment", status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
-        Assert.assertTrue(
+        Assert.assertTrue("Result model contains the error information about terminated experiment",
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
                         HOBBIT.terminatedWithError, HobbitErrors.ExperimentTookTooMuchTime));
     }

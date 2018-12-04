@@ -31,48 +31,54 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
     @Test
     public void test() throws Exception {
-        LOGGER.info("Creating container...");
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
-                sleepCommand);
-        assertNotNull(containerId);
+        LOGGER.info("Creating first container...");
+        String containerId = manager.startContainer(busyboxImageName,
+                Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull("Container ID", containerId);
         tasks.add(containerId);
 
+        LOGGER.info("Waiting...");
         Thread.sleep(10000);
 
         ResourceInformationCollector collector = new ResourceInformationCollectorImpl(manager);
-        LOGGER.info("Requesting usage information...");
+        LOGGER.info("Requesting system usage information...");
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
-        Assert.assertNotNull(usage);
-        LOGGER.info("Got usage information {}", usage);
+        Assert.assertNotNull("System usage information", usage);
+        LOGGER.info("Got {}", usage);
 
-        Assert.assertNotNull(usage.getCpuStats());
+        Assert.assertNotNull("CPU stats", usage.getCpuStats());
         Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);
-        Assert.assertNotNull(usage.getMemoryStats());
+        Assert.assertNotNull("Memory stats", usage.getMemoryStats());
         Assert.assertTrue(usage.getMemoryStats().getUsageSum() > 0);
-        Assert.assertNotNull(usage.getDiskStats());
+        Assert.assertNotNull("Disk stats", usage.getDiskStats());
         Assert.assertTrue(usage.getDiskStats().getFsSizeSum() > 0);
 
         // Generate a second container
         LOGGER.info("Creating second container...");
-        containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
-        assertNotNull(containerId);
+        containerId = manager.startContainer(busyboxImageName,
+                Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull("Container ID", containerId);
         tasks.add(containerId);
 
+        LOGGER.info("Waiting...");
         Thread.sleep(10000);
 
-        LOGGER.info("Requesting usage information...");
+        LOGGER.info("Requesting system usage information...");
         ResourceUsageInformation usage2 = collector.getSystemUsageInformation();
-        Assert.assertNotNull(usage2);
-        LOGGER.info("Got usage information {}", usage2);
+        Assert.assertNotNull("System usage information", usage2);
+        LOGGER.info("Got {}", usage2);
 
-        Assert.assertNotNull(usage2.getCpuStats());
+        Assert.assertNotNull("CPU stats", usage2.getCpuStats());
         Assert.assertTrue(usage2.getCpuStats().getTotalUsage() > 0);
-        Assert.assertTrue(usage.getCpuStats().getTotalUsage() <= usage2.getCpuStats().getTotalUsage());
-        Assert.assertNotNull(usage2.getMemoryStats());
-        Assert.assertTrue(usage.getMemoryStats().getUsageSum() <= usage2.getMemoryStats().getUsageSum());
-        Assert.assertNotNull(usage2.getDiskStats());
-        Assert.assertTrue(usage.getDiskStats().getFsSizeSum() <= usage2.getDiskStats().getFsSizeSum());
+        Assert.assertTrue(usage.getCpuStats().getTotalUsage()
+                <= usage2.getCpuStats().getTotalUsage());
+        Assert.assertNotNull("Memory stats", usage2.getMemoryStats());
+        Assert.assertTrue(usage.getMemoryStats().getUsageSum()
+                <= usage2.getMemoryStats().getUsageSum());
+        Assert.assertNotNull("Disk stats", usage2.getDiskStats());
+        Assert.assertTrue(usage.getDiskStats().getFsSizeSum()
+                <= usage2.getDiskStats().getFsSizeSum());
     }
 
     @Test
@@ -81,48 +87,51 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         final String[] command = { "sh", "-c",
                 "sleep 20s ; dd if=/dev/zero of=file.txt count=16024 bs=1048576 ; sleep 60s" };
         LOGGER.info("Creating container...");
-        String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, command);
-        assertNotNull(containerId);
+        String containerId = manager.startContainer(busyboxImageName,
+                Constants.CONTAINER_TYPE_SYSTEM, null, command);
+        assertNotNull("Container ID", containerId);
         tasks.add(containerId);
-        // Waiting for the service to create and start its container
+        LOGGER.info("Waiting for the container {} to start...", containerId);
         Thread.sleep(10000);
 
-        LOGGER.info("Requesting usage information...");
+        LOGGER.info("Requesting system usage information...");
         ResourceUsageInformation usage = collector.getSystemUsageInformation();
 
-        Assert.assertNotNull(usage);
-        LOGGER.info("Got usage information {}", usage);
+        Assert.assertNotNull("System usage information", usage);
+        LOGGER.info("Got {}", usage);
 
-        Assert.assertNotNull(usage.getCpuStats());
+        Assert.assertNotNull("CPU stats", usage.getCpuStats());
         Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);
-        Assert.assertNotNull(usage.getMemoryStats());
+        Assert.assertNotNull("Memory stats", usage.getMemoryStats());
         Assert.assertTrue(usage.getMemoryStats().getUsageSum() > 0);
-        Assert.assertNotNull(usage.getDiskStats());
+        Assert.assertNotNull("Disk stats", usage.getDiskStats());
         Assert.assertTrue(usage.getDiskStats().getFsSizeSum() > 0);
 
-        LOGGER.info("Waiting for the container to generate its file...");
+        LOGGER.info("Waiting for the container {} to generate its file...",
+                containerId);
         Thread.sleep(30000);
 
-        LOGGER.info("Requesting usage information...");
+        LOGGER.info("Requesting system usage information...");
         ResourceUsageInformation usage2 = collector.getSystemUsageInformation();
-        Assert.assertNotNull(usage2);
-        LOGGER.info("Got usage information {}", usage2);
+        Assert.assertNotNull("System usage information", usage2);
+        LOGGER.info("Got {}", usage2);
 
-        Assert.assertNotNull(usage2.getCpuStats());
+        Assert.assertNotNull("CPU stats", usage2.getCpuStats());
         Assert.assertTrue(usage2.getCpuStats().getTotalUsage() > 0);
         // Assert.assertTrue("We expected that the CPU time used to generate the file
         // would increase the overall CPU time",
         // usage.getCpuStats().getTotalUsage() < usage2.getCpuStats().getTotalUsage());
-        Assert.assertNotNull(usage2.getMemoryStats());
+        Assert.assertNotNull("Memory stats", usage2.getMemoryStats());
         // Assert.assertTrue(usage.getMemoryStats().getUsageSum() <
         // usage2.getMemoryStats().getUsageSum());
-        Assert.assertNotNull(usage2.getDiskStats());
+        Assert.assertNotNull("Disk stats", usage2.getDiskStats());
         // Assert.assertTrue("We expected that the Fssize would be increased when
         // generating a huge file",
         // usage.getDiskStats().getFsSizeSum() < usage2.getDiskStats().getFsSizeSum());
         Assert.assertTrue("We expected that the consumed memory would be increased when generating a huge file",
                 (usage.getMemoryStats().getUsageSum()
-                        + usage.getDiskStats().getFsSizeSum()) < (usage2.getMemoryStats().getUsageSum()
-                                + usage2.getDiskStats().getFsSizeSum()));
+                        + usage.getDiskStats().getFsSizeSum())
+                < (usage2.getMemoryStats().getUsageSum()
+                        + usage2.getDiskStats().getFsSizeSum()));
     }
 }
