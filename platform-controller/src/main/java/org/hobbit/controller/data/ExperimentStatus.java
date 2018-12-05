@@ -511,8 +511,10 @@ public class ExperimentStatus implements Closeable {
      *            experiment
      * @param endTimeStamp
      *            point in time at which the experiment ended
+     * @param hardwareInformation
+     *            hardware information on which experiment was carried out
      */
-    public void addMetaDataToResult(ImageManager imageManager, long endTimeStamp) {
+    public void addMetaDataToResult(ImageManager imageManager, long endTimeStamp, SetupHardwareInformation hardwareInformation) {
         try {
             modelMutex.acquire();
         } catch (InterruptedException e) {
@@ -544,6 +546,11 @@ public class ExperimentStatus implements Closeable {
             Calendar endDate = Calendar.getInstance();
             endDate.setTimeInMillis(endTimeStamp);
             resultModel.add(resultModel.getResource(experimentUri), HOBBIT.endTime, resultModel.createTypedLiteral(endDate));
+
+            // Add hardware information
+            if (hardwareInformation != null) {
+                resultModel.add(resultModel.getResource(experimentUri), HOBBIT.wasCarriedOutOn, hardwareInformation.addToModel(resultModel));
+            }
 
             // Remove statements that shouldn't be part of the result model.
             List<Statement> removableStatements = resultModel.listStatements(null, HOBBIT.imageName, (RDFNode) null)

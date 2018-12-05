@@ -433,7 +433,8 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
                 resultModel = experimentStatus.getResultModel();
             }
-            experimentStatus.addMetaDataToResult(controller.imageManager(), endTimestamp);
+            experimentStatus.addMetaDataToResult(controller.imageManager(), endTimestamp, controller.resInfoCollector.getHardwareInformation());
+
             // Send insert query
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
                 if (resultModel != null) {

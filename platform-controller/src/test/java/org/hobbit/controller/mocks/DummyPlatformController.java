@@ -10,6 +10,10 @@ import org.hobbit.controller.queue.InMemoryQueue;
 
 public class DummyPlatformController extends PlatformController {
 
+    public DummyPlatformController() {
+        this(new Semaphore(0));
+    }
+
     public DummyPlatformController(Semaphore benchmarkControllerTerminated) {
         imageManager = new DummyImageManager();
         containerManager = new DummyContainerManager(benchmarkControllerTerminated, this);
