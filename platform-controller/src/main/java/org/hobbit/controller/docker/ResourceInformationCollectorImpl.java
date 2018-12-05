@@ -41,6 +41,10 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     public static final String PROMETHEUS_HOST_DEFAULT = "localhost";
     public static final String PROMETHEUS_PORT_DEFAULT = "9090";
 
+    private static final String PROMETHEUS_METRIC_CPU_USAGE = "container_cpu_usage_seconds_total";
+    private static final String PROMETHEUS_METRIC_FS_USAGE = "container_fs_usage_bytes";
+    private static final String PROMETHEUS_METRIC_MEMORY_USAGE = "container_memory_usage_bytes";
+
     private ContainerManager manager;
     private String prometheusHost;
     private String prometheusPort;
@@ -97,7 +101,7 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
         String value;
         try {
-            value = requestPrometheusValue(taskId, "container_cpu_usage_seconds_total");
+            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_CPU_USAGE);
             if (value != null) {
                 resourceInfo.setCpuStats(new CpuStats(Math.round(Double.parseDouble(value) * 1000)));
             }
@@ -105,7 +109,7 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
             LOGGER.error("Could not get cpu usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(taskId, "container_memory_usage_bytes");
+            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_MEMORY_USAGE);
             if (value != null) {
                 resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
             }
@@ -113,7 +117,7 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
             LOGGER.error("Could not get memory usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(taskId, "container_fs_usage_bytes");
+            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_FS_USAGE);
             if (value != null) {
                 resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
             }
