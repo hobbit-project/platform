@@ -2,8 +2,16 @@ package org.hobbit.controller.docker;
 
 import static org.junit.Assert.assertNotNull;
 
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.sparql.vocabulary.DOAP;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
+import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
+import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.MEXCORE;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -134,4 +142,46 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
                 < (usage2.getMemoryStats().getUsageSum()
                         + usage2.getDiskStats().getFsSizeSum()));
     }
+
+    @Test
+    public void getHardwareInformation() throws Exception {
+        LOGGER.info("Requesting hardware information...");
+        ResourceInformationCollector collector = new ResourceInformationCollectorImpl(manager);
+        SetupHardwareInformation setupInfo = collector.getHardwareInformation();
+        assertNotNull("Hardware information", setupInfo);
+        LOGGER.info("Got {}", setupInfo);
+        Model m = ModelFactory.createDefaultModel();
+        setupInfo.addToModel(m);
+
+        int nodesInSwarm = dockerClient.info().swarm().nodes();
+
+        Assert.assertEquals("Number of hobbit:comprises properties is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listObjectsOfProperty(HOBBIT.comprises).toList().size());
+
+        Assert.assertEquals("Number of mexcore:HardwareConfiguration resources is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listSubjectsWithProperty(RDF.type, MEXCORE.HardwareConfiguration).toList().size());
+
+        Assert.assertEquals("Number of rdfs:label properties is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listObjectsOfProperty(RDFS.label).toList().size());
+
+        Assert.assertEquals("Number of mexcore:cpu properties is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listObjectsOfProperty(MEXCORE.cpu).toList().size());
+
+        Assert.assertEquals("Number of mexcore:memory properties is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listObjectsOfProperty(MEXCORE.memory).toList().size());
+
+        Assert.assertEquals("Number of doap:os properties is equal to the number of nodes in the swarm",
+                nodesInSwarm,
+                m.listObjectsOfProperty(DOAP.os).toList().size());
+
+        Assert.assertEquals("Total number of statements in hardware information model",
+                1 + 6 * nodesInSwarm,
+                m.listStatements().toList().size());
+    }
+
 }

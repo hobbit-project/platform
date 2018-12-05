@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,9 @@ import org.hobbit.core.data.usage.MemoryStats;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.hobbit.controller.data.NodeHardwareInformation;
+import org.hobbit.controller.data.SetupHardwareInformation;
 
 import org.apache.jena.ext.com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
@@ -46,9 +50,14 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     public static final String PROMETHEUS_HOST_DEFAULT = "localhost";
     public static final String PROMETHEUS_PORT_DEFAULT = "9090";
 
+    private static final String PROMETHEUS_METRIC_CPU_CORES = "machine_cpu_cores";
+    private static final String PROMETHEUS_METRIC_CPU_FREQUENCY = "node_cpu_frequency_max_hertz";
     private static final String PROMETHEUS_METRIC_CPU_USAGE = "container_cpu_usage_seconds_total";
     private static final String PROMETHEUS_METRIC_FS_USAGE = "container_fs_usage_bytes";
+    private static final String PROMETHEUS_METRIC_MEMORY = "node_memory_MemTotal_bytes";
     private static final String PROMETHEUS_METRIC_MEMORY_USAGE = "container_memory_usage_bytes";
+    private static final String PROMETHEUS_METRIC_SWAP = "node_memory_SwapTotal_bytes";
+    private static final String PROMETHEUS_METRIC_UNAME = "node_uname_info";
 
     private ContainerManager manager;
     private String prometheusHost;
@@ -160,6 +169,13 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     private String prometheusMetricValue(JsonObject obj) {
         JsonObject metricObj = obj.getAsJsonObject("metric");
         switch (metricObj.get("__name__").getAsString()) {
+            case PROMETHEUS_METRIC_UNAME:
+                StringBuilder builder = new StringBuilder();
+                builder.append(metricObj.get("sysname").getAsString());
+                builder.append(metricObj.get("release").getAsString());
+                builder.append(metricObj.get("version").getAsString());
+                builder.append(metricObj.get("machine").getAsString());
+                return builder.toString();
             default:
                 return obj.get("value").getAsJsonArray().get(1).getAsString();
         }
@@ -216,6 +232,49 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
                 .collect(
                         Collectors.averagingDouble(Double::parseDouble)
                 );
+    }
+
+    @Override
+    public SetupHardwareInformation getHardwareInformation() {
+        SetupHardwareInformation setupInfo = new SetupHardwareInformation();
+
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {
+            PROMETHEUS_METRIC_CPU_CORES,
+            PROMETHEUS_METRIC_CPU_FREQUENCY,
+            PROMETHEUS_METRIC_MEMORY,
+            PROMETHEUS_METRIC_SWAP,
+            PROMETHEUS_METRIC_UNAME,
+        }, null);
+
+        for (Map.Entry<String, Map<String, List<String>>> entry : instances.entrySet()) {
+            NodeHardwareInformation nodeInfo = new NodeHardwareInformation();
+            nodeInfo.setInstance(entry.getKey());
+
+            Map<String, List<String>> metrics = entry.getValue();
+
+            nodeInfo.setCpu(
+                metrics.getOrDefault(PROMETHEUS_METRIC_CPU_CORES, new ArrayList<String>())
+                        .stream().map(Long::parseLong).findAny().orElse(null),
+                metrics.getOrDefault(PROMETHEUS_METRIC_CPU_FREQUENCY, new ArrayList<String>())
+                        .stream().map(Long::parseLong).collect(Collectors.toList())
+            );
+
+            nodeInfo.setMemory(
+                metrics.getOrDefault(PROMETHEUS_METRIC_MEMORY, new ArrayList<String>())
+                        .stream().map(Long::parseLong).findAny().orElse(null),
+                metrics.getOrDefault(PROMETHEUS_METRIC_SWAP, new ArrayList<String>())
+                        .stream().map(Long::parseLong).findAny().orElse(null)
+            );
+
+            nodeInfo.setOs(
+                metrics.getOrDefault(PROMETHEUS_METRIC_UNAME, new ArrayList<String>())
+                        .stream().findAny().orElse(null)
+            );
+
+            setupInfo.addNode(nodeInfo);
+        }
+
+        return setupInfo;
     }
 
 }
