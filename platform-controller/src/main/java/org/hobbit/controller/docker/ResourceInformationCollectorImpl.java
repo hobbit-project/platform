@@ -2,11 +2,14 @@ package org.hobbit.controller.docker;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
@@ -17,7 +20,9 @@ import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.jena.ext.com.google.common.collect.Streams;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotify.docker.client.DockerClient;
@@ -99,17 +104,16 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
 
     protected ResourceUsageInformation requestCpuAndMemoryStats(String taskId) {
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
-        String value;
         try {
-            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_CPU_USAGE);
+            Double value = requestAveragePrometheusValue(PROMETHEUS_METRIC_CPU_USAGE, taskId);
             if (value != null) {
-                resourceInfo.setCpuStats(new CpuStats(Math.round(Double.parseDouble(value) * 1000)));
+                resourceInfo.setCpuStats(new CpuStats(Math.round(value * 1000)));
             }
         } catch (Exception e) {
             LOGGER.error("Could not get cpu usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_MEMORY_USAGE);
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_MEMORY_USAGE, taskId);
             if (value != null) {
                 resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
             }
@@ -117,7 +121,7 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
             LOGGER.error("Could not get memory usage stats for container {}", taskId, e);
         }
         try {
-            value = requestPrometheusValue(taskId, PROMETHEUS_METRIC_FS_USAGE);
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_FS_USAGE, taskId);
             if (value != null) {
                 resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
             }
@@ -127,26 +131,91 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
         return resourceInfo;
     }
 
-    private String requestPrometheusValue(String taskId, String metric) throws IOException, MalformedURLException {
-        StringBuilder builder = new StringBuilder();
-        builder.append("http://").append(prometheusHost).append(':').append(prometheusPort)
-                .append("/api/v1/query?query=")
-                // append metric
-                .append(metric)
-                // append filter
-                .append("{container_label_com_docker_swarm_task_id=\"").append(taskId).append("\"}");
-        URL url = new URL(builder.toString());
-        String content = IOUtils.toString(url.openConnection().getInputStream());
-        LOGGER.debug("Prometheus response: {}", content);
-        JsonParser parser = new JsonParser();
-        JsonObject root = parser.parse(content).getAsJsonObject();
-        JsonArray result = root.get("data").getAsJsonObject().get("result").getAsJsonArray();
-        if (result.size() > 0) {
-            return result.get(0).getAsJsonObject().get("value").getAsJsonArray().get(1).getAsString();
-        } else {
-            LOGGER.warn("Didn't got a result when requesting {} for {}. Returning null", metric, taskId);
+    private JsonArray queryPrometheus(String query) {
+        LOGGER.debug("Prometheus query: {}", query);
+        UriBuilder uri = UriBuilder.fromPath("/api/v1/query");
+        uri.host(prometheusHost);
+        uri.port(Integer.parseInt(prometheusPort));
+        uri.queryParam("query", "{query}");
+        URL url;
+        try {
+            url = new URI("http:///").resolve(uri.build(query)).toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
+            LOGGER.error("Error while building Prometheus URL", e);
             return null;
         }
+        LOGGER.debug("Prometheus URL: {}", url);
+        String content = null;
+        try {
+            content = IOUtils.toString(url.openConnection().getInputStream());
+        } catch (IOException e) {
+            LOGGER.error("Error while requesting Prometheus", e);
+            return null;
+        }
+        LOGGER.debug("Prometheus response: {}", content);
+        JsonObject root = new JsonParser().parse(content).getAsJsonObject();
+        return root.getAsJsonObject("data").getAsJsonArray("result");
+    }
+
+    private String prometheusMetricValue(JsonObject obj) {
+        JsonObject metricObj = obj.getAsJsonObject("metric");
+        switch (metricObj.get("__name__").getAsString()) {
+            default:
+                return obj.get("value").getAsJsonArray().get(1).getAsString();
+        }
+    }
+
+    // metrics should not contain regular expression special characters
+    private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String taskId) {
+        StringBuilder query = new StringBuilder();
+        query.append('{');
+        query.append("__name__=~").append('"')
+                .append("^").append(String.join("|", metrics)).append("$")
+                .append('"');
+        if (taskId != null) {
+            query.append(", ");
+            query.append("container_label_com_docker_swarm_task_id=").append('"')
+                    .append(taskId)
+                    .append('"');
+        }
+        query.append('}');
+        JsonArray result = queryPrometheus(query.toString());
+        // result is an array of data from all metrics from all instances
+        return Streams.stream(result).map(JsonElement::getAsJsonObject).collect(
+            // group by "instance" in the outer map
+            // NOTE: Prometheus must be configured
+            // so all extractors use the same instance value for the same swarm node
+            Collectors.groupingBy(
+                obj -> obj.getAsJsonObject("metric").get("instance").getAsString(),
+                // group by "__name__" (metric name) in the inner map
+                Collectors.groupingBy(
+                    obj -> obj.getAsJsonObject("metric").get("__name__").getAsString(),
+                    Collectors.mapping(
+                        this::prometheusMetricValue,
+                        Collectors.toList()
+                    )
+                )
+            )
+        );
+    }
+
+    private String requestSamplePrometheusValue(String metric, String taskId) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, taskId);
+        if (instances.size() == 0) {
+            return null;
+        }
+        return instances.values().iterator().next().get(metric).get(0);
+    }
+
+    private Double requestAveragePrometheusValue(String metric, String taskId) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, taskId);
+        if (instances.size() == 0) {
+            return null;
+        }
+        return instances.values().stream().map(item -> item.get(metric).get(0))
+                .collect(
+                        Collectors.averagingDouble(Double::parseDouble)
+                );
     }
 
 }
