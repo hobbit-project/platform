@@ -220,7 +220,8 @@ public class ExperimentTimeoutTest {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    terminationCallback.notifyTermination(containerId, 137);
+                    terminationCallback.notifyTermination(containerId,
+                            ContainerStateObserver.DOCKER_EXITCODE_SIGKILL);
                 }
             }).start();
         }

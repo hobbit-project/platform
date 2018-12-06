@@ -24,6 +24,9 @@ import java.util.List;
  *
  */
 public interface ContainerStateObserver {
+
+    public static int DOCKER_EXITCODE_SIGKILL = 128 + new sun.misc.Signal("KILL").getNumber();
+
     /**
      * Start observing the state of containers
      */

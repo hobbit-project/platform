@@ -89,8 +89,10 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
             public void notifyTermination(String containerId, int exitCode) {
                 try {
                     // check that correct values were set
-                    assertEquals(containerOneId, containerId);
-                    assertEquals(137, exitCode);
+                    assertEquals("Container ID", containerOneId, containerId);
+                    assertEquals("Exit code",
+                            ContainerStateObserver.DOCKER_EXITCODE_SIGKILL,
+                            exitCode);
                     observer.removeTerminationCallback(this);
 
                     // cleanup
