@@ -81,10 +81,10 @@ public class AnalysisComponent extends AbstractComponent {
         while (true) {
             delivery = consumer.nextDelivery();
             AnalysisModel analysis;
-            Model updatedModel = null;
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
+                Model updatedModel = null;
                 try{
                     LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
                     String systemUri = "";
