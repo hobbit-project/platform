@@ -84,118 +84,122 @@ public class AnalysisComponent extends AbstractComponent {
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
-                Model updatedModel = null;
-                try{
-                    LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
-                    String systemUri = "";
-                    String expURI = "";
-                    //retrieve data from storage for the specific experiment Uri
-                    LOGGER.info("Retrieving Data...");
-                    LOGGER.info(SparqlQueries.getExperimentGraphQuery(expUri, null));
-                    experimentModel = storage.sendConstructQuery(SparqlQueries.getExperimentGraphQuery(expUri, null));
-
-                    Instances predictionDataset = null;
-                    Instances clusterDataset = null;
-                    Instances igDataset = null;
-                    Instances currentData = null;
-                    DataProcessor dp = new DataProcessor();
-                    DataProcessor dpForCurrent = new DataProcessor();
-
-                    String parametersURI = "http://w3id.org/hobbit/vocab#involvesSystemInstance";
-                    // select all resources that are of type
-                    NodeIterator systemUris = experimentModel.listObjectsOfProperty(experimentModel.getProperty(parametersURI));
-                    List systemUrisList = systemUris.toList();
-
-                    if (systemUrisList.size() > 0) {
-                        LOGGER.info("Retrieving Experiments Data from storage...");
-                        systemUri = "<" + systemUrisList.get(0).toString() + ">";
-                        QueryFormatter qf = new QueryFormatter(this.storage);
-                        Model paramsModel = qf.getParametersOfAllSystemExps(systemUri);
-                        Model kpisModel = qf.getAllKpisOfAllSystemExps(systemUri);
-
-                        if (!paramsModel.isEmpty() && !kpisModel.isEmpty()) {
-                            LOGGER.info("Preprocessing data - Converting to datasets...");
-                            List<Model> models = Arrays.asList(paramsModel, kpisModel);
-                            dp.getParametersFromRdfModel(models);
-
-                            igDataset = dp.getInstancesDatasetForIG();
-
-                            clusterDataset = dp.getInstancesDatasetForClustering();
-
-                            predictionDataset = dp.getInstancesDatasetForPrediction();
-
-                            mappings = dp.getMappings();
-
-                            ResIterator expURIs = experimentModel.listSubjectsWithProperty(experimentModel.getProperty(parametersURI));
-                            List expUris = expURIs.toList();
-                            expURI = expUris.get(0).toString();
-                            LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
-                            current.put(expURI, mappings.get(expURI));
-                            currentData = dp.buildDatasetFromMappingsForCurrent(current);
-
-                        }
-                        else{
-                            LOGGER.error("Did not find any models available!");
-                        }
-                    }
-                    else{
-                        LOGGER.error("Wrong format of RDF. Cannot find system URI. Setting to default and aborting...");
-                        systemUri = "None";
-                    }
-
-                    if (clusterDataset==null && predictionDataset==null){
-                        LOGGER.info("No data to analyze! Aborting analysis...");
-                    }
-                    else{
-                        AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, experimentModel, expURI);
-
-                        try{
-                            LOGGER.info("Starting analysis on retrieved data...");
-
-                            LOGGER.info("Calculating clusters...");
-                            model.computeClustersOfSystems();
-
-                            LOGGER.info("Assigning cluster to current experiment...");
-                            model.assignClusterToInstance(currentData.get(0));
-
-                            LOGGER.info("Calculating importance of parameters/features...");
-                            model.computeImportanceOfFeatures(mappings);
-
-                            LOGGER.info("Calculating prediction model...");
-                            model.predictPerformanceOfSystem();
-
-                            LOGGER.info("Analysis performed successfully!");
-
-                            LOGGER.info("Enhancing experiment model with results...");
-                            model.enhanceExperimentModel();
-                            updatedModel = model.getUpdatedModel();
-                        }
-                        catch (Exception e){
-                            LOGGER.error("Error in analyzing data. Have to abort analysis...", e);
-                        }
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("Error in pre-processing. ", e);
-                }
-                if (updatedModel != null) {
-                    try {
-                        LOGGER.info("Updating model...");
-                        String sparqlUpdateQuery = null;
-                        //TODO:: handle null exception for sparql queries
-                        sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(experimentModel,
-                                updatedModel,
-                                GRAPH_URI);
-                        LOGGER.info("Sending the enhanced model to storage...");
-                        storage.sendUpdateQuery(sparqlUpdateQuery);
-                    } catch (Exception e) {
-                        LOGGER.error("Error when updating model.", e);
-                    }
-                } else {
-                    LOGGER.error("Model did not update properly! No result model from the analysis.");
-                }
+                handleRequest(expUri);
             }
         }
 
+    }
+
+    protected void handleRequest(String expUri) {
+        Model updatedModel = null;
+        try{
+            LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
+            String systemUri = "";
+            String expURI = "";
+            //retrieve data from storage for the specific experiment Uri
+            LOGGER.info("Retrieving Data...");
+            LOGGER.info(SparqlQueries.getExperimentGraphQuery(expUri, null));
+            experimentModel = storage.sendConstructQuery(SparqlQueries.getExperimentGraphQuery(expUri, null));
+
+            Instances predictionDataset = null;
+            Instances clusterDataset = null;
+            Instances igDataset = null;
+            Instances currentData = null;
+            DataProcessor dp = new DataProcessor();
+            DataProcessor dpForCurrent = new DataProcessor();
+
+            String parametersURI = "http://w3id.org/hobbit/vocab#involvesSystemInstance";
+            // select all resources that are of type
+            NodeIterator systemUris = experimentModel.listObjectsOfProperty(experimentModel.getProperty(parametersURI));
+            List systemUrisList = systemUris.toList();
+
+            if (systemUrisList.size() > 0) {
+                LOGGER.info("Retrieving Experiments Data from storage...");
+                systemUri = "<" + systemUrisList.get(0).toString() + ">";
+                QueryFormatter qf = new QueryFormatter(this.storage);
+                Model paramsModel = qf.getParametersOfAllSystemExps(systemUri);
+                Model kpisModel = qf.getAllKpisOfAllSystemExps(systemUri);
+
+                if (!paramsModel.isEmpty() && !kpisModel.isEmpty()) {
+                    LOGGER.info("Preprocessing data - Converting to datasets...");
+                    List<Model> models = Arrays.asList(paramsModel, kpisModel);
+                    dp.getParametersFromRdfModel(models);
+
+                    igDataset = dp.getInstancesDatasetForIG();
+
+                    clusterDataset = dp.getInstancesDatasetForClustering();
+
+                    predictionDataset = dp.getInstancesDatasetForPrediction();
+
+                    mappings = dp.getMappings();
+
+                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(experimentModel.getProperty(parametersURI));
+                    List expUris = expURIs.toList();
+                    expURI = expUris.get(0).toString();
+                    LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
+                    current.put(expURI, mappings.get(expURI));
+                    currentData = dp.buildDatasetFromMappingsForCurrent(current);
+
+                }
+                else{
+                    LOGGER.error("Did not find any models available!");
+                }
+            }
+            else{
+                LOGGER.error("Wrong format of RDF. Cannot find system URI. Setting to default and aborting...");
+                systemUri = "None";
+            }
+
+            if (clusterDataset==null && predictionDataset==null){
+                LOGGER.info("No data to analyze! Aborting analysis...");
+            }
+            else{
+                AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, experimentModel, expURI);
+
+                try{
+                    LOGGER.info("Starting analysis on retrieved data...");
+
+                    LOGGER.info("Calculating clusters...");
+                    model.computeClustersOfSystems();
+
+                    LOGGER.info("Assigning cluster to current experiment...");
+                    model.assignClusterToInstance(currentData.get(0));
+
+                    LOGGER.info("Calculating importance of parameters/features...");
+                    model.computeImportanceOfFeatures(mappings);
+
+                    LOGGER.info("Calculating prediction model...");
+                    model.predictPerformanceOfSystem();
+
+                    LOGGER.info("Analysis performed successfully!");
+
+                    LOGGER.info("Enhancing experiment model with results...");
+                    model.enhanceExperimentModel();
+                    updatedModel = model.getUpdatedModel();
+                }
+                catch (Exception e){
+                    LOGGER.error("Error in analyzing data. Have to abort analysis...", e);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error in pre-processing. ", e);
+        }
+        if (updatedModel != null) {
+            try {
+                LOGGER.info("Updating model...");
+                String sparqlUpdateQuery = null;
+                //TODO:: handle null exception for sparql queries
+                sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(experimentModel,
+                        updatedModel,
+                        GRAPH_URI);
+                LOGGER.info("Sending the enhanced model to storage...");
+                storage.sendUpdateQuery(sparqlUpdateQuery);
+            } catch (Exception e) {
+                LOGGER.error("Error when updating model.", e);
+            }
+        } else {
+            LOGGER.error("Model did not update properly! No result model from the analysis.");
+        }
     }
 
     @Override
