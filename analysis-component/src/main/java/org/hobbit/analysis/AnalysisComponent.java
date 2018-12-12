@@ -25,6 +25,8 @@ import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.XSD;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractComponent;
@@ -32,6 +34,8 @@ import org.hobbit.core.data.RabbitQueue;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,9 +112,9 @@ public class AnalysisComponent extends AbstractComponent {
             DataProcessor dp = new DataProcessor();
             DataProcessor dpForCurrent = new DataProcessor();
 
-            String parametersURI = "http://w3id.org/hobbit/vocab#involvesSystemInstance";
+            Property parametersURI = HOBBIT.involvesSystemInstance;
             // select all resources that are of type
-            NodeIterator systemUris = experimentModel.listObjectsOfProperty(experimentModel.getProperty(parametersURI));
+            NodeIterator systemUris = experimentModel.listObjectsOfProperty(parametersURI);
             List systemUrisList = systemUris.toList();
 
             if (systemUrisList.size() > 0) {
@@ -133,7 +137,7 @@ public class AnalysisComponent extends AbstractComponent {
 
                     mappings = dp.getMappings();
 
-                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(experimentModel.getProperty(parametersURI));
+                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(parametersURI);
                     List expUris = expURIs.toList();
                     expURI = expUris.get(0).toString();
                     LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
@@ -238,6 +242,8 @@ public class AnalysisComponent extends AbstractComponent {
     protected static class AnalysisModel {
 
         //Update Properties
+        // FIXME: "http://w3id.org/bench#" should not be used, but already is in data
+        // FIXME: move property URIs to the HOBBIT core library
         private static final String BELONGS_TO_CLUSTER = "http://w3id.org/bench#belongsToCluster";
         private static final String MODEL_PREDICTION = "http://w3id.org/bench#modelPrediction";
         private static final String IMPORTANT_FEATURES = "http://w3id.org/bench#importantFeatures";
@@ -452,10 +458,10 @@ public class AnalysisComponent extends AbstractComponent {
                 Model model = models.get(i);
                 parametersNames = new ArrayList<>();
                 ArrayList<ArrayList> allExpParameters = new ArrayList<>();
-                String typeURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-                String parametersURI = "http://w3id.org/hobbit/vocab#Experiment";
+                Property typeURI = RDF.type;
+                Resource parametersURI = HOBBIT.Experiment;
                 // select all resources that are of type
-                ResIterator blockIt = model.listResourcesWithProperty(model.getProperty(typeURI), model.getResource(parametersURI));
+                ResIterator blockIt = model.listResourcesWithProperty(typeURI, parametersURI);
                 while (blockIt.hasNext()) {
                     ArrayList parameters = new ArrayList();
                     Resource currentParameter = blockIt.next();
@@ -774,38 +780,40 @@ public class AnalysisComponent extends AbstractComponent {
 
     /**
      * A class to hold all necessary sparql queries for analysis component.
+     * FIXME: move queries to the HOBBIT core library.
      */
     protected static class QueryFormatter {
         private StorageServiceClient storage;
 
-        private String queryForParametersOfAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForParametersOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?param ?o}  where {?aa a ns:Experiment .\n" +
                 "?aa ns:involvesSystemInstance %s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:hasParameter ?param .\n" +
                 "?aa ?param ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)}";
-        private String queryForKPIsOfAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForKPIsOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
                 "?aa ns:involvesSystemInstance %s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI ?kpi .\n" +
                 "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
-        private String queryForParamsAndKPIsOfSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForParamsAndKPIsOfSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
                 "?aa ns:involvesSystemInstance %s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI|ns:hasParameter ?kpi .\n" +
                 "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
-        private String queryForAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/vocab#>\n" +
+        private String queryForAllSystemExps =
+                "prefix hobbit: <" + HOBBIT.getURI() + ">\n" +
                 "construct {?a ?a ?a} where {?a a hobbit:Experiment ;\n" +
                 "hobbit:involvesSystemInstance %s . }";
 
