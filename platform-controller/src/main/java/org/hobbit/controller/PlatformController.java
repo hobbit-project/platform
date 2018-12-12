@@ -279,7 +279,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * This method closes the command queue and its handling and reopens it on the
      * RabbitMQ broker which will be used for experiments.
-     * 
+     *
      * @throws Exception
      */
     private void switchCmdToExpRabbit() throws Exception {
@@ -734,7 +734,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Retrieves model for the given challenge from the given graph (or without
      * selecting a certain graph if the graphUri is {@code null}).
-     * 
+     *
      * @param challengeUri
      *            the URI for which the model should be retrieved
      * @param graphUri

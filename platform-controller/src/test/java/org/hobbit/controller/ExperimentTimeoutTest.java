@@ -116,7 +116,7 @@ public class ExperimentTimeoutTest {
         public void notifyTermination(String containerId, int exitCode) {
             expManager.notifyTermination(containerId, exitCode);
         }
-        
+
         @Override
         protected void sendToCmdQueue(String address, byte command, byte[] data, BasicProperties props)
                 throws IOException {
