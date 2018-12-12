@@ -25,6 +25,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.XSD;
 import org.hobbit.utils.test.ModelComparisonHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;
@@ -63,7 +64,7 @@ public class PlatformControllerClientTest {
         param.setDatatype(Datatype.UNSIGNED_INT);
         param.setId("http://w3id.org/hobbit/platform_benchmark/vocab#numberOfDataGenerators");
         param.setValue("2");
-        param.setRange("http://www.w3.org/2001/XMLSchema#unsignedInt");
+        param.setRange(XSD.unsignedInt.getURI());
         parameters.add(param);
         param = new ConfigurationParamValueBean();
         param.setDatatype(null);
@@ -75,7 +76,7 @@ public class PlatformControllerClientTest {
         param.setDatatype(Datatype.INTEGER);
         param.setId("http://w3id.org/hobbit/platform_benchmark/vocab#seed");
         param.setValue("31");
-        param.setRange("http://www.w3.org/2001/XMLSchema#integer");
+        param.setRange(XSD.integer.getURI());
         parameters.add(param);
 
         benchmarkConf.setConfigurationParams(parameters);
