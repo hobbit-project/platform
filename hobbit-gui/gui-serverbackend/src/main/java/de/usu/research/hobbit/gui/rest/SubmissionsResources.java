@@ -27,6 +27,7 @@ import org.apache.jena.rdf.model.Model;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +43,7 @@ public class SubmissionsResources {
     public Response getSubmissionDetails(@PathParam("id") String id) {
         LOGGER.info("Retrieve result for " + id);
         StorageServiceClient client = StorageServiceClientSingleton.getInstance();
-        String query = SparqlQueries.getExperimentGraphQuery(Constants.EXPERIMENT_URI_NS + id,
+        String query = SparqlQueries.getExperimentGraphQuery(HobbitExperiments.getExperimentURI(id),
                 Constants.PUBLIC_RESULT_GRAPH_URI);
         if ((client != null) && (query != null)) {
             LOGGER.info("Sendting SPARQL query to storage service...");

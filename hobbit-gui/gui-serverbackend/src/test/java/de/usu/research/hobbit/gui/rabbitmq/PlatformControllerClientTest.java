@@ -23,12 +23,11 @@ import java.util.Set;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
-import org.hobbit.core.Constants;
 import org.hobbit.utils.test.ModelComparisonHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,18 +40,18 @@ public class PlatformControllerClientTest {
     @Test
     public void testAddParameters() {
         Model expectedModel = ModelFactory.createDefaultModel();
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI), RDF.type, HOBBIT.Experiment);
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI), HOBBIT.involvesBenchmark,
+        expectedModel.add(HobbitExperiments.New, RDF.type, HOBBIT.Experiment);
+        expectedModel.add(HobbitExperiments.New, HOBBIT.involvesBenchmark,
                 expectedModel.getResource("http://w3id.org/hobbit/platform_benchmark/vocab#PlatformBenchmark"));
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI), HOBBIT.involvesSystemInstance,
+        expectedModel.add(HobbitExperiments.New, HOBBIT.involvesSystemInstance,
                 expectedModel.getResource("http://w3id.org/hobbit/platform_benchmark/vocab#PlatformBenchmarkSystem"));
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI),
+        expectedModel.add(HobbitExperiments.New,
                 expectedModel.getProperty("http://w3id.org/hobbit/platform_benchmark/vocab#numberOfDataGenerators"),
                 "2", XSDDatatype.XSDunsignedInt);
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI),
+        expectedModel.add(HobbitExperiments.New,
                 expectedModel.getProperty("http://w3id.org/hobbit/platform_benchmark/vocab#someProp"),
                 expectedModel.getResource("http://w3id.org/hobbit/platform_benchmark/vocab#SomeResource"));
-        expectedModel.add(expectedModel.getResource(Constants.NEW_EXPERIMENT_URI),
+        expectedModel.add(HobbitExperiments.New,
                 expectedModel.getProperty("http://w3id.org/hobbit/platform_benchmark/vocab#seed"), "31",
                 XSDDatatype.XSDinteger);
 
@@ -83,15 +82,13 @@ public class PlatformControllerClientTest {
 
         Model model = ModelFactory.createDefaultModel();
 
-        String benchmarkInstanceId = Constants.NEW_EXPERIMENT_URI;
-        Resource benchmarkInstanceResource = model.createResource(benchmarkInstanceId);
-        model.add(benchmarkInstanceResource, RDF.type, HOBBIT.Experiment);
-        model.add(benchmarkInstanceResource, HOBBIT.involvesBenchmark,
+        model.add(HobbitExperiments.New, RDF.type, HOBBIT.Experiment);
+        model.add(HobbitExperiments.New, HOBBIT.involvesBenchmark,
                 model.createResource(benchmarkConf.getBenchmark()));
-        model.add(benchmarkInstanceResource, HOBBIT.involvesSystemInstance,
+        model.add(HobbitExperiments.New, HOBBIT.involvesSystemInstance,
                 model.createResource(benchmarkConf.getSystem()));
 
-        model = PlatformControllerClient.addParameters(model, benchmarkInstanceResource,
+        model = PlatformControllerClient.addParameters(model, HobbitExperiments.New,
                 benchmarkConf.getConfigurationParams());
 
         Set<Statement> stmts = ModelComparisonHelper.getMissingStatements(expectedModel, model);

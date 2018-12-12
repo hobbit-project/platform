@@ -51,6 +51,7 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,11 +171,11 @@ public class ExperimentManager implements Closeable {
                 }
                 LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                         + " and system " + config.systemUri + " to the queue.");
-                experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id));
+                experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id));
 
                 BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                 if ((benchmark == null) || (benchmark.mainImage == null)) {
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                    experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
                             this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
                     throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
@@ -182,7 +183,7 @@ public class ExperimentManager implements Closeable {
 
                 SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
                 if ((system == null) || (system.mainImage == null)) {
-                    experimentStatus = new ExperimentStatus(config, PlatformController.generateExperimentUri(config.id),
+                    experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
                             this, defaultMaxExecutionTime);
                     experimentStatus.addError(HobbitErrors.SystemImageMissing);
                     throw new Exception("Couldn't find image name for system " + config.systemUri);
@@ -281,14 +282,13 @@ public class ExperimentManager implements Closeable {
             Property parameter;
             NodeIterator objIterator;
             Resource systemResource = systemModel.getResource(config.systemUri);
-            Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
             // Get an iterator for all these parameters
             ResIterator iterator = benchmark.rdfModel.listResourcesWithProperty(RDF.type, HOBBIT.ForwardedParameter);
             while (iterator.hasNext()) {
                 // Get the parameter
                 parameter = benchmark.rdfModel.getProperty(iterator.next().getURI());
                 // Get its value
-                objIterator = benchParams.listObjectsOfProperty(experiment, parameter);
+                objIterator = benchParams.listObjectsOfProperty(HobbitExperiments.New, parameter);
                 // If there is a value, add it to the system model
                 while (objIterator.hasNext()) {
                     systemModel.add(systemResource, parameter, objIterator.next());

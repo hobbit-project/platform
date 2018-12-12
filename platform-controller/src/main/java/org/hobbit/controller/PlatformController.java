@@ -84,6 +84,7 @@ import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1100,7 +1101,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     private Model createExpModelForChallengeTask(Model model, String challengeTaskUri, String systemUri) {
         Dataset dataset = DatasetFactory.create();
         dataset.addNamedModel("http://temp.org/challenge", model);
-        String query = SparqlQueries.getCreateExperimentFromTaskQuery(Constants.NEW_EXPERIMENT_URI, challengeTaskUri,
+        String query = SparqlQueries.getCreateExperimentFromTaskQuery(HobbitExperiments.New.getURI(), challengeTaskUri,
                 systemUri, "http://temp.org/challenge");
         if (query == null) {
             LOGGER.error("Couldn't load SPARQL query to create an RDF model for a new experiment. Returning null.");
@@ -1210,6 +1211,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            the id of the experiment
      * @return the experiment URI
      */
+    @Deprecated
     public static String generateExperimentUri(String id) {
         return Constants.EXPERIMENT_URI_NS + id;
     }

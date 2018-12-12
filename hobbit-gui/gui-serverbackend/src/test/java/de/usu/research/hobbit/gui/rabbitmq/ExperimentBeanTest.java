@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jena.rdf.model.Model;
-import org.hobbit.core.Constants;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class ExperimentBeanTest {
         // load the model
         Model model = AbstractRdfHelperTest.loadModel("de/usu/research/hobbit/gui/rabbitmq/experiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // Check the system
@@ -70,7 +70,7 @@ public class ExperimentBeanTest {
         // load the model
         Model model = AbstractRdfHelperTest.loadModel("de/usu/research/hobbit/gui/rabbitmq/exampleExperiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // Check the system
@@ -184,7 +184,7 @@ public class ExperimentBeanTest {
         Model model = AbstractRdfHelperTest
                 .loadModel("de/usu/research/hobbit/gui/rabbitmq/exampleDiagramExperiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // get the diagram bean

@@ -40,6 +40,7 @@ import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitRpcClient;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -245,14 +246,12 @@ public class PlatformControllerClient implements Closeable {
         LOGGER.info("Creating model...");
         Model model = ModelFactory.createDefaultModel();
 
-        String benchmarkInstanceId = Constants.NEW_EXPERIMENT_URI;
-        Resource benchmarkInstanceResource = model.createResource(benchmarkInstanceId);
-        model.add(benchmarkInstanceResource, RDF.type, HOBBIT.Experiment);
-        model.add(benchmarkInstanceResource, HOBBIT.involvesBenchmark, model.createResource(benchmarkUri));
-        model.add(benchmarkInstanceResource, HOBBIT.involvesSystemInstance, model.createResource(systemUri));
+        model.add(HobbitExperiments.New, RDF.type, HOBBIT.Experiment);
+        model.add(HobbitExperiments.New, HOBBIT.involvesBenchmark, model.createResource(benchmarkUri));
+        model.add(HobbitExperiments.New, HOBBIT.involvesSystemInstance, model.createResource(systemUri));
 
         try {
-            model = addParameters(model, benchmarkInstanceResource, benchmarkConf.getConfigurationParams());
+            model = addParameters(model, HobbitExperiments.New, benchmarkConf.getConfigurationParams());
         } catch (Exception e) {
             LOGGER.error("Got an exception while processing the parameters.", e);
             throw new GUIBackendException("Please check your parameter definitions.");

@@ -22,6 +22,7 @@ import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,7 +80,7 @@ public class ExperimentTimeoutTest {
         Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
-                resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
+                resultModel.contains(HobbitExperiments.getExperiment(EXPERIMENT_ID),
                         HOBBIT.terminatedWithError, HobbitErrors.ExperimentTookTooMuchTime));
     }
 
