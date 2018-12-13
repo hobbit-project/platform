@@ -79,6 +79,7 @@ public class ExperimentTimeoutTest {
         Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
+                "Result model contains the error information about the failed experiment.",
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
                         HOBBIT.terminatedWithError, HobbitErrors.ExperimentTookTooMuchTime));
     }
