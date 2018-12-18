@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.hobbit</groupId>
         <artifactId>parent</artifactId>
-        <version>2.0.7</version>
+        <version>${hobbitplatform.version}</version>
         <relativePath>../parent-pom</relativePath>
     </parent>
     <artifactId>analysis-component</artifactId>

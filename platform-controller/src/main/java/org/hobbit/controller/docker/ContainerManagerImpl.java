@@ -190,6 +190,20 @@ public class ContainerManagerImpl implements ContainerManager {
      * @return instance name
      */
     private String getInstanceName(String imageName) {
+        return getInstanceName(imageName, "");
+    }
+
+    /**
+     * Generates new unique instance name based on image name
+     *
+     * @param imageName
+     *            base image name
+     * @param prefix
+     *            additional prefix
+     *
+     * @return instance name
+     */
+    private String getInstanceName(String imageName, String prefix) {
         String baseName = imageName;
         // If there is a tag it has to be removed
         if (containsVersionTag(baseName)) {
@@ -204,7 +218,11 @@ public class ContainerManagerImpl implements ContainerManager {
             baseName = baseName.substring(posColon + 1);
         }
         final String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-        StringBuilder builder = new StringBuilder(baseName.length() + uuid.length() + 1);
+        StringBuilder builder = new StringBuilder(prefix.length() + baseName.length() + uuid.length() + 2);
+        if (prefix.length() != 0) {
+            builder.append(prefix);
+            builder.append('-');
+        }
         builder.append(baseName.replaceAll("[/\\.]", "_"));
         builder.append('-');
         builder.append(uuid);
@@ -255,6 +273,7 @@ public class ContainerManagerImpl implements ContainerManager {
         ContainerSpec cfg = cfgBuilder.build();
         taskCfgBuilder.containerSpec(cfg);
         serviceCfgBuilder.taskTemplate(taskCfgBuilder.build());
+        serviceCfgBuilder.name(getInstanceName(imageName, "pull"));
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         Integer totalNodes;
         try {

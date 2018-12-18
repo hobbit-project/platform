@@ -25,7 +25,7 @@ import org.junit.Test;
 /**
  * This is a whitebox test for
  * {@link ExperimentManager#getSerializedSystemParams(ExperimentConfiguration, BenchmarkMetaData, SystemMetaData)}.
- * 
+ *
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
  */

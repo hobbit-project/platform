@@ -706,7 +706,7 @@ public class ExperimentManager implements Closeable {
 
     /**
      * Stops the currently running experiment if it has the given experiment id.
-     * 
+     *
      * @param experimentId
      *            the id of the experiment that should be stopped
      */

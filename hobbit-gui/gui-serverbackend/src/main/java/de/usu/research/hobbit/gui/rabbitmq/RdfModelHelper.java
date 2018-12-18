@@ -481,7 +481,7 @@ public class RdfModelHelper {
     /**
      * Extracts configuration parameters of the given challenge task from the given
      * model.
-     * 
+     *
      * @param model
      *            the model containing the triples
      * @param taskResource
