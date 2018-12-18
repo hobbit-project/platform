@@ -356,7 +356,9 @@ public class ExperimentManager implements Closeable {
                 objIterator = benchParams.listObjectsOfProperty(experiment, parameter);
                 // If there is a value, add it to the system model
                 while (objIterator.hasNext()) {
-                    systemModel.add(systemResource, parameter, objIterator.next());
+                    Literal valueLiteral = (Literal)objIterator.next();
+                    systemModel.add(systemResource, parameter, valueLiteral.getString());
+                    //systemModel.add(systemResource, parameter, objIterator.next());
                 }
             }
         }
