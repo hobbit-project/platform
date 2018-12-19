@@ -37,10 +37,8 @@ public class SwarmClusterManager extends VpcClusterManager {
     protected AbstractStackHandler swarmSystemWorkersStackHandler;
     //protected SwarmClusterStackHandler.Builder swarmStacksBuilder;
 
-    protected String clusterName;
     protected String swarmClusterName;
     protected String bucketName;
-    protected String sshKeyName;
 
     boolean clusterReady = false;
 

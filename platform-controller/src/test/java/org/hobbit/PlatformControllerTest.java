@@ -102,7 +102,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         //Setup this vars for your environment or define them here for the test
 //        environmentVariables.set("GITLAB_USER", System.getenv("GITLAB_USER"));
 //        environmentVariables.set("GITLAB_EMAIL", System.getenv("GITLAB_EMAIL"));
-//        environmentVariables.set("GITLAB_TOKEN", System.getenv("GITLAB_TOKEN"));
+//        environmentVariables.s", System.getenv("GITLAB_TOKEN"));
 
         environmentVariables.set("HOBBIT_REDIS_HOST", "redis");
         environmentVariables.set("CONTAINER_PARENT_CHECK", "0");

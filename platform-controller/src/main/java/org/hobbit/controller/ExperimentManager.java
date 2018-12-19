@@ -393,7 +393,7 @@ public class ExperimentManager implements Closeable {
         Property parameter;
         //NodeIterator objIterator;
         //Resource systemResource = systemModel.getResource(config.systemUri);
-        Resource experiment = benchParams.getResource(Constants.NEW_EXPERIMENT_URI);
+        Resource experiment = benchParams.listResourcesWithProperty(RDF.type, HOBBIT.Experiment).next();
         NodeIterator objIterator = benchParams.listObjectsOfProperty(experiment, new PropertyImpl(config.benchmarkUri+"#clusterConfig"));
         while (objIterator.hasNext()) {
             String ret = objIterator.next().asLiteral().getString();

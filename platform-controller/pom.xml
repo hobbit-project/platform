@@ -53,7 +53,7 @@
         <dependency>
             <groupId>org.hobbit</groupId>
             <artifactId>aws-controller</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.2-SNAPSHOT</version>
         </dependency>
         
         <dependency>

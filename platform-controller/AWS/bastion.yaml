@@ -53,6 +53,16 @@ Parameters:
     - B
     - C
     - D
+  DesiredCapacity:
+    Description: 'The number of manager nodes'
+    Type: Number
+    Default: 1
+    AllowedValues: [1,3,5,7]
+
+  MaxSize:
+    Description: 'MaxSize of manager nodes'
+    Type: Number
+    Default: 1
   KeyName:
     Description: 'Optional key pair of the ec2-user to establish a SSH connection to the SSH bastion host/instance.'
     Type: String
