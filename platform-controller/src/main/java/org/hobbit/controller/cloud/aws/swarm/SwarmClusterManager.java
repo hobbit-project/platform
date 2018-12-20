@@ -132,8 +132,8 @@ public class SwarmClusterManager extends VpcClusterManager {
 
                 ret.put(entry.getKey(), entry.getValue().getAsString());
                 if(entry.getKey().equals("DesiredCapacity"))
-                    ret.put("MaxSize", entry.getValue().getAsString());
-                    //ret.put("MaxSize", String.valueOf(Integer.parseInt(entry.getValue().toString())+1));
+                    //ret.put("MaxSize", "10");
+                    ret.put("MaxSize", String.valueOf(Integer.parseInt(entry.getValue().toString())+1));
             }
             return ret;
         }
