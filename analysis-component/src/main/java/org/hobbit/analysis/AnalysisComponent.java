@@ -16,6 +16,8 @@
  */
 package org.hobbit.analysis;
 
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -437,6 +439,17 @@ public class AnalysisComponent extends AbstractComponent {
 
     }
 
+    public static class KpiAttribute extends Attribute {
+        public KpiAttribute(String attributeName) {
+            super(attributeName);
+        }
+    }
+
+    public static class ParamAttribute extends Attribute {
+        public ParamAttribute(String attributeName) {
+            super(attributeName);
+        }
+    }
 
     /**
      * Perform a series of statistics on a RDF dataset in order to feed them to
@@ -750,6 +763,45 @@ public class AnalysisComponent extends AbstractComponent {
             return newDataset;
         }
 
+        private Instances buildDatasetFromMappingsForCorrelation(){
+            LOGGER.debug("Building dataset for correlation...");
+            Set<String> kpis = outer.values().stream()
+                    .flatMap(map -> map.get("kpis").keySet().stream())
+                    .collect(Collectors.toCollection(TreeSet::new));
+            LOGGER.debug("KPIs:\n{}", kpis.stream()
+                    .map(str -> "- " + str).collect(Collectors.joining("\n")));
+
+            Set<String> params = outer.values().stream()
+                    .flatMap(map -> map.get("params").keySet().stream())
+                    .collect(Collectors.toCollection(TreeSet::new));
+            LOGGER.debug("Params:\n{}", params.stream()
+                    .map(str -> "- " + str).collect(Collectors.joining("\n")));
+
+            ArrayList<Attribute> attInfo = Stream.concat(
+                        kpis.stream().map(KpiAttribute::new),
+                        params.stream().map(ParamAttribute::new))
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            List<Instance> instances = outer.values().stream()
+                .map(instance -> new DenseInstance(
+                    1,
+                    attInfo.stream()
+                        .map(
+                            att -> Optional.ofNullable(instance.get("params").get(att.name()))
+                            .orElseGet(() -> instance.get("kpis").get(att.name()))
+                        )
+                        .mapToDouble(value -> Optional.ofNullable(value).orElse(0f))
+                        .toArray()))
+                .collect(Collectors.toList());
+
+            Instances dataset = new Instances("Correlation dataset", attInfo, instances.size());
+            for (Instance i : instances) {
+                dataset.add(i);
+            }
+            LOGGER.debug("Dataset for correlation: {}", dataset);
+            return dataset;
+        }
+
         /**
          *
          */
@@ -780,6 +832,16 @@ public class AnalysisComponent extends AbstractComponent {
                 return instancesDataset;
             }
             else{
+                LOGGER.error("No results found for the system. Aborting...");
+                return null;
+            }
+        }
+
+        protected Instances getInstancesDatasetForCorrelation() {
+            if (outer.size() > 0){
+                Instances instancesDataset = this.buildDatasetFromMappingsForCorrelation();
+                return instancesDataset;
+            } else {
                 LOGGER.error("No results found for the system. Aborting...");
                 return null;
             }
