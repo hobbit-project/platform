@@ -98,7 +98,8 @@ public class AnalysisComponent extends AbstractComponent {
         Model updatedModel = null;
         try{
             LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
-            String systemUri = "";
+            String benchmarkUri = null;
+            String systemUri = null;
             String expURI = "";
             //retrieve data from storage for the specific experiment Uri
             LOGGER.info("Retrieving Data...");
@@ -112,17 +113,29 @@ public class AnalysisComponent extends AbstractComponent {
             DataProcessor dp = new DataProcessor();
             DataProcessor dpForCurrent = new DataProcessor();
 
+            NodeIterator benchmarkUris = experimentModel.listObjectsOfProperty(HOBBIT.involvesBenchmark);
+            if (benchmarkUris.hasNext()) {
+                benchmarkUri = benchmarkUris.next().toString();
+                LOGGER.debug("Benchmark: {}", benchmarkUri);
+            } else {
+                LOGGER.error("Did not get URI of the benchmark");
+            }
+
             Property parametersURI = HOBBIT.involvesSystemInstance;
             // select all resources that are of type
             NodeIterator systemUris = experimentModel.listObjectsOfProperty(parametersURI);
-            List systemUrisList = systemUris.toList();
+            if (systemUris.hasNext()) {
+                systemUri = systemUris.next().toString();
+                LOGGER.debug("System: {}", systemUri);
+            } else {
+                LOGGER.error("Did not get URI of the system");
+            }
 
-            if (systemUrisList.size() > 0) {
+            if (benchmarkUri != null && systemUri != null) {
                 LOGGER.info("Retrieving Experiments Data from storage...");
-                systemUri = "<" + systemUrisList.get(0).toString() + ">";
                 QueryFormatter qf = new QueryFormatter(this.storage);
-                Model paramsModel = qf.getParametersOfAllSystemExps(systemUri);
-                Model kpisModel = qf.getAllKpisOfAllSystemExps(systemUri);
+                Model paramsModel = qf.getParametersOfAllSystemExps(benchmarkUri, systemUri);
+                Model kpisModel = qf.getAllKpisOfAllSystemExps(benchmarkUri, systemUri);
 
                 if (!paramsModel.isEmpty() && !kpisModel.isEmpty()) {
                     LOGGER.info("Preprocessing data - Converting to datasets...");
@@ -789,7 +802,8 @@ public class AnalysisComponent extends AbstractComponent {
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?param ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:hasParameter ?param .\n" +
@@ -798,7 +812,8 @@ public class AnalysisComponent extends AbstractComponent {
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI ?kpi .\n" +
@@ -807,7 +822,8 @@ public class AnalysisComponent extends AbstractComponent {
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI|ns:hasParameter ?kpi .\n" +
@@ -815,7 +831,8 @@ public class AnalysisComponent extends AbstractComponent {
         private String queryForAllSystemExps =
                 "prefix hobbit: <" + HOBBIT.getURI() + ">\n" +
                 "construct {?a ?a ?a} where {?a a hobbit:Experiment ;\n" +
-                "hobbit:involvesSystemInstance %s . }";
+                "hobbit:involvesBenchmark %1$s ;\n" +
+                "hobbit:involvesSystemInstance %2$s . }";
 
         /*
         private String queryBioasq = "prefix ns: <http://bioasq.org/onto_counts.owl#>\n" +
@@ -851,21 +868,21 @@ public class AnalysisComponent extends AbstractComponent {
             return queryResultModel;
         }
 
-        protected Model getParametersOfAllSystemExps( String systemUri){
+        protected Model getParametersOfAllSystemExps(String benchmarkUri, String systemUri){
 
-            return sendSparqlQueryToStorage(String.format(queryForParametersOfAllSystemExps, systemUri));
+            return sendSparqlQueryToStorage(String.format(queryForParametersOfAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected Model getAllExperimentsOfSystem(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForAllSystemExps, systemUri));
+        protected Model getAllExperimentsOfSystem(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected Model getAllKpisOfAllSystemExps(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForKPIsOfAllSystemExps, systemUri));
+        protected Model getAllKpisOfAllSystemExps(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForKPIsOfAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected  Model getParamsAndKPIsOfAllSystemExps(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForParamsAndKPIsOfSystemExps, systemUri));
+        protected  Model getParamsAndKPIsOfAllSystemExps(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForParamsAndKPIsOfSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
 
         }
 
