@@ -27,6 +27,7 @@ import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.XSD;
 import org.apache.commons.io.IOUtils;
@@ -37,6 +38,7 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitAnalysis;
 import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,6 +113,7 @@ public class AnalysisComponent extends AbstractComponent {
             Instances predictionDataset = null;
             Instances clusterDataset = null;
             Instances igDataset = null;
+            Instances correlationDataset = null;
             Instances currentData = null;
             DataProcessor dp = new DataProcessor();
             DataProcessor dpForCurrent = new DataProcessor();
@@ -150,6 +153,8 @@ public class AnalysisComponent extends AbstractComponent {
 
                     predictionDataset = dp.getInstancesDatasetForPrediction();
 
+                    correlationDataset = dp.getInstancesDatasetForCorrelation();
+
                     mappings = dp.getMappings();
 
                     ResIterator expURIs = experimentModel.listSubjectsWithProperty(parametersURI);
@@ -173,7 +178,7 @@ public class AnalysisComponent extends AbstractComponent {
                 LOGGER.info("No data to analyze! Aborting analysis...");
             }
             else{
-                AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, experimentModel, expURI);
+                AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, correlationDataset, experimentModel, expURI);
 
                 try{
                     LOGGER.info("Starting analysis on retrieved data...");
@@ -189,6 +194,9 @@ public class AnalysisComponent extends AbstractComponent {
 
                     LOGGER.info("Calculating prediction model...");
                     model.predictPerformanceOfSystem();
+
+                    LOGGER.info("Computing correlation...");
+                    model.computeCorrelation(benchmarkUri, systemUri);
 
                     LOGGER.info("Analysis performed successfully!");
 
@@ -266,6 +274,7 @@ public class AnalysisComponent extends AbstractComponent {
         private String belongsToCluster = "none";
         private double modelPrediction = 0;
         private String importantFeatures = "no result";
+        protected Model correlationModel;
 
         // define a cluster model for the analysis
         private SimpleKMeans clusterModel = new SimpleKMeans();
@@ -275,15 +284,17 @@ public class AnalysisComponent extends AbstractComponent {
         private Instances clusterDataset = null;
         private Instances igDataset = null;
         private Instances predictionDataset = null;
+        private Instances correlationDataset = null;
         private Model experimentModel = null;
         private String expUri = null;
         private Model updatedModel = null;
         private Boolean aboveBaseline = false;
 
-        protected AnalysisModel(Instances clusterDataset, Instances igDataset, Instances predictionDataset, Model experimentModel, String expUri) {
+        protected AnalysisModel(Instances clusterDataset, Instances igDataset, Instances predictionDataset, Instances correlationDataset, Model experimentModel, String expUri) {
             this.clusterDataset = clusterDataset;
             this.igDataset = igDataset;
             this.predictionDataset = predictionDataset;
+            this.correlationDataset = correlationDataset;
             this.experimentModel = experimentModel;
             this.updatedModel = experimentModel.difference(ModelFactory.createDefaultModel());
             this.expUri = expUri;
@@ -374,6 +385,53 @@ public class AnalysisComponent extends AbstractComponent {
             for (double value:values)
                 result += value;
             return result;
+        }
+
+        /**
+         * Computes a Pearson correlation between every pair of KPI and parameter.
+         */
+        protected void computeCorrelation(String benchmarkUri, String systemInstanceUri) {
+            long time = System.currentTimeMillis();
+            String id = String.valueOf(time);
+            Calendar created = new Calendar.Builder().setInstant(time).build();
+
+            CorrelationAttributeEval cae = new CorrelationAttributeEval();
+            correlationModel = ModelFactory.createDefaultModel();
+
+            Resource benchmark = correlationModel.createResource(benchmarkUri);
+            Resource systemInstance = correlationModel.createResource(systemInstanceUri);
+            Resource resultset = HobbitAnalysis.getResultset(benchmark, systemInstance);
+            correlationModel.add(resultset, RDF.type, HOBBIT.AnalysisResultset);
+            correlationModel.add(resultset, HOBBIT.involvesBenchmark, benchmark);
+            correlationModel.add(resultset, HOBBIT.involvesSystemInstance, systemInstance);
+            correlationModel.addLiteral(resultset, DCTerms.created, ResourceFactory.createTypedLiteral(created));
+
+            try {
+                for (int kpiIndex = 0; kpiIndex < correlationDataset.numAttributes(); kpiIndex++) {
+                    if (correlationDataset.attribute(kpiIndex) instanceof KpiAttribute) {
+                        Resource kpi = correlationModel.getResource(correlationDataset.attribute(kpiIndex).name());
+                        this.correlationDataset.setClassIndex(kpiIndex);
+                        cae.buildEvaluator(correlationDataset);
+                        for (int paramIndex = 0; paramIndex < correlationDataset.numAttributes(); paramIndex++) {
+                            if (correlationDataset.attribute(paramIndex) instanceof ParamAttribute) {
+                                Resource param = correlationModel.getResource(correlationDataset.attribute(paramIndex).name());
+                                double value = cae.evaluateAttribute(paramIndex);
+
+                                String resultUri = resultset.getURI() + "-" + kpiIndex + "-" + paramIndex;
+                                Resource result = correlationModel.createResource(resultUri, HOBBIT.AnalysisResult);
+                                result.addProperty(DCTerms.isPartOf, resultset);
+                                result.addProperty(HOBBIT.algorithm, HOBBIT.PearsonAlgorithm);
+                                result.addProperty(HOBBIT.involvesKPI, kpi);
+                                result.addProperty(HOBBIT.involvesParameter, param);
+                                result.addLiteral(RDF.value, value);
+                                LOGGER.debug("Correlation: {} for {}, {}", value, kpi, param);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.error("Exception while computing correlation", e);
+            }
         }
 
         /**
