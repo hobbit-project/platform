@@ -214,6 +214,11 @@ public class AnalysisComponent extends AbstractComponent {
         if (updatedModel != null) {
             try {
                 LOGGER.info("Updating model...");
+
+                // Remove existing analysis results for this pair of benchmark and system instance.
+                Resource resultset = updatedModel.listResourcesWithProperty(RDF.type, HOBBIT.AnalysisResultset).next();
+                storage.sendUpdateQuery(SparqlQueries.deleteAnalysisResults(resultset.getURI(), Constants.PUBLIC_RESULT_GRAPH_URI));
+
                 String sparqlUpdateQuery = null;
                 //TODO:: handle null exception for sparql queries
                 sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(experimentModel,
@@ -314,6 +319,7 @@ public class AnalysisComponent extends AbstractComponent {
             updatedModel.addLiteral(expResource, cluster, this.belongsToCluster);
             updatedModel.addLiteral(expResource, importantFeatures, this.importantFeatures);
             updatedModel.addLiteral(expResource, prediction, this.modelPrediction);
+            updatedModel.add(correlationModel);
         }
 
         /**
