@@ -37,6 +37,7 @@ import org.hobbit.core.data.RabbitQueue;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitAnalysis;
 import org.hobbit.vocab.HobbitExperiments;
@@ -119,23 +120,8 @@ public class AnalysisComponent extends AbstractComponent {
             DataProcessor dp = new DataProcessor();
             DataProcessor dpForCurrent = new DataProcessor();
 
-            NodeIterator benchmarkUris = experimentModel.listObjectsOfProperty(HOBBIT.involvesBenchmark);
-            if (benchmarkUris.hasNext()) {
-                benchmarkUri = benchmarkUris.next().toString();
-                LOGGER.debug("Benchmark: {}", benchmarkUri);
-            } else {
-                LOGGER.error("Did not get URI of the benchmark");
-            }
-
-            Property parametersURI = HOBBIT.involvesSystemInstance;
-            // select all resources that are of type
-            NodeIterator systemUris = experimentModel.listObjectsOfProperty(parametersURI);
-            if (systemUris.hasNext()) {
-                systemUri = systemUris.next().toString();
-                LOGGER.debug("System: {}", systemUri);
-            } else {
-                LOGGER.error("Did not get URI of the system");
-            }
+            benchmarkUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesBenchmark);
+            systemUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesSystemInstance);
 
             if (benchmarkUri != null && systemUri != null) {
                 LOGGER.info("Retrieving Experiments Data from storage...");
@@ -158,7 +144,7 @@ public class AnalysisComponent extends AbstractComponent {
 
                     mappings = dp.getMappings();
 
-                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(parametersURI);
+                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(HOBBIT.involvesSystemInstance);
                     List expUris = expURIs.toList();
                     expURI = expUris.get(0).toString();
                     LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
@@ -171,7 +157,8 @@ public class AnalysisComponent extends AbstractComponent {
                 }
             }
             else{
-                LOGGER.error("Wrong format of RDF. Cannot find system URI. Setting to default and aborting...");
+                LOGGER.error("Wrong format of RDF. Cannot find benchmark or system URI. Setting to default and aborting...");
+                benchmarkUri = "None";
                 systemUri = "None";
             }
 
