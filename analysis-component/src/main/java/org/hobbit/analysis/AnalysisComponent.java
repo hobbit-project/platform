@@ -19,13 +19,10 @@ package org.hobbit.analysis;
 import java.util.stream.Stream;
 import java.util.stream.Collectors;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 
-import com.sun.org.apache.xpath.internal.operations.Mod;
 import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
-import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
 import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDF;
@@ -48,8 +45,6 @@ import com.rabbitmq.client.QueueingConsumer;
 
 import weka.attributeSelection.*;
 import weka.attributeSelection.AttributeSelection;
-import weka.classifiers.Classifier;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.LinearRegression;
 import weka.clusterers.SimpleKMeans;
 import weka.core.*;
@@ -89,7 +84,6 @@ public class AnalysisComponent extends AbstractComponent {
         QueueingConsumer.Delivery delivery;
         while (true) {
             delivery = consumer.nextDelivery();
-            AnalysisModel analysis;
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
@@ -118,7 +112,6 @@ public class AnalysisComponent extends AbstractComponent {
             Instances correlationDataset = null;
             Instances currentData = null;
             DataProcessor dp = new DataProcessor();
-            DataProcessor dpForCurrent = new DataProcessor();
 
             benchmarkUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesBenchmark);
             systemUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesSystemInstance);
@@ -145,7 +138,7 @@ public class AnalysisComponent extends AbstractComponent {
                     mappings = dp.getMappings();
 
                     ResIterator expURIs = experimentModel.listSubjectsWithProperty(HOBBIT.involvesSystemInstance);
-                    List expUris = expURIs.toList();
+                    List<Resource> expUris = expURIs.toList();
                     expURI = expUris.get(0).toString();
                     LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
                     current.put(expURI, mappings.get(expURI));
@@ -354,15 +347,15 @@ public class AnalysisComponent extends AbstractComponent {
 
                 Instances standDevs = this.clusterModel.getClusterStandardDevs();
 
-                ArrayList<Double> scoresCluster = new ArrayList();
+                ArrayList<Double> scoresCluster = new ArrayList<>();
 
                 for (Instance clusterssNum: standDevs) {
                     scoresCluster.add(sum(clusterssNum.toDoubleArray()));
                 }
-                ArrayList<Double> notSortedScoresCluster = new ArrayList(scoresCluster);
+                ArrayList<Double> notSortedScoresCluster = new ArrayList<>(scoresCluster);
                 Collections.sort(scoresCluster, Collections.reverseOrder());
 
-                ArrayList<Integer> sortedClusters = new ArrayList();
+                ArrayList<Integer> sortedClusters = new ArrayList<>();
                 for (double score : scoresCluster) {
                     sortedClusters.add(notSortedScoresCluster.indexOf(score));
                 }
@@ -386,7 +379,6 @@ public class AnalysisComponent extends AbstractComponent {
          */
         protected void computeCorrelation(String benchmarkUri, String systemInstanceUri) {
             long time = System.currentTimeMillis();
-            String id = String.valueOf(time);
             Calendar created = new Calendar.Builder().setInstant(time).build();
 
             CorrelationAttributeEval cae = new CorrelationAttributeEval();
@@ -492,12 +484,16 @@ public class AnalysisComponent extends AbstractComponent {
     }
 
     public static class KpiAttribute extends Attribute {
+        static final long serialVersionUID = 0;
+
         public KpiAttribute(String attributeName) {
             super(attributeName);
         }
     }
 
     public static class ParamAttribute extends Attribute {
+        static final long serialVersionUID = 0;
+
         public ParamAttribute(String attributeName) {
             super(attributeName);
         }
@@ -535,13 +531,13 @@ public class AnalysisComponent extends AbstractComponent {
             for (int i = 0; i<models.size(); i++){
                 Model model = models.get(i);
                 parametersNames = new ArrayList<>();
-                ArrayList<ArrayList> allExpParameters = new ArrayList<>();
+                ArrayList<ArrayList<Float>> allExpParameters = new ArrayList<>();
                 Property typeURI = RDF.type;
                 Resource parametersURI = HOBBIT.Experiment;
                 // select all resources that are of type
                 ResIterator blockIt = model.listResourcesWithProperty(typeURI, parametersURI);
                 while (blockIt.hasNext()) {
-                    ArrayList parameters = new ArrayList();
+                    ArrayList<Float> parameters = new ArrayList<>();
                     Resource currentParameter = blockIt.next();
                     //build the inner map for data
                     Map<String, Map<String, Float>> inner = outer.get(currentParameter.toString());
