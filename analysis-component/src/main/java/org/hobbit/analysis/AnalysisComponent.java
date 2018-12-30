@@ -202,10 +202,12 @@ public class AnalysisComponent extends AbstractComponent {
 
                 String sparqlUpdateQuery = null;
                 //TODO:: handle null exception for sparql queries
-                sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(experimentModel,
+                sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(
+                        ModelFactory.createDefaultModel(),
                         updatedModel,
                         GRAPH_URI);
                 LOGGER.info("Sending the enhanced model to storage...");
+                LOGGER.trace("Query: {}", sparqlUpdateQuery);
                 storage.sendUpdateQuery(sparqlUpdateQuery);
             } catch (Exception e) {
                 LOGGER.error("Error when updating model.", e);
@@ -282,7 +284,7 @@ public class AnalysisComponent extends AbstractComponent {
             this.predictionDataset = predictionDataset;
             this.correlationDataset = correlationDataset;
             this.experimentModel = experimentModel;
-            this.updatedModel = experimentModel.difference(ModelFactory.createDefaultModel());
+            this.updatedModel = ModelFactory.createDefaultModel();
             this.expUri = expUri;
         }
 
