@@ -140,6 +140,7 @@ public class AnalysisComponent extends AbstractComponent {
                     ResIterator expURIs = experimentModel.listSubjectsWithProperty(HOBBIT.involvesSystemInstance);
                     List<Resource> expUris = expURIs.toList();
                     expURI = expUris.get(0).toString();
+                    assert(expURI.equals(expUri)); // FIXME why this variable is introduced?
                     LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
                     current.put(expURI, mappings.get(expURI));
                     currentData = dp.buildDatasetFromMappingsForCurrent(current);
