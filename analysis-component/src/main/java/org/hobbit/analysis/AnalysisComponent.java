@@ -107,8 +107,9 @@ public class AnalysisComponent extends AbstractComponent {
             String expURI = "";
             //retrieve data from storage for the specific experiment Uri
             LOGGER.info("Retrieving Data...");
-            LOGGER.info(SparqlQueries.getExperimentGraphQuery(expUri, null));
-            experimentModel = storage.sendConstructQuery(SparqlQueries.getExperimentGraphQuery(expUri, null));
+            String experimentQuery = SparqlQueries.getExperimentGraphQuery(expUri, null);
+            LOGGER.trace("Query: {}", experimentQuery);
+            experimentModel = storage.sendConstructQuery(experimentQuery);
 
             Instances predictionDataset = null;
             Instances clusterDataset = null;
