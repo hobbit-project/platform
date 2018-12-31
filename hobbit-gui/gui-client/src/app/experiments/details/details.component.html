@@ -53,5 +53,9 @@
       <app-experiment-compare [experiments]="experiments">
       </app-experiment-compare>
     </p-tabPanel>
+    <p-tabPanel *ngIf="comparable" header="Analysis">
+      <app-analysis [benchmark]="experiments[0].benchmark">
+      </app-analysis>
+    </p-tabPanel>
   </p-tabView>
 </div>
