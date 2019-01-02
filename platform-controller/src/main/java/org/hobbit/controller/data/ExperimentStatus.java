@@ -140,7 +140,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Creates an experiment status with the given experiment config, the given
      * experiment URI and the current system time as start time.
-     * 
+     *
      * @param config
      *            the configuration of the experiment
      * @param experimentUri
@@ -155,7 +155,7 @@ public class ExperimentStatus implements Closeable {
      * experiment URI as well as the given starting time and starts the abortion
      * timer using the given maximum runtime of the experiment and the experiment
      * manager which will be used to abort the experiment if the time is exceeded.
-     * 
+     *
      * @param config
      *            the configuration of the experiment
      * @param experimentUri
@@ -173,7 +173,7 @@ public class ExperimentStatus implements Closeable {
      * the abortion timer using the given maximum runtime of the experiment and the
      * experiment manager which will be used to abort the experiment if the time is
      * exceeded.
-     * 
+     *
      * @param config
      *            the configuration of the experiment
      * @param experimentUri
@@ -195,7 +195,7 @@ public class ExperimentStatus implements Closeable {
      * experiment URI as well as the given starting time and starts the abortion
      * timer using the given maximum runtime of the experiment and the experiment
      * manager which will be used to abort the experiment if the time is exceeded.
-     * 
+     *
      * @param config
      *            the configuration of the experiment
      * @param experimentUri
@@ -277,7 +277,7 @@ public class ExperimentStatus implements Closeable {
      * Starts the abortion timer using the given maximum runtime of the experiment
      * and the experiment manager which will be used to abort the experiment if the
      * time is exceeded.
-     * 
+     *
      * @param manager
      *            experiment manager which is used if the maximum runtime is
      *            exceeded
@@ -505,7 +505,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Uses the given {@link ImageManager} instance to add additional meta data
      * regarding the benchmark and the system to the experiment result model.
-     * 
+     *
      * @param imageManager
      *            used to get RDF models for the benchmark and the system of this
      *            experiment

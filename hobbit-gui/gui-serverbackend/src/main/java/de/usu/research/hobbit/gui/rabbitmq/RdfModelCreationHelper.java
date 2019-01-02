@@ -397,7 +397,7 @@ public class RdfModelCreationHelper {
      * represented as bean. It is necessary to do that before comparing two RDF
      * models with each other if one of the has been created from a challenge bean
      * using {@link #addChallenge(ChallengeBean, Model)}.
-     * 
+     *
      * @param model
      */
     public static void reduceModelToChallenge(Model model, Resource challenge) {

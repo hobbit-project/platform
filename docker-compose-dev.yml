@@ -74,7 +74,7 @@ services:
 
   # Triple store
   vos:
-    image: openlink/virtuoso_opensource:v07.20.3217
+    image: hobbitproject/virtuoso_opensource:v07.20.3217
     hostname: vos
     container_name: vos
     stop_signal: SIGINT

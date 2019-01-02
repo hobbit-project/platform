@@ -39,6 +39,7 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.impl.ModelCom;
 import org.apache.jena.rdf.model.impl.SeqImpl;
 import org.apache.jena.sparql.vocabulary.FOAF;
+import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
@@ -52,6 +53,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.usu.research.hobbit.gui.rest.Datatype;
+import de.usu.research.hobbit.gui.rest.beans.AnalysisResultBean;
+import de.usu.research.hobbit.gui.rest.beans.AnalysisResultSetBean;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
@@ -62,6 +65,7 @@ import de.usu.research.hobbit.gui.rest.beans.DiagramBean;
 import de.usu.research.hobbit.gui.rest.beans.DiagramBean.Point;
 import de.usu.research.hobbit.gui.rest.beans.ExperimentBean;
 import de.usu.research.hobbit.gui.rest.beans.KeyPerformanceIndicatorBean;
+import de.usu.research.hobbit.gui.rest.beans.NamedEntityBean;
 import de.usu.research.hobbit.gui.rest.beans.SelectOptionBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.TaskRegistrationBean;
@@ -481,7 +485,7 @@ public class RdfModelHelper {
     /**
      * Extracts configuration parameters of the given challenge task from the given
      * model.
-     * 
+     *
      * @param model
      *            the model containing the triples
      * @param taskResource
@@ -749,7 +753,8 @@ public class RdfModelHelper {
                 BenchmarkBean benchmark = task.getBenchmark();
                 if (benchmark != null) {
                     for (SystemBean system : task.getBenchmark().getSystems()) {
-                        registrations.add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId(), true));
+                        registrations
+                                .add(new TaskRegistrationBean(challenge.getId(), task.getId(), system.getId(), true));
                     }
                 } else {
                     LOGGER.info("Task {} does not have a benchmark.", task.getId());
@@ -784,5 +789,63 @@ public class RdfModelHelper {
         } else {
             return "An unknown error occurred.";
         }
+    }
+
+    public static List<AnalysisResultSetBean> createAnalysisResultSetBeans(Model model) {
+        List<AnalysisResultSetBean> beans = new ArrayList<>();
+        ResIterator analysisResultSets = model.listResourcesWithProperty(RDF.type, HOBBIT.AnalysisResultset);
+        while (analysisResultSets.hasNext()) {
+            beans.add(getAnalysisResultSetBean(model, analysisResultSets.next()));
+        }
+        return beans;
+    }
+
+    public static AnalysisResultSetBean getAnalysisResultSetBean(Model model, Resource resultSetResource) {
+        BenchmarkBean benchmark = null;
+        Resource selectedResource = RdfHelper.getObjectResource(model, resultSetResource, HOBBIT.involvesBenchmark);
+        if (selectedResource != null) {
+            benchmark = createBenchmarkBean(model, selectedResource);
+        }
+        SystemBean system = null;
+        selectedResource = RdfHelper.getObjectResource(model, resultSetResource, HOBBIT.involvesSystemInstance);
+        if (selectedResource != null) {
+            system = getSystemBean(model, selectedResource);
+        }
+        List<AnalysisResultBean> results = getAnalysisResultBeans(model, resultSetResource);
+        return new AnalysisResultSetBean(resultSetResource.getURI(), benchmark, system, results);
+    }
+
+    public static List<AnalysisResultBean> getAnalysisResultBeans(Model model, Resource resultSetResource) {
+        List<AnalysisResultBean> beans = new ArrayList<>();
+        ResIterator analysisResults = model.listResourcesWithProperty(DCTerms.isPartOf, resultSetResource);
+        while (analysisResults.hasNext()) {
+            beans.add(getAnalysisResultBean(model, analysisResults.next()));
+        }
+        return beans;
+    }
+
+    public static AnalysisResultBean getAnalysisResultBean(Model model, Resource resultResource) {
+        String kpiUri = null;
+        Resource selectedResource = RdfHelper.getObjectResource(model, resultResource, HOBBIT.involvesKPI);
+        if (selectedResource != null) {
+            kpiUri = selectedResource.getURI();
+        }
+        String parameterUri = null;
+        selectedResource = RdfHelper.getObjectResource(model, resultResource, HOBBIT.involvesParameter);
+        if (selectedResource != null) {
+            parameterUri = selectedResource.getURI();
+        }
+        NamedEntityBean algorithm = null;
+        selectedResource = RdfHelper.getObjectResource(model, resultResource, HOBBIT.involvesParameter);
+        if (selectedResource != null) {
+            algorithm = new NamedEntityBean(selectedResource.getURI(), RdfHelper.getLabel(model, selectedResource),
+                    RdfHelper.getDescription(model, selectedResource));
+        }
+        Double value = null;
+        Literal selectedLiteral = RdfHelper.getLiteral(model, resultResource, RDF.value);
+        if (selectedLiteral != null) {
+            value = selectedLiteral.getDouble();
+        }
+        return new AnalysisResultBean(parameterUri, kpiUri, algorithm, value);
     }
 }

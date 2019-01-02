@@ -12,3 +12,8 @@ script:
 services:
   - docker
 sudo: required
+cache:
+  directories:
+    - $HOME/.m2
+    - $HOME/.npm
+    - hobbit-gui/gui-client/node_modules

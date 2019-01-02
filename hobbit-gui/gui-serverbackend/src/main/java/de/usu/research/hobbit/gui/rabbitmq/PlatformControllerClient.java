@@ -213,7 +213,7 @@ public class PlatformControllerClient implements Closeable {
      * Sends the given benchmark configuration to the platform controller where an
      * experiment will be started with the chosen system and benchmark
      * configuration.
-     * 
+     *
      * @param benchmarkConf
      *            the benchmark configuration with which an experiment should be
      *            started
@@ -279,7 +279,7 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Adds the given list of parameters to the given RDF model by creating triples
      * using the given benchmark resource.
-     * 
+     *
      * @param model
      *            the RDF model to which the parameter should be added
      * @param benchmarkInstanceResource
@@ -317,7 +317,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Requests the status of the controller.
-     * 
+     *
      * @return the status of the controller
      * @throws IOException
      *             If no response has been received
@@ -339,7 +339,7 @@ public class PlatformControllerClient implements Closeable {
 
     /**
      * Closes the challenge with the given URI.
-     * 
+     *
      * @param challengeUri
      *            the URI of the challenge that should be closed
      * @throws IOException
@@ -359,7 +359,7 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Requests the systems for the user with the given user mail address. Returns
      * an empty list if an error occurs.
-     * 
+     *
      * @param userMail
      *            the mail address of the user for which the systems should be
      *            requested
@@ -401,7 +401,7 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Requests the deletion of the experiment with the given experiment id with the
      * access rights of the given user.
-     * 
+     *
      * @param id
      *            id of the experiment that should be removed
      * @param userName
@@ -497,7 +497,7 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Sends a request to the platform controller to terminate the experiment with
      * the given ID using the access rights of the given user.
-     * 
+     *
      * @param experimentId
      *            the id of the experiment that should be terminated.
      * @param preferredUsername

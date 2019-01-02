@@ -79,6 +79,7 @@ public class ExperimentTimeoutTest {
         Assert.assertNull(status.experiment);
         Model resultModel = ((DummyStorageServiceClient) controller.storage).insertedModel;
         Assert.assertTrue(
+                "Result model contains the error information about the failed experiment.",
                 resultModel.contains(resultModel.getResource("http://w3id.org/hobbit/experiments#" + EXPERIMENT_ID),
                         HOBBIT.terminatedWithError, HobbitErrors.ExperimentTookTooMuchTime));
     }
@@ -116,7 +117,7 @@ public class ExperimentTimeoutTest {
         public void notifyTermination(String containerId, int exitCode) {
             expManager.notifyTermination(containerId, exitCode);
         }
-        
+
         @Override
         protected void sendToCmdQueue(String address, byte command, byte[] data, BasicProperties props)
                 throws IOException {
@@ -220,7 +221,8 @@ public class ExperimentTimeoutTest {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    terminationCallback.notifyTermination(containerId, 137);
+                    terminationCallback.notifyTermination(containerId,
+                            ContainerStateObserver.DOCKER_EXITCODE_SIGKILL);
                 }
             }).start();
         }
