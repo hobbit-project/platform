@@ -53,7 +53,9 @@ export class AnalysisComponent implements OnChanges, OnInit {
     const datasets = this.resultsets.map((resultset, index) => ({
       backgroundColor: 'transparent',
       borderColor: colorScale(index),
-      data: parameters.map(parameter => resultset.results.find(result => result.kpiUri === this.selectedKPI.id && result.parameterUri === parameter.id).value),
+      data: parameters.map(parameter =>
+        (resultset.results.find(result => result.kpiUri === this.selectedKPI.id && result.parameterUri === parameter.id) || {value: undefined}).value
+      ),
       label: resultset.system.name,
     }));
 
