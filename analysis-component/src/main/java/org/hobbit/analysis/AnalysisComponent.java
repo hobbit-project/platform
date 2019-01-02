@@ -16,15 +16,17 @@
  */
 package org.hobbit.analysis;
 
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.*;
 
-import com.sun.org.apache.xpath.internal.operations.Mod;
 import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
-import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.*;
+import org.apache.jena.vocabulary.DCTerms;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.XSD;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractComponent;
@@ -32,6 +34,10 @@ import org.hobbit.core.data.RabbitQueue;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitAnalysis;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,8 +45,6 @@ import com.rabbitmq.client.QueueingConsumer;
 
 import weka.attributeSelection.*;
 import weka.attributeSelection.AttributeSelection;
-import weka.classifiers.Classifier;
-import weka.classifiers.bayes.NaiveBayes;
 import weka.classifiers.functions.LinearRegression;
 import weka.clusterers.SimpleKMeans;
 import weka.core.*;
@@ -80,122 +84,138 @@ public class AnalysisComponent extends AbstractComponent {
         QueueingConsumer.Delivery delivery;
         while (true) {
             delivery = consumer.nextDelivery();
-            AnalysisModel analysis;
-            Model updatedModel = null;
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
-                try{
-                    LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
-                    String systemUri = "";
-                    String expURI = "";
-                    //retrieve data from storage for the specific experiment Uri
-                    LOGGER.info("Retrieving Data...");
-                    LOGGER.info(SparqlQueries.getExperimentGraphQuery(expUri, null));
-                    experimentModel = storage.sendConstructQuery(SparqlQueries.getExperimentGraphQuery(expUri, null));
-
-                    Instances predictionDataset = null;
-                    Instances clusterDataset = null;
-                    Instances igDataset = null;
-                    Instances currentData = null;
-                    DataProcessor dp = new DataProcessor();
-                    DataProcessor dpForCurrent = new DataProcessor();
-
-                    String parametersURI = "http://w3id.org/hobbit/vocab#involvesSystemInstance";
-                    // select all resources that are of type
-                    NodeIterator systemUris = experimentModel.listObjectsOfProperty(experimentModel.getProperty(parametersURI));
-                    List systemUrisList = systemUris.toList();
-
-                    if (systemUrisList.size() > 0) {
-                        LOGGER.info("Retrieving Experiments Data from storage...");
-                        systemUri = "<" + systemUrisList.get(0).toString() + ">";
-                        QueryFormatter qf = new QueryFormatter(this.storage);
-                        Model paramsModel = qf.getParametersOfAllSystemExps(systemUri);
-                        Model kpisModel = qf.getAllKpisOfAllSystemExps(systemUri);
-
-                        if (!paramsModel.isEmpty() && !kpisModel.isEmpty()) {
-                            LOGGER.info("Preprocessing data - Converting to datasets...");
-                            List<Model> models = Arrays.asList(paramsModel, kpisModel);
-                            dp.getParametersFromRdfModel(models);
-
-                            igDataset = dp.getInstancesDatasetForIG();
-
-                            clusterDataset = dp.getInstancesDatasetForClustering();
-
-                            predictionDataset = dp.getInstancesDatasetForPrediction();
-
-                            mappings = dp.getMappings();
-
-                            ResIterator expURIs = experimentModel.listSubjectsWithProperty(experimentModel.getProperty(parametersURI));
-                            List expUris = expURIs.toList();
-                            expURI = expUris.get(0).toString();
-                            LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
-                            current.put(expURI, mappings.get(expURI));
-                            currentData = dp.buildDatasetFromMappingsForCurrent(current);
-
-                        }
-                        else{
-                            LOGGER.error("Did not find any models available!");
-                        }
-                    }
-                    else{
-                        LOGGER.error("Wrong format of RDF. Cannot find system URI. Setting to default and aborting...");
-                        systemUri = "None";
-                    }
-
-                    if (clusterDataset==null && predictionDataset==null){
-                        LOGGER.info("No data to analyze! Aborting analysis...");
-                    }
-                    else{
-                        AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, experimentModel, expURI);
-
-                        try{
-                            LOGGER.info("Starting analysis on retrieved data...");
-
-                            LOGGER.info("Calculating clusters...");
-                            model.computeClustersOfSystems();
-
-                            LOGGER.info("Assigning cluster to current experiment...");
-                            model.assignClusterToInstance(currentData.get(0));
-
-                            LOGGER.info("Calculating importance of parameters/features...");
-                            model.computeImportanceOfFeatures(mappings);
-
-                            LOGGER.info("Calculating prediction model...");
-                            model.predictPerformanceOfSystem();
-
-                            LOGGER.info("Analysis performed successfully!");
-
-                            LOGGER.info("Enhancing experiment model with results...");
-                            model.enhanceExperimentModel();
-                            updatedModel = model.getUpdatedModel();
-                        }
-                        catch (Exception e){
-                            LOGGER.error("Error in analyzing data. Have to abort analysis...", e);
-                        }
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("Error in pre-processing. ", e);
-                }
-                if (updatedModel != null) {
-                    try {
-                        LOGGER.info("Updating model...");
-                        String sparqlUpdateQuery = null;
-                        //TODO:: handle null exception for sparql queries
-                        sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(experimentModel,
-                                updatedModel,
-                                GRAPH_URI);
-                        LOGGER.info("Sending the enhanced model to storage...");
-                        storage.sendUpdateQuery(sparqlUpdateQuery);
-                    } catch (Exception e) {
-                        LOGGER.error("Error when updating model.", e);
-                    }
-                } else {
-                    LOGGER.error("Model did not update properly! No result model from the analysis.");
-                }
+                handleRequest(expUri);
             }
         }
 
+    }
+
+    protected void handleRequest(String expUri) {
+        Model updatedModel = null;
+        try{
+            LinkedHashMap<String, Map<String, Map<String, Float>>> mappings = null;
+            String benchmarkUri = null;
+            String systemUri = null;
+            String expURI = "";
+            //retrieve data from storage for the specific experiment Uri
+            LOGGER.info("Retrieving Data...");
+            String experimentQuery = SparqlQueries.getExperimentGraphQuery(expUri, null);
+            LOGGER.trace("Query: {}", experimentQuery);
+            experimentModel = storage.sendConstructQuery(experimentQuery);
+
+            Instances predictionDataset = null;
+            Instances clusterDataset = null;
+            Instances igDataset = null;
+            Instances correlationDataset = null;
+            Instances currentData = null;
+            DataProcessor dp = new DataProcessor();
+
+            benchmarkUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesBenchmark);
+            systemUri = RdfHelper.getStringValue(experimentModel, null, HOBBIT.involvesSystemInstance);
+
+            if (benchmarkUri != null && systemUri != null) {
+                LOGGER.info("Retrieving Experiments Data from storage...");
+                QueryFormatter qf = new QueryFormatter(this.storage);
+                Model paramsModel = qf.getParametersOfAllSystemExps(benchmarkUri, systemUri);
+                Model kpisModel = qf.getAllKpisOfAllSystemExps(benchmarkUri, systemUri);
+
+                if (!paramsModel.isEmpty() && !kpisModel.isEmpty()) {
+                    LOGGER.info("Preprocessing data - Converting to datasets...");
+                    List<Model> models = Arrays.asList(paramsModel, kpisModel);
+                    dp.getParametersFromRdfModel(models);
+
+                    igDataset = dp.getInstancesDatasetForIG();
+
+                    clusterDataset = dp.getInstancesDatasetForClustering();
+
+                    predictionDataset = dp.getInstancesDatasetForPrediction();
+
+                    correlationDataset = dp.getInstancesDatasetForCorrelation();
+
+                    mappings = dp.getMappings();
+
+                    ResIterator expURIs = experimentModel.listSubjectsWithProperty(HOBBIT.involvesSystemInstance);
+                    List<Resource> expUris = expURIs.toList();
+                    expURI = expUris.get(0).toString();
+                    assert(expURI.equals(expUri)); // FIXME why this variable is introduced?
+                    LinkedHashMap<String, Map<String, Map<String, Float>>> current = new LinkedHashMap<>();
+                    current.put(expURI, mappings.get(expURI));
+                    currentData = dp.buildDatasetFromMappingsForCurrent(current);
+
+                }
+                else{
+                    LOGGER.error("Did not find any models available!");
+                }
+            }
+            else{
+                LOGGER.error("Wrong format of RDF. Cannot find benchmark or system URI. Setting to default and aborting...");
+                benchmarkUri = "None";
+                systemUri = "None";
+            }
+
+            if (clusterDataset==null && predictionDataset==null){
+                LOGGER.info("No data to analyze! Aborting analysis...");
+            }
+            else{
+                AnalysisModel model = new AnalysisModel(clusterDataset, igDataset, predictionDataset, correlationDataset, experimentModel, expURI);
+
+                try{
+                    LOGGER.info("Starting analysis on retrieved data...");
+
+                    LOGGER.info("Calculating clusters...");
+                    model.computeClustersOfSystems();
+
+                    LOGGER.info("Assigning cluster to current experiment...");
+                    model.assignClusterToInstance(currentData.get(0));
+
+                    LOGGER.info("Calculating importance of parameters/features...");
+                    model.computeImportanceOfFeatures(mappings);
+
+                    LOGGER.info("Calculating prediction model...");
+                    model.predictPerformanceOfSystem();
+
+                    LOGGER.info("Computing correlation...");
+                    model.computeCorrelation(benchmarkUri, systemUri);
+
+                    LOGGER.info("Analysis performed successfully!");
+
+                    LOGGER.info("Enhancing experiment model with results...");
+                    model.enhanceExperimentModel();
+                    updatedModel = model.getUpdatedModel();
+                }
+                catch (Exception e){
+                    LOGGER.error("Error in analyzing data. Have to abort analysis...", e);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error in pre-processing. ", e);
+        }
+        if (updatedModel != null) {
+            try {
+                LOGGER.info("Updating model...");
+
+                // Remove existing analysis results for this pair of benchmark and system instance.
+                Resource resultset = updatedModel.listResourcesWithProperty(RDF.type, HOBBIT.AnalysisResultset).next();
+                storage.sendUpdateQuery(SparqlQueries.deleteAnalysisResults(resultset.getURI(), Constants.PUBLIC_RESULT_GRAPH_URI));
+
+                String sparqlUpdateQuery = null;
+                //TODO:: handle null exception for sparql queries
+                sparqlUpdateQuery = SparqlQueries.getUpdateQueryFromDiff(
+                        ModelFactory.createDefaultModel(),
+                        updatedModel,
+                        GRAPH_URI);
+                LOGGER.info("Sending the enhanced model to storage...");
+                LOGGER.trace("Query: {}", sparqlUpdateQuery);
+                storage.sendUpdateQuery(sparqlUpdateQuery);
+            } catch (Exception e) {
+                LOGGER.error("Error when updating model.", e);
+            }
+        } else {
+            LOGGER.error("Model did not update properly! No result model from the analysis.");
+        }
     }
 
     @Override
@@ -234,6 +254,8 @@ public class AnalysisComponent extends AbstractComponent {
     protected static class AnalysisModel {
 
         //Update Properties
+        // FIXME: "http://w3id.org/bench#" should not be used, but already is in data
+        // FIXME: move property URIs to the HOBBIT core library
         private static final String BELONGS_TO_CLUSTER = "http://w3id.org/bench#belongsToCluster";
         private static final String MODEL_PREDICTION = "http://w3id.org/bench#modelPrediction";
         private static final String IMPORTANT_FEATURES = "http://w3id.org/bench#importantFeatures";
@@ -241,6 +263,7 @@ public class AnalysisComponent extends AbstractComponent {
         private String belongsToCluster = "none";
         private double modelPrediction = 0;
         private String importantFeatures = "no result";
+        protected Model correlationModel;
 
         // define a cluster model for the analysis
         private SimpleKMeans clusterModel = new SimpleKMeans();
@@ -250,17 +273,19 @@ public class AnalysisComponent extends AbstractComponent {
         private Instances clusterDataset = null;
         private Instances igDataset = null;
         private Instances predictionDataset = null;
+        private Instances correlationDataset = null;
         private Model experimentModel = null;
         private String expUri = null;
         private Model updatedModel = null;
         private Boolean aboveBaseline = false;
 
-        protected AnalysisModel(Instances clusterDataset, Instances igDataset, Instances predictionDataset, Model experimentModel, String expUri) {
+        protected AnalysisModel(Instances clusterDataset, Instances igDataset, Instances predictionDataset, Instances correlationDataset, Model experimentModel, String expUri) {
             this.clusterDataset = clusterDataset;
             this.igDataset = igDataset;
             this.predictionDataset = predictionDataset;
+            this.correlationDataset = correlationDataset;
             this.experimentModel = experimentModel;
-            this.updatedModel = experimentModel.difference(ModelFactory.createDefaultModel());
+            this.updatedModel = ModelFactory.createDefaultModel();
             this.expUri = expUri;
         }
 
@@ -278,6 +303,7 @@ public class AnalysisComponent extends AbstractComponent {
             updatedModel.addLiteral(expResource, cluster, this.belongsToCluster);
             updatedModel.addLiteral(expResource, importantFeatures, this.importantFeatures);
             updatedModel.addLiteral(expResource, prediction, this.modelPrediction);
+            updatedModel.add(correlationModel);
         }
 
         /**
@@ -324,15 +350,15 @@ public class AnalysisComponent extends AbstractComponent {
 
                 Instances standDevs = this.clusterModel.getClusterStandardDevs();
 
-                ArrayList<Double> scoresCluster = new ArrayList();
+                ArrayList<Double> scoresCluster = new ArrayList<>();
 
                 for (Instance clusterssNum: standDevs) {
                     scoresCluster.add(sum(clusterssNum.toDoubleArray()));
                 }
-                ArrayList<Double> notSortedScoresCluster = new ArrayList(scoresCluster);
+                ArrayList<Double> notSortedScoresCluster = new ArrayList<>(scoresCluster);
                 Collections.sort(scoresCluster, Collections.reverseOrder());
 
-                ArrayList<Integer> sortedClusters = new ArrayList();
+                ArrayList<Integer> sortedClusters = new ArrayList<>();
                 for (double score : scoresCluster) {
                     sortedClusters.add(notSortedScoresCluster.indexOf(score));
                 }
@@ -349,6 +375,52 @@ public class AnalysisComponent extends AbstractComponent {
             for (double value:values)
                 result += value;
             return result;
+        }
+
+        /**
+         * Computes a Pearson correlation between every pair of KPI and parameter.
+         */
+        protected void computeCorrelation(String benchmarkUri, String systemInstanceUri) {
+            long time = System.currentTimeMillis();
+            Calendar created = new Calendar.Builder().setInstant(time).build();
+
+            CorrelationAttributeEval cae = new CorrelationAttributeEval();
+            correlationModel = ModelFactory.createDefaultModel();
+
+            Resource benchmark = correlationModel.createResource(benchmarkUri);
+            Resource systemInstance = correlationModel.createResource(systemInstanceUri);
+            Resource resultset = HobbitAnalysis.getResultset(benchmark, systemInstance);
+            correlationModel.add(resultset, RDF.type, HOBBIT.AnalysisResultset);
+            correlationModel.add(resultset, HOBBIT.involvesBenchmark, benchmark);
+            correlationModel.add(resultset, HOBBIT.involvesSystemInstance, systemInstance);
+            correlationModel.addLiteral(resultset, DCTerms.created, ResourceFactory.createTypedLiteral(created));
+
+            try {
+                for (int kpiIndex = 0; kpiIndex < correlationDataset.numAttributes(); kpiIndex++) {
+                    if (correlationDataset.attribute(kpiIndex) instanceof KpiAttribute) {
+                        Resource kpi = correlationModel.getResource(correlationDataset.attribute(kpiIndex).name());
+                        this.correlationDataset.setClassIndex(kpiIndex);
+                        cae.buildEvaluator(correlationDataset);
+                        for (int paramIndex = 0; paramIndex < correlationDataset.numAttributes(); paramIndex++) {
+                            if (correlationDataset.attribute(paramIndex) instanceof ParamAttribute) {
+                                Resource param = correlationModel.getResource(correlationDataset.attribute(paramIndex).name());
+                                double value = cae.evaluateAttribute(paramIndex);
+
+                                String resultUri = resultset.getURI() + "-" + kpiIndex + "-" + paramIndex;
+                                Resource result = correlationModel.createResource(resultUri, HOBBIT.AnalysisResult);
+                                result.addProperty(DCTerms.isPartOf, resultset);
+                                result.addProperty(HOBBIT.algorithm, HOBBIT.PearsonAlgorithm);
+                                result.addProperty(HOBBIT.involvesKPI, kpi);
+                                result.addProperty(HOBBIT.involvesParameter, param);
+                                result.addLiteral(RDF.value, value);
+                                LOGGER.debug("Correlation: {} for {}, {}", value, kpi, param);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.error("Exception while computing correlation", e);
+            }
         }
 
         /**
@@ -414,6 +486,21 @@ public class AnalysisComponent extends AbstractComponent {
 
     }
 
+    public static class KpiAttribute extends Attribute {
+        static final long serialVersionUID = 0;
+
+        public KpiAttribute(String attributeName) {
+            super(attributeName);
+        }
+    }
+
+    public static class ParamAttribute extends Attribute {
+        static final long serialVersionUID = 0;
+
+        public ParamAttribute(String attributeName) {
+            super(attributeName);
+        }
+    }
 
     /**
      * Perform a series of statistics on a RDF dataset in order to feed them to
@@ -447,13 +534,13 @@ public class AnalysisComponent extends AbstractComponent {
             for (int i = 0; i<models.size(); i++){
                 Model model = models.get(i);
                 parametersNames = new ArrayList<>();
-                ArrayList<ArrayList> allExpParameters = new ArrayList<>();
-                String typeURI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
-                String parametersURI = "http://w3id.org/hobbit/vocab#Experiment";
+                ArrayList<ArrayList<Float>> allExpParameters = new ArrayList<>();
+                Property typeURI = RDF.type;
+                Resource parametersURI = HOBBIT.Experiment;
                 // select all resources that are of type
-                ResIterator blockIt = model.listResourcesWithProperty(model.getProperty(typeURI), model.getResource(parametersURI));
+                ResIterator blockIt = model.listResourcesWithProperty(typeURI, parametersURI);
                 while (blockIt.hasNext()) {
-                    ArrayList parameters = new ArrayList();
+                    ArrayList<Float> parameters = new ArrayList<>();
                     Resource currentParameter = blockIt.next();
                     //build the inner map for data
                     Map<String, Map<String, Float>> inner = outer.get(currentParameter.toString());
@@ -727,6 +814,45 @@ public class AnalysisComponent extends AbstractComponent {
             return newDataset;
         }
 
+        private Instances buildDatasetFromMappingsForCorrelation(){
+            LOGGER.debug("Building dataset for correlation...");
+            Set<String> kpis = outer.values().stream()
+                    .flatMap(map -> map.get("kpis").keySet().stream())
+                    .collect(Collectors.toCollection(TreeSet::new));
+            LOGGER.debug("KPIs:\n{}", kpis.stream()
+                    .map(str -> "- " + str).collect(Collectors.joining("\n")));
+
+            Set<String> params = outer.values().stream()
+                    .flatMap(map -> map.get("params").keySet().stream())
+                    .collect(Collectors.toCollection(TreeSet::new));
+            LOGGER.debug("Params:\n{}", params.stream()
+                    .map(str -> "- " + str).collect(Collectors.joining("\n")));
+
+            ArrayList<Attribute> attInfo = Stream.concat(
+                        kpis.stream().map(KpiAttribute::new),
+                        params.stream().map(ParamAttribute::new))
+                    .collect(Collectors.toCollection(ArrayList::new));
+
+            List<Instance> instances = outer.values().stream()
+                .map(instance -> new DenseInstance(
+                    1,
+                    attInfo.stream()
+                        .map(
+                            att -> Optional.ofNullable(instance.get("params").get(att.name()))
+                            .orElseGet(() -> instance.get("kpis").get(att.name()))
+                        )
+                        .mapToDouble(value -> Optional.ofNullable(value).orElse(0f))
+                        .toArray()))
+                .collect(Collectors.toList());
+
+            Instances dataset = new Instances("Correlation dataset", attInfo, instances.size());
+            for (Instance i : instances) {
+                dataset.add(i);
+            }
+            LOGGER.debug("Dataset for correlation: {}", dataset);
+            return dataset;
+        }
+
         /**
          *
          */
@@ -762,6 +888,16 @@ public class AnalysisComponent extends AbstractComponent {
             }
         }
 
+        protected Instances getInstancesDatasetForCorrelation() {
+            if (outer.size() > 0){
+                Instances instancesDataset = this.buildDatasetFromMappingsForCorrelation();
+                return instancesDataset;
+            } else {
+                LOGGER.error("No results found for the system. Aborting...");
+                return null;
+            }
+        }
+
         protected LinkedHashMap<String, Map<String, Map<String, Float>>> getMappings(){
             return this.outer;
         }
@@ -770,40 +906,46 @@ public class AnalysisComponent extends AbstractComponent {
 
     /**
      * A class to hold all necessary sparql queries for analysis component.
+     * FIXME: move queries to the HOBBIT core library.
      */
     protected static class QueryFormatter {
         private StorageServiceClient storage;
 
-        private String queryForParametersOfAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForParametersOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?param ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:hasParameter ?param .\n" +
                 "?aa ?param ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)}";
-        private String queryForKPIsOfAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForKPIsOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI ?kpi .\n" +
                 "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
-        private String queryForParamsAndKPIsOfSystemExps = "prefix hobbit: <http://w3id.org/hobbit/experiments#>\n" +
-                "prefix ns: <http://w3id.org/hobbit/vocab#>\n" +
-                "prefix xsd: <http://www.w3.org/2001/XMLSchema#>\n" +
+        private String queryForParamsAndKPIsOfSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
+                "prefix ns: <" + HOBBIT.getURI() + ">\n" +
+                "prefix xsd: <" + XSD.getURI() + ">\n" +
                 "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
-                "?aa ns:involvesSystemInstance %s .\n" +
+                "?aa ns:involvesBenchmark %1$s .\n" +
+                "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI|ns:hasParameter ?kpi .\n" +
                 "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
-        private String queryForAllSystemExps = "prefix hobbit: <http://w3id.org/hobbit/vocab#>\n" +
+        private String queryForAllSystemExps =
+                "prefix hobbit: <" + HOBBIT.getURI() + ">\n" +
                 "construct {?a ?a ?a} where {?a a hobbit:Experiment ;\n" +
-                "hobbit:involvesSystemInstance %s . }";
+                "hobbit:involvesBenchmark %1$s ;\n" +
+                "hobbit:involvesSystemInstance %2$s . }";
 
         /*
         private String queryBioasq = "prefix ns: <http://bioasq.org/onto_counts.owl#>\n" +
@@ -839,21 +981,21 @@ public class AnalysisComponent extends AbstractComponent {
             return queryResultModel;
         }
 
-        protected Model getParametersOfAllSystemExps( String systemUri){
+        protected Model getParametersOfAllSystemExps(String benchmarkUri, String systemUri){
 
-            return sendSparqlQueryToStorage(String.format(queryForParametersOfAllSystemExps, systemUri));
+            return sendSparqlQueryToStorage(String.format(queryForParametersOfAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected Model getAllExperimentsOfSystem(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForAllSystemExps, systemUri));
+        protected Model getAllExperimentsOfSystem(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected Model getAllKpisOfAllSystemExps(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForKPIsOfAllSystemExps, systemUri));
+        protected Model getAllKpisOfAllSystemExps(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForKPIsOfAllSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
         }
 
-        protected  Model getParamsAndKPIsOfAllSystemExps(String systemUri){
-            return sendSparqlQueryToStorage(String.format(queryForParamsAndKPIsOfSystemExps, systemUri));
+        protected  Model getParamsAndKPIsOfAllSystemExps(String benchmarkUri, String systemUri){
+            return sendSparqlQueryToStorage(String.format(queryForParamsAndKPIsOfSystemExps, "<" + benchmarkUri + ">", "<" + systemUri + ">"));
 
         }
 
