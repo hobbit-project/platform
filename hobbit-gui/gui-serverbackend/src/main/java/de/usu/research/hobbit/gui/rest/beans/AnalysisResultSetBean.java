@@ -11,7 +11,10 @@ public class AnalysisResultSetBean {
     private BenchmarkBean benchmark;
     private SystemBean system;
     private List<AnalysisResultBean> results;
-    
+
+    public AnalysisResultSetBean() {
+    }
+
     public AnalysisResultSetBean(String uri,BenchmarkBean benchmark, SystemBean system, List<AnalysisResultBean> results) {
         this.uri = uri;
         this.benchmark = benchmark;

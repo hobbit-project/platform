@@ -8,7 +8,10 @@ public class AnalysisResultBean {
     protected String parameterUri;
     protected String kpiUri;
     protected NamedEntityBean algorithm;
-    
+
+    public AnalysisResultBean() {
+    }
+
     public AnalysisResultBean(String parameterUri, String kpiUri,
             NamedEntityBean algorithm) {
         this.parameterUri = parameterUri;
