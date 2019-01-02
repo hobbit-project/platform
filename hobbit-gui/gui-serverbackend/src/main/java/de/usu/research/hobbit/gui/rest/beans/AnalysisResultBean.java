@@ -8,15 +8,17 @@ public class AnalysisResultBean {
     protected String parameterUri;
     protected String kpiUri;
     protected NamedEntityBean algorithm;
+    protected Double value;
 
     public AnalysisResultBean() {
     }
 
     public AnalysisResultBean(String parameterUri, String kpiUri,
-            NamedEntityBean algorithm) {
+            NamedEntityBean algorithm, double value) {
         this.parameterUri = parameterUri;
         this.kpiUri = kpiUri;
         this.algorithm = algorithm;
+        this.value = value;
     }
 
     /**
@@ -63,5 +65,20 @@ public class AnalysisResultBean {
      */
     public void setAlgorithm(NamedEntityBean algorithm) {
         this.algorithm = algorithm;
+    }
+
+
+    /**
+     * @return the value
+     */
+    public Double getValue() {
+        return value;
+    }
+
+    /**
+     * @param value the value to set
+     */
+    public void setValue(Double value) {
+        this.value = value;
     }
 }

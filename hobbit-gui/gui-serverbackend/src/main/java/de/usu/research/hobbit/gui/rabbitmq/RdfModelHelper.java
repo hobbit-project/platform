@@ -841,6 +841,11 @@ public class RdfModelHelper {
             algorithm = new NamedEntityBean(selectedResource.getURI(), RdfHelper.getLabel(model, selectedResource),
                     RdfHelper.getDescription(model, selectedResource));
         }
-        return new AnalysisResultBean(kpiUri, parameterUri, algorithm);
+        Double value = null;
+        Literal selectedLiteral = RdfHelper.getLiteral(model, resultResource, RDF.value);
+        if (selectedLiteral != null) {
+            value = selectedLiteral.getDouble();
+        }
+        return new AnalysisResultBean(kpiUri, parameterUri, algorithm, value);
     }
 }
