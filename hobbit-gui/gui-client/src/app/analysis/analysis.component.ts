@@ -34,7 +34,10 @@ export class AnalysisComponent implements OnChanges, OnInit {
   ngOnChanges() {
     this.bs.queryAnalysisResults(this.benchmark.id).subscribe(data => {
       this.resultsets = data;
-      this.kpis = this.resultsets[0].benchmark.kpis;
+      // filter out KPIs with only undefined values
+      this.kpis = this.resultsets[0].benchmark.kpis.filter(kpi =>
+        this.resultsets.filter(resultset => resultset.results.find(result => result.kpiUri === kpi.id)).length
+      );
     });
   }
 
@@ -43,18 +46,25 @@ export class AnalysisComponent implements OnChanges, OnInit {
     this.drawChart();
   }
 
+  resultMatcher(parameter, result) {
+    return result.kpiUri === this.selectedKPI.id && result.parameterUri === parameter.id;
+  }
+
   drawChart() {
     const chartCanvas = <HTMLCanvasElement>this.canvas.nativeElement;
     const ctx = chartCanvas.getContext('2d');
     const colorScale = scaleOrdinal(schemeCategory10);
 
-    const parameters = this.resultsets[0].benchmark.configurationParams;
+    // filter out parameters with only undefined values
+    const parameters = this.resultsets[0].benchmark.configurationParams.filter(parameter =>
+      this.resultsets.filter(resultset => resultset.results.find(this.resultMatcher.bind(this, parameter))).length
+    );
     const labels = parameters.map(kpi => kpi.name);
     const datasets = this.resultsets.map((resultset, index) => ({
       backgroundColor: 'transparent',
       borderColor: colorScale(index),
       data: parameters.map(parameter =>
-        (resultset.results.find(result => result.kpiUri === this.selectedKPI.id && result.parameterUri === parameter.id) || {value: undefined}).value
+        (resultset.results.find(this.resultMatcher.bind(this, parameter)) || {value: undefined}).value
       ),
       label: resultset.system.name,
     }));
