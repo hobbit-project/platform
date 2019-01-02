@@ -31,6 +31,8 @@
     <url-pattern>/experiments/*</url-pattern>
     <url-pattern>/home</url-pattern>
     <url-pattern>/home/*</url-pattern>
+    <url-pattern>/reports</url-pattern>
+    <url-pattern>/reports/*</url-pattern>
     <url-pattern>/upload</url-pattern>
     <url-pattern>/upload/*</url-pattern>
   </servlet-mapping>
