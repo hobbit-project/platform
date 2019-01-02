@@ -846,6 +846,6 @@ public class RdfModelHelper {
         if (selectedLiteral != null) {
             value = selectedLiteral.getDouble();
         }
-        return new AnalysisResultBean(kpiUri, parameterUri, algorithm, value);
+        return new AnalysisResultBean(parameterUri, kpiUri, algorithm, value);
     }
 }
