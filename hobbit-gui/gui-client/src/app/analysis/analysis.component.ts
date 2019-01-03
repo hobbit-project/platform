@@ -24,6 +24,8 @@ export class AnalysisComponent implements OnChanges, OnInit {
   selectedKPI: ConfigParamRealisation;
   configModel: any = {};
 
+  chart: any;
+
   constructor(private bs: BackendService, private router: Router,
     private messageService: MessageService) {
   }
@@ -69,7 +71,10 @@ export class AnalysisComponent implements OnChanges, OnInit {
       label: resultset.system.name,
     }));
 
-    const chart = new Chart.Chart(ctx, {
+    if (this.chart) {
+      this.chart.destroy();
+    }
+    this.chart = new Chart.Chart(ctx, {
       type: 'radar',
       data: {
         datasets,
