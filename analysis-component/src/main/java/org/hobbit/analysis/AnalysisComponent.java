@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import java.io.IOException;
 import java.util.*;
 
+import org.aksw.palmetto.evaluate.correlation.PearsonsSampleCorrelationCoefficient;
 import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.rdf.model.*;
@@ -384,7 +385,7 @@ public class AnalysisComponent extends AbstractComponent {
             long time = System.currentTimeMillis();
             Calendar created = new Calendar.Builder().setInstant(time).build();
 
-            CorrelationAttributeEval cae = new CorrelationAttributeEval();
+            PearsonsSampleCorrelationCoefficient pscc = new PearsonsSampleCorrelationCoefficient();
             correlationModel = ModelFactory.createDefaultModel();
 
             Resource benchmark = correlationModel.createResource(benchmarkUri);
@@ -399,12 +400,13 @@ public class AnalysisComponent extends AbstractComponent {
                 for (int kpiIndex = 0; kpiIndex < correlationDataset.numAttributes(); kpiIndex++) {
                     if (correlationDataset.attribute(kpiIndex) instanceof KpiAttribute) {
                         Resource kpi = correlationModel.getResource(correlationDataset.attribute(kpiIndex).name());
-                        this.correlationDataset.setClassIndex(kpiIndex);
-                        cae.buildEvaluator(correlationDataset);
+                        double[] kpiValues = correlationDataset.attributeToDoubleArray(kpiIndex);
                         for (int paramIndex = 0; paramIndex < correlationDataset.numAttributes(); paramIndex++) {
                             if (correlationDataset.attribute(paramIndex) instanceof ParamAttribute) {
                                 Resource param = correlationModel.getResource(correlationDataset.attribute(paramIndex).name());
-                                double value = cae.evaluateAttribute(paramIndex);
+
+                                double[] paramValues = correlationDataset.attributeToDoubleArray(paramIndex);
+                                double value = pscc.calculateRankCorrelation(kpiValues, paramValues);
 
                                 String resultUri = resultset.getURI() + "-" + kpiIndex + "-" + paramIndex;
                                 Resource result = correlationModel.createResource(resultUri, HOBBIT.AnalysisResult);
