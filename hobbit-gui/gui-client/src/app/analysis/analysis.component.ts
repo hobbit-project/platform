@@ -69,6 +69,11 @@ export class AnalysisComponent implements OnChanges, OnInit {
         (resultset.results.find(this.resultMatcher.bind(this, parameter)) || {value: undefined}).value
       ),
       label: resultset.system.name,
+      pointBackgroundColor: colorScale(index),
+      pointBorderColor: colorScale(index),
+      pointBorderWidth: 2,
+      pointRadius: 5,
+      pointStyle: 'crossRot',
     }));
 
     if (this.chart) {
