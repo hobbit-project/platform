@@ -74,7 +74,13 @@ export class AnalysisComponent implements OnChanges, OnInit {
       pointBorderWidth: 2,
       pointRadius: 5,
       pointStyle: 'crossRot',
-    }));
+    })).concat([{
+      // isoline at 0
+      backgroundColor: 'transparent',
+      borderColor: 'black',
+      borderWidth: 1,
+      data: parameters.map(() => 0),
+    }]);
 
     if (this.chart) {
       this.chart.destroy();
@@ -86,7 +92,13 @@ export class AnalysisComponent implements OnChanges, OnInit {
         labels,
       },
       options: {
-        legend: {position: 'right'},
+        legend: {
+          labels: {
+            // hide the legend entry for the labelless isoline
+            filter: item => item.text,
+          },
+          position: 'right',
+        },
         responsive: true,
         scale: {
           ticks: {min: -1, max: 1},
