@@ -84,4 +84,5 @@ prometheus:
 		-v $(shell pwd)/config/prometheus:/config \
 		prom/prometheus --config.file=/config/prometheus.conf
 
-
+trigger-all-correlation-analysis:
+	docker run --network hobbit-core --volume $(CURDIR):/data:ro -e "HOBBIT_RABBIT_HOST=rabbit" java:alpine /data/test_trigger_all_correlation_analysis.sh
