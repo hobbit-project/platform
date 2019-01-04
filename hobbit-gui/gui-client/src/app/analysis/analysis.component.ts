@@ -62,7 +62,7 @@ export class AnalysisComponent implements OnChanges, OnInit {
       this.resultsets.filter(resultset => resultset.results.find(this.resultMatcher.bind(this, parameter))).length
     );
     const labels = parameters.map(kpi => kpi.name);
-    const datasets = this.resultsets.map((resultset, index) => ({
+    const datasets = (<[any]>this.resultsets.map((resultset, index) => ({
       backgroundColor: 'transparent',
       borderColor: colorScale(index),
       data: parameters.map(parameter =>
@@ -74,7 +74,7 @@ export class AnalysisComponent implements OnChanges, OnInit {
       pointBorderWidth: 2,
       pointRadius: 5,
       pointStyle: 'crossRot',
-    })).concat([{
+    }))).concat([{
       // isoline at 0
       backgroundColor: 'transparent',
       borderColor: 'black',
