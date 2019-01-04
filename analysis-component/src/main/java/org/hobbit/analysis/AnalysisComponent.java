@@ -916,38 +916,46 @@ public class AnalysisComponent extends AbstractComponent {
         private String queryForParametersOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
-                "construct {?aa a ns:Experiment . ?aa ?param ?o}  where {?aa a ns:Experiment .\n" +
+                "construct {?aa a ns:Experiment . ?aa ?param ?o}  where {\n" +
+                "?aa a ns:Experiment .\n" +
                 "?aa ns:involvesBenchmark %1$s .\n" +
                 "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:hasParameter ?param .\n" +
-                "?aa ?param ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)}";
+                "?aa ?param ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)\n" +
+                "}";
         private String queryForKPIsOfAllSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
-                "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
+                "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {\n" +
+                "?aa a ns:Experiment .\n" +
                 "?aa ns:involvesBenchmark %1$s .\n" +
                 "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI ?kpi .\n" +
-                "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
+                "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)\n" +
+                "}";
         private String queryForParamsAndKPIsOfSystemExps = "prefix hobbit: <" + HobbitExperiments.getURI() + ">\n" +
                 "prefix ns: <" + HOBBIT.getURI() + ">\n" +
                 "prefix xsd: <" + XSD.getURI() + ">\n" +
-                "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {?aa a ns:Experiment .\n" +
+                "construct {?aa a ns:Experiment . ?aa ?kpi ?o}  where {\n" +
+                "?aa a ns:Experiment .\n" +
                 "?aa ns:involvesBenchmark %1$s .\n" +
                 "?aa ns:involvesSystemInstance %2$s .\n" +
                 "minus {?aa ns:terminatedWithError ?err} .\n" +
                 "?aa ns:involvesBenchmark ?ben .\n" +
                 "?ben ns:measuresKPI|ns:hasParameter ?kpi .\n" +
-                "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean) }";
+                "?aa ?kpi ?o . filter (datatype(?o) != xsd:string && datatype(?o) != xsd:boolean)\n" +
+                "}";
         private String queryForAllSystemExps =
                 "prefix hobbit: <" + HOBBIT.getURI() + ">\n" +
-                "construct {?a ?a ?a} where {?a a hobbit:Experiment ;\n" +
+                "construct {?a ?a ?a} where {\n" +
+                "?a a hobbit:Experiment ;\n" +
                 "hobbit:involvesBenchmark %1$s ;\n" +
-                "hobbit:involvesSystemInstance %2$s . }";
+                "hobbit:involvesSystemInstance %2$s .\n" +
+                "}";
 
         /*
         private String queryBioasq = "prefix ns: <http://bioasq.org/onto_counts.owl#>\n" +
