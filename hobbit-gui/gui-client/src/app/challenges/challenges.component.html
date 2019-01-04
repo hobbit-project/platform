@@ -14,11 +14,19 @@
 </div>
 <!-- [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)" -->
 
-<div class="container-fluid" *ngIf="loaded">
+<div class="container" *ngIf="loaded && openChallenges.length == 0">
   <div class="row">
     <h2>Open Challenges</h2>
-    <p *ngIf="openChallenges.length == 0">No open challenges.</p>
-    <div class="col-md-12" *ngIf="openChallenges.length > 0">
+    <div class="col-md-12">
+      <p>No open challenges.</p>
+    </div>
+  </div>
+</div>
+
+<div class="container-fluid" *ngIf="loaded && openChallenges.length > 0">
+  <div class="row">
+    <h2>Open Challenges</h2>
+    <div class="col-md-12">
       <p-dataTable [value]="openChallenges" selectionMode="single" resizableColumns="true" sortField="name" [rows]="20" [paginator]="true"
         [tableStyleClass]="'challenge-table'" [(selection)]="selectedChallenge" (onRowSelect)="onSelect($event)"
         sortField="name" [sortOrder]="1">
@@ -38,9 +46,10 @@
       </p-dataTable>
     </div>
   </div>
+</div>
 
-
-  <div class="row" *ngIf="closedChallenges.length > 0">
+<div class="container-fluid" *ngIf="closedChallenges.length > 0">
+  <div class="row">
     <h2>Closed Challenges</h2>
     <div class="col-md-12">
       <p-dataTable [value]="closedChallenges" selectionMode="single" resizableColumns="true" sortField="name" [rows]="20" [paginator]="true"
