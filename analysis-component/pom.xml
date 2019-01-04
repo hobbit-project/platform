@@ -30,6 +30,11 @@
     <inceptionYear>2017</inceptionYear>
 
     <dependencies>
+        <dependency>
+            <groupId>org.aksw</groupId>
+            <artifactId>palmetto</artifactId>
+            <version>0.1.1</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/nz.ac.waikato.cms.weka/weka-stable -->
         <dependency>
             <groupId>nz.ac.waikato.cms.weka</groupId>
