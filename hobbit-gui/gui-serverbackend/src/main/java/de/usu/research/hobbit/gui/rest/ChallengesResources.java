@@ -42,6 +42,7 @@ import org.apache.jena.rdf.model.Model;
 import org.hobbit.core.Constants;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.vocab.HobbitChallenges;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -189,7 +190,7 @@ public class ChallengesResources {
             getDevDb().addChallenge(challenge);
         } else {
             Model model = RdfModelCreationHelper.createNewModel();
-            challenge.setId(Constants.CHALLENGE_URI_NS + UUID.randomUUID().toString());
+            challenge.setId(HobbitChallenges.getChallengeURI(UUID.randomUUID().toString()));
             RdfModelCreationHelper.addChallenge(challenge, model);
             StorageServiceClientSingleton.getInstance().sendInsertQuery(model,
                     Constants.CHALLENGE_DEFINITION_GRAPH_URI);

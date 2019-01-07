@@ -48,9 +48,9 @@ import org.apache.http.util.EntityUtils;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
 import org.elasticsearch.client.RestClient;
-import org.hobbit.core.Constants;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -142,18 +142,18 @@ public class LogsResources {
     }
 
     private Model getExperimentModel(String experimentId) {
-        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        String experimentUri = HobbitExperiments.getExperimentURI(experimentId);
         String query = SparqlQueries.getExperimentGraphQuery(experimentUri, null);
         Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
         return model;
     }
 
     private Response checkAccessAllowed(Model experimentModel, String experimentId, SecurityContext sc) {
-        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
+        Resource experimentResource = HobbitExperiments.getExperiment(experimentId);
         // get the date info from model and restrict query by time
         if (experimentModel != null && experimentModel.size() > 0) {
-            ExperimentBean experiment = RdfModelHelper.createExperimentBean(experimentModel,
-                    experimentModel.getResource(experimentUri));
+            ExperimentBean experiment = RdfModelHelper.createExperimentBean(
+                    experimentModel, experimentResource);
             // Check whether the user is the owner of the system
             String systemURI = experiment.getSystem().getId();
             Set<String> userOwnedSystemIds = InternalResources.getUserSystemIds(sc);
@@ -169,8 +169,7 @@ public class LogsResources {
 
     private String getExperimentDate(String experimentId) {
         Model experimentModel = getExperimentModel(experimentId);
-        String experimentUri = Constants.EXPERIMENT_URI_NS + experimentId;
-        Resource experimentResource = experimentModel.getResource(experimentUri);
+        Resource experimentResource = HobbitExperiments.getExperiment(experimentId);
         Calendar cal = getTolerantDateTimeValue(experimentModel, experimentResource, HOBBIT.startTime);
         SimpleDateFormat esDateFormat = new SimpleDateFormat("yyyy-MM-dd");
         if (cal != null) {

@@ -43,6 +43,7 @@ import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,28 +87,27 @@ public class ExperimentsResources {
                 results = new ArrayList<>(ids.length);
                 for (String id : ids) {
                     // create experiment URI
-                    String experimentUri = Constants.EXPERIMENT_URI_NS + id;
+                    Resource experiment = HobbitExperiments.getExperiment(id);
                     // construct public query
-                    String query = SparqlQueries.getExperimentGraphQuery(experimentUri,
+                    String query = SparqlQueries.getExperimentGraphQuery(experiment.getURI(),
                             Constants.PUBLIC_RESULT_GRAPH_URI);
                     // get public experiment
                     Model model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                     if (model != null && model.size() > 0) {
                         LOGGER.trace("Got result for {} from the public graph.", id);
-                        results.add(RdfModelHelper.createExperimentBean(model, model.getResource(experimentUri)));
+                        results.add(RdfModelHelper.createExperimentBean(model, experiment));
                         LOGGER.trace("Added result bean of {} to the list of results.", id);
                     } else {
                         LOGGER.trace("Got result for {} from the public graph. Trying the private graph.", id);
                         // if public experiment is not found
                         // try requesting model from private graph
-                        query = SparqlQueries.getExperimentGraphQuery(experimentUri,
+                        query = SparqlQueries.getExperimentGraphQuery(experiment.getURI(),
                                 Constants.PRIVATE_RESULT_GRAPH_URI);
                         model = StorageServiceClientSingleton.getInstance().sendConstructQuery(query);
                         if (model != null && model.size() > 0) {
                             LOGGER.trace("Got result for {} from the private graph.", id);
                             // get current experiment system
-                            Resource subj = model.getResource(experimentUri);
-                            Resource system = RdfHelper.getObjectResource(model, subj, HOBBIT.involvesSystemInstance);
+                            Resource system = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesSystemInstance);
                             if (system != null) {
                                 LOGGER.trace("Check visibility of system {}.", system.getURI());
                                 String systemURI = system.getURI();
@@ -115,7 +115,7 @@ public class ExperimentsResources {
                                 // check if it's owned by user
                                 if (userOwnedSystemIds.contains(systemURI)) {
                                     results.add(RdfModelHelper.createExperimentBean(model,
-                                            model.getResource(experimentUri)));
+                                            experiment));
                                     LOGGER.trace("Added result bean of {} to the list of results.", id);
                                 }
                             }

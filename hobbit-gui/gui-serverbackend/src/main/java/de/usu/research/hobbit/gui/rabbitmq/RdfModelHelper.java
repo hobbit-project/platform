@@ -48,6 +48,7 @@ import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.DataCube;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
+import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -714,7 +715,7 @@ public class RdfModelHelper {
             return null;
         }
         ExperimentBean bean = new ExperimentBean();
-        bean.setId(experiment.getURI().substring(Constants.EXPERIMENT_URI_NS.length()));
+        bean.setId(HobbitExperiments.getExperimentId(experiment));
         Resource benchmarkResource = RdfHelper.getObjectResource(model, experiment, HOBBIT.involvesBenchmark);
         if (benchmarkResource != null) {
             bean.setBenchmark(createConfiguredBenchmarkBean(model, benchmarkResource, experiment));
