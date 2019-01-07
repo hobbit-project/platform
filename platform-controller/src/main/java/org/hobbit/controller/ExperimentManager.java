@@ -38,6 +38,7 @@ import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
+import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.docker.ClusterManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
@@ -433,7 +434,13 @@ public class ExperimentManager implements Closeable {
                 experimentStatus.addError(HobbitErrors.UnexpectedError);
                 resultModel = experimentStatus.getResultModel();
             }
-            experimentStatus.addMetaDataToResult(controller.imageManager(), endTimestamp, controller.resInfoCollector.getHardwareInformation());
+            SetupHardwareInformation hardwareInformation = null;
+            try {
+                hardwareInformation = controller.resInfoCollector.getHardwareInformation();
+            } catch (Exception e) {
+                LOGGER.error("Could not retrieve hardware information.", e);
+            }
+            experimentStatus.addMetaDataToResult(controller.imageManager(), endTimestamp, hardwareInformation);
 
             // Send insert query
             if (!controller.storage().sendInsertQuery(resultModel, graphUri)) {
