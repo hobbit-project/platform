@@ -31,7 +31,6 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,8 +61,6 @@ public class GitlabBasedImageManagerTest {
 
     @Test
     public void getBenchmarks() throws Exception {
-        Assume.assumeNotNull(System.getenv("GITLAB_USER"), System.getenv("GITLAB_EMAIL"),
-                System.getenv("GITLAB_TOKEN"));
 
         // use future to make test wait for async stuff (sigh, java)
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -111,13 +108,28 @@ public class GitlabBasedImageManagerTest {
                 Model otherSystemModel = imageManager.getSystemModel("http://example.org/DummySystemInstance2");
                 Assert.assertNotNull(otherSystemModel);
 
+                // find
+                BenchmarkMetaData facetedBench = null;
+                for (BenchmarkMetaData b : bs) {
+                    if (b.uri.equals("http://w3id.org/bench#Faceted")) {
+                        facetedBench = b;
+                    }
+                }
+                Assert.assertNotNull(facetedBench);
+
+                // Get the model of the faceted benchmark and make sure that there is only one
+                // benchmark inside
+                benchmarkModel = imageManager
+                        .getBenchmarkModel("http://w3id.org/bench#Faceted");
+                Assert.assertArrayEquals(new String[] { "http://w3id.org/bench#Faceted" },
+                        RdfHelper.getSubjectResources(benchmarkModel, RDF.type, HOBBIT.Benchmark).stream()
+                                .map(r -> r.getURI()).toArray(String[]::new));
+
                 // check for systems of user
                 List<SystemMetaData> systems = imageManager.getSystemsOfUser("DefaultHobbitUser");
                 Assert.assertNotNull(systems);
                 // make sure that the list is not empty
                 systems = imageManager.getSystemsOfUser("testuser");
-                Assert.assertTrue(systems.size() > 0);
-                systems = imageManager.getSystemsOfUser("kleanthie.georgala");
                 Assert.assertTrue(systems.size() > 0);
 
                 List<SystemMetaData> systems4Benchmark = imageManager

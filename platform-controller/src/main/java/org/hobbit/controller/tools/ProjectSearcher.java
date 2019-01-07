@@ -70,8 +70,8 @@ public class ProjectSearcher {
         RDFNode object;
         while (iterator.hasNext()) {
             object = iterator.next().getObject();
-            if (object.isLiteral()) {
-                return object.asLiteral().getString().contains(searchString);
+            if (object.isLiteral() && object.asLiteral().getString().contains(searchString)) {
+                return true;
             }
         }
         return false;

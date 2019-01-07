@@ -30,7 +30,7 @@ public class MetaDataFactory {
         List<Resource> benchmarks = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.Benchmark);
         for (Resource benchmark : benchmarks) {
             BenchmarkMetaData result = new BenchmarkMetaData();
-            buildMetaData(benchmark, result, model, source, date);
+            buildMetaData(benchmark, result, getModelWithUniqueBenchmark(model, benchmark.getURI()), source, date);
             // find APIs
             result.definedApis = new HashSet<>(RdfHelper.getStringValues(model, benchmark, HOBBIT.hasAPI));
             // append to results
@@ -49,7 +49,7 @@ public class MetaDataFactory {
         List<Resource> systems = RdfHelper.getSubjectResources(model, RDF.type, HOBBIT.SystemInstance);
         for (Resource system : systems) {
             SystemMetaData result = new SystemMetaData();
-            buildMetaData(system, result, model, source, date);
+            buildMetaData(system, result, getModelWithUniqueSystem(model, system.getURI()), source, date);
             // find APIs
             result.implementedApis = new HashSet<>(RdfHelper.getStringValues(model, system, HOBBIT.implementsAPI));
             // append to results
@@ -121,24 +121,24 @@ public class MetaDataFactory {
      */
     public static Model getModelWithUniqueSystem(Model model, String systemUri) {
         return getModelWithUniqueResource(model, systemUri, HOBBIT.SystemInstance);
-
     }
 
     protected static Model getModelWithUniqueResource(Model model, String uri, Resource type) {
-        Model newModel = ModelFactory.createDefaultModel();
         if (model == null) {
-            return newModel;
+            return ModelFactory.createDefaultModel();
         }
+        List<Resource> resources = RdfHelper.getSubjectResources(model, RDF.type, type);
+        if (resources.size() <= 1) {
+            return model;
+        }
+        Model newModel = ModelFactory.createDefaultModel();
         newModel.add(model);
-        if (uri == null) {
-            return newModel;
-        }
-        List<Resource> otherSystems = RdfHelper.getSubjectResources(model, RDF.type, type);
-        for (Resource otherSystem : otherSystems) {
-            if (!otherSystem.getURI().equals(uri)) {
-                newModel.remove(newModel.listStatements(otherSystem, null, (RDFNode) null));
+        for (Resource r : resources) {
+            if (!r.getURI().equals(uri)) {
+                newModel.removeAll(r, null, (RDFNode) null);
             }
         }
         return newModel;
     }
+
 }
