@@ -37,7 +37,7 @@ export class DetailsComponent implements OnInit, OnChanges {
   experiments: Experiment[];
   details: Experiment[];
   rows: TableRow[];
-  comparable: boolean;
+  sameBenchmark: boolean;
 
   constructor(private bs: BackendService, private router: Router) { }
 
@@ -45,7 +45,7 @@ export class DetailsComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges() {
-    this.comparable = null;
+    this.sameBenchmark = null;
     this.rows = null;
     this.experiments = null;
     this.details = null;
@@ -83,8 +83,7 @@ export class DetailsComponent implements OnInit, OnChanges {
       if (this.details.length !== 0)
         this.buildTableRows(this.details);
 
-      this.comparable = this.experiments.length > 1
-          && new Set(this.experiments.map(experiment => experiment.benchmark.id)).size === 1;
+      this.sameBenchmark = new Set(this.experiments.map(experiment => experiment.benchmark.id)).size === 1;
     });
     this.loaded = true;
   }
