@@ -98,7 +98,7 @@ public class ExperimentsResources {
                         results.add(RdfModelHelper.createExperimentBean(model, experiment));
                         LOGGER.trace("Added result bean of {} to the list of results.", id);
                     } else {
-                        LOGGER.trace("Got result for {} from the public graph. Trying the private graph.", id);
+                        LOGGER.trace("Got no result for {} from the public graph. Trying the private graph.", id);
                         // if public experiment is not found
                         // try requesting model from private graph
                         query = SparqlQueries.getExperimentGraphQuery(experiment.getURI(),

@@ -134,6 +134,9 @@ export class Benchmark extends BenchmarkOverview {
     @Type(() => ConfigParamRealisation)
     public configurationParamValues?: ConfigParamRealisation[];
 
+    @Type(() => ConfigParamRealisation)
+    public kpis?: ConfigParamRealisation[];
+
     @Type(() => System)
     public systems?: System[];
 
@@ -255,5 +258,32 @@ export class StatusBean {
 
     constructor() {
     }
+
+}
+
+export class AnalysisResult {
+
+  constructor(
+      public parameterUri: string,
+      public kpiUri: string,
+      public value: number,
+  ) {
+  }
+
+}
+
+export class AnalysisResultset {
+
+  @Type(() => Benchmark)
+  public benchmark: Benchmark;
+
+  @Type(() => System)
+  public system: System;
+
+  @Type(() => AnalysisResult)
+  public results: AnalysisResult[];
+
+  constructor() {
+  }
 
 }
