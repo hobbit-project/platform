@@ -41,8 +41,8 @@ import org.apache.jena.sparql.vocabulary.FOAF;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
-import org.hobbit.core.Constants;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitChallenges;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +85,7 @@ public class RdfModelCreationHelper {
         model.setNsPrefix("rdf", RDF.getURI());
         model.setNsPrefix("rdfs", RDFS.getURI());
         model.setNsPrefix("hobbit", HOBBIT.getURI());
-        model.setNsPrefix("chal", Constants.CHALLENGE_URI_NS);
+        model.setNsPrefix("chal", HobbitChallenges.getURI());
         return model;
     }
 

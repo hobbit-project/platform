@@ -3,7 +3,18 @@ import { CustomHttp } from './custom-http.service';
 import { BenchmarkComponent } from './upload/benchmark/benchmark.component';
 import { plainToClass } from 'class-transformer';
 import { environment } from './../environments/environment';
-import { User, BenchmarkOverview, Benchmark, Challenge, ExperimentCount, Experiment, ChallengeRegistration, ExtendedChallengeRegistration, StatusBean } from './model';
+import {
+  AnalysisResultset,
+  Benchmark,
+  BenchmarkOverview,
+  Challenge,
+  ChallengeRegistration,
+  Experiment,
+  ExperimentCount,
+  ExtendedChallengeRegistration,
+  StatusBean,
+  User,
+} from './model';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/Rx';
 import { map, publishReplay } from 'rxjs/operators';
@@ -84,6 +95,10 @@ export class BackendService {
 
   terminateExperiment(id: string): Observable<any> {
     return this.http.get(`BACKEND/rest/experiments/terminate/${encodeURIComponent(id)}`);
+  }
+
+  queryAnalysisResults(benchmarkId: string): Observable<AnalysisResultset[]> {
+    return this.http.get(`BACKEND/rest/analysis/${encodeURIComponent(benchmarkId)}`).map(plainToClass.bind(null, AnalysisResultset));
   }
 
   getAllChallengeRegistrations(challengeId: string): Observable<ChallengeRegistration[]> {

@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.jena.rdf.model.Model;
-import org.hobbit.core.Constants;
+import org.apache.jena.vocabulary.XSD;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -42,7 +43,7 @@ public class ExperimentBeanTest {
         // load the model
         Model model = AbstractRdfHelperTest.loadModel("de/usu/research/hobbit/gui/rabbitmq/experiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // Check the system
@@ -70,7 +71,7 @@ public class ExperimentBeanTest {
         // load the model
         Model model = AbstractRdfHelperTest.loadModel("de/usu/research/hobbit/gui/rabbitmq/exampleExperiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // Check the system
@@ -107,25 +108,25 @@ public class ExperimentBeanTest {
         paramBean.setDescription("The number of data generators that will be created.");
         paramBean.setFeature(true);
         paramBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#numberOfDataGenerators");
-        paramBean.setRange("http://www.w3.org/2001/XMLSchema#unsignedInt");
+        paramBean.setRange(XSD.unsignedInt.getURI());
         expectedParameters.put(paramBean.getId(), paramBean);
         paramBean = new ConfigurationParamBean("Number of queries", Datatype.UNSIGNED_INT, true, "1000");
         paramBean.setDescription("The number of SPARQL queries that are sent.");
         paramBean.setFeature(true);
         paramBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#numberOfQueries");
-        paramBean.setRange("http://www.w3.org/2001/XMLSchema#unsignedInt");
+        paramBean.setRange(XSD.unsignedInt.getURI());
         expectedParameters.put(paramBean.getId(), paramBean);
         paramBean = new ConfigurationParamBean("Number of task generators", Datatype.UNSIGNED_INT, true, "1");
         paramBean.setDescription("The number of task generators that will be created.");
         paramBean.setFeature(true);
         paramBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#numberOfTaskGenerators");
-        paramBean.setRange("http://www.w3.org/2001/XMLSchema#unsignedInt");
+        paramBean.setRange(XSD.unsignedInt.getURI());
         expectedParameters.put(paramBean.getId(), paramBean);
         paramBean = new ConfigurationParamBean("Seed", Datatype.STRING, true, "31");
         paramBean.setDescription("The seed of the random number generators used by this bechmark.");
         paramBean.setFeature(false);
         paramBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#seed");
-        paramBean.setRange("http://www.w3.org/2001/XMLSchema#integer");
+        paramBean.setRange(XSD.integer.getURI());
         expectedParameters.put(paramBean.getId(), paramBean);
 
         checkConfigurationParameters(expectedParameters, benchmark.getConfigurationParams());
@@ -139,7 +140,7 @@ public class ExperimentBeanTest {
         kpiBean.setDescription(
                 "Average number of processed queries (=result sets) that are received by the evaluation storage per second.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#responsesPerSecond");
-        kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
+        kpiBean.setRange(XSD.xdouble.getURI());
         expectedKpis.put(kpiBean.getId(), kpiBean);
         kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Average query runtime (in ms)");
@@ -147,7 +148,7 @@ public class ExperimentBeanTest {
         kpiBean.setDescription(
                 "The average time from the moment a query is sent to the benchmarked system until its response is received.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#msPerQuery");
-        kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
+        kpiBean.setRange(XSD.xdouble.getURI());
         expectedKpis.put(kpiBean.getId(), kpiBean);
         kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Query runtime standard deviation");
@@ -155,7 +156,7 @@ public class ExperimentBeanTest {
         kpiBean.setDescription(
                 "The standard deviation of the time between the moment a query is sent to the benchmarked system and the point in time at which its response is received.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#queryRuntimeStdDev");
-        kpiBean.setRange("http://www.w3.org/2001/XMLSchema#double");
+        kpiBean.setRange(XSD.xdouble.getURI());
         expectedKpis.put(kpiBean.getId(), kpiBean);
         kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Error count");
@@ -163,7 +164,7 @@ public class ExperimentBeanTest {
         kpiBean.setDescription(
                 "The number of errors identified by either missing expected responses or missing result sets or both.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#errorCount");
-        kpiBean.setRange("http://www.w3.org/2001/XMLSchema#int");
+        kpiBean.setRange(XSD.xint.getURI());
         expectedKpis.put(kpiBean.getId(), kpiBean);
         kpiBean = new KeyPerformanceIndicatorBean();
         kpiBean.setName("Runtime");
@@ -171,7 +172,7 @@ public class ExperimentBeanTest {
         kpiBean.setDescription(
                 "The overall runtime, i.e., the time from the first query sent to the last response received.");
         kpiBean.setId("http://w3id.org/hobbit/platform-benchmark/vocab#runtime");
-        kpiBean.setRange("http://www.w3.org/2001/XMLSchema#integer");
+        kpiBean.setRange(XSD.integer.getURI());
         expectedKpis.put(kpiBean.getId(), kpiBean);
 
         checkKpis(expectedKpis, experiment.getKpis());
@@ -184,7 +185,7 @@ public class ExperimentBeanTest {
         Model model = AbstractRdfHelperTest
                 .loadModel("de/usu/research/hobbit/gui/rabbitmq/exampleDiagramExperiment.ttl");
         ExperimentBean experiment = RdfModelHelper.createExperimentBean(model,
-                model.getResource(Constants.EXPERIMENT_URI_NS + experimentId));
+                HobbitExperiments.getExperiment(experimentId));
 
         Assert.assertEquals(experimentId, experiment.getId());
         // get the diagram bean

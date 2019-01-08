@@ -49,9 +49,13 @@
         </div>
       </div>
     </p-tabPanel>
-    <p-tabPanel *ngIf="comparable" header="Plots">
+    <p-tabPanel *ngIf="sameBenchmark && experiments.length > 1" header="Plots">
       <app-experiment-compare [experiments]="experiments">
       </app-experiment-compare>
+    </p-tabPanel>
+    <p-tabPanel *ngIf="sameBenchmark" header="Analysis">
+      <app-analysis [benchmark]="experiments[0].benchmark">
+      </app-analysis>
     </p-tabPanel>
   </p-tabView>
 </div>

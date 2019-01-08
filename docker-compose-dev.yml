@@ -97,6 +97,35 @@ services:
       - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
       - SPARQL_ENDPOINT_PASSWORD=Password
 
+  node-exporter:
+    image: prom/node-exporter
+    networks:
+      - hobbit-core
+
+  cadvisor:
+    image: google/cadvisor
+    networks:
+      - hobbit-core
+    volumes:
+      - /:/rootfs:ro
+      - /dev/disk:/dev/disk:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /var/run:/var/run:rw
+
+  prometheus:
+    image: prom/prometheus
+    networks:
+      - hobbit-core
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus:/config:ro
+    command: --config.file=/config/prometheus.conf
+    depends_on:
+      - node-exporter
+      - cadvisor
+
 networks:
   hobbit:
     external:

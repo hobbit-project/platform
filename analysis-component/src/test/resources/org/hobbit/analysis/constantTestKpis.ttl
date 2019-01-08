@@ -1,0 +1,16 @@
+@prefix bench: <http://example.com/bench#> .
+@prefix hobbit: <http://w3id.org/hobbit/vocab#> .
+@prefix test: <http://example.com/test#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+test:Experiment1 a hobbit:Experiment ;
+bench:kpi1 "1"^^xsd:double ;
+bench:kpi2 "1"^^xsd:double .
+
+test:Experiment2 a hobbit:Experiment ;
+bench:kpi1 "2"^^xsd:double ;
+bench:kpi2 "1"^^xsd:double .
+
+test:Experiment3 a hobbit:Experiment ;
+bench:kpi1 "3"^^xsd:double ;
+bench:kpi2 "1"^^xsd:double .

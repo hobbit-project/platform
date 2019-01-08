@@ -12,7 +12,7 @@ services:
       GITLAB_USER: "${GITLAB_USER}"
       GITLAB_EMAIL: "${GITLAB_EMAIL}"
       GITLAB_TOKEN: "${GITLAB_TOKEN}"
-      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      #LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock

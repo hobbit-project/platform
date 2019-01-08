@@ -12,12 +12,12 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.test.ModelComparisonHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +59,7 @@ public class ParameterForwardingTest {
         IOUtils.closeQuietly(input);
         System.out.println(benchmarkParamModel.toString());
         NodeIterator iterator = benchmarkParamModel.listObjectsOfProperty(
-                benchmarkParamModel.getResource(Constants.NEW_EXPERIMENT_URI), forwardedParameter);
+                HobbitExperiments.New, forwardedParameter);
         Assert.assertTrue(iterator.hasNext());
         RDFNode forwardedNode = iterator.next();
 

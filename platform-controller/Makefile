@@ -61,7 +61,7 @@ node-exporter:
 		prom/node-exporter
 
 cAdvisor:
-	test -n "$$(docker ps -aq --filter name=cAdvisor)" || \
+	test -n "$$(docker ps -aq --filter name=cadvisor)" || \
 	docker run -d \
 		--name cAdvisor \
 		-p 8081:8080 \

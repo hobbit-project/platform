@@ -8,7 +8,7 @@
 
     <!-- PROPERTIES -->
     <properties>
-        <hobbitplatform.version>2.0.8</hobbitplatform.version>
+        <hobbitplatform.version>2.0.9</hobbitplatform.version>
         <java.version>1.8</java.version>
         <slf4j.version>1.7.10</slf4j.version>
         <lucene.version>4.4.0</lucene.version>
@@ -68,7 +68,7 @@
             <dependency>
                 <groupId>org.hobbit</groupId>
                 <artifactId>core</artifactId>
-                <version>1.0.15</version>
+                <version>1.0.16</version>
             </dependency>
             <!-- RabbitMQ -->
             <dependency>
@@ -104,7 +104,7 @@
             <dependency>
                 <groupId>com.github.stefanbirkner</groupId>
                 <artifactId>system-rules</artifactId>
-                <version>1.16.0</version>
+                <version>1.17.0</version>
                 <scope>test</scope>
             </dependency>
             <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
