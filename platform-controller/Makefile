@@ -78,10 +78,8 @@ prometheus:
 	docker run -d \
 		--name prometheus \
 		-p 9090:9090 \
-		--link cAdvisor:cAdvisor \
+		--link cadvisor:cadvisor \
 		--link node-exporter:node-exporter \
 		--rm \
 		-v $(shell pwd)/config/prometheus:/config \
 		prom/prometheus --config.file=/config/prometheus.conf
-
-
