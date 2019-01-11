@@ -63,7 +63,7 @@ node-exporter:
 cAdvisor:
 	test -n "$$(docker ps -aq --filter name=cadvisor)" || \
 	docker run -d \
-		--name cAdvisor \
+		--name cadvisor \
 		-p 8081:8080 \
 		--rm \
 		-v /:/rootfs:ro \
