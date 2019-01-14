@@ -1,8 +1,11 @@
-<div style="container">
-  Pearson correlation coefficient
-</div>
-
 <form>
+  <div class="form-group">
+    <label for="values">Value</label>
+    <select class="form-control" id="values">
+      <option selected>Pearson correlation coefficient</option>
+    </select>
+  </div>
+
   <div class="form-group">
     <label for="kpis">KPI</label>
     <select class="form-control" id="kpis" required [title]="selectedKPI ? selectedKPI.description : ''"
