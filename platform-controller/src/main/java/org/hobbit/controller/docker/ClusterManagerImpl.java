@@ -1,5 +1,7 @@
 package org.hobbit.controller.docker;
 
+import java.util.stream.Stream;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +27,7 @@ public class ClusterManagerImpl implements ClusterManager {
      * Docker client instance
      */
     private DockerClient dockerClient;
-    private Integer expectedNumberOfNodes = 0;
+    private long expectedNumberOfNodes = 0;
     private String SWARM_NODE_NUMBER = null;
 
     public ClusterManagerImpl() throws DockerCertificateException {
@@ -42,31 +44,21 @@ public class ClusterManagerImpl implements ClusterManager {
         return dockerClient.info();
     }
 
-    public int getNumberOfNodes() throws DockerException, InterruptedException {
-        final Info info = getClusterInfo();
-        return info.swarm().nodes();
+    private Stream<Node> streamReadyNodes() throws DockerException, InterruptedException {
+        return dockerClient.listNodes().stream().filter(n->n.status().state().equalsIgnoreCase("ready"));
     }
 
-    public int getNumberOfNodes(String label) throws DockerException, InterruptedException {
-        /*
-        // doesn't work
-        Node.Criteria criteria = Node.Criteria.builder().label(label).build();
-        return dockerClient.listNodes(criteria).size();
-        */
+    public long getNumberOfNodes() throws DockerException, InterruptedException {
+        return streamReadyNodes().count();
+    }
+
+    public long getNumberOfNodes(String label) throws DockerException, InterruptedException {
         final String[] parts = label.split("=");
-        int number = 0;
-        for (Node node : dockerClient.listNodes()) {
-            if (node.spec().labels().containsKey(parts[0])) {
-                if (parts.length == 1 || node.spec().labels().get(parts[0]).equals(parts[1])) {
-                    number++;
-                }
-            }
-        }
-        return number;
+        return streamReadyNodes().filter(n->parts[1].equals(n.spec().labels().get(parts[0]))).count();
     }
 
     public boolean isClusterHealthy() throws DockerException, InterruptedException {
-        Integer numberOfNodes = getNumberOfNodes();
+        long numberOfNodes = getNumberOfNodes();
         if(numberOfNodes >= expectedNumberOfNodes) {
             return true;
         }
@@ -74,7 +66,7 @@ public class ClusterManagerImpl implements ClusterManager {
         return false;
     }
 
-    public int getExpectedNumberOfNodes() {
+    public long getExpectedNumberOfNodes() {
         return expectedNumberOfNodes;
     }
 

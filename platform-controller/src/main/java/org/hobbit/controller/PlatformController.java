@@ -60,8 +60,6 @@ import org.hobbit.controller.docker.ImageManagerFacade;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
-import org.hobbit.controller.health.ClusterHealthChecker;
-import org.hobbit.controller.health.ClusterHealthCheckerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -90,6 +88,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -114,18 +113,42 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * The current version of the platform.
      */
     public static final String PLATFORM_VERSION = readVersion();
-
+    /**
+     * Type of deployment.
+     */
     private static final String DEPLOY_ENV = System.getProperty("DEPLOY_ENV", "production");
+    /**
+     * Value of deployment type if the platform is deployed in testing mode.
+     */
     private static final String DEPLOY_ENV_TESTING = "testing";
+    /**
+     * Value of deployment type if the platform is deployed in develop mode.
+     */
     private static final String DEPLOY_ENV_DEVELOP = "develop";
+    /**
+     * Key of the environmental variable used to define whether a parent check for
+     * newly created containers is necessary or not.
+     */
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
+    /**
+     * Flag indicating whether a parent check for
+     * newly created containers is necessary or not.
+     */
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
+    /**
+     * Environmental variable key for the RabbitMQ broker host name used for experiments.
+     */
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
-    private static final String LOCAL_METADATA_DIRECTORY_KEY = "LOCAL_METADATA_DIRECTORY";
+    /**
+     * Environmental variable key for the local metadata directory.
+     */
+    private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
 
-    // every 60 mins
+    /**
+     * Time interval after which challenges are checked for being published.
+     */
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
 
     /**
@@ -153,11 +176,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected ExperimentQueue queue;
     /**
-     * Health checker used to make sure that the cluster has the preconfigured
-     * hardware.
-     */
-    protected ClusterHealthChecker healthChecker = new ClusterHealthCheckerImpl();
-    /**
      * A simple mutex that is used to wait for a termination signal for the
      * controller.
      */
@@ -165,7 +183,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Threadsafe JSON parser.
      */
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create();
     /**
      * Manager of benchmark and system images.
      */
@@ -174,21 +192,45 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Last experiment id that has been used.
      */
     private long lastIdTime = 0;
-
+    /**
+     * Client to communicate with the storage service.
+     */
     protected StorageServiceClient storage;
-
+    /**
+     * Manager used to handle currently running experiments.
+     */
     protected ExperimentManager expManager;
-
+    /**
+     * Client of resource information collector service.
+     */
     protected ResourceInformationCollector resInfoCollector;
-
+    /**
+     * Manager handling cluster related data.
+     */
     protected ClusterManager clusterManager;
 
     /**
-     * Timer used to trigger publishing of challenges
+     * Timer used to trigger publishing of challenges and checking for repeatable challenges.
      */
-    protected Timer challengePublishTimer;
-
+    protected Timer challengeCheckTimer;
+    /**
+     * Name of the RabbitMQ broker used for experiments.
+     */
     protected String rabbitMQExperimentsHostName;
+
+    /**
+     * Default constructor.
+     */
+    public PlatformController() {
+    }
+
+    /**
+     * Constructor needed for testing.
+     */
+    public PlatformController(ExperimentManager expManager) {
+        this.expManager = expManager;
+        expManager.setController(this);
+    }
 
     @Override
     public void init() throws Exception {
@@ -238,14 +280,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
 
-        // Create the image manager including a local directory or not
-        String localMetaDir = EnvVariables.getString(LOCAL_METADATA_DIRECTORY_KEY, (String) null);
-        if (localMetaDir != null) {
-            imageManager = new ImageManagerFacade(new FileBasedImageManager(localMetaDir),
-                    new GitlabBasedImageManager());
+        List<ImageManager> managers = new ArrayList<ImageManager>();
+        if(System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
+            managers.add(new FileBasedImageManager(System.getenv().get(LOCAL_METADATA_DIR_KEY)));
         } else {
-            imageManager = new GitlabBasedImageManager();
+            LOGGER.info("Using default directory for local metadata.");
+            managers.add(new FileBasedImageManager());
         }
+        managers.add(new GitlabBasedImageManager());
+        imageManager = new ImageManagerFacade(managers);
         LOGGER.debug("Image manager initialized.");
 
         frontEnd2Controller = incomingDataQueueFactory.getConnection().createChannel();
@@ -261,13 +304,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
-        expManager = new ExperimentManager(this);
+        if (expManager == null) {
+            expManager = new ExperimentManager(this);
+        }
 
         // schedule challenges re-publishing
-        // TODO RC rename this timer
-        challengePublishTimer = new Timer();
+        challengeCheckTimer = new Timer();
         PlatformController controller = this;
-        challengePublishTimer.schedule(new TimerTask() {
+        challengeCheckTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 checkRepeatableChallenges();
@@ -356,10 +400,17 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
-            // Convert data byte array to config data structure
-            StartCommandData startParams = deserializeStartCommandData(data);
-            // trigger creation
-            String containerName = createContainer(startParams);
+            StartCommandData startParams = null;
+            String containerName = "";
+            if (expManager.isExpRunning(sessionId)) {
+                // Convert data byte array to config data structure
+                startParams = deserializeStartCommandData(data);
+                // trigger creation
+                containerName = createContainer(startParams);
+            } else {
+                LOGGER.error(
+                        "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.", sessionId);
+            }
             if (replyTo != null) {
                 try {
                     cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC,
@@ -367,7 +418,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
                     errMsgBuilder.append("Error, couldn't sent response after creation of container (");
-                    errMsgBuilder.append(startParams.toString());
+                    if (startParams != null) {
+                        errMsgBuilder.append(startParams.toString());
+                    }
                     errMsgBuilder.append(") to replyTo=");
                     errMsgBuilder.append(replyTo);
                     errMsgBuilder.append(".");
@@ -384,22 +437,22 @@ public class PlatformController extends AbstractCommandReceivingComponent
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
-            expManager.systemOrBenchmarkReady(false);
+            expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
         case Commands.SYSTEM_READY_SIGNAL: {
-            expManager.systemOrBenchmarkReady(true);
+            expManager.systemOrBenchmarkReady(true, sessionId);
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
-            expManager.taskGenFinished();
+            expManager.taskGenFinished(sessionId);
             break;
         }
         case Commands.BENCHMARK_FINISHED_SIGNAL: {
             if ((data == null) || (data.length == 0)) {
                 LOGGER.error("Got no result model from the benchmark controller.");
             } else {
-                expManager.setResultModel(data, RabbitMQUtils::readModel);
+                expManager.setResultModel(sessionId, data, RabbitMQUtils::readModel);
             }
             break;
         }
@@ -693,6 +746,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 String userName = RabbitMQUtils.readString(buffer);
                 // Get the experiment from the queue
                 ExperimentConfiguration config = queue.getExperiment(experimentId);
+                if (config == null) {
+                    // The experiment is not known
+                    response = new byte[] { 1 };
+                }
                 // Check whether the use has the right to terminate the experiment
                 if ((config != null) && (config.userName != null) && (config.userName.equals(userName))) {
                     // Remove the experiment from the queue
@@ -706,7 +763,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                         response = new byte[] { 0 };
                     }
                 } else {
-                    // The experiment is not known or the user does not have the right to remove it
+                    // The user does not have the right to remove the experiment
                     response = new byte[] { 0 };
                 }
                 break;

@@ -23,8 +23,20 @@ public class ClusterManagerImplTest {
 
     @Test
     public void getNumberOfNodes() throws Exception {
-        Integer numberOfNodes = clusterManager.getNumberOfNodes();
-        assertTrue(numberOfNodes == 1);
+        long numberOfNodes = clusterManager.getNumberOfNodes();
+        assertEquals(1, numberOfNodes);
+    }
+
+    @Test
+    public void getNumberOfBenchmarkNodes() throws Exception {
+        long numberOfNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=benchmark");
+        assertEquals(0, numberOfNodes);
+    }
+
+    @Test
+    public void getNumberOfSystemNodes() throws Exception {
+        long numberOfNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
+        assertEquals(0, numberOfNodes);
     }
 
     @Test
@@ -37,7 +49,7 @@ public class ClusterManagerImplTest {
     public void setTaskHistoryLimit() throws Exception {
         clusterManager.setTaskHistoryLimit(0);
         Integer taskHistoryLimit = clusterManager.getTaskHistoryLimit();
-        assertTrue(taskHistoryLimit == 0);
+        assertEquals(0, (long) taskHistoryLimit);
         //set back to default
         clusterManager.setTaskHistoryLimit(5);
     }

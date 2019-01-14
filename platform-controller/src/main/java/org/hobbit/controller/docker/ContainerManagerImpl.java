@@ -390,9 +390,10 @@ public class ContainerManagerImpl implements ContainerManager {
             }
         }
 
-        int numberOfSwarmNodes = 0;
-        int numberOfSystemSwarmNodes = 0;
-        int numberOfBenchmarkSwarmNodes = 0;
+        // Assume we have at least one node (which we're running at).
+        long numberOfSwarmNodes = 1;
+        long numberOfSystemSwarmNodes = 0;
+        long numberOfBenchmarkSwarmNodes = 0;
         try {
             ClusterManager clusterManager = new ClusterManagerImpl();
             numberOfSwarmNodes = clusterManager.getNumberOfNodes();
