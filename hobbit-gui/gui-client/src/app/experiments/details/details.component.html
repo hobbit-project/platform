@@ -28,9 +28,9 @@
 
                 <ng-template #notError>
                   <div *ngIf="row.group === 'Logs'; else plots">
-                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'JSON')">JSON</button>
-                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'CSV')">CSV</button>
-                    <button [disabled]="!row.values[i]" class="btn" (click)="download(row.values[i], 'TXT')">TXT</button>
+                    <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'JSON')">JSON</button>
+                    <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'CSV')">CSV</button>
+                    <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'TXT')">TXT</button>
                   </div>
 
                   <ng-template #plots>
