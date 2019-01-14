@@ -90,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -165,7 +166,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * Threadsafe JSON parser.
      */
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").create();
     /**
      * Manager of benchmark and system images.
      */
