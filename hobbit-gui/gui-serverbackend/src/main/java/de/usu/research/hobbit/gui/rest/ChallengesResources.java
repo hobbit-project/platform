@@ -160,15 +160,15 @@ public class ChallengesResources {
                 StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
                 if (storageClient != null) {
                     Model model = storageClient.sendConstructQuery(query);
-                    for (ChallengeBean item : RdfModelHelper.listChallenges(model)) {
-                        if (item.getId().equals(id)) {
+                    for (ChallengeBean challenge : RdfModelHelper.listChallenges(model)) {
+                        if (challenge.getId().equals(id)) {
                             // try {
                             // addInfoFromController(item, userInfo);
                             // } catch (Exception e) {
                             // LOGGER.error("Couldn't retrieve additional
                             // information for the given challenge.", e);
                             // }
-                            return item;
+                            return challenge;
                         }
                     }
                 }
