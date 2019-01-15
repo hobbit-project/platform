@@ -54,6 +54,7 @@ import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeBean;
 import de.usu.research.hobbit.gui.rest.beans.ChallengeTaskBean;
+import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
 import de.usu.research.hobbit.gui.rest.beans.EmptyBean;
 import de.usu.research.hobbit.gui.rest.beans.IdBean;
 import de.usu.research.hobbit.gui.rest.beans.InfoBean;
@@ -154,7 +155,7 @@ public class ChallengesResources {
                 }
             }
         } else {
-            // UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
             String query = SparqlQueries.getChallengeGraphQuery(id, null);
             if (query != null) {
                 StorageServiceClient storageClient = StorageServiceClientSingleton.getInstance();
@@ -162,6 +163,11 @@ public class ChallengesResources {
                     Model model = storageClient.sendConstructQuery(query);
                     for (ChallengeBean challenge : RdfModelHelper.listChallenges(model)) {
                         if (challenge.getId().equals(id)) {
+                            if (!userInfo.getPreferredUsername().equals(challenge.getOrganizer())) {
+                                challenge.setTasks(challenge.getTasks().stream()
+                                    .peek(task -> task.setConfigurationParams(new ArrayList<ConfigurationParamValueBean>()))
+                                    .collect(Collectors.toList()));
+                            }
                             // try {
                             // addInfoFromController(item, userInfo);
                             // } catch (Exception e) {
