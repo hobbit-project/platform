@@ -79,7 +79,7 @@ run-platform-elk:
 	docker stack deploy --compose-file docker-compose-elk.yml elk
 	docker stack deploy --compose-file docker-compose.yml platform
 
-test: install-parent-pom
+test: create-networks install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test

@@ -71,6 +71,9 @@ services:
     command: ["redis-server", "/data/redis.conf"]
     networks:
       - hobbit-core
+    ports:
+      # Forwarding the port for tests
+      - "6379:6379"
 
   # Triple store
   vos:
