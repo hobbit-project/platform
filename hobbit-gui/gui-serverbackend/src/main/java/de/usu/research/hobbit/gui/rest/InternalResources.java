@@ -269,6 +269,7 @@ public class InternalResources {
         // If the user has no mail address (the user account has a wrong configuration
         // or it is the guest user account)
         if ((email == null) || (email.isEmpty())) {
+            LOGGER.info("User {} has no email. Using empty list of systems.", userInfo.getPreferredUsername());
             return SetUtils.EMPTY_SET;
         }
         List<SystemBean> userSystems = PlatformControllerClientSingleton.getInstance()
