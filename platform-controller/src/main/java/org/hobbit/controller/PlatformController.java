@@ -282,7 +282,9 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         List<ImageManager> managers = new ArrayList<ImageManager>();
         if(System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
-            managers.add(new FileBasedImageManager(System.getenv().get(LOCAL_METADATA_DIR_KEY)));
+            String metadataDirectory = System.getenv().get(LOCAL_METADATA_DIR_KEY);
+            LOGGER.info("Local metadata directory: {}", metadataDirectory);
+            managers.add(new FileBasedImageManager(metadataDirectory));
         } else {
             LOGGER.info("Using default directory for local metadata.");
             managers.add(new FileBasedImageManager());
