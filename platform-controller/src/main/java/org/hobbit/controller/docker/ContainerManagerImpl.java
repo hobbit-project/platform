@@ -73,6 +73,8 @@ public class ContainerManagerImpl implements ContainerManager {
     public static final String USER_PASSWORD_KEY = GitlabControllerImpl.GITLAB_TOKEN_KEY;
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
 
+    private static final int DOCKER_MAX_NAME_LENGTH = 63;
+
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
             ? System.getenv().get(DEPLOY_ENV_KEY)
             : "production";
@@ -224,6 +226,10 @@ public class ContainerManagerImpl implements ContainerManager {
             builder.append('-');
         }
         builder.append(baseName.replaceAll("[/\\.]", "_"));
+        int maxLength = DOCKER_MAX_NAME_LENGTH - 1 - uuid.length();
+        if (builder.length() > maxLength) {
+            builder.setLength(maxLength);
+        }
         builder.append('-');
         builder.append(uuid);
         return builder.toString();
