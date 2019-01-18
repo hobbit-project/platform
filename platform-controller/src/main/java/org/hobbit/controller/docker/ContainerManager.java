@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.messages.swarm.Service;
 
 /**
  * This interface is implemented by classes that can be used to manage Docker
@@ -30,6 +30,12 @@ import com.spotify.docker.client.messages.swarm.Task;
  *
  */
 public interface ContainerManager {
+
+    /**
+     * Exit code of containers
+     * where process was terminated with SIGKILL (number 9).
+     */
+    public static int DOCKER_EXITCODE_SIGKILL = 128 + 9;
 
     /**
      * Label that denotes container type
@@ -180,17 +186,24 @@ public interface ContainerManager {
     public void removeParentAndChildren(String parentId);
 
     /**
+     * Returns container's exit code or null if container is still running.
+     *
+     * @param container
+     */
+    public Integer getContainerExitCode(String container) throws DockerException, InterruptedException;
+
+    /**
      * Returns container info
      *
      * @param containerId
      */
-    public Task getContainerInfo(String containerId) throws InterruptedException, DockerException;
+    public Service getContainerInfo(String container) throws InterruptedException, DockerException;
 
     /**
      * Get a list of tasks
      */
-    public default List<Task> getContainers() {
-        return getContainers(Task.Criteria.builder().build());
+    public default List<Service> getContainers() {
+        return getContainers(Service.Criteria.builder().build());
     }
 
     /**
@@ -199,15 +212,18 @@ public interface ContainerManager {
      * @Task.Criteria criteria
      *            task criteria for filtering the list of tasks
      */
-    public List<Task> getContainers(Task.Criteria criteria);
+    public List<Service> getContainers(Service.Criteria criteria);
 
     /**
+    * @deprecated Platform uses names as IDs.
      * Retrieves the container Id for the container with the given name or null if
      * no such container could be found.
      */
+     @Deprecated
     public String getContainerId(String name);
 
     /**
+     * @deprecated Platform uses names as IDs.
      * Returns the name of the container with the given Id or {@code null} if such a
      * container can not be found
      * 
@@ -216,6 +232,7 @@ public interface ContainerManager {
      * @return the name of the container with the given Id or {@code null} if such a
      *         container can not be found
      */
+    @Deprecated
     public String getContainerName(String containerId);
 
     /**

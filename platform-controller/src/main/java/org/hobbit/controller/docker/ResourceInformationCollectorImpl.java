@@ -25,13 +25,17 @@ import org.hobbit.controller.data.NodeHardwareInformation;
 import org.hobbit.controller.data.SetupHardwareInformation;
 
 import org.apache.jena.ext.com.google.common.collect.Streams;
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.exceptions.DockerCertificateException;
+import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.TaskStatus;
+import com.spotify.docker.client.messages.swarm.Task;
 
 /**
  * A class that can collect resource usage information for the containers known
@@ -60,14 +64,15 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     private static final String PROMETHEUS_METRIC_UNAME = "node_uname_info";
 
     private ContainerManager manager;
+    private DockerClient dockerClient;
     private String prometheusHost;
     private String prometheusPort;
 
-    public ResourceInformationCollectorImpl(ContainerManager manager) {
+    public ResourceInformationCollectorImpl(ContainerManager manager) throws DockerCertificateException {
         this(manager, null, null);
     }
 
-    public ResourceInformationCollectorImpl(ContainerManager manager, String prometheusHost, String prometheusPort) {
+    public ResourceInformationCollectorImpl(ContainerManager manager, String prometheusHost, String prometheusPort) throws DockerCertificateException {
         this.manager = manager;
         this.prometheusHost = prometheusHost;
         if ((this.prometheusHost == null) && System.getenv().containsKey(PROMETHEUS_HOST_KEY)) {
@@ -85,25 +90,41 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
             LOGGER.info("Prometheus port env {} is not set. Using default {}.", PROMETHEUS_PORT_KEY, PROMETHEUS_PORT_DEFAULT);
             this.prometheusPort = PROMETHEUS_PORT_DEFAULT;
         }
+
+        dockerClient = DockerUtility.getDockerClient();
     }
 
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(Task.Criteria.builder()
-                .label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_SYSTEM).build());
+        return getUsageInformation(Service.Criteria.builder()
+                .labels(ImmutableMap.of(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM))
+                .build());
+    }
+
+    private long countRunningTasks(String serviceName) {
+        try {
+            return dockerClient.listTasks(
+                    Task.Criteria.builder().serviceName(serviceName).build()
+            )
+            .stream()
+            .filter(t -> TaskStatus.TASK_STATE_RUNNING.equals(t.status().state()))
+            .count();
+        } catch (DockerException | InterruptedException e) {
+            return 0;
+        }
     }
 
     @Override
-    public ResourceUsageInformation getUsageInformation(Task.Criteria criteria) {
-        List<Task> tasks = manager.getContainers(criteria);
+    public ResourceUsageInformation getUsageInformation(Service.Criteria criteria) {
+        List<Service> services = manager.getContainers(criteria);
 
-        Map<String, Task> containerMapping = new HashMap<>();
-        for (Task c : tasks) {
-            containerMapping.put(c.id(), c);
+        Map<String, Service> containerMapping = new HashMap<>();
+        for (Service c : services) {
+            containerMapping.put(c.spec().name(), c);
         }
         ResourceUsageInformation resourceInfo = containerMapping.keySet().parallelStream()
                 // filter all containers that are not running
-                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).status().state()))
+                .filter(s -> countRunningTasks(s) != 0)
                 // get the stats for the single
                 .map(id -> requestCpuAndMemoryStats(id))
                 // sum up the stats
@@ -111,31 +132,31 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
         return resourceInfo;
     }
 
-    protected ResourceUsageInformation requestCpuAndMemoryStats(String taskId) {
+    protected ResourceUsageInformation requestCpuAndMemoryStats(String serviceName) {
         ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
         try {
-            Double value = requestAveragePrometheusValue(PROMETHEUS_METRIC_CPU_USAGE, taskId);
+            Double value = requestAveragePrometheusValue(PROMETHEUS_METRIC_CPU_USAGE, serviceName);
             if (value != null) {
                 resourceInfo.setCpuStats(new CpuStats(Math.round(value * 1000)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get cpu usage stats for container {}", taskId, e);
+            LOGGER.error("Could not get cpu usage stats for container {}", serviceName, e);
         }
         try {
-            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_MEMORY_USAGE, taskId);
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_MEMORY_USAGE, serviceName);
             if (value != null) {
                 resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get memory usage stats for container {}", taskId, e);
+            LOGGER.error("Could not get memory usage stats for container {}", serviceName, e);
         }
         try {
-            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_FS_USAGE, taskId);
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_FS_USAGE, serviceName);
             if (value != null) {
                 resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
             }
         } catch (Exception e) {
-            LOGGER.error("Could not get disk usage stats for container {}", taskId, e);
+            LOGGER.error("Could not get disk usage stats for container {}", serviceName, e);
         }
         return resourceInfo;
     }
@@ -182,16 +203,16 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     }
 
     // metrics should not contain regular expression special characters
-    private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String taskId) {
+    private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String serviceName) {
         StringBuilder query = new StringBuilder();
         query.append('{');
         query.append("__name__=~").append('"')
                 .append("^").append(String.join("|", metrics)).append("$")
                 .append('"');
-        if (taskId != null) {
+        if (serviceName != null) {
             query.append(", ");
-            query.append("container_label_com_docker_swarm_task_id=").append('"')
-                    .append(taskId)
+            query.append("container_label_com_docker_swarm_service_name=").append('"')
+                    .append(serviceName)
                     .append('"');
         }
         query.append('}');
@@ -215,16 +236,16 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
         );
     }
 
-    private String requestSamplePrometheusValue(String metric, String taskId) {
-        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, taskId);
+    private String requestSamplePrometheusValue(String metric, String serviceName) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, serviceName);
         if (instances.size() == 0) {
             return null;
         }
         return instances.values().iterator().next().get(metric).get(0);
     }
 
-    private Double requestAveragePrometheusValue(String metric, String taskId) {
-        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, taskId);
+    private Double requestAveragePrometheusValue(String metric, String serviceName) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, serviceName);
         if (instances.size() == 0) {
             return null;
         }

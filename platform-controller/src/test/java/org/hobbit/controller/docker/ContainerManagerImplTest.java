@@ -16,11 +16,10 @@
  */
 package org.hobbit.controller.docker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import static org.junit.Assert.*;
+import static org.hamcrest.CoreMatchers.*;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
-import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.Image;
@@ -53,33 +51,33 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
-            Task task = dockerClient.inspectTask(containerId);
+            List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build());
+            assertEquals("Amount of tasks of service", 1, tasks.size());
+            for (Task task : tasks) {
+                // FIXME: "starting container failed: Address already in use"
+                // skip test if this happens
+                if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
+                    Assert.assertFalse("BUG: Address already in use",
+                            task.status().err().equals("starting container failed: Address already in use"));
+                }
 
-            // FIXME: "starting container failed: Address already in use"
-            // skip test if this happens
-            if (task.status().state().equals(TaskStatus.TASK_STATE_FAILED)) {
-                Assert.assertFalse("BUG: Address already in use",
-                        task.status().err().equals("starting container failed: Address already in use"));
+                assertEquals(message + " is running (error: " + task.status().err() + ")",
+                        TaskStatus.TASK_STATE_RUNNING, task.status().state());
             }
-
-            assertEquals(message + " is running (error: " + task.status().err() + ")",
-                    TaskStatus.TASK_STATE_RUNNING, task.status().state());
-        } catch (TaskNotFoundException e) {
-            fail(message + "is running got: swarm task not found");
+        } catch (ServiceNotFoundException e) {
+            fail(message + "is running got: swarm service not found");
         }
     }
 
     private void assertContainerIsNotRunning(String message, String containerId) throws Exception {
         try {
-            Task taskInfo = dockerClient.inspectTask(containerId);
-            @SuppressWarnings("unused")
-            Service serviceInfo = dockerClient.inspectService(taskInfo.serviceId());
+            Service serviceInfo = dockerClient.inspectService(containerId);
 
             fail(message
-                    + " expected an TaskNotFoundException to be thrown, got a task with state="
-                    + taskInfo.status().state());
-        } catch (TaskNotFoundException | ServiceNotFoundException e) {
-            assertNotNull(message + " expected TaskNotFoundException | ServiceNotFoundException", e);
+                    + " expected an ServiceNotFoundException to be thrown, got a service info: "
+                    + serviceInfo);
+        } catch (ServiceNotFoundException e) {
+            assertNotNull(message + " expected ServiceNotFoundException", e);
         }
     }
 
@@ -100,22 +98,24 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(containerId);
         tasks.add(containerId);
 
-        final Task containerInfo = dockerClient.inspectTask(containerId);
-        assertNotNull("Task inspection response from docker", containerInfo);
-
-        final Service serviceInfo = dockerClient.inspectService(containerInfo.serviceId());
+        final Service serviceInfo = dockerClient.inspectService(containerId);
         assertNotNull("Service inspection response from docker", serviceInfo);
 
-        assertEquals(containerInfo.id(), containerId);
-        assertEquals("Task state of created swarm service",
-                TaskStatus.TASK_STATE_RUNNING, containerInfo.status().state());
+        assertThat("Container ID as seen by the platform (names are used in place of IDs)", containerId, not(equalTo(serviceInfo.id())));
         assertEquals("Type label of created swarm service",
                 serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE),
                 Constants.CONTAINER_TYPE_SYSTEM);
         assertEquals("Parent label of created swarm service",
                 parentId, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_PARENT));
-        assertTrue("Command of created container spec is sleepCommand",
-                Arrays.equals(sleepCommand, containerInfo.spec().containerSpec().command().toArray()));
+
+        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build());
+        assertEquals("Amount of tasks of created swarm service", 1, tasks.size());
+        for (Task taskInfo : tasks) {
+            assertEquals("Task state of created swarm service",
+                    TaskStatus.TASK_STATE_RUNNING, taskInfo.status().state());
+            assertTrue("Command of created container spec is sleepCommand",
+                    Arrays.equals(sleepCommand, taskInfo.spec().containerSpec().command().toArray()));
+        }
     }
 
     @Test
@@ -123,10 +123,14 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
         tasks.add(containerId);
+
         // make sure it was executed with default sleepCommand
-        final Task taskInfo = dockerClient.inspectTask(containerId);
-        assertNotNull("Task inspection result from docker", taskInfo);
-        assertNull("Command of created container spec", taskInfo.spec().containerSpec().command());
+        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build());
+        assertEquals("Amount of tasks of created swarm service", 1, tasks.size());
+        for (Task taskInfo : tasks) {
+            assertNull("Command of created container spec",
+                    taskInfo.spec().containerSpec().command());
+        }
     }
 
     @Test
@@ -139,6 +143,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         manager.removeContainer(testContainer);
         // check that it's actually removed
         assertContainerIsNotRunning("Removed container", testContainer);
+        tasks.remove(testContainer);
     }
 
     @Test
@@ -186,16 +191,17 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // make sure they are removed
         assertContainerIsNotRunning("Top parent container", topParent);
+        tasks.remove(topParent);
         assertContainerIsNotRunning("Child 1 container", child1);
+        tasks.remove(child1);
         assertContainerIsNotRunning("Sub parent container", subParent);
+        tasks.remove(subParent);
         assertContainerIsNotRunning("Sub child container", subchild);
+        tasks.remove(subchild);
 
         // make sure unrelated containers are running
         assertContainerIsRunning("Unrelated parent container", unrelatedParent);
         assertContainerIsRunning("Unrelated child container", unrelatedChild);
-
-        // cleanup
-        manager.removeParentAndChildren(unrelatedParent);
     }
 
     @Test
@@ -205,14 +211,14 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(testContainer);
         tasks.add(testContainer);
         // get info
-        Task infoFromMananger = manager.getContainerInfo(testContainer);
-        Task containerInfo = dockerClient.inspectTask(testContainer);
+        Service infoFromMananger = manager.getContainerInfo(testContainer);
+        Service containerInfo = dockerClient.inspectService(testContainer);
         // stop it immediately
         manager.removeContainer(testContainer);
+        tasks.remove(testContainer);
 
         // compare info
         assertEquals(infoFromMananger.id(), containerInfo.id());
-        assertEquals(infoFromMananger.status().containerStatus().exitCode(), containerInfo.status().containerStatus().exitCode());
     }
 
     @Test
@@ -322,7 +328,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         Integer exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
-            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+            exitCode = manager.getContainerExitCode(testTask);
         }
         assertEquals("Service is using first image version",
                 Integer.valueOf(1), exitCode);
@@ -342,7 +348,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
-            exitCode = dockerClient.inspectTask(testTask).status().containerStatus().exitCode();
+            exitCode = manager.getContainerExitCode(testTask);
         }
         assertEquals("Service is using second image version",
                 Integer.valueOf(2), exitCode);
@@ -357,14 +363,15 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         Integer exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
-            TaskStatus status = dockerClient.inspectTask(id).status();
-            System.out.println(status.state());
 
-            exitCode = status.containerStatus().exitCode();
+            List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(id).build());
+            for (Task taskInfo : tasks) {
+                exitCode = taskInfo.status().containerStatus().exitCode();
 
-            if (status.state().equals(TaskStatus.TASK_STATE_COMPLETE) && exitCode == null) {
-                // assume exit code 0
-                exitCode = 0;
+                if (taskInfo.status().state().equals(TaskStatus.TASK_STATE_COMPLETE) && exitCode == null) {
+                    // assume exit code 0
+                    exitCode = 0;
+                }
             }
         }
 

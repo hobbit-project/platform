@@ -17,7 +17,6 @@
 package org.hobbit.controller.docker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -26,8 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.swarm.Task;
-import com.spotify.docker.client.messages.swarm.TaskStatus;
 
 /**
  * This class implements the {@link ContainerStateObserver} interface by
@@ -42,18 +39,6 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
 public class ContainerStateObserverImpl implements ContainerStateObserver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerStateObserverImpl.class);
-
-    private static final List<String> unfinishedTaskStates = Arrays.asList(new String[] {
-        TaskStatus.TASK_STATE_NEW,
-        TaskStatus.TASK_STATE_ALLOCATED,
-        TaskStatus.TASK_STATE_PENDING,
-        TaskStatus.TASK_STATE_ASSIGNED,
-        TaskStatus.TASK_STATE_ACCEPTED,
-        TaskStatus.TASK_STATE_PREPARING,
-        TaskStatus.TASK_STATE_READY,
-        TaskStatus.TASK_STATE_STARTING,
-        TaskStatus.TASK_STATE_RUNNING,
-    });
 
     /**
      * Internal list of monitored Docker containers.
@@ -107,28 +92,9 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                 synchronized (monitoredContainers) {
                     containerIds = monitoredContainers.toArray(new String[monitoredContainers.size()]);
                 }
-                Task info;
                 for (String id : containerIds) {
                     try {
-                        info = manager.getContainerInfo(id);
-
-                        Integer exitStatus = null;
-                        if (info != null) {
-                            String state = info.status().state();
-                            // get exit code
-                            if (!unfinishedTaskStates.contains(state)) {
-                                exitStatus = info.status().containerStatus().exitCode();
-                                // FIXME SWARM
-                                if (exitStatus == null) {
-                                    LOGGER.warn("Container {} has no exit code, assuming 0", id);
-                                    exitStatus = 0;
-                                }
-                            }
-                        } else {
-                            // assume container was stopped by the platform
-                            LOGGER.info("Couldn't get the status of container {}. Assuming it was stopped by the platform.", id);
-                            exitStatus = DOCKER_EXITCODE_SIGKILL;
-                        }
+                        Integer exitStatus = manager.getContainerExitCode(id);
 
                         if (exitStatus != null) {
                             // notify all callbacks

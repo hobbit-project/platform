@@ -26,12 +26,6 @@ import java.util.List;
 public interface ContainerStateObserver {
 
     /**
-     * Exit code of containers
-     * where process was terminated with SIGKILL (number 9).
-     */
-    public static int DOCKER_EXITCODE_SIGKILL = 128 + 9;
-
-    /**
      * Start observing the state of containers
      */
     public void startObserving();

@@ -42,12 +42,11 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
-        for (String taskId : tasks) {
+        for (String service : tasks) {
             try {
-                String serviceId = dockerClient.inspectTask(taskId).serviceId();
-                dockerClient.removeService(serviceId);
+                dockerClient.removeService(service);
             } catch (Exception e) {
-                LOGGER.warn("Couldn't cleanup service with task {}", taskId, e);
+                LOGGER.warn("Couldn't cleanup service {}", service, e);
             }
         }
         for (String containerId : containers) {
