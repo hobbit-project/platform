@@ -14,6 +14,8 @@ services:
       GITLAB_TOKEN: "${GITLAB_TOKEN}"
       LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
+      PROMETHEUS_HOST: prometheus
+      PROMETHEUS_PORT: 9090
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
