@@ -31,7 +31,7 @@ build: build-java build-dev-images
 build-java: install-parent-pom build-controller build-storage build-analysis build-gui
 
 build-gui:
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install && npm run build-prod
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn clean package
 
 build-controller:
@@ -83,7 +83,7 @@ test: create-networks install-parent-pom
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --update-snapshots clean test
 	cd analysis-component && mvn --update-snapshots clean test
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && unlink package-lock.json; true' && npm install --verbose && npm run lint
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run lint && npm run build-prod
 	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
 
 install-parent-pom:
