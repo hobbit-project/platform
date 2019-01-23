@@ -165,7 +165,7 @@ public interface ContainerManager {
      * @param containerId
      *            id of the container that should be removed
      */
-    public void removeContainer(String containerId);
+    public void removeContainer(String serviceName);
 
     /**
      * Stops the parent container and all its children given the parent id
@@ -180,37 +180,37 @@ public interface ContainerManager {
     /**
      * Removes the parent container and all its children given the parent id
      *
-     * @param parentId
+     * @param parent
      *            id of the parent container
      */
-    public void removeParentAndChildren(String parentId);
+    public void removeParentAndChildren(String parent);
 
     /**
      * Returns container's exit code or null if container is still running.
      *
      * @param container
      */
-    public Integer getContainerExitCode(String container) throws DockerException, InterruptedException;
+    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
 
     /**
      * Returns container info
      *
      * @param containerId
      */
-    public Service getContainerInfo(String container) throws InterruptedException, DockerException;
+    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
 
     /**
-     * Get a list of tasks
+     * Get a list of services
      */
     public default List<Service> getContainers() {
         return getContainers(Service.Criteria.builder().build());
     }
 
     /**
-     * Get a list of tasks which fulfill the given filter criteria.
+     * Get a list of services which fulfill the given filter criteria.
      *
-     * @Task.Criteria criteria
-     *            task criteria for filtering the list of tasks
+     * @Service.Criteria criteria
+     *            service criteria for filtering the list of services
      */
     public List<Service> getContainers(Service.Criteria criteria);
 

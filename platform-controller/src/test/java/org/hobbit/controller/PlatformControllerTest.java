@@ -100,7 +100,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         final String parentId = manager.startContainer("busybox", Constants.CONTAINER_TYPE_SYSTEM, null,
                 new String[] { "sh", "-c", "while :; do sleep 1; done" });
         final String parentName = manager.getContainerName(parentId);
-        tasks.add(parentId);
+        services.add(parentId);
 
         // create and execute test container
         final String image = "busybox:latest";

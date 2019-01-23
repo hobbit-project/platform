@@ -29,7 +29,7 @@ public class ContainerAccessByHostnameTest extends ContainerManagerBasedTest {
     public void test() throws Exception {
         String serverContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull("ID of server container is not null", serverContainer);
-        tasks.add(serverContainer);
+        services.add(serverContainer);
 
         ContainerConfig.Builder cfgBuilder = ContainerConfig.builder();
         cfgBuilder.image(busyboxImageName);

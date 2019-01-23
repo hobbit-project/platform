@@ -91,12 +91,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String parentId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 sleepCommand);
         assertNotNull(parentId);
-        tasks.add(parentId);
+        services.add(parentId);
 
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, parentId,
                 sleepCommand);
         assertNotNull(containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         final Service serviceInfo = dockerClient.inspectService(containerId);
         assertNotNull("Service inspection response from docker", serviceInfo);
@@ -122,7 +122,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     public void startContainerWithoutCommand() throws Exception {
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null);
         assertNotNull(containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         // make sure it was executed with default sleepCommand
         List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(containerId).build());
@@ -138,12 +138,12 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        tasks.add(testContainer);
+        services.add(testContainer);
         // remove it
         manager.removeContainer(testContainer);
         // check that it's actually removed
         assertContainerIsNotRunning("Removed container", testContainer);
-        tasks.remove(testContainer);
+        services.remove(testContainer);
     }
 
     @Test
@@ -157,26 +157,26 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // - unrelatedChild
         String topParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(topParent);
-        tasks.add(topParent);
+        services.add(topParent);
         String child1 = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(child1);
-        tasks.add(child1);
+        services.add(child1);
         String subParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, topParent,
                 sleepCommand);
         assertNotNull(subParent);
-        tasks.add(subParent);
+        services.add(subParent);
         String subchild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, subParent,
                 sleepCommand);
         assertNotNull(subchild);
-        tasks.add(subchild);
+        services.add(subchild);
         String unrelatedParent = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(unrelatedParent);
-        tasks.add(unrelatedParent);
+        services.add(unrelatedParent);
         String unrelatedChild = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, unrelatedParent,
                 sleepCommand);
         assertNotNull(unrelatedChild);
-        tasks.add(unrelatedChild);
+        services.add(unrelatedChild);
 
         // make sure they are running
         assertContainerIsRunning("Top parent container", topParent);
@@ -191,13 +191,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
         // make sure they are removed
         assertContainerIsNotRunning("Top parent container", topParent);
-        tasks.remove(topParent);
+        services.remove(topParent);
         assertContainerIsNotRunning("Child 1 container", child1);
-        tasks.remove(child1);
+        services.remove(child1);
         assertContainerIsNotRunning("Sub parent container", subParent);
-        tasks.remove(subParent);
+        services.remove(subParent);
         assertContainerIsNotRunning("Sub child container", subchild);
-        tasks.remove(subchild);
+        services.remove(subchild);
 
         // make sure unrelated containers are running
         assertContainerIsRunning("Unrelated parent container", unrelatedParent);
@@ -209,13 +209,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(testContainer);
-        tasks.add(testContainer);
+        services.add(testContainer);
         // get info
         Service infoFromMananger = manager.getContainerInfo(testContainer);
         Service containerInfo = dockerClient.inspectService(testContainer);
         // stop it immediately
         manager.removeContainer(testContainer);
-        tasks.remove(testContainer);
+        services.remove(testContainer);
 
         // compare info
         assertEquals(infoFromMananger.id(), containerInfo.id());
@@ -226,7 +226,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         // start new test container
         String containerId = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull(containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         // compare containerId and retrieved id
         String containerName = manager.getContainerName(containerId);
@@ -323,7 +323,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         removeImage(testImage);
         // start a service using the image via the manager
         String testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
-        tasks.add(testTask);
+        services.add(testTask);
         // check if the started service uses the first version of image
         Integer exitCode = null;
         while (exitCode == null) {
@@ -333,7 +333,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertEquals("Service is using first image version",
                 Integer.valueOf(1), exitCode);
         manager.removeContainer(testTask);
-        tasks.remove(testTask);
+        services.remove(testTask);
         // build second version of image
         dockerClient.build(Paths.get("docker/test-image-version-2"), testImage + ":latest");
         // push it to the registry
@@ -343,7 +343,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         dockerClient.build(Paths.get("docker/test-image-version-1"), testImage + ":latest");
         // start a service using the image via the manager
         testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
-        tasks.add(testTask);
+        services.add(testTask);
         // check if the started service uses the second version of image
         exitCode = null;
         while (exitCode == null) {
@@ -358,7 +358,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String id = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 new String[]{"sh", "-c", "exit $" + envVariable});
         assertNotNull(id);
-        tasks.add(id);
+        services.add(id);
 
         Integer exitCode = null;
         while (exitCode == null) {

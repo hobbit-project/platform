@@ -368,11 +368,11 @@ public class ContainerManagerImpl implements ContainerManager {
         cfgBuilder.image(imageName);
 
         // generate unique container name
-        String containerName = getInstanceName(imageName);
-        cfgBuilder.hostname(containerName);
+        String serviceName = getInstanceName(imageName);
+        cfgBuilder.hostname(serviceName);
         // get parent info
         List<String> defaultEnv = new ArrayList<>();
-        defaultEnv.add(Constants.CONTAINER_NAME_KEY + "=" + containerName);
+        defaultEnv.add(Constants.CONTAINER_NAME_KEY + "=" + serviceName);
         Service parent = null;
         try {
             parent = getContainerInfo(parentId);
@@ -487,7 +487,7 @@ public class ContainerManagerImpl implements ContainerManager {
         // connect to hobbit network only
         serviceCfgBuilder.networks(NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).build());
 
-        serviceCfgBuilder.name(containerName);
+        serviceCfgBuilder.name(serviceName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         String serviceId = null;
         try {
@@ -513,8 +513,8 @@ public class ContainerManagerImpl implements ContainerManager {
                 return false;
             }, DOCKER_POLL_INTERVAL);
             // return new container id
-            LOGGER.info("Container {} created", containerName);
-            return containerName;
+            LOGGER.info("Container {} created", serviceName);
+            return serviceName;
         } catch (Exception e) {
             if (serviceId != null) {
                 try {
@@ -572,28 +572,28 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public void removeContainer(String container) {
+    public void removeContainer(String serviceName) {
         try {
-            Integer exitCode = getContainerExitCode(container);
+            Integer exitCode = getContainerExitCode(serviceName);
             if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
                 LOGGER.info(
                         "Will not remove container {}. "
                         + "Development mode is enabled.",
-                        container);
+                        serviceName);
             } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
                 LOGGER.info(
                         "Will not remove container {}. "
                         + "ExitCode: {} != 0 and testing mode is enabled.",
-                        container, exitCode);
+                        serviceName, exitCode);
             } else {
-                LOGGER.info("Removing container {}. ", container);
-                dockerClient.removeService(container);
+                LOGGER.info("Removing container {}. ", serviceName);
+                dockerClient.removeService(serviceName);
 
                 // wait for the service to disappear
                 Waiting.waitFor(() -> {
                     try {
-                        dockerClient.inspectService(container);
+                        dockerClient.inspectService(serviceName);
                         return false;
                     } catch (ServiceNotFoundException e) {
                         return true;
@@ -601,9 +601,9 @@ public class ContainerManagerImpl implements ContainerManager {
                 }, DOCKER_POLL_INTERVAL);
             }
         } catch (TaskNotFoundException | ServiceNotFoundException e) {
-            LOGGER.error("Couldn't remove container {} because it doesn't exist", container);
+            LOGGER.error("Couldn't remove container {} because it doesn't exist", serviceName);
         } catch (Exception e) {
-            LOGGER.error("Couldn't remove container {}.", container, e);
+            LOGGER.error("Couldn't remove container {}.", serviceName, e);
         }
     }
 
@@ -641,13 +641,13 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Service getContainerInfo(String container) throws InterruptedException, DockerException {
-        if (container == null) {
+    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException {
+        if (serviceName == null) {
             return null;
         }
         Service info = null;
         try {
-            info = dockerClient.inspectService(container);
+            info = dockerClient.inspectService(serviceName);
         } catch (ServiceNotFoundException e) {
             // return null
         }
@@ -664,16 +664,16 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Integer getContainerExitCode(String container) throws DockerException, InterruptedException {
-        if (getContainerInfo(container) == null) {
-            LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", container);
+    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
+        if (getContainerInfo(serviceName) == null) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
             return DOCKER_EXITCODE_SIGKILL;
         }
 
         // Service exists, but no tasks are observed.
-        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(container).build());
+        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
         if (tasks.size() == 0) {
-            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", container);
+            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
             return null;
         }
 
@@ -682,7 +682,7 @@ public class ContainerManagerImpl implements ContainerManager {
                 // Task is finished.
                 Integer exitCode = task.status().containerStatus().exitCode();
                 if (exitCode == null) {
-                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.", container);
+                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.", serviceName);
                     return 0;
                 }
                 return exitCode;

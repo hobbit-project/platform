@@ -54,36 +54,36 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public void stopContainer(String containerId) {
+    public void stopContainer(String serviceName) {
         // Check whether the benchmark controller has been terminated
-        if (containerId.equals(DummyImageManager.BENCHMARK_NAME)) {
+        if (serviceName.equals(DummyImageManager.BENCHMARK_NAME)) {
             // Release the mutex for the main method
             benchmarkControllerTerminated.release();
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
-                terminationCallback.notifyTermination(containerId, 137);
+                terminationCallback.notifyTermination(serviceName, 137);
             }
         }).start();
     }
 
     @Override
-    public void removeContainer(String containerId) {
+    public void removeContainer(String serviceName) {
     }
 
     @Override
-    public void stopParentAndChildren(String parentId) {
-        stopContainer(parentId);
+    public void stopParentAndChildren(String parent) {
+        stopContainer(parent);
     }
 
     @Override
-    public void removeParentAndChildren(String parentId) {
-        stopContainer(parentId);
+    public void removeParentAndChildren(String parent) {
+        stopContainer(parent);
     }
 
     @Override
-    public Service getContainerInfo(String container) {
+    public Service getContainerInfo(String serviceName) {
         return null;
     }
 
@@ -93,7 +93,7 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public Integer getContainerExitCode(String container) {
+    public Integer getContainerExitCode(String serviceName) {
         return null;
     }
 

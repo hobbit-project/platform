@@ -33,7 +33,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     protected ContainerManagerImpl manager;
     protected List<String> containers = new ArrayList<String>();
-    protected List<String> tasks = new ArrayList<String>();
+    protected List<String> services = new ArrayList<String>();
 
     @Before
     public void initManager() throws Exception {
@@ -42,7 +42,7 @@ public class ContainerManagerBasedTest extends DockerBasedTest {
 
     @After
     public void cleanUp() {
-        for (String service : tasks) {
+        for (String service : services) {
             try {
                 dockerClient.removeService(service);
             } catch (Exception e) {
