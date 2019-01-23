@@ -693,11 +693,13 @@ public class ContainerManagerImpl implements ContainerManager {
         return null;
     }
 
+    @Deprecated
     @Override
     public String getContainerId(String name) {
         return name;
     }
 
+    @Deprecated
     @Override
     public String getContainerName(String containerId) {
         return containerId;
