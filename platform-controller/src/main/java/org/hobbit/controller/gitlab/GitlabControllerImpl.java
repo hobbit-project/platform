@@ -172,7 +172,9 @@ public class GitlabControllerImpl implements GitlabController {
                     newProjectUris.add(project.name);
                 }
             } catch (Exception | Error e) {
-                LOGGER.error("Couldn't get all gitlab projects.", e);
+                LOGGER.error("Couldn't get GitLab projects from {}.", GITLAB_URL, e);
+                // Do not replace previously fetched project list.
+                return;
             }
 
             if (projects == null) {
