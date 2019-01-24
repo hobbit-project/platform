@@ -43,7 +43,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         LOGGER.info("Waiting...");
         Thread.sleep(10000);
@@ -67,7 +67,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         LOGGER.info("Waiting...");
         Thread.sleep(10000);
@@ -98,7 +98,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, command);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
         LOGGER.info("Waiting for the container {} to start...", containerId);
         Thread.sleep(10000);
 

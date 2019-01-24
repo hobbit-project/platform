@@ -46,3 +46,6 @@ cAdvisor:
 		-v /var/lib/docker/:/var/lib/docker:ro \
 		-v /dev/disk:/dev/disk:ro \
 		google/cadvisor
+
+trigger-all-correlation-analysis:
+	docker run --network hobbit-core --volume $(CURDIR):/data:ro -e "HOBBIT_RABBIT_HOST=rabbit" java:alpine /data/test_trigger_all_correlation_analysis.sh

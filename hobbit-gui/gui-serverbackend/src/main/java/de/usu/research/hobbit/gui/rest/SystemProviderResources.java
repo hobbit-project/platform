@@ -121,18 +121,20 @@ public class SystemProviderResources {
 
     @SuppressWarnings("unchecked")
     private List<ExtendedTaskRegistrationBean> getChallengeRegistrations(SecurityContext sc, String challengeId) {
+        UserInfoBean user = InternalResources.getUserInfoBean(sc);
+        Set<String> visibleSystems = InternalResources.getUserSystemIds(user);
         // Get the list of registered systems
         StorageServiceClient storage = StorageServiceClientSingleton.getInstance();
         Model challengeModel = storage.sendConstructQuery(
                 SparqlQueries.getChallengeGraphQuery(challengeId, null));
         List<TaskRegistrationBean> registrations = RdfModelHelper.listRegisteredSystems(challengeModel);
         Map<String, List<TaskRegistrationBean>> registrationsPerTask = registrations.stream()
+                .filter(r -> visibleSystems.contains(r.getSystemId()))
                 .collect(Collectors.groupingBy(r -> r.getTaskId()));
         // Get the list of systems that would fit to the single task registrations
         List<ChallengeTaskBean> challengeTasks = RdfModelHelper.listChallengeTasks(challengeModel,
                 challengeModel.getResource(challengeId));
         PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
-        UserInfoBean user = InternalResources.getUserInfoBean(sc);
         List<ExtendedTaskRegistrationBean> visibleRegistrations = new ArrayList<>();
         for (ChallengeTaskBean task : challengeTasks) {
             Set<String> registeredSystemUris;
@@ -146,6 +148,7 @@ public class SystemProviderResources {
             try {
                 BenchmarkBean benchmark = client.requestBenchmarkDetails(task.getBenchmark().getId(), user);
                 benchmark.getSystems().stream()
+                        .filter(s -> visibleSystems.contains(s.getId()))
                         // Create task registration beans
                         .map(s -> new ExtendedTaskRegistrationBean(challengeId, task.getId(), s,
                                 registeredSystemUris.contains(s.getId())))

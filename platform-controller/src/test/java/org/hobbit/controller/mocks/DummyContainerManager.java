@@ -1,8 +1,8 @@
 package org.hobbit.controller.mocks;
 
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Task;
-import com.spotify.docker.client.messages.swarm.Task.Criteria;
+import com.spotify.docker.client.messages.swarm.Service;
+import com.spotify.docker.client.messages.swarm.Service.Criteria;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.List;
@@ -54,42 +54,47 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public void stopContainer(String containerId) {
+    public void stopContainer(String serviceName) {
         // Check whether the benchmark controller has been terminated
-        if (containerId.equals(DummyImageManager.BENCHMARK_NAME)) {
+        if (serviceName.equals(DummyImageManager.BENCHMARK_NAME)) {
             // Release the mutex for the main method
             benchmarkControllerTerminated.release();
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
-                terminationCallback.notifyTermination(containerId, 137);
+                terminationCallback.notifyTermination(serviceName, 137);
             }
         }).start();
     }
 
     @Override
-    public void removeContainer(String containerId) {
+    public void removeContainer(String serviceName) {
     }
 
     @Override
-    public void stopParentAndChildren(String parentId) {
-        stopContainer(parentId);
+    public void stopParentAndChildren(String parent) {
+        stopContainer(parent);
     }
 
     @Override
-    public void removeParentAndChildren(String parentId) {
-        stopContainer(parentId);
+    public void removeParentAndChildren(String parent) {
+        stopContainer(parent);
     }
 
     @Override
-    public Task getContainerInfo(String containerId) {
+    public Service getContainerInfo(String serviceName) {
         return null;
     }
 
     @Override
-    public List<Task> getContainers(Criteria criteria) {
+    public List<Service> getContainers(Criteria criteria) {
         return new ArrayList<>(0);
+    }
+
+    @Override
+    public Integer getContainerExitCode(String serviceName) {
+        return null;
     }
 
     @Override

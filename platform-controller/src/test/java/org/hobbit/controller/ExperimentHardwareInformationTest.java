@@ -48,7 +48,7 @@ public class ExperimentHardwareInformationTest extends DockerBasedTest {
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
 
     @Before
-    public void init() {
+    public void init() throws Exception {
         controller = new DummyPlatformController();
         controller.resInfoCollector = new ResourceInformationCollectorImpl(controller.containerManager);
         controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, DummyImageManager.BENCHMARK_NAME, "{}", DummyImageManager.SYSTEM_URI));
