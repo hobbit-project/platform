@@ -125,7 +125,7 @@ public class ContainerManagerImpl implements ContainerManager {
      * Observers that should be notified if a container terminates.
      */
     private List<ContainerStateObserver> containerObservers = new ArrayList<>();
-    protected Map<String, String> containerToTaskMapping = new HashMap<>();
+    //protected Map<String, String> serviceToTaskIdMapping = new HashMap<>();
 
 
     private String gelfAddress = null;
@@ -372,8 +372,8 @@ public class ContainerManagerImpl implements ContainerManager {
         cfgBuilder.image(imageName);
 
         // generate unique container name
-        String containerName = getInstanceName(imageName);
-        cfgBuilder.hostname(containerName);
+        String serviceName = getInstanceName(imageName);
+        cfgBuilder.hostname(serviceName);
 
         if(System.getenv().containsKey(ENABLE_VOLUMES_FOR_SYSTEM_CONTAINERS_KEY)){
             List<Mount> mounts = new ArrayList<>();
@@ -388,25 +388,25 @@ public class ContainerManagerImpl implements ContainerManager {
                             .target(splitted[1])
                             .build();
                     mounts.add(mount);
+                    LOGGER.debug("Mount {} created", volume);
                 } catch (Exception e) {
-                    LOGGER.error("Failed to create volume: {}", e.getLocalizedMessage());
+                    LOGGER.error("Failed to create mount: {}", e.getLocalizedMessage());
                 }
 
             }
             if (mounts.size() > 0)
                 cfgBuilder.mounts(mounts);
-        }else
-            LOGGER.warn("Volumes for system containers are disabled");
+        }
 
         // get parent info
         List<String> defaultEnv = new ArrayList<>();
-        defaultEnv.add(Constants.CONTAINER_NAME_KEY + "=" + containerName);
-        Task parent = null;
+        defaultEnv.add(Constants.CONTAINER_NAME_KEY + "=" + serviceName);
+        Service parent = null;
         try {
             parent = getContainerInfo(parentId);
         } catch (Exception e) {
         }
-        String parentType = (parent == null) ? null : parent.labels().get(LABEL_TYPE);
+        String parentType = (parent == null) ? null : parent.spec().labels().get(LABEL_TYPE);
         // If there is no container type try to use the parent type or return
         // null
         if ((containerType == null) || containerType.isEmpty()) {
@@ -504,7 +504,7 @@ public class ContainerManagerImpl implements ContainerManager {
         // connect to hobbit network only
         serviceCfgBuilder.networks(NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).build());
 
-        serviceCfgBuilder.name(containerName);
+        serviceCfgBuilder.name(serviceName);
         serviceCfgBuilder.endpointSpec(EndpointSpec.builder().addPort(PortConfig.builder().build()).build());
 
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
@@ -538,9 +538,11 @@ public class ContainerManagerImpl implements ContainerManager {
 //                Thread.sleep(1000);
 //            }
 
-            String taskId = serviceTasks.get(0).id();
-            containerToTaskMapping.put(getContainerName(taskId), taskId);
-            return taskId;
+            //String taskId = serviceTasks.get(0).id();
+            //String serviceName = getContainerName(taskId);
+            //serviceToTaskIdMapping.put(serviceName, taskId);
+            return serviceName;
+            //return taskId;
         } catch (Exception e) {
             if (serviceId != null) {
                 try {
@@ -572,6 +574,11 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] command) {
         return startContainer(imageName, containerType, parentId, null, command, new String[]{});
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command) {
+        return startContainer(imageName, containerType, parentId, env, command, new String[]{});
     }
 
     @Override
@@ -608,32 +615,28 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public void removeContainer(String taskId) {
+    public void removeContainer(String serviceName) {
         try {
-            Task taskInfo = getDockerClient().inspectTask(taskId);
-            String serviceId = taskInfo.serviceId();
-
-            Integer exitCode = taskInfo.status().containerStatus().exitCode();
-            if (exitCode == null) {
-                LOGGER.warn("Container for task {} has no exit code, assuming 0", taskId);
-                exitCode = 0;
-            }
-
+            Integer exitCode = getContainerExitCode(serviceName);
             if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
-                LOGGER.info("Will not remove container with task id {}. " + "Development mode is enabled.", taskId);
+                LOGGER.info(
+                        "Will not remove container {}. "
+                                + "Development mode is enabled.",
+                        serviceName);
             } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
                 LOGGER.info(
-                        "Will not remove container with task id {}. " + "ExitCode != 0 and testing mode is enabled.",
-                        taskId);
+                        "Will not remove container {}. "
+                                + "ExitCode: {} != 0 and testing mode is enabled.",
+                        serviceName, exitCode);
             } else {
-                LOGGER.info("Removing service of container with task id {}. ", taskId);
-                getDockerClient().removeService(serviceId);
+                LOGGER.info("Removing container {}. ", serviceName);
+                getDockerClient().removeService(serviceName);
 
                 // wait for the service to disappear
                 Waiting.waitFor(() -> {
                     try {
-                        getDockerClient().inspectService(serviceId);
+                        getDockerClient().inspectService(serviceName);
                         return false;
                     } catch (ServiceNotFoundException e) {
                         return true;
@@ -641,9 +644,9 @@ public class ContainerManagerImpl implements ContainerManager {
                 }, DOCKER_POLL_INTERVAL);
             }
         } catch (TaskNotFoundException | ServiceNotFoundException e) {
-            LOGGER.warn("Couldn't remove container {} because it doesn't exist", taskId);
+            LOGGER.error("Couldn't remove container {} because it doesn't exist", serviceName);
         } catch (Exception e) {
-            LOGGER.error("Couldn't remove container with task id " + taskId + ".", e);
+            LOGGER.error("Couldn't remove container {}.", serviceName, e);
         }
     }
 
@@ -681,26 +684,56 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Task getContainerInfo(String taskId) throws InterruptedException, DockerException {
-        if (taskId == null) {
+    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException {
+        if (serviceName == null) {
             return null;
         }
-        Task info = null;
+        Service info = null;
         try {
-            info = getDockerClient().inspectTask(taskId);
-        } catch (TaskNotFoundException e) {
+            info = getDockerClient().inspectService(serviceName);
+        } catch (ServiceNotFoundException e) {
             // return null
         }
         return info;
     }
 
     @Override
-    public List<Task> getContainers(Task.Criteria criteria) {
+    public List<Service> getContainers(Service.Criteria criteria) {
         try {
-            return getDockerClient().listTasks(criteria);
+            return getDockerClient().listServices(criteria);
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    @Override
+    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
+        if (getContainerInfo(serviceName) == null) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
+            return DOCKER_EXITCODE_SIGKILL;
+        }
+
+        // Service exists, but no tasks are observed.
+        List<Task> tasks = getDockerClient().listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+        if (tasks.size() == 0) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
+            return null;
+        }
+
+        for (Task task : tasks) {
+            if (!UNFINISHED_TASK_STATES.contains(task.status().state())) {
+                // Task is finished.
+                Integer exitCode = task.status().containerStatus().exitCode();
+                if (exitCode == null) {
+                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.", serviceName);
+                    return 0;
+                }
+                return exitCode;
+            }
+        }
+
+        // Task is not finished.
+        return null;
     }
 
     @Override
@@ -721,23 +754,25 @@ public class ContainerManagerImpl implements ContainerManager {
         return null;
     }
 
+    @Deprecated
     @Override
-    public String getContainerName(String taskId) {
-        Task response = null;
-        try {
-            response = getContainerInfo(taskId);
-        } catch (Exception e) {
-            LOGGER.error("Couldn't retrieve info of container {} to get the name", taskId, e);
-        }
-        String containerName = null;
-        if (response != null) {
-            try {
-                containerName = getDockerClient().inspectService(response.serviceId()).spec().name();
-            } catch (Exception e) {
-                LOGGER.error("Couldn't inspect docker service {} to get the name", taskId, e);
-            }
-        }
-        return containerName;
+    public String getContainerName(String serviceName) {
+        return serviceName;
+//        Task response = null;
+//        try {
+//            response = getContainerInfo(taskId);
+//        } catch (Exception e) {
+//            LOGGER.error("Couldn't retrieve info of container {} to get the name", taskId, e);
+//        }
+//        String containerName = null;
+//        if (response != null) {
+//            try {
+//                containerName = getDockerClient().inspectService(response.serviceId()).spec().name();
+//            } catch (Exception e) {
+//                LOGGER.error("Couldn't inspect docker service {} to get the name", taskId, e);
+//            }
+//        }
+//        return containerName;
     }
 
     @Override
@@ -768,28 +803,19 @@ public class ContainerManagerImpl implements ContainerManager {
         return stats;
     }
 
-    @Override
-    public List<Service> listServices() {
-        try {
-            return getDockerClient().listServices();
-        }
-        catch (Exception e){
-            LOGGER.error("Could not list services: {}", e.getLocalizedMessage());
-            return null;
-        }
+//    @Override
+//    public List<Service> listServices() {
+//        try {
+//            return getDockerClient().listServices();
+//        }
+//        catch (Exception e){
+//            LOGGER.error("Could not list services: {}", e.getLocalizedMessage());
+//            return null;
+//        }
+//
+//    }
 
-    }
 
-    @Override
-    public Task inspectTask(String taskId) {
-        try {
-            return getDockerClient().inspectTask(taskId);
-        }
-        catch (Exception e){
-            LOGGER.error("Could not inspect task: {}", e.getLocalizedMessage());
-            return null;
-        }
-    }
 
     @Override
     public LogStream serviceLogs(String serviceId, DockerClient.LogsParam... params) {
@@ -802,11 +828,23 @@ public class ContainerManagerImpl implements ContainerManager {
         }
     }
 
-    @Override
-    public boolean execAsyncCommand(String containerName, String[] command){
+    protected Task inspectTask(String taskId) {
         try {
-            String taskId = containerToTaskMapping.get(containerName);
-            Task task = inspectTask(taskId);
+            return getDockerClient().inspectTask(taskId);
+        }
+        catch (Exception e){
+            LOGGER.error("Could not inspect task: {}", e.getLocalizedMessage());
+            return null;
+        }
+    }
+
+    @Override
+    public boolean execAsyncCommand(String serviceName, String[] command){
+        try {
+            //String taskId = serviceToTaskIdMapping.get(containerName);
+            List<Task> tasksList = getDockerClient().listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+            //Task task = inspectTask(taskId);
+            Task task = tasksList.get(0);
             String containerId = task.status().containerStatus().containerId().substring(0,12);
 
             ExecCreation execCreation = getDockerClient().execCreate(containerId, command, DockerClient.ExecCreateParam.detach());

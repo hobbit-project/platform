@@ -68,7 +68,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
     public static void setEnvVars(){
 
         // Cloud extension parameters
-        environmentVariables.set(USE_CLOUD_KEY, "true");
+        //environmentVariables.set(USE_CLOUD_KEY, "true");
         environmentVariables.set(CLOUD_VPC_CLUSTER_NAME_KEY, "hobbit");
         environmentVariables.set(CLOUD_EXPIRE_TIMEOUT_MIN_KEY, "-1"); //-1 unlimited
         environmentVariables.set(CLOUD_SSH_KEY_NAME_KEY, "hobbit_2");
@@ -85,7 +85,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
 
         // Enabling file-based image manager for local platforms
         environmentVariables.set(FILE_BASED_IMAGE_MANAGER_KEY, "true");
-        environmentVariables.set(FILE_BASED_IMAGE_MANAGER_FOLDER_KEY, "/mnt/share/platform-controller/metadata");
+        environmentVariables.set(FILE_BASED_IMAGE_MANAGER_FOLDER_KEY, "/mnt/share38/platform-controller/metadata");
         
         // Enabling file-based image manager for local platforms
         environmentVariables.set(ENABLE_VOLUMES_FOR_SYSTEM_CONTAINERS_KEY, "1");
@@ -102,7 +102,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         //Setup this vars for your environment or define them here for the test
 //        environmentVariables.set("GITLAB_USER", System.getenv("GITLAB_USER"));
 //        environmentVariables.set("GITLAB_EMAIL", System.getenv("GITLAB_EMAIL"));
-//        environmentVariables.s", System.getenv("GITLAB_TOKEN"));
+//        environmentVariables.set("GITLAB_TOKEN", System.getenv("GITLAB_TOKEN"));
 
         environmentVariables.set("HOBBIT_REDIS_HOST", "redis");
         environmentVariables.set("CONTAINER_PARENT_CHECK", "0");

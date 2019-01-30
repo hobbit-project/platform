@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.spotify.docker.client.messages.swarm.Service;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
@@ -70,13 +71,14 @@ public class ResourceInformationCollector {
     }
 
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(Task.Criteria.builder()
-                .label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_SYSTEM).build());
+        return getUsageInformation(Service.Criteria.builder()
+                .labels(new HashMap<String, String>(){{ put(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM); }}).build());
     }
 
     public ResourceUsageInformation getBenchmarkUsageInformation() {
-        return getUsageInformation(Task.Criteria.builder()
-                .label(ContainerManager.LABEL_TYPE + "=" + Constants.CONTAINER_TYPE_BENCHMARK).build());
+        return getUsageInformation(Service.Criteria.builder()
+                .labels(new HashMap<String, String>(){{ put(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_BENCHMARK); }}).build());
+
     }
 
     public String getPrometheusHost() {
@@ -87,16 +89,16 @@ public class ResourceInformationCollector {
         return prometheusPort;
     }
 
-    public ResourceUsageInformation getUsageInformation(Task.Criteria criteria) {
-        List<Task> tasks = manager.getContainers(criteria);
+    public ResourceUsageInformation getUsageInformation(Service.Criteria criteria) {
+        List<Service> tasks = manager.getContainers(criteria);
         
-        Map<String, Task> containerMapping = new HashMap<>();
-        for (Task c : tasks) {
+        Map<String, Service> containerMapping = new HashMap<>();
+        for (Service c : tasks) {
             containerMapping.put(c.id(), c);
         }
         ResourceUsageInformation resourceInfo = containerMapping.keySet().parallelStream()
                 // filter all containers that are not running
-                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).status().state()))
+                .filter(c -> TaskStatus.TASK_STATE_RUNNING.equals(containerMapping.get(c).updateStatus().state()))
                 // get the stats for the single
                 .map(id -> requestCpuAndMemoryStats(id))
                 // sum up the stats

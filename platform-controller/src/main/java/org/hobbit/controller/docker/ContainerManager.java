@@ -35,6 +35,12 @@ import com.spotify.docker.client.messages.swarm.Task;
 public interface ContainerManager {
 
     /**
+     * Exit code of containers
+     * where process was terminated with SIGKILL (number 9).
+     */
+    public static int DOCKER_EXITCODE_SIGKILL = 128 + 9;
+
+    /**
      * Label that denotes container type
      */
     public static final String LABEL_TYPE = "org.hobbit.type";
@@ -123,7 +129,7 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command, String[] volumePaths);
+                                 String[] command);
 
     /**
      * Starts the container with the given image name.
@@ -144,28 +150,14 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command, String experimentId);
+                                 String[] command, String experimentId);
 
-    /**
-     * Starts the container with the given image name.
-     *
-     * @param imageName
-     *            name of the image to be started
-     * @param containerType
-     *            type to be assigned to container
-     * @param parentId
-     *            id of the parent container
-     * @param env
-     *            environment variables of the schema "key=value"
-     * @param command
-     *            commands that should be executed
-     * @param experimentId
-     *            experimentId to add to GELF tag
-     *
-     * @return container Id or null if an error occurred.
-     */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId, String[] volumePaths);
+                                 String[] command, String[] volumePaths);
+
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                String[] command, String experimentId, String[] volumePaths);
+
     /**
      * Stops the container with the given container Id.
      *
@@ -182,7 +174,7 @@ public interface ContainerManager {
      * @param containerId
      *            id of the container that should be removed
      */
-    public void removeContainer(String containerId);
+    public void removeContainer(String serviceName);
 
     /**
      * Stops the parent container and all its children given the parent id
@@ -197,53 +189,64 @@ public interface ContainerManager {
     /**
      * Removes the parent container and all its children given the parent id
      *
-     * @param parentId
+     * @param parent
      *            id of the parent container
      */
-    public void removeParentAndChildren(String parentId);
+    public void removeParentAndChildren(String parent);
+
+    /**
+     * Returns container's exit code or null if container is still running.
+     *
+     * @param container
+     */
+    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
 
     /**
      * Returns container info
      *
      * @param containerId
      */
-    public Task getContainerInfo(String containerId) throws InterruptedException, DockerException;
+    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
 
     /**
-     * Get a list of tasks
+     * Get a list of services
      */
-    public default List<Task> getContainers() {
-        return getContainers(Task.Criteria.builder().build());
+    public default List<Service> getContainers() {
+        return getContainers(Service.Criteria.builder().build());
     }
 
     /**
-     * Get a list of tasks which fulfill the given filter criteria.
+     * Get a list of services which fulfill the given filter criteria.
      *
-     * @Task.Criteria criteria
-     *            task criteria for filtering the list of tasks
+     * @Service.Criteria criteria
+     *            service criteria for filtering the list of services
      */
-    public List<Task> getContainers(Task.Criteria criteria);
+    public List<Service> getContainers(Service.Criteria criteria);
 
     /**
+     * @deprecated Platform uses names as IDs.
      * Retrieves the container Id for the container with the given name or null if
      * no such container could be found.
      */
+    @Deprecated
     public String getContainerId(String name);
 
     /**
+     * @deprecated Platform uses names as IDs.
      * Returns the name of the container with the given Id or {@code null} if such a
      * container can not be found
-     * 
+     *
      * @param containerId
      *            the Id of the container for which the name should be retrieved
      * @return the name of the container with the given Id or {@code null} if such a
      *         container can not be found
      */
+    @Deprecated
     public String getContainerName(String containerId);
 
     /**
      * Adds the given observer to the list of internal observers.
-     * 
+     *
      * @param containerObserver
      *            the observer that should be added to the internal list
      */
@@ -260,7 +263,7 @@ public interface ContainerManager {
     /**
      * Returns statistics of the container with the given Id or {@code null} if the
      * container can not be found or an error occurs.
-     * 
+     *
      * @param containerId
      *            the Id of the container for which statistics should be requested
      * @return statistics of the container with the given Id or {@code null} if the
@@ -268,12 +271,9 @@ public interface ContainerManager {
      */
     public ContainerStats getStats(String containerId);
 
-    public List<Service> listServices();
-
-    public Task inspectTask(String taskId);
-
     public LogStream serviceLogs(String serviceId, DockerClient.LogsParam... params);
 
     public boolean execAsyncCommand(String containerId, String[] command);
+
 
 }

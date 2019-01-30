@@ -489,32 +489,33 @@ public class PlatformController extends AbstractCommandReceivingComponent
 //            }
 //            break;
 //        }
-//            case Commands.EXECUTE_ASYNC_COMMAND: {
-//                if (ALLOW_ASYNC_CONTAINER_COMMANDS){
-//                    ExecuteCommandData executeCommandParams = deserializeExecuteCommandData(data);
-//                    String taskId = executeCommandParams.containerId;
-//                    LOGGER.debug("Executing command to container: {}", taskId);
-//                    Boolean result0 = containerManager.execAsyncCommand(taskId, executeCommandParams.command);
-//                    String result = (result0?"Succeeded":"Failed");
-//                    LOGGER.debug("Sending {} result for command to container: {}", result, executeCommandParams.containerId);
-//                    if (replyTo != null){
-//                        try {
-//                            cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(result));
-//                        } catch (IOException e) {
-//                            StringBuilder errMsgBuilder = new StringBuilder();
-//                            errMsgBuilder.append("Error, couldn't sent response after creation of container (");
-//                            errMsgBuilder.append(executeCommandParams.toString());
-//                            errMsgBuilder.append(") to replyTo=");
-//                            errMsgBuilder.append(replyTo);
-//                            errMsgBuilder.append(".");
-//                            LOGGER.error(errMsgBuilder.toString(), e);
-//                        }
-//                    }
-//
-//                }else
-//                    LOGGER.warn("Command execution for containers is prohibited");
-//                break;
-//            }
+            case Commands.EXECUTE_ASYNC_COMMAND: {
+                LOGGER.info("Async command request received");
+                if (ALLOW_ASYNC_CONTAINER_COMMANDS){
+                    ExecuteCommandData executeCommandParams = deserializeExecuteCommandData(data);
+                    String taskId = executeCommandParams.containerId;
+                    LOGGER.info("Executing async command to container: {}", taskId);
+                    Boolean result0 = containerManager.execAsyncCommand(taskId, executeCommandParams.command);
+                    String result = (result0?"Succeeded":"Failed");
+                    LOGGER.info("Sending {} result for command to container: {}", result, executeCommandParams.containerId);
+                    if (replyTo != null){
+                        try {
+                            cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, RabbitMQUtils.writeString(result));
+                        } catch (IOException e) {
+                            StringBuilder errMsgBuilder = new StringBuilder();
+                            errMsgBuilder.append("Error, couldn't sent response after creation of container (");
+                            errMsgBuilder.append(executeCommandParams.toString());
+                            errMsgBuilder.append(") to replyTo=");
+                            errMsgBuilder.append(replyTo);
+                            errMsgBuilder.append(".");
+                            LOGGER.error(errMsgBuilder.toString(), e);
+                        }
+                    }
+
+                }else
+                    LOGGER.warn("Async command execution for containers is prohibited");
+                break;
+            }
         }
     }
 
@@ -541,13 +542,13 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     //functions below require an extended Core interfaces  (see also other sections on this file)
-//    private ExecuteCommandData deserializeExecuteCommandData(byte[] data) {
-//        if (data == null) {
-//            return null;
-//        }
-//        String dataString = RabbitMQUtils.readString(data);
-//        return gson.fromJson(dataString, ExecuteCommandData.class);
-//    }
+    private ExecuteCommandData deserializeExecuteCommandData(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+        String dataString = RabbitMQUtils.readString(data);
+        return gson.fromJson(dataString, ExecuteCommandData.class);
+    }
 
     /**
      * Creates and starts a container based on the given {@link StartCommandData}
@@ -558,7 +559,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
-        String parentId = (data.parent!=null? containerManager.getContainerId(data.parent): null);
+        //String parentId = (data.parent!=null? containerManager.getContainerId(data.parent): null);
+        String parentId = data.parent; //(data.parent!=null? containerManager.getContainerId(data.parent): null);
         if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
@@ -566,25 +568,24 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         String[] volumes = new String[]{};
 
-        //functions below require an extended Core interfaces  (see also other sections on this file)
-//        String[] command = null;
-//        if(ALLOW_ASYNC_CONTAINER_COMMANDS)
-//            command = data.command;
-//        else
-//            LOGGER.warn("Command execution for containers is prohibited");
-//
-//
-//        if(expManager.getSystemTaskId()!=null && expManager.getSystemTaskId().equals(parentId))
-//            volumes = new String[]{ expManager.getSystemContainerVolume().name()+":/share" };
+        LOGGER.info("Volumes attach information:");
+        LOGGER.info("SystemServiceName: {}", expManager.getSystemServiceName());
+        LOGGER.info("ParentId: {}", parentId);
 
-        String taskId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables, null, volumes);
-        if (taskId == null) {
-            return null;
-        } else {
-            //String ret = containerManager.getContainerId(taskId);
-            String ret = containerManager.getContainerName(taskId);
-            return ret;
+        if(expManager.getSystemServiceName()!=null && expManager.getSystemServiceName().equals(parentId)) {
+            volumes = new String[]{expManager.getSystemContainerVolume().name() + ":/share"};
+            LOGGER.info("Volume {} would be attached", volumes[0]);
         }
+
+        String serviceId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables, null, volumes);
+        return serviceId;
+//        if (serviceId == null) {
+//            return null;
+//        } else {
+//            //String ret = containerManager.getContainerId(taskId);
+//            String ret = containerManager.getContainerName(taskId);
+//            return ret;
+//        }
     }
 
     /**

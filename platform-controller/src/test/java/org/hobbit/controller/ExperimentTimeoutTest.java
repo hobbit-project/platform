@@ -8,6 +8,7 @@ import java.util.concurrent.Semaphore;
 
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.LogStream;
+import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.swarm.Service;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
@@ -202,6 +203,11 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
+        public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command) {
+            return null;
+        }
+
+        @Override
         public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] command, String[] volumePaths) {
             return null;
         }
@@ -252,12 +258,17 @@ public class ExperimentTimeoutTest {
         }
 
         @Override
-        public Task getContainerInfo(String containerId) {
+        public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
             return null;
         }
 
         @Override
-        public List<Task> getContainers(Criteria criteria) {
+        public Service getContainerInfo(String containerId) {
+            return null;
+        }
+
+        @Override
+        public List<Service> getContainers(Service.Criteria criteria) {
             return new ArrayList<>(0);
         }
 
@@ -287,15 +298,6 @@ public class ExperimentTimeoutTest {
             return null;
         }
 
-        @Override
-        public List<Service> listServices() {
-            return null;
-        }
-
-        @Override
-        public Task inspectTask(String taskId) {
-            return null;
-        }
 
         @Override
         public LogStream serviceLogs(String var1, DockerClient.LogsParam... var2) {

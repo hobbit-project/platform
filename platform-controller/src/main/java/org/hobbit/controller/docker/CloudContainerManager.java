@@ -9,6 +9,7 @@ import org.hobbit.controller.cloud.DockerClientProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 
@@ -38,14 +39,20 @@ public class CloudContainerManager extends ContainerManagerImpl {
         return super.getContainerId(name);
     }
 
+    public void abc (String serviceName){
+
+    }
+
     @Override
-    public boolean execAsyncCommand(String containerName, String[] command){
+    public boolean execAsyncCommand(String serviceName, String[] command){
         boolean ret = false;
         Semaphore initFinishedMutex = new Semaphore(0);
         try {
 
-            String taskId = containerToTaskMapping.get(containerName);
-            Task task = inspectTask(taskId);
+//            String taskId = containerToTaskMapping.get(serviceName);
+            List<Task> tasksList = getDockerClient().listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+            //Task task = inspectTask(taskId);
+            Task task = tasksList.get(0);
             String containerId = task.status().containerStatus().containerId().substring(0,12);
 
             Node node = getDockerClient().listNodes(Node.Criteria.builder().nodeId(task.nodeId()).build()).get(0);

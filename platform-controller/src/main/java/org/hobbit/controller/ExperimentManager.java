@@ -100,7 +100,7 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     private Timer expStartTimer;
-    private String systemTaskId;
+    private String systemServiceName;
     private Volume systemAdapterVolume;
 
     public ExperimentManager(PlatformController controller) {
@@ -277,19 +277,19 @@ public class ExperimentManager implements Closeable {
 
                 String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
                 systemAdapterVolume = getDockerClient().createVolume();
-                systemTaskId = controller.containerManager.startContainer(system.mainImage,
+                systemServiceName = controller.containerManager.startContainer(system.mainImage,
                         Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
                         new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
                                 Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                 Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
                         null, config.id, new String[]{ systemAdapterVolume.name()+":/share" });
 
-                if (systemTaskId == null) {
+                if (systemServiceName == null) {
                     LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
                     throw new Exception("Couldn't start the system " + config.systemUri);
                 } else {
-                    experimentStatus.setSystemContainer(systemTaskId);
+                    experimentStatus.setSystemContainer(systemServiceName);
                 }
             }
         } catch (Exception e) {
@@ -850,16 +850,16 @@ public class ExperimentManager implements Closeable {
 
     }
 
-    public String getSystemTaskId() {
-        return systemTaskId;
+    public String getSystemServiceName() {
+        return systemServiceName;
     }
 
 //    public String getSystemContainerId() {
 //
-//        if(systemTaskId==null)
+//        if(systemServiceName==null)
 //            return null;
 //        try {
-//            Task task = controller.containerManager.getContainerInfo(systemTaskId);
+//            Task task = controller.containerManager.getContainerInfo(systemServiceName);
 //            while(task.status()==null ||
 //                  task.status().containerStatus()==null ||
 //                  task.status().containerStatus().containerId()==null){
