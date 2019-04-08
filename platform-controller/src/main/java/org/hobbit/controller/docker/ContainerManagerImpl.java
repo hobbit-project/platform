@@ -139,6 +139,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
     private String gelfAddress = null;
     private String experimentId = null;
+    private Set<String> pulledImages = new HashSet<>();
 
     /**
      * Constructor that creates new docker client instance
@@ -249,6 +250,12 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.warn("Skipping image pulling because DOCKER_AUTOPULL is unset");
             return;
         }
+
+        if (pulledImages.contains(imageName)) {
+            LOGGER.debug("Image {} was already pulled during this experiment", imageName);
+            return;
+        }
+        pulledImages.add(imageName);
 
         LOGGER.info("Pulling the image \"{}\"", imageName);
 
@@ -573,6 +580,9 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, String experimentId) {
+        if (this.experimentId != experimentId) {
+            pulledImages = new HashSet<>();
+        }
         this.experimentId = experimentId;
         return startContainer(imageName, containerType, parentId, env, command);
     }
