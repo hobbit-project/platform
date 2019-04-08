@@ -20,7 +20,7 @@ test:
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
 	PROMETHEUS_HOST=localhost \
-	mvn --update-snapshots clean test
+	mvn --update-snapshots -Dtest=$(test) clean test
 
 test-single:
 	docker rmi busybox
