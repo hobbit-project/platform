@@ -49,6 +49,12 @@ public class DummyContainerManager implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] command, boolean pullImage) {
+        return imageName;
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
                                  String[] command, String experimentId) {
         return imageName;
     }

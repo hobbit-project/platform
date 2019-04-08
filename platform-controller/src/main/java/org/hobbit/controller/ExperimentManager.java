@@ -303,6 +303,7 @@ public class ExperimentManager implements Closeable {
         usedImages.addAll(benchmark.usedImages);
         // pull all used images
         for (String image : usedImages) {
+            experimentStatus.addImage(image);
             controller.containerManager.pullImage(image);
         }
     }

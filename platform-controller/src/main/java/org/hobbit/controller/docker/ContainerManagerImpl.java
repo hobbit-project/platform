@@ -368,8 +368,6 @@ public class ContainerManagerImpl implements ContainerManager {
         // we need to run it just once; configure to never restart
         taskCfgBuilder.restartPolicy(RestartPolicy.builder().condition(RestartPolicy.RESTART_POLICY_NONE).build());
 
-        // pull image
-        pullImage(imageName);
         ContainerSpec.Builder cfgBuilder = ContainerSpec.builder();
         cfgBuilder.image(imageName);
 
@@ -558,6 +556,16 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
+        return startContainer(imageName, containerType, parentId, env, command, true);
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] command, boolean pullImage) {
+        if (pullImage) {
+            pullImage(imageName);
+        }
+
         String containerId = createContainer(imageName, containerType, parentId, env, command);
 
         // if the creation was successful
