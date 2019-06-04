@@ -361,7 +361,7 @@ public class ContainerManagerImpl implements ContainerManager {
      * @return String the container Id or <code>null</code> if an error occurs
      */
     private String createContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command) {
+            String[] netAliases, String[] command) {
         ServiceSpec.Builder serviceCfgBuilder = ServiceSpec.builder();
 
         TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
@@ -489,7 +489,9 @@ public class ContainerManagerImpl implements ContainerManager {
         serviceCfgBuilder.taskTemplate(taskCfgBuilder.build());
 
         // connect to hobbit network only
-        serviceCfgBuilder.networks(NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).build());
+        serviceCfgBuilder.networks(
+            NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).aliases(netAliases).build()
+        );
 
         serviceCfgBuilder.name(serviceName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
@@ -556,17 +558,29 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
-        return startContainer(imageName, containerType, parentId, env, command, true);
+        return startContainer(imageName, containerType, parentId, env, null, command);
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+    String[] netAliases, String[] command) {
+        return startContainer(imageName, containerType, parentId, env, netAliases, command, true);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, boolean pullImage) {
+        return startContainer(imageName, containerType, parentId, env, null, command, true);
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] netAliases, String[] command, boolean pullImage) {
         if (pullImage) {
             pullImage(imageName);
         }
 
-        String containerId = createContainer(imageName, containerType, parentId, env, command);
+        String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command);
 
         // if the creation was successful
         if (containerId != null) {
@@ -580,9 +594,9 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command, String experimentId) {
+            String[] netAliases, String[] command, String experimentId) {
         this.experimentId = experimentId;
-        return startContainer(imageName, containerType, parentId, env, command);
+        return startContainer(imageName, containerType, parentId, env, netAliases, command);
     }
 
     @Override

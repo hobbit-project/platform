@@ -534,7 +534,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         }
 
         String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
-                null, pullImage);
+                data.networkAliases, null, pullImage);
         if (containerId == null) {
             return null;
         } else {
