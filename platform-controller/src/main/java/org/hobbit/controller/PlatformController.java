@@ -514,8 +514,15 @@ public class PlatformController extends AbstractCommandReceivingComponent
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }
+
+        boolean pullImage = false;
+        if (!expManager.experimentStatus.getUsedImages().contains(data.image)) {
+            expManager.experimentStatus.addImage(data.image);
+            pullImage = true;
+        }
+
         String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
-                null);
+                null, pullImage);
         if (containerId == null) {
             return null;
         } else {

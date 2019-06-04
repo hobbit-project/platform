@@ -139,7 +139,6 @@ public class ContainerManagerImpl implements ContainerManager {
 
     private String gelfAddress = null;
     private String experimentId = null;
-    private Set<String> pulledImages = new HashSet<>();
 
     /**
      * Constructor that creates new docker client instance
@@ -250,12 +249,6 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.warn("Skipping image pulling because DOCKER_AUTOPULL is unset");
             return;
         }
-
-        if (pulledImages.contains(imageName)) {
-            LOGGER.debug("Image {} was already pulled during this experiment", imageName);
-            return;
-        }
-        pulledImages.add(imageName);
 
         LOGGER.info("Pulling the image \"{}\"", imageName);
 
@@ -375,8 +368,6 @@ public class ContainerManagerImpl implements ContainerManager {
         // we need to run it just once; configure to never restart
         taskCfgBuilder.restartPolicy(RestartPolicy.builder().condition(RestartPolicy.RESTART_POLICY_NONE).build());
 
-        // pull image
-        pullImage(imageName);
         ContainerSpec.Builder cfgBuilder = ContainerSpec.builder();
         cfgBuilder.image(imageName);
 
@@ -565,6 +556,16 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
+        return startContainer(imageName, containerType, parentId, env, command, true);
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] command, boolean pullImage) {
+        if (pullImage) {
+            pullImage(imageName);
+        }
+
         String containerId = createContainer(imageName, containerType, parentId, env, command);
 
         // if the creation was successful
@@ -580,9 +581,6 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, String experimentId) {
-        if (this.experimentId != experimentId) {
-            pulledImages = new HashSet<>();
-        }
         this.experimentId = experimentId;
         return startContainer(imageName, containerType, parentId, env, command);
     }

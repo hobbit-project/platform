@@ -259,27 +259,6 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     }
 
     @Test
-    public void pullTwiceInExperiment() throws Exception {
-        final String testImage = "hello-world";
-        final String experimentId1 = "pullTwiceExperiment1";
-        final String experimentId2 = "pullTwiceExperiment2";
-        // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node
-
-        // Start a container (sets experiment ID inside the manager).
-        String id = manager.startContainer(testImage, Constants.CONTAINER_TYPE_BENCHMARK, null, null, null, experimentId1);
-        manager.removeContainer(id);
-
-        removeImage(testImage);
-        assertTrue("No test image should exist after removing", !imageExists(testImage));
-
-        manager.pullImage(testImage);
-        assertTrue("No test image should exist after trying to pull it (the second time)", !imageExists(testImage));
-
-        manager.startContainer(testImage, Constants.CONTAINER_TYPE_BENCHMARK, null, null, null, experimentId2);
-        assertTrue("Image exists after starting a container with different experiment ID", imageExists(testImage));
-    }
-
-    @Test
     public void pullPublicImage() throws Exception {
         final String testImage = "hello-world";
         // FIXME: all checks should be performed on all nodes in the swarm! Currently it only looks at local node

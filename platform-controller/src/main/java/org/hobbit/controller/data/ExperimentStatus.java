@@ -19,7 +19,9 @@ package org.hobbit.controller.data;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
 
@@ -117,6 +119,10 @@ public class ExperimentStatus implements Closeable {
      * Flag indicating whether the benchmark system is ready.
      */
     private boolean systemRunning = false;
+    /**
+     * Set of image names which were used during this experiment.
+     */
+    private Set<String> usedImages = new HashSet<>();
     /**
      * Container name of the system.
      */
@@ -272,6 +278,25 @@ public class ExperimentStatus implements Closeable {
 
     public long getAbortionTimeStamp() {
         return abortionTimeStamp;
+    }
+
+    /**
+     * Adds an image to the set of images used in this experiment.
+     *
+     * @param image
+     *            image name to add
+     */
+    public void addImage(String image) {
+        usedImages.add(image);
+    }
+
+    /**
+     * Adds an image to the set of images used in this experiment.
+     *
+     * @return set of images used in thie experiment
+     */
+    public Set<String> getUsedImages() {
+        return usedImages;
     }
 
     /**
