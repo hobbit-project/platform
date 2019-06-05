@@ -12,6 +12,7 @@ import {
   Experiment,
   ExperimentCount,
   ExtendedChallengeRegistration,
+  LicenseBean,
   StatusBean,
   User,
 } from './model';
@@ -34,6 +35,10 @@ export class BackendService {
 
   flushCache() {
     this.obsUserInfo = null;
+  }
+
+  getLicense(): Observable<LicenseBean> {
+    return this.http.get('BACKEND/rest/license').map(res => plainToClass<LicenseBean, Object>(LicenseBean, res));
   }
 
   getStatus(): Observable<StatusBean> {

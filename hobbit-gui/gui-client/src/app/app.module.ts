@@ -18,6 +18,7 @@ import { DataTableModule, CalendarModule, ConfirmationService, ConfirmDialogModu
 import { MessageService } from 'primeng/components/common/messageservice';
 import { AppComponent } from './app.component';
 import { NavbarComponent } from './navbar/navbar.component';
+import { FooterComponent } from './footer/footer.component';
 import { HomeComponent } from './home/home.component';
 import { NotFoundComponent } from './not-found/not-found.component';
 import { BenchmarkComponent } from './benchmark/benchmark.component';
@@ -98,6 +99,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
   declarations: [
     AppComponent,
     NavbarComponent,
+    FooterComponent,
     HomeComponent,
     NotFoundComponent,
     BenchmarkComponent,

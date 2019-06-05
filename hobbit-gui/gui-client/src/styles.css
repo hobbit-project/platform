@@ -5,6 +5,17 @@
 @import "~primeng/resources/primeng.min.css";
 @import "~primeng/resources/themes/bootstrap/theme.css";
 
+/* footer */
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  margin-bottom: 80px;
+}
+/* /footer */
+
 button.btn {
     cursor: pointer;
 }
