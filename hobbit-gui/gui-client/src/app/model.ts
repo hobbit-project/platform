@@ -248,6 +248,17 @@ export class RunningExperimentBean extends QueuedExperimentBean {
 
 }
 
+export class LicenseBean {
+  constructor(
+    public attributionURL: string,
+    public attributionName: string,
+    public licenseURL: string,
+    public licenseLabel: string,
+    public licenseIconURL: string,
+  ) {
+  }
+}
+
 export class StatusBean {
 
     @Type(() => RunningExperimentBean)

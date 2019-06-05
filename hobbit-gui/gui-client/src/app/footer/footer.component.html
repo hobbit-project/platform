@@ -1,0 +1,9 @@
+<footer class="footer" *ngIf="license && license.licenseURL">
+  <div class="container">
+    <span *ngIf="license.licenseIconURL">
+      <img [src]="license.licenseIconURL" alt=""/>
+    </span>
+    Data is licensed under <a [href]="license.licenseURL">{{license.licenseLabel}}</a>
+    and attributed to <a [href]="license.attributionURL">{{license.attributionName}}</a>.
+  </div>
+</footer>
