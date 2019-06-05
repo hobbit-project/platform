@@ -107,7 +107,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         final String type = Constants.CONTAINER_TYPE_SYSTEM;
         byte[] data = ("{\"image\": \"" + image + "\", \"type\": \"" + type + "\", \"parent\": \"" + parentName + "\"}")
                 .getBytes(StandardCharsets.UTF_8);
-        controller.receiveCommand(command, data, SESSION_ID, "");
+        controller.receiveCommand(command, data, SESSION_ID, null);
 
         // get running containers
         Service serviceInfo = null;
@@ -131,7 +131,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
 
         // create and execute a second test container from a different session
         // (shouldn't be created)
-        controller.receiveCommand(command, data, "wrong-" + SESSION_ID, "");
+        controller.receiveCommand(command, data, "wrong-" + SESSION_ID, null);
         taskList = dockerClient
                 .listTasks(Task.Criteria.builder().label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId).build());
 

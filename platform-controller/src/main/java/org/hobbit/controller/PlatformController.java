@@ -360,7 +360,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
                         byte[] body) throws IOException {
                     try {
-                        handleCmd(body, properties.getReplyTo());
+                        handleCmd(body, properties);
                     } catch (Exception e) {
                         LOGGER.error("Exception while trying to handle incoming command.", e);
                     }
@@ -391,7 +391,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *            0 - start container 1 - stop container Data format for each
      *            command: Start container:
      */
-    public void receiveCommand(byte command, byte[] data, String sessionId, String replyTo) {
+    public void receiveCommand(byte command, byte[] data, String sessionId, AMQP.BasicProperties props) {
+        String replyTo = null;
+        if (props != null) {
+            replyTo = props.getReplyTo();
+        }
+
         if (LOGGER.isDebugEnabled()) {
             LOGGER.info("received command: session={}, command={}, data={}", sessionId, Commands.toString(command),
                     data != null ? RabbitMQUtils.readString(data) : "null");
@@ -413,9 +418,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 LOGGER.error(
                         "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.", sessionId);
             }
+
             if (replyTo != null) {
                 try {
-                    cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC,
+                    AMQP.BasicProperties.Builder propsBuilder = new AMQP.BasicProperties.Builder();
+                    propsBuilder.deliveryMode(2);
+                    propsBuilder.correlationId(props.getCorrelationId());
+                    AMQP.BasicProperties replyProps = propsBuilder.build();
+                    cmdChannel.basicPublish("", replyTo, replyProps,
                             RabbitMQUtils.writeString(containerName));
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
@@ -662,7 +672,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * for the leading hobbit id and delegates the command handling to the
      * {@link #receiveCommand(byte, byte[], String, String)} method.
      */
-    protected void handleCmd(byte bytes[], String replyTo) {
+    protected void handleCmd(byte bytes[], AMQP.BasicProperties props) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         int idLength = buffer.getInt();
         byte sessionIdBytes[] = new byte[idLength];
@@ -676,7 +686,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         } else {
             remainingData = new byte[0];
         }
-        receiveCommand(command, remainingData, sessionId, replyTo);
+        receiveCommand(command, remainingData, sessionId, props);
     }
 
     public void handleFrontEndCmd(byte bytes[], String replyTo, BasicProperties replyProperties) {
