@@ -222,12 +222,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Default constructor.
      */
     public PlatformController() {
+        super(true);
     }
 
     /**
      * Constructor needed for testing.
      */
     public PlatformController(ExperimentManager expManager) {
+        this();
         this.expManager = expManager;
         expManager.setController(this);
     }
