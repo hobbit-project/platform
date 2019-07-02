@@ -29,13 +29,14 @@ export class PlotComponent implements OnInit {
       labels: this.diagram.data.map(d => d.x),
       datasets: [{
         label: this.diagram.label + '',
-        data: this.diagram.data.map(d => d.y),
+        data: this.diagram.data,
         borderColor: color,
         backgroundColor: color,
+        showLine: true,
       }],
     };
     const myChart = new Chart.Chart(ctx, {
-      type: 'line',
+      type: 'scatter',
       data,
       options: {
         responsive: false,
