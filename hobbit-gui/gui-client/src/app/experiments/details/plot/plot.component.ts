@@ -7,7 +7,7 @@ import * as randomColor from 'randomcolor';
   selector: 'app-experiment-plot',
   template: `
     <div style="overflow-x: scroll;">
-      <canvas #canvas width="600" height="400"></canvas>'
+      <canvas #canvas width="600" height="400"></canvas>
     </div>
     `
 })
