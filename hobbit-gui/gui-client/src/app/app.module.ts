@@ -41,6 +41,7 @@ import { ViewComponent } from './benchmark/status/view/view.component';
 import { RoundProgressModule } from 'angular-svg-round-progressbar';
 import { AnalysisComponent } from './analysis/analysis.component';
 import { CompareComponent } from './experiments/details/compare/compare.component';
+import { GraphComponent } from './experiments/details/graph/graph.component';
 import { PlotComponent } from './experiments/details/plot/plot.component';
 import { BackButtonComponent } from './common/back-button.component';
 
@@ -122,6 +123,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     ViewComponent,
     AnalysisComponent,
     CompareComponent,
+    GraphComponent,
     PlotComponent,
     BackButtonComponent
   ],
