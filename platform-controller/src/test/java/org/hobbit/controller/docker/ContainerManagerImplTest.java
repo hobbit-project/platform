@@ -402,4 +402,29 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
                 benchmarkNodes > 0);
         }
     }
+
+    @Test
+    public void testNetworkAliases() throws Exception {
+        final String alias = "alias-1";
+
+        // start new test container
+        String testContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_BENCHMARK,
+                null, null, new String[]{alias}, sleepCommand);
+        assertNotNull(testContainer);
+        services.add(testContainer);
+
+        String pingContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_BENCHMARK,
+                null, null, null, new String[]{"ping", "-c", "1", "-W", "2", alias});
+        assertNotNull(pingContainer);
+        services.add(pingContainer);
+        Thread.sleep(10000);
+        assertEquals("Result of pinging the container's network alias", (Integer)0, manager.getContainerExitCode(pingContainer));
+
+        pingContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_BENCHMARK,
+                null, null, null, new String[]{"ping", "-c", "1", "-W", "2", "nonexistant"});
+        assertNotNull(pingContainer);
+        services.add(pingContainer);
+        Thread.sleep(10000);
+        assertEquals("Result of pinging the nonexisting host", (Integer)1, manager.getContainerExitCode(pingContainer));
+    }
 }

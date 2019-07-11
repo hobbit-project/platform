@@ -55,7 +55,19 @@ public class DummyContainerManager implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] command, String experimentId) {
+                                 String[] netAliases, String[] command) {
+        return imageName;
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] netAliases, String[] command, boolean pullImage) {
+        return imageName;
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+                                 String[] netAliases, String[] command, String experimentId) {
         return imageName;
     }
 

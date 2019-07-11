@@ -139,6 +139,27 @@ public interface ContainerManager {
      *            id of the parent container
      * @param env
      *            environment variables of the schema "key=value"
+     * @param netAliases
+     *            network aliases for this container
+     * @param command
+     *            commands that should be executed
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] netAliases, String[] command);
+
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
      * @param command
      *            commands that should be executed
      * @param pullImage
@@ -160,6 +181,29 @@ public interface ContainerManager {
      *            id of the parent container
      * @param env
      *            environment variables of the schema "key=value"
+     * @param netAliases
+     *            network aliases for this container
+     * @param command
+     *            commands that should be executed
+     * @param pullImage
+     *            whether the image needs to be prefetched
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+    String[] netAliases, String[] command, boolean pullImage);
+
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
      * @param command
      *            commands that should be executed
      * @param experimentId
@@ -168,7 +212,7 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command, String experimentId);
+            String[] netAliases, String[] command, String experimentId);
 
     /**
      * Stops the container with the given container Id.
