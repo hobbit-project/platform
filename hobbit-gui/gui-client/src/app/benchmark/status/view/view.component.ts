@@ -21,7 +21,9 @@ export class ViewComponent implements OnInit {
   runtime: number;
   remainingRuntime: number;
 
-  constructor(private bs: BackendService, private ms: MessageService) { }
+  constructor(private bs: BackendService, private ms: MessageService) {
+    setInterval(this.updateRemainingTime.bind(this), 500);
+  }
 
   ngOnInit() {
     if (this.experiment instanceof RunningExperimentBean) {
@@ -30,11 +32,17 @@ export class ViewComponent implements OnInit {
       if (this.runningExperiment.latestDateToFinish !== null) {
         this.maxRuntime = new Date(this.runningExperiment.latestDateToFinish).getTime() -
           new Date(this.runningExperiment.startTimestamp).getTime();
-        this.runtime = new Date().getTime() - new Date(this.runningExperiment.startTimestamp).getTime();
-        this.remainingRuntime = Math.ceil((this.maxRuntime - this.runtime) / 1000);
+        this.updateRemainingTime();
       }
     }
     this.cancelable = this.experiment.canBeCanceled;
+  }
+
+  updateRemainingTime() {
+    if (this.maxRuntime) {
+      this.runtime = new Date().getTime() - new Date(this.runningExperiment.startTimestamp).getTime();
+      this.remainingRuntime = Math.max(0, Math.ceil((this.maxRuntime - this.runtime) / 1000));
+    }
   }
 
   public cancel() {

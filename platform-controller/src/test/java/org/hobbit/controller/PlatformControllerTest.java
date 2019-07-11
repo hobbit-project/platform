@@ -26,11 +26,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.hobbit.controller.data.ExperimentConfiguration;
+import org.hobbit.controller.data.ExperimentStatus;
+import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.docker.ContainerManagerBasedTest;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.utils.docker.DockerHelper;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,6 +49,7 @@ import com.spotify.docker.client.messages.swarm.Task;
 public class PlatformControllerTest extends ContainerManagerBasedTest {
 
     private static final String RABBIT_HOST_NAME = DockerHelper.getHost();
+    private static final String SESSION_ID = "test-session";
 
     @Rule
     public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
@@ -64,7 +69,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         environmentVariables.set(Constants.GENERATOR_COUNT_KEY, "1");
         environmentVariables.set(Constants.HOBBIT_SESSION_ID_KEY, "0");
 
-        controller = new PlatformController();
+        controller = new PlatformController(new LocalExperimentManager(null, SESSION_ID));
         try {
             controller.init();
         } catch (Exception e) {
@@ -77,34 +82,39 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         super.close();
     }
 
+    /**
+     * This task simply tests the receiving and handling of a create container
+     * command. First, a parent container is created which will be used by the test
+     * commands. After that, a valid command is received and the result of the
+     * container creation is checked by the test. The second command has an invalid
+     * (because unknown) session id and the test checks whether the second command
+     * creates an additional container.
+     * 
+     * @throws Exception
+     */
     @Test
-    public void receiveCommand() throws Exception {
+    public void receiveCreateContainerCommand() throws Exception {
         byte command = Commands.DOCKER_CONTAINER_START;
 
         // create and execute parent container
-        final String parentId = manager.startContainer(
-                "busybox",
-                Constants.CONTAINER_TYPE_SYSTEM,
-                null,
+        final String parentId = manager.startContainer("busybox", Constants.CONTAINER_TYPE_SYSTEM, null,
                 new String[] { "sh", "-c", "while :; do sleep 1; done" });
         final String parentName = manager.getContainerName(parentId);
-        tasks.add(parentId);
+        services.add(parentId);
 
         // create and execute test container
         final String image = "busybox:latest";
         final String type = Constants.CONTAINER_TYPE_SYSTEM;
         byte[] data = ("{\"image\": \"" + image + "\", \"type\": \"" + type + "\", \"parent\": \"" + parentName + "\"}")
                 .getBytes(StandardCharsets.UTF_8);
-        controller.receiveCommand(command, data, "1", "");
+        controller.receiveCommand(command, data, SESSION_ID, null);
 
         // get running containers
         Service serviceInfo = null;
         Task taskInfo = null;
         String taskId = null;
-        String containerId = null;
-        final List<Task> taskList = dockerClient.listTasks(Task.Criteria.builder()
-                .label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId)
-                .build());
+        List<Task> taskList = dockerClient
+                .listTasks(Task.Criteria.builder().label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId).build());
 
         if (!taskList.isEmpty()) {
             taskInfo = taskList.get(0);
@@ -115,8 +125,30 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         // check that container exists
         assertNotNull(taskId);
         assertEquals("Amount of child containers of the test parent container", 1, taskList.size());
-        assertEquals("Type of created container",
-                Constants.CONTAINER_TYPE_SYSTEM, serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE));
+        assertEquals("Type of created container", Constants.CONTAINER_TYPE_SYSTEM,
+                serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE));
         assertDockerImageEquals("Image of created container", image, taskInfo.spec().containerSpec().image());
+
+        // create and execute a second test container from a different session
+        // (shouldn't be created)
+        controller.receiveCommand(command, data, "wrong-" + SESSION_ID, null);
+        taskList = dockerClient
+                .listTasks(Task.Criteria.builder().label(ContainerManagerImpl.LABEL_PARENT + "=" + parentId).build());
+
+        Assert.assertTrue(!taskList.isEmpty());
+        Assert.assertEquals("Still only one child of the parent task", taskId, taskList.get(0).id());
+        Assert.assertEquals("Amount of child containers of the test parent container", 1, taskList.size());
+    }
+
+    protected static class LocalExperimentManager extends ExperimentManager {
+
+        public LocalExperimentManager(PlatformController controller, String session) {
+            super(controller);
+            experimentStatus = new ExperimentStatus(
+                    new ExperimentConfiguration(session, "TestBenchmark", "", "TestSytem"),
+                    Constants.EXPERIMENT_URI_NS + session);
+            experimentStatus.setState(States.STARTED);
+        }
+
     }
 }

@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Task;
+import com.spotify.docker.client.messages.swarm.Service;
 
 /**
  * This interface is implemented by classes that can be used to manage Docker
@@ -30,6 +30,12 @@ import com.spotify.docker.client.messages.swarm.Task;
  *
  */
 public interface ContainerManager {
+
+    /**
+     * Exit code of containers
+     * where process was terminated with SIGKILL (number 9).
+     */
+    public static int DOCKER_EXITCODE_SIGKILL = 128 + 9;
 
     /**
      * Label that denotes container type
@@ -133,6 +139,71 @@ public interface ContainerManager {
      *            id of the parent container
      * @param env
      *            environment variables of the schema "key=value"
+     * @param netAliases
+     *            network aliases for this container
+     * @param command
+     *            commands that should be executed
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+            String[] netAliases, String[] command);
+
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
+     * @param command
+     *            commands that should be executed
+     * @param pullImage
+     *            whether the image needs to be prefetched
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+    String[] command, boolean pullImage);
+
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
+     * @param netAliases
+     *            network aliases for this container
+     * @param command
+     *            commands that should be executed
+     * @param pullImage
+     *            whether the image needs to be prefetched
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+    String[] netAliases, String[] command, boolean pullImage);
+
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName
+     *            name of the image to be started
+     * @param containerType
+     *            type to be assigned to container
+     * @param parentId
+     *            id of the parent container
+     * @param env
+     *            environment variables of the schema "key=value"
      * @param command
      *            commands that should be executed
      * @param experimentId
@@ -141,7 +212,7 @@ public interface ContainerManager {
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] command, String experimentId);
+            String[] netAliases, String[] command, String experimentId);
 
     /**
      * Stops the container with the given container Id.
@@ -159,7 +230,7 @@ public interface ContainerManager {
      * @param containerId
      *            id of the container that should be removed
      */
-    public void removeContainer(String containerId);
+    public void removeContainer(String serviceName);
 
     /**
      * Stops the parent container and all its children given the parent id
@@ -174,40 +245,50 @@ public interface ContainerManager {
     /**
      * Removes the parent container and all its children given the parent id
      *
-     * @param parentId
+     * @param parent
      *            id of the parent container
      */
-    public void removeParentAndChildren(String parentId);
+    public void removeParentAndChildren(String parent);
+
+    /**
+     * Returns container's exit code or null if container is still running.
+     *
+     * @param container
+     */
+    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
 
     /**
      * Returns container info
      *
      * @param containerId
      */
-    public Task getContainerInfo(String containerId) throws InterruptedException, DockerException;
+    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
 
     /**
-     * Get a list of tasks
+     * Get a list of services
      */
-    public default List<Task> getContainers() {
-        return getContainers(Task.Criteria.builder().build());
+    public default List<Service> getContainers() {
+        return getContainers(Service.Criteria.builder().build());
     }
 
     /**
-     * Get a list of tasks which fulfill the given filter criteria.
+     * Get a list of services which fulfill the given filter criteria.
      *
-     * @Task.Criteria criteria
-     *            task criteria for filtering the list of tasks
+     * @Service.Criteria criteria
+     *            service criteria for filtering the list of services
      */
-    public List<Task> getContainers(Task.Criteria criteria);
+    public List<Service> getContainers(Service.Criteria criteria);
 
     /**
+    * @deprecated Platform uses names as IDs.
      * Retrieves the container Id for the container with the given name or null if
      * no such container could be found.
      */
+     @Deprecated
     public String getContainerId(String name);
 
     /**
+     * @deprecated Platform uses names as IDs.
      * Returns the name of the container with the given Id or {@code null} if such a
      * container can not be found
      * 
@@ -216,6 +297,7 @@ public interface ContainerManager {
      * @return the name of the container with the given Id or {@code null} if such a
      *         container can not be found
      */
+    @Deprecated
     public String getContainerName(String containerId);
 
     /**

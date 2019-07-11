@@ -23,7 +23,7 @@ public interface ClusterManager {
      *
      * @return number of nodes
      */
-    public int getNumberOfNodes() throws DockerException, InterruptedException;
+    public long getNumberOfNodes() throws DockerException, InterruptedException;
 
     /**
      * Get number of nodes in the cluster
@@ -32,7 +32,7 @@ public interface ClusterManager {
      *            the label to filter nodes
      * @return number of nodes with the specified label
      */
-    public int getNumberOfNodes(String label) throws DockerException, InterruptedException;
+    public long getNumberOfNodes(String label) throws DockerException, InterruptedException;
 
     /**
      * Get the health status of the cluster
@@ -47,7 +47,7 @@ public interface ClusterManager {
      *
      * @return expected number of nodes
      */
-    public int getExpectedNumberOfNodes();
+    public long getExpectedNumberOfNodes();
 
     /**
      * Set task history limit for the swarm cluster

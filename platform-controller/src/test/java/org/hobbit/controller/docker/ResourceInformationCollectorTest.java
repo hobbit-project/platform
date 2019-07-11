@@ -43,7 +43,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         LOGGER.info("Waiting...");
         Thread.sleep(10000);
@@ -67,7 +67,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
 
         LOGGER.info("Waiting...");
         Thread.sleep(10000);
@@ -98,7 +98,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, command);
         assertNotNull("Container ID", containerId);
-        tasks.add(containerId);
+        services.add(containerId);
         LOGGER.info("Waiting for the container {} to start...", containerId);
         Thread.sleep(10000);
 
@@ -109,11 +109,12 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         LOGGER.info("Got {}", usage);
 
         Assert.assertNotNull("CPU stats", usage.getCpuStats());
-        Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);
+        /* FIXME cpu usage */
+        Assert.assertTrue("CPU usage > 0", usage.getCpuStats().getTotalUsage() > 0);
         Assert.assertNotNull("Memory stats", usage.getMemoryStats());
-        Assert.assertTrue(usage.getMemoryStats().getUsageSum() > 0);
+        Assert.assertTrue("Memory usage > 0", usage.getMemoryStats().getUsageSum() > 0);
         Assert.assertNotNull("Disk stats", usage.getDiskStats());
-        Assert.assertTrue(usage.getDiskStats().getFsSizeSum() > 0);
+        Assert.assertTrue("Disk fs size > 0", usage.getDiskStats().getFsSizeSum() > 0);
 
         LOGGER.info("Waiting for the container {} to generate its file...",
                 containerId);
@@ -125,7 +126,7 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
         LOGGER.info("Got {}", usage2);
 
         Assert.assertNotNull("CPU stats", usage2.getCpuStats());
-        Assert.assertTrue(usage2.getCpuStats().getTotalUsage() > 0);
+        Assert.assertTrue("CPU usage (after generating the file) > 0", usage2.getCpuStats().getTotalUsage() > 0);
         // Assert.assertTrue("We expected that the CPU time used to generate the file
         // would increase the overall CPU time",
         // usage.getCpuStats().getTotalUsage() < usage2.getCpuStats().getTotalUsage());

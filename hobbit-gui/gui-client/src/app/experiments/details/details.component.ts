@@ -212,4 +212,8 @@ export class DetailsComponent implements OnInit, OnChanges {
     return 'text/plain';
   }
 
+  isDotLanguage(value: string) {
+    return value.match(/^digraph \{/m);
+  }
+
 }
