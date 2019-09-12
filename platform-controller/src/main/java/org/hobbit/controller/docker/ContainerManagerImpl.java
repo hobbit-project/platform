@@ -227,7 +227,7 @@ public class ContainerManagerImpl implements ContainerManager {
             builder.append(prefix);
             builder.append('-');
         }
-        builder.append(baseName.replaceAll("[/\\.]", "_"));
+        builder.append(baseName.replaceAll("[^-a-z0-9]", "-"));
         int maxLength = DOCKER_MAX_NAME_LENGTH - 1 - uuid.length();
         if (builder.length() > maxLength) {
             builder.setLength(maxLength);
