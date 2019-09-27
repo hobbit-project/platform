@@ -45,6 +45,15 @@ import org.hobbit.vocab.HobbitChallenges;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * A tool to copy challenges, including their tasks,
+ * which also sets new challenge label and execution/creation dates.
+ * New challenge will be marked as open.
+ *
+ * The information is passed with environment.
+ *
+ * See also tool_copy_challenge.sh for easier running with HOBBIT platform.
+ */
 public class ChallengeCopier extends AbstractPlatformConnectorComponent {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChallengeCopier.class);
