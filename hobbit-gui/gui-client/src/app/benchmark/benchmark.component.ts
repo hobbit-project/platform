@@ -43,6 +43,14 @@ export class BenchmarkComponent implements OnInit {
 
       if (this.benchmarks.length === 0)
         this.messageService.add({ severity: 'warn', summary: 'No Benchmarks', detail: 'Did not find any benchmarks.' });
+
+      if (window['repeatExperiment']) {
+        const benchmark = this.benchmarks.find(b => b.id === window['repeatExperiment'].benchmark.id);
+        if (benchmark) {
+          this.configModel.benchmark = benchmark.id;
+          this.onChangeBenchmark(benchmark.id);
+        }
+      }
     });
   }
 
@@ -57,6 +65,22 @@ export class BenchmarkComponent implements OnInit {
         this.selectedBenchmark.systems.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
         this.selectedBenchmark.systems = this.filterInvalidSystems(this.selectedBenchmark.systems);
+
+        if (window['repeatExperiment']) {
+          const system = this.selectedBenchmark.systems.find(s => s.id === window['repeatExperiment'].system.id);
+          if (system) {
+            this.selectedSystem = system;
+          }
+
+          this.selectedBenchmark.configurationParams.forEach(param => {
+            const experimentParamValue = window['repeatExperiment'].benchmark.configurationParamValues.find(v => v.id === param.id);
+            if (experimentParamValue) {
+              param.defaultValue = experimentParamValue.value;
+            }
+          });
+
+          delete window['repeatExperiment'];
+        }
       });
     }
   }

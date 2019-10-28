@@ -36,8 +36,14 @@
                 </ng-template>
 
                 <ng-template #plots>
-                  <div *ngIf="row.group === 'Plots'; else graph">
+                  <div *ngIf="row.group === 'Plots'; else controls">
                     <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                  </div>
+                </ng-template>
+
+                <ng-template #controls>
+                  <div *ngIf="row.group === 'Controls'; else graph">
+                    <button class="btn btn-info" (click)="repeat(ex)">Repeat</button>
                   </div>
                 </ng-template>
 
