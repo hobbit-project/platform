@@ -1,13 +1,13 @@
-<div class="form-check" *ngIf="config.getType() === 'boolean'; else formgroup">
-    <label class="form-check-label" [attr.for]="config.id">
-        <input type="checkbox" class="form-check-input" [formControlName]="config.id" [id]="config.id"
-               [title]="config.description" (change)="updateCheckbox($event)">
-        {{config.name}}
-    </label>
-</div>
+<div class="form-group" [formGroup]="form">
+    <div class="form-check" *ngIf="config.getType() === 'boolean'; else formgroup">
+        <label class="form-check-label" [attr.for]="config.id">
+            <input type="checkbox" class="form-check-input" [formControlName]="config.id" [id]="config.id"
+                   [title]="config.description" (change)="updateCheckbox($event)">
+            {{config.name}}
+        </label>
+    </div>
 
-<ng-template #formgroup>
-    <div class="form-group" [formGroup]="form">
+    <ng-template #formgroup>
         <label [attr.for]="config.id">{{config.name}}</label>
 
         <div [ngSwitch]="config.getType()">
@@ -22,5 +22,5 @@
                 Unable to render input of type {{config.getType()}}.
             </p>
         </div>
-    </div>
-</ng-template>
+    </ng-template>
+</div>
