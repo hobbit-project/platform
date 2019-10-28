@@ -2,6 +2,7 @@
     <div class="form-check" *ngIf="config.getType() === 'boolean'; else formgroup">
         <label class="form-check-label" [attr.for]="config.id">
             <input type="checkbox" class="form-check-input" [formControlName]="config.id" [id]="config.id"
+                   [checked]="form.value[config.id] === 'true'"
                    [title]="config.description" (change)="updateCheckbox($event)">
             {{config.name}}
         </label>
