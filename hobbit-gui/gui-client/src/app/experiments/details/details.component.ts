@@ -162,6 +162,9 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows.push(this.buildRow('Logs', 'System Log', '', t => [
       t.systemLogAvailable ? [`system/query?id=${t.id}`, `${t.id} system log`] : null, 'Download'
     ]));
+    this.rows.push(this.buildRow('Controls', 'Repeat Experiment', '', t => [
+      null, 'Repeat'
+    ]));
 
     this.rows.sort((a, b) => {
       if (a.group !== b.group)
@@ -213,6 +216,11 @@ export class DetailsComponent implements OnInit, OnChanges {
       link.click();
       document.body.removeChild(link);
     });
+  }
+
+  repeat(ex: Experiment) {
+    window['repeatExperiment'] = ex;
+    this.router.navigate(['benchmarks/']);
   }
 
   private getMimeType(format: string): string {
