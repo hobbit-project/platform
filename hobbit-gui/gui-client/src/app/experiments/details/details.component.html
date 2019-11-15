@@ -42,9 +42,13 @@
                 </ng-template>
 
                 <ng-template #controls>
-                  <div *ngIf="row.group === 'Controls'; else graph">
+                  <div *ngIf="row.group === 'Controls'; else colspan">
                     <button class="btn btn-info" (click)="repeat(ex)">Repeat</button>
                   </div>
+                </ng-template>
+
+                <ng-template #colspan>
+                  <span *ngIf="row.values[i] === row.values[i-1] && row.values[i] !== ''; else graph">&larr;</span>
                 </ng-template>
 
                 <ng-template #graph>
