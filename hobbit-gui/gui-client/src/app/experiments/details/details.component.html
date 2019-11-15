@@ -30,22 +30,22 @@
                     <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'CSV')">CSV</button>
                     <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'TXT')">TXT</button>
                   </div>
+                </ng-template>
 
-                  <ng-template #plots>
-                    <div *ngIf="row.group === 'Plots'; else graph">
-                      <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
-                    </div>
+                <ng-template #plots>
+                  <div *ngIf="row.group === 'Plots'; else graph">
+                    <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                  </div>
+                </ng-template>
 
-                    <ng-template #graph>
-                      <div *ngIf="isDotLanguage(row.values[i]); else defaultStyle">
-                        <app-experiment-graph [graph]="row.values[i]"></app-experiment-graph>
-                      </div>
+                <ng-template #graph>
+                  <div *ngIf="isDotLanguage(row.values[i]); else defaultStyle">
+                    <app-experiment-graph [graph]="row.values[i]"></app-experiment-graph>
+                  </div>
+                </ng-template>
 
-                      <ng-template #defaultStyle>
-                        <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
-                      </ng-template>
-                    </ng-template>
-                  </ng-template>
+                <ng-template #defaultStyle>
+                  <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
                 </ng-template>
               </ng-template>
             </p-column>
