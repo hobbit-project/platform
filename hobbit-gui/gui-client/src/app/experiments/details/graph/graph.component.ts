@@ -15,12 +15,18 @@ export class GraphComponent implements OnInit {
   constructor() { }
 
   ngOnInit() {
-    graphviz(this.el.nativeElement)
-    .attributer(function(d) {
-      if (d.tag === 'polygon') {
-        d.attributes.fill = 'transparent';
-      }
-    })
-    .renderDot(this.graph);
+    try {
+      graphviz(this.el.nativeElement)
+      .attributer(function(d) {
+        if (d.tag === 'polygon') {
+          d.attributes.fill = 'transparent';
+        }
+      })
+      .renderDot(this.graph);
+    } catch (e) {
+      this.el.nativeElement.style.removeProperty('width');
+      this.el.nativeElement.style.removeProperty('height');
+      this.el.nativeElement.textContent = 'Error while rendering';
+    }
   }
 }
