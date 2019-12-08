@@ -45,6 +45,22 @@ export class ViewComponent implements OnInit {
     }
   }
 
+  formatRemainingTime(sec) {
+    let fmt = '';
+    if (sec > 60) {
+      let min = Math.floor(sec / 60);
+      if (min > 60) {
+        const hour = Math.floor(min / 60);
+        fmt += hour + ':';
+        min %= 60;
+      }
+      fmt += ('0' + min).substr(-2) + ':';
+      sec %= 60;
+    }
+    fmt += ('0' + sec).substr(-2);
+    return fmt;
+  }
+
   public cancel() {
     this.cancelable = false;
     this.bs.terminateExperiment(this.experiment.experimentId).subscribe(data => {
