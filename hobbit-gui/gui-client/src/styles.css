@@ -20,6 +20,13 @@ button.btn {
     cursor: pointer;
 }
 
+/* Prevent Bootstrap's modal dialog from being too narrow */
+@media (min-width: 576px) {
+  .modal-dialog {
+    max-width: 800px;
+  }
+}
+
 /* Prevent PrimeNG DataTable headers from being unselectable */
 .ui-unselectable-text {
   -webkit-user-select: auto !important;
