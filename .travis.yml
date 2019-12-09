@@ -7,6 +7,10 @@ before_install:
   - docker swarm init
   - docker network create -d overlay --attachable hobbit
 language: java
+jdk:
+  - openjdk8
+  - openjdk11
+  - oraclejdk11
 script:
   - make test
 services:
