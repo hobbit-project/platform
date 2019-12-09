@@ -1,6 +1,6 @@
 import { MessageService } from 'primeng/components/common/messageservice';
 import { QueuedExperimentBean, RunningExperimentBean } from './../../../model';
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { BackendService } from '../../../backend.service';
 
 @Component({
@@ -8,7 +8,7 @@ import { BackendService } from '../../../backend.service';
   templateUrl: './view.component.html',
   styleUrls: ['./view.component.less']
 })
-export class ViewComponent implements OnInit {
+export class ViewComponent implements OnInit, OnChanges {
 
   @Input()
   experiment: QueuedExperimentBean;
@@ -26,6 +26,14 @@ export class ViewComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.update();
+  }
+
+  ngOnChanges() {
+    this.update();
+  }
+
+  update() {
     if (this.experiment instanceof RunningExperimentBean) {
       this.runningExperiment = this.experiment;
 
