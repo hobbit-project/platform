@@ -83,7 +83,7 @@ export class DetailsComponent implements OnInit, OnChanges {
       if (this.details.length !== 0)
         this.buildTableRows(this.details);
 
-      this.sameBenchmark = new Set(this.experiments.map(experiment => experiment.benchmark.id)).size === 1;
+      this.sameBenchmark = new Set(this.experiments.filter(ex => ex.benchmark).map(ex => ex.benchmark.id)).size === 1;
     });
     this.loaded = true;
   }
@@ -93,13 +93,17 @@ export class DetailsComponent implements OnInit, OnChanges {
     const experimentParameterSamples = {};
 
     for (const ex of experiments) {
-      for (const bp of ex.benchmark.configurationParamValues) {
-        if (!experimentParameterSamples[bp.id])
-          experimentParameterSamples[bp.id] = bp;
+      if (ex.benchmark) {
+        for (const bp of ex.benchmark.configurationParamValues) {
+          if (!experimentParameterSamples[bp.id])
+            experimentParameterSamples[bp.id] = bp;
+        }
       }
-      for (const kpi of ex.kpis) {
-        if (!kpiSamples[kpi.id])
-          kpiSamples[kpi.id] = kpi;
+      if (ex.kpis) {
+        for (const kpi of ex.kpis) {
+          if (!kpiSamples[kpi.id])
+            kpiSamples[kpi.id] = kpi;
+        }
       }
     }
 
@@ -134,8 +138,10 @@ export class DetailsComponent implements OnInit, OnChanges {
 
     const diagrams = {};
     for (const ex of experiments) {
-      for (const diag of ex.diagrams) {
-        diagrams[diag.name] = diag.description;
+      if (ex.diagrams) {
+        for (const diag of ex.diagrams) {
+          diagrams[diag.name] = diag.description;
+        }
       }
     }
     for (let i = 0; i < Object.keys(diagrams).length; i++) {
@@ -169,9 +175,11 @@ export class DetailsComponent implements OnInit, OnChanges {
     const values = new Map<String, String>();
     const descriptions = new Map<String, String>();
     for (let i = 0; i < this.experiments.length; i++) {
-      const [name, description] = selector(this.experiments[i]);
-      values['' + i] = name;
-      descriptions['' + i] = description;
+      if (this.experiments[i].benchmark) {
+        const [name, description] = selector(this.experiments[i]);
+        values['' + i] = name;
+        descriptions['' + i] = description;
+      }
     }
     return new TableRow(group, kpi, values, descriptions);
   }
@@ -213,7 +221,7 @@ export class DetailsComponent implements OnInit, OnChanges {
   }
 
   isDotLanguage(value: string) {
-    return value.match(/^digraph \{/m);
+    return value && value.match(/^digraph \{/m);
   }
 
 }

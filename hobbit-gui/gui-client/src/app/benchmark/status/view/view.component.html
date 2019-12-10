@@ -32,7 +32,7 @@
     <div class="col-3" *ngIf="runningExperiment">
       <h5>Max. Runtime</h5>
       <div *ngIf="this.runningExperiment.latestDateToFinish" class="progress-wrapper">
-        <div class="progress-overlay">{{remainingRuntime}}s</div>
+        <div class="progress-overlay">{{formatRemainingTime(remainingRuntime)}}</div>
         <round-progress [current]="runtime" [max]="maxRuntime" [radius]="50"></round-progress>
       </div>
       <div *ngIf="!this.runningExperiment.latestDateToFinish">

@@ -19,7 +19,7 @@
             </p-column>
             <p-column *ngFor="let ex of details; let i = index" styleClass="dataTableWrapping">
               <ng-template pTemplate="header">
-                <span title="Experiment ID">{{ex.id}}</span>
+                <a title="Experiment ID" [href]="'experiments/' + ex.id">{{ex.id}}</a>
               </ng-template>
               <ng-template pTemplate="body" let-row="rowData">
                 <div *ngIf="row.kpiSample.name === 'Error' && row.values[i]; else notError" class="alert alert-danger" role="alert" [title]="row.values[i]">{{row.values[i]}}</div>
@@ -30,22 +30,22 @@
                     <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'CSV')">CSV</button>
                     <button [disabled]="!row.values[i]" class="btn btn-info" (click)="download(row.values[i], 'TXT')">TXT</button>
                   </div>
+                </ng-template>
 
-                  <ng-template #plots>
-                    <div *ngIf="row.group === 'Plots'; else graph">
-                      <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
-                    </div>
+                <ng-template #plots>
+                  <div *ngIf="row.group === 'Plots'; else graph">
+                    <app-experiment-plot [diagram]="row.values[i]"></app-experiment-plot>
+                  </div>
+                </ng-template>
 
-                    <ng-template #graph>
-                      <div *ngIf="isDotLanguage(row.values[i]); else defaultStyle">
-                        <app-experiment-graph [graph]="row.values[i]"></app-experiment-graph>
-                      </div>
+                <ng-template #graph>
+                  <div *ngIf="isDotLanguage(row.values[i]); else defaultStyle">
+                    <app-experiment-graph [graph]="row.values[i]"></app-experiment-graph>
+                  </div>
+                </ng-template>
 
-                      <ng-template #defaultStyle>
-                        <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
-                      </ng-template>
-                    </ng-template>
-                  </ng-template>
+                <ng-template #defaultStyle>
+                  <span [title]="row.descriptions[i] ? row.descriptions[i] : ''">{{row.values[i]}}</span>
                 </ng-template>
               </ng-template>
             </p-column>

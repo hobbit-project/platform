@@ -1,6 +1,6 @@
 import { MessageService } from 'primeng/components/common/messageservice';
 import { QueuedExperimentBean, RunningExperimentBean } from './../../../model';
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, Input } from '@angular/core';
 import { BackendService } from '../../../backend.service';
 
 @Component({
@@ -8,7 +8,7 @@ import { BackendService } from '../../../backend.service';
   templateUrl: './view.component.html',
   styleUrls: ['./view.component.less']
 })
-export class ViewComponent implements OnInit {
+export class ViewComponent implements OnInit, OnChanges {
 
   @Input()
   experiment: QueuedExperimentBean;
@@ -26,6 +26,14 @@ export class ViewComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.update();
+  }
+
+  ngOnChanges() {
+    this.update();
+  }
+
+  update() {
     if (this.experiment instanceof RunningExperimentBean) {
       this.runningExperiment = this.experiment;
 
@@ -43,6 +51,22 @@ export class ViewComponent implements OnInit {
       this.runtime = new Date().getTime() - new Date(this.runningExperiment.startTimestamp).getTime();
       this.remainingRuntime = Math.max(0, Math.ceil((this.maxRuntime - this.runtime) / 1000));
     }
+  }
+
+  formatRemainingTime(sec) {
+    let fmt = '';
+    if (sec > 60) {
+      let min = Math.floor(sec / 60);
+      if (min > 60) {
+        const hour = Math.floor(min / 60);
+        fmt += hour + ':';
+        min %= 60;
+      }
+      fmt += ('0' + min).substr(-2) + ':';
+      sec %= 60;
+    }
+    fmt += ('0' + sec).substr(-2);
+    return fmt;
   }
 
   public cancel() {
