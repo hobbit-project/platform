@@ -39,6 +39,9 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
     @Test
     public void test() throws Exception {
+        LOGGER.info("Waiting to avoid failing container creation, which happens when running the full test suite...");
+        Thread.sleep(10000);
+
         LOGGER.info("Creating first container...");
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
