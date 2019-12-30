@@ -138,10 +138,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
     /**
-     * Environmental variable key for the RabbitMQ broker host name used for experiments.
-     */
-    private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
-    /**
      * Environmental variable key for the local metadata directory.
      */
     private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
@@ -213,10 +209,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Timer used to trigger publishing of challenges and checking for repeatable challenges.
      */
     protected Timer challengeCheckTimer;
-    /**
-     * Name of the RabbitMQ broker used for experiments.
-     */
-    protected String rabbitMQExperimentsHostName;
 
     /**
      * Default constructor.
@@ -239,23 +231,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-        if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
-            rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
-            if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
-                switchCmdToExpRabbit();
-                LOGGER.info("Using {} as message broker for experiments.", rabbitMQExperimentsHostName);
-            } else {
-                LOGGER.warn(
-                        "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
-                        rabbitMQHostName);
-            }
-        } else {
-            // the platform and its experiment are sharing a single RabbitMQ instance
-            rabbitMQExperimentsHostName = rabbitMQHostName;
-            LOGGER.warn(
-                    "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
-                    rabbitMQHostName);
-        }
 
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
@@ -332,7 +307,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      *
      * @throws Exception
      */
-    private void switchCmdToExpRabbit() throws Exception {
+    public void switchCmdToExpRabbit(String rabbitMQHost) throws Exception {
         // We have to close the existing command queue
         try {
             cmdChannel.close();
@@ -345,7 +320,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // like createConnection())
         ConnectionFactory tempFactory = connectionFactory;
         connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost(rabbitMQExperimentsHostName);
+        connectionFactory.setHost(rabbitMQHost);
         connectionFactory.setAutomaticRecoveryEnabled(true);
         // attempt recovery every 10 seconds
         connectionFactory.setNetworkRecoveryInterval(10000);
@@ -373,6 +348,16 @@ public class PlatformController extends AbstractCommandReceivingComponent
             // set the factory back
             connectionFactory = tempFactory;
         }
+    }
+
+    /**
+     * This method closes the command queue and its handling and reopens it on the
+     * default RabbitMQ broker.
+     *
+     * @throws Exception
+     */
+    public void switchCmdToDefaultRabbit() throws Exception {
+        switchCmdToExpRabbit(rabbitMQHostName);
     }
 
     /**
@@ -1301,10 +1286,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     public StorageServiceClient storage() {
         return storage;
-    }
-
-    public String rabbitMQHostName() {
-        return rabbitMQExperimentsHostName;
     }
 
     ///// There are some methods that shouldn't be used by the controller and

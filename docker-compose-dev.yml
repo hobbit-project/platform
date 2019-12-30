@@ -3,10 +3,11 @@ services:
   platform-controller:
     image: hobbitproject/hobbit-platform-controller:dev
     networks:
+      - hobbit
       - hobbit-core
     environment:
+      HOBBIT_RABBIT_IMAGE: "rabbitmq:management"
       HOBBIT_RABBIT_HOST: "rabbit"
-      HOBBIT_RABBIT_EXPERIMENTS_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
       DEPLOY_ENV: "testing"
       GITLAB_USER: "${GITLAB_USER}"
