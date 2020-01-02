@@ -496,9 +496,9 @@ public class ExperimentManager implements Closeable {
                         experimentStatus.addErrorIfNonPresent(HobbitErrors.BenchmarkCrashed);
                     }
                     handleExperimentTermination_unsecured();
+                    consumed = true;
                     // If this is the system container and benchmark and
                     // system are not running
-                    consumed = true;
                 } else if (containerId.equals(experimentStatus.getSystemContainer())
                         && (experimentStatus.getState() == ExperimentStatus.States.INIT)) {
                     LOGGER.info("The system has been stopped before the benchmark has been started. Aborting.");
