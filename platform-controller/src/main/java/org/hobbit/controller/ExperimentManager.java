@@ -41,6 +41,7 @@ import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.docker.ClusterManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
+import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
@@ -301,7 +302,10 @@ public class ExperimentManager implements Closeable {
             LOGGER.info("Using the configured RabbitMQ for the experiment: {}", rabbitMQAddress);
         }
         experimentStatus.setRabbitMQContainer(rabbitMQAddress);
-        controller.switchCmdToExpRabbit(experimentStatus.getRabbitMQContainer());
+
+        RabbitMQConnector rabbitMQConnector = new RabbitMQConnector(controller, experimentStatus.getRabbitMQContainer());
+        controller.setExpRabbitMQConnector(rabbitMQConnector);
+        rabbitMQConnector.init();
     }
 
     // FIXME add javadoc
@@ -486,7 +490,7 @@ public class ExperimentManager implements Closeable {
             }
 
             try {
-                controller.switchCmdToDefaultRabbit();
+                controller.closeExpRabbitMQConnector();
             } catch (Exception e) {
                 LOGGER.error("Could not switch the command queue to the default broker.");
             }
