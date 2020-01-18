@@ -21,54 +21,58 @@ public class DummyContainerManager implements ContainerManager {
         this.terminationCallback = terminationCallback;
     }
 
+    private String containerName(String imageName) {
+        return imageName.replaceFirst(":.*$", "");
+    }
+
     @Override
     public String startContainer(String imageName) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String[] command) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String type, String parent) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] command) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, boolean pullImage) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
                                  String[] netAliases, String[] command) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
                                  String[] netAliases, String[] command, boolean pullImage) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
                                  String[] netAliases, String[] command, String experimentId) {
-        return imageName;
+        return containerName(imageName);
     }
 
     @Override
