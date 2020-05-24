@@ -65,6 +65,13 @@
             <artifactId>docker-client</artifactId>
             <version>8.11.2</version>
         </dependency>
+        <!--Kubernetes Docker Client-->
+        <dependency>
+            <groupId>io.kubernetes</groupId>
+            <artifactId>client-java</artifactId>
+            <version>5.0.0</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- JSON lib -->
         <dependency>
             <groupId>com.google.code.gson</groupId>

@@ -574,7 +574,8 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public String startContainer(String imageName, String containerType, String parentId, String[] env,
+    public String
+        (String imageName, String containerType, String parentId, String[] env,
             String[] netAliases, String[] command, boolean pullImage) {
         if (pullImage) {
             pullImage(imageName);
@@ -675,7 +676,8 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         Service info = null;
         try {
-            info = dockerClient.inspectService(serviceName);
+            info = dockerClient.
+        (serviceName);
         } catch (ServiceNotFoundException e) {
             // return null
         }
