@@ -26,7 +26,9 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
 
     private ApiClient k8sclient;
     private CoreV1Api api;
-    SharedInformerFactory factory;
+    private SharedInformerFactory factory;
+
+    private SharedIndexInformer<V1Node> nodeInformer;
 
     public K8sClusterManagerImpl() throws IOException, ApiException {
         k8sclient = ClientBuilder.cluster().build();
@@ -34,23 +36,8 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
         api = new CoreV1Api();
 
         factory = new SharedInformerFactory();
-    }
 
-
-    @Override
-    public V1PodList getPodsInfo() throws ApiException {
-
-        V1PodList list = api.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
-        // k8sclient = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(new FileReader(kubeConfigPath))).build();
-        // Parameters are currently commented because I do not know the right values yet
-
-        return list;
-    }
-
-    @Override
-    public long getNumberOfNodes() {
-        // Node informer
-        SharedIndexInformer<V1Node> nodeInformer =
+        nodeInformer =
             factory.sharedIndexInformerFor(
                 (CallGeneratorParams params) -> {
                     return api.listNodeCall(
@@ -67,9 +54,37 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
                 },
                 V1Node.class,
                 V1NodeList.class);
+    }
+
+
+    @Override
+    public V1PodList getPodsInfo() throws ApiException {
+
+        V1PodList list = api.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+        // k8sclient = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(new FileReader(kubeConfigPath))).build();
+        // Parameters are currently commented because I do not know the right values yet
+
+        return list;
+    }
+
+    @Override
+    public long getNumberOfNodes() {
+        // Node informer
+
 
         Lister<V1Node> nodeLister = new Lister<V1Node>(nodeInformer.getIndexer());
 
         return nodeLister.list().size();
+    }
+
+    @Override
+    public long getNumberOfNodes(String label) {
+
+        Lister<V1Node> nodeLister = new Lister<V1Node>(nodeInformer.getIndexer());
+        V1Node node = nodeLister.get(label);
+
+        if (node != null)
+            return 1;
+        return 0;
     }
 }

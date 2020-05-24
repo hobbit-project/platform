@@ -5,7 +5,14 @@ import io.kubernetes.client.openapi.models.V1PodList;
 
 public interface K8sClusterManager {
 
+    //sujay
     public V1PodList getPodsInfo() throws ApiException;
 
+    //sujay
     public long getNumberOfNodes();
+
+    //Sam
+    public long getNumberOfNodes(String label);
+
+
 }
