@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose -f docker-compose-elk.yml convert --volumes hostPath
+    kompose.version: 1.21.0 ()
+  creationTimestamp: null
+  labels:
+    io.kompose.service: elasticsearch
+  name: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+    io.kompose.service: elasticsearch
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+    annotations:
+        kompose.cmd: kompose -f docker-compose-elk.yml convert --volumes hostPath
+        kompose.version: 1.21.0 ()
+    creationTimestamp: null
+    labels:
+        io.kompose.network/hobbit: "true"
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.network/hobbit-services: "true"
+        io.kompose.service: elasticsearch
+    spec:
+    containers:
+    - args:
+        - elasticsearch
+        - -E
+        - network.host=0.0.0.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
+        imagePullPolicy: ""
+        name: elasticsearch
+        ports:
+        - containerPort: 9200
+        - containerPort: 9300
+        resources:
+        limits:
+            memory: "8589934592"
+        volumeMounts:
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+        name: elasticsearch-hostpath0
+        readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/jvm.options
+        name: elasticsearch-hostpath1
+        readOnly: true
+        - mountPath: /usr/share/elasticsearch/data
+        name: elasticsearch-hostpath2
+    restartPolicy: Always
+    serviceAccountName: ""
+    volumes:
+    - hostPath:
+        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/elasticsearch.yml
+        name: elasticsearch-hostpath0
+    - hostPath:
+        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/jvm.options
+        name: elasticsearch-hostpath1
+    - hostPath:
+        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/logs
+        name: elasticsearch-hostpath2
+status: {}

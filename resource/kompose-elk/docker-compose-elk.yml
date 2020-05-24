@@ -1,0 +1,74 @@
+version: '3.3'
+services:
+  # ELK logging stack
+  elasticsearch:
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
+    command: elasticsearch -E network.host=0.0.0.0
+    volumes:
+      - ./config/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+      - ./config/elk/jvm.options:/usr/share/elasticsearch/config/jvm.options:ro
+      - ./config/elk/logs:/usr/share/elasticsearch/data
+    # ulimits:
+    #   memlock:
+    #     soft: -1
+    #     hard: -1
+    #   nofile:
+    #     soft: 65536
+    #     hard: 65536
+    # cap_add:
+    #   - IPC_LOCK
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - hobbit
+      - hobbit-core
+      - hobbit-services
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:5.2.2
+    command: logstash -f /usr/share/logstash/config/logstash.conf
+    environment:
+      - constraint:org.hobbit.type==data
+      - LS_JAVA_OPTS=-Xmx256m -Xms256m
+    volumes:
+      - ./config/elk/logstash.conf:/usr/share/logstash/config/logstash.conf:ro
+      - ./config/elk/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    networks:
+      - hobbit
+      - hobbit-core
+      - hobbit-services
+    ports:
+      - "12201:12201"
+      - "12201:12201/udp"
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:5.2.2
+    environment:
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - SERVER_NAME=kibana
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=changeme
+      - XPACK_SECURITY_ENABLED=false
+      - XPACK_MONITORING_ENABLED=false
+    networks:
+      - hobbit-services
+    ports:
+      - "5601:5601"
+
+networks:
+  hobbit:
+    external:
+      name: hobbit
+  hobbit-core:
+    external:
+      name: hobbit-core
+  hobbit-services:
+    external:
+      name: hobbit-services
