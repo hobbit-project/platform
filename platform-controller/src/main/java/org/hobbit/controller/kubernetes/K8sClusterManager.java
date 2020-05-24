@@ -7,5 +7,5 @@ public interface K8sClusterManager {
 
     public V1PodList getPodsInfo() throws ApiException;
 
-    public int getNumberOfNodes();
+    public long getNumberOfNodes();
 }
