@@ -48,7 +48,7 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
     }
 
     @Override
-    public long getNumberOfNodes() {
+    public int getNumberOfNodes() {
         // Node informer
         SharedIndexInformer<V1Node> nodeInformer =
             factory.sharedIndexInformerFor(
@@ -69,6 +69,7 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
                 V1NodeList.class);
 
         Lister<V1Node> nodeLister = new Lister<V1Node>(nodeInformer.getIndexer());
+
         return nodeLister.list().size();
     }
 }
