@@ -78,7 +78,7 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
     }
 
     @Override
-    public int getNumberOfNodes(String label) {
+    public long getNumberOfNodes(String label) {
 
         Lister<V1Node> nodeLister = new Lister<V1Node>(nodeInformer.getIndexer());
         V1Node node = nodeLister.get(label);
