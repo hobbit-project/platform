@@ -31,6 +31,6 @@ indent_style = space
 indent_size = 2
 
 # 2 spaces for md, yaml, ttl, etc..
-[*.{md,yml,iml,json,ttl,ts,js,html,css}]
+[*.{md,yml,iml,json,ttl,ts,js,html,css,yaml}]
 indent_style = space
 indent_size = 2
