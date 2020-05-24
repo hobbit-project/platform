@@ -12,7 +12,7 @@ public interface K8sClusterManager {
     public long getNumberOfNodes();
 
     //Sam
-    public long getNumberOfNodes(String label);
+    public int getNumberOfNodes(String label);
 
 
 }
