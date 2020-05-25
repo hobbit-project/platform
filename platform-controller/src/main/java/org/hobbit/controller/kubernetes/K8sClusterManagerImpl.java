@@ -33,6 +33,7 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
     private CoreV1Api api;
     private SharedInformerFactory factory;
 
+    private long expectedNumberOfPods = 0;
     private SharedIndexInformer<V1Node> nodeInformer;
 
     private String K8S_PODS_NUMBER = null;
@@ -102,10 +103,10 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
 
     public boolean isClusterHealthy() {
         long numberOfPods = getNumberOfNodes();
-        if(numberOfPods >= expectedNumberOfNodes) {
+        if(numberOfPods >= expectedNumberOfPods) {
             return true;
         }
-        LOGGER.debug("Cluster is not healthy ({}/{})",numberOfPods, expectedNumberOfNodes);
+        LOGGER.debug("Cluster is not healthy ({}/{})",numberOfPods, expectedNumberOfPods);
         return false;
     }
 }
