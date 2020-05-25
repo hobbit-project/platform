@@ -1,5 +1,7 @@
 package org.hobbit.controller.kubernetes;
 
+//import io.kubernetes.client.ApiException;
+//import io.kubernetes.client.models.V1PodList;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1PodList;
 
@@ -13,6 +15,9 @@ public interface K8sClusterManager {
 
     //Sam
     public int getNumberOfNodes(String label);
+
+    //Olu
+    public boolean isClusterHealthy();
 
 
 }
