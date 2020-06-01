@@ -72,6 +72,13 @@
 			<version>8.0.2</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<!--	Kubernetes fabric8 client	-->
+		<dependency>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-client</artifactId>
+			<version>4.10.1</version>
+		</dependency>
         <!-- JSON lib -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
