@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.util.List;
 
 public class PodsManagerImpl implements PodsManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
@@ -113,6 +114,13 @@ public class PodsManagerImpl implements PodsManager {
     public Boolean deletePod(String namespace, String name) {
         namespace = K8sUtility.defaultNamespace(namespace);
         Boolean isDeleted = kubeClient.pods().inNamespace(namespace).withName(name).delete();
+        return isDeleted;
+    }
+
+    @Override
+    public Boolean deletePods(String namespace, List<Pod> pods) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        Boolean isDeleted = kubeClient.pods().inNamespace(namespace).delete(pods);
         return isDeleted;
     }
 
