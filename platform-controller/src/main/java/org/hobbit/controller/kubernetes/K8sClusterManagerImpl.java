@@ -1,15 +1,8 @@
 package org.hobbit.controller.kubernetes;
 
-//import io.kubernetes.client.ApiClient;
-//import io.kubernetes.client.ApiException;
-//import io.kubernetes.client.Configuration;
-//import io.kubernetes.client.apis.CoreV1Api;
-//import io.kubernetes.client.informer.SharedIndexInformer;
-//import io.kubernetes.client.informer.SharedInformerFactory;
-//import io.kubernetes.client.informer.cache.Lister;
-//import io.kubernetes.client.models.V1Node;
-//import io.kubernetes.client.models.V1NodeList;
-//import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.informer.SharedIndexInformer;
+import io.kubernetes.client.informer.SharedInformerFactory;
+import io.kubernetes.client.informer.cache.Lister;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
@@ -60,7 +53,7 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
                         params.resourceVersion,
                         params.timeoutSeconds,
                         params.watch,
-                        null, null);
+                        null);
                 },
                 V1Node.class,
                 V1NodeList.class);
