@@ -3,6 +3,7 @@ package org.hobbit.controller.kubernetes.fabric8;
 import io.fabric8.kubernetes.api.model.IntOrString;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.ServiceBuilder;
+import io.fabric8.kubernetes.api.model.ServiceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.slf4j.Logger;
@@ -70,6 +71,25 @@ public class ServiceManagerImpl implements ServiceManager {
 
         service = kubeClient.services().inNamespace(kubeClient.getNamespace()).create(service);
         return service;
+    }
+
+    @Override
+    public ServiceList getServices() {
+        ServiceList services = kubeClient.services().inAnyNamespace().list();
+        return services;
+    }
+
+    @Override
+    public ServiceList getServices(String namespace, String label1, String label2) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        ServiceList services = kubeClient.services().inNamespace(namespace).withLabel(label1, label2).list();
+        return services;
+    }
+
+    @Override
+    public Boolean deleteService(String namespace, String name) {
+        Boolean isDeleted = kubeClient.services().inNamespace(namespace).withName(name).delete();
+        return isDeleted;
     }
 
 
