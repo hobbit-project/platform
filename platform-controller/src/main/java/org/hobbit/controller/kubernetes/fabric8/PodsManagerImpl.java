@@ -9,6 +9,7 @@ import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -122,6 +123,13 @@ public class PodsManagerImpl implements PodsManager {
         namespace = K8sUtility.defaultNamespace(namespace);
         Boolean isDeleted = kubeClient.pods().inNamespace(namespace).delete(pods);
         return isDeleted;
+    }
+
+    @Override
+    public void uploadToPod(String namespace, Pod pod, String filePath, File file) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        kubeClient.pods().inNamespace(namespace).withName(pod.getMetadata().getName())
+            .file(filePath).upload(file.toPath());
     }
 
 

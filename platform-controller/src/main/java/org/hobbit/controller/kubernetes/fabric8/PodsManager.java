@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 
+import java.io.File;
 import java.util.List;
 
 public interface PodsManager {
@@ -31,6 +32,8 @@ public interface PodsManager {
     Boolean deletePod(String namespace, String name);
 
     Boolean deletePods(String namespace, List<Pod> pods);
+
+    void uploadToPod(String namespace, Pod pod, String filePath, File file);
 
 
 }
