@@ -35,5 +35,7 @@ public interface PodsManager {
 
     void uploadToPod(String namespace, Pod pod, String filePath, File file);
 
+    String readFromPod(String namespace, Pod pod, String path);
+
 
 }

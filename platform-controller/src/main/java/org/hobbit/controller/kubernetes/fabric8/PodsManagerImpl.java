@@ -9,10 +9,9 @@ import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PodsManagerImpl implements PodsManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
@@ -130,6 +129,23 @@ public class PodsManagerImpl implements PodsManager {
         namespace = K8sUtility.defaultNamespace(namespace);
         kubeClient.pods().inNamespace(namespace).withName(pod.getMetadata().getName())
             .file(filePath).upload(file.toPath());
+    }
+
+    @Override
+    public String readFromPod(String namespace, Pod pod, String path) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        try (InputStream is = kubeClient.pods()
+            .inNamespace(namespace)
+            .withName(pod.getMetadata().getName())
+            .file(path)
+            .read())  {
+            String result = new BufferedReader(new InputStreamReader(is)).lines().collect(Collectors.joining("\n"));
+            return result;
+        } catch (IOException e) {
+            LOGGER.debug(e.getMessage());
+            return null;
+//            e.printStackTrace();
+        }
     }
 
 
