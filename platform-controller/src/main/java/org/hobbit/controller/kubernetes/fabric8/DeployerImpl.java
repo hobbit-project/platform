@@ -92,5 +92,49 @@ public class DeployerImpl implements  Deployer {
     }
     */
 
+    @Override
+    public DeploymentList getDeployments(String namespace) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        DeploymentList deployments = kubeClient.apps().deployments().inNamespace(namespace).list();
+        return deployments;
+    }
+
+    @Override
+    public DeploymentList getDeployments(String namespace, String label1, String label2) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        DeploymentList deployments = kubeClient.apps().deployments().inNamespace(namespace).withLabel(label1, label2).list();
+        return deployments;
+    }
+
+    @Override
+    public Deployment scaleReplicas(String name, String namespace, int replicas) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        Deployment scaledDeployment = kubeClient.apps().deployments().inNamespace(namespace)
+            .withName(name).edit()
+            .editSpec().withReplicas(replicas).endSpec().done();
+
+        return scaledDeployment;
+    }
+
+    @Override
+    public Boolean deleteDeployment(String namespace, String name) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        Boolean delete = kubeClient.apps().deployments().inNamespace(namespace).withName(name).delete();
+        return delete;
+    }
+
+
+    @Override
+    public void scaleDeployment(String namespace, String name, int scale) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        kubeClient.apps().deployments().inNamespace(namespace).withName(name).scale(scale);
+    }
+
+    @Override
+    public void getDeploymentLogs(String namespace, String name) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        kubeClient.apps().deployments().inNamespace(namespace).withName(name).watchLog(System.out);
+    }
+
 
 }

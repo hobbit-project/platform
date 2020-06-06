@@ -19,4 +19,17 @@ public interface Deployer {
 
     //Deployment createOrReplace(Deployment deployObj, String namespace, int replicas, List<String> labels, List<String> specLabels);
 
+    DeploymentList getDeployments(String namespace);
+
+    DeploymentList getDeployments(String namespace, String label1, String label2);
+
+    Deployment scaleReplicas(String name, String namespace, int replicas);
+
+    Boolean deleteDeployment(String namespace, String name );
+
+    void scaleDeployment(String namespace, String name, int scale);
+
+    void getDeploymentLogs(String namespace, String name);
+
+
 }
