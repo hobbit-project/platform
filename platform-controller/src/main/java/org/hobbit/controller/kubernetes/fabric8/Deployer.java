@@ -3,7 +3,6 @@ package org.hobbit.controller.kubernetes.fabric8;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 
-import java.util.List;
 
 public interface Deployer {
 

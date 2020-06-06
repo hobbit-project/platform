@@ -29,7 +29,7 @@ public class DeployerImpl implements  Deployer {
             return deployment;
         } catch (FileNotFoundException e) {
             LOGGER.debug(e.getMessage());
-            //e.printStackTrace();
+            e.printStackTrace();
             return null;
         }
     }
