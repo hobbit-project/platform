@@ -37,15 +37,6 @@
     </licenses>
     <inceptionYear>2017</inceptionYear>
 
-	<properties>
-		<fabric8.service.name>${project.artifactId}</fabric8.service.name>
-		<fabric8.service.headless>true</fabric8.service.headless>
-
-		<fabric8.metrics.scrape>true</fabric8.metrics.scrape>
-		<fabric8.metrics.port>9779</fabric8.metrics.port>
-		<fabric8.metrics.scheme>http</fabric8.metrics.scheme>
-	</properties>
-
     <dependencies>
         <!-- Hobbit core -->
         <dependency>
@@ -82,15 +73,12 @@
 			<scope>compile</scope>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/io.fabric8/kubernetes-client -->
+		<!--	Kubernetes fabric8 client	-->
 		<dependency>
 			<groupId>io.fabric8</groupId>
 			<artifactId>kubernetes-client</artifactId>
-			<version>4.9.0</version>
-
-
+			<version>4.10.1</version>
 		</dependency>
-
         <!-- JSON lib -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -161,27 +149,6 @@
             <artifactId>system-rules</artifactId>
             <scope>test</scope>
         </dependency>
-
-		<!-- https://mvnrepository.com/artifact/io.fabric8/kubernetes-server-mock -->
-		<dependency>
-			<groupId>io.fabric8</groupId>
-			<artifactId>kubernetes-server-mock</artifactId>
-			<version>4.9.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.fabric8</groupId>
-			<artifactId>kubernetes-model</artifactId>
-			<version>4.9.0</version>
-			<scope>test</scope>
-		</dependency>
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-model</artifactId>
-            <version>4.9.0</version>
-            <scope>compile</scope>
-        </dependency>
-
         <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
     </dependencies>
 
@@ -271,6 +238,4 @@
             </resource>
         </resources>
     </build>
-
-
 </project>
