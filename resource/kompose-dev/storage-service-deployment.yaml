@@ -1,10 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose -f docker-compose-dev.yml convert --volumes hostPath
-    kompose.version: 1.21.0 ()
-  creationTimestamp: null
   labels:
     io.kompose.service: storage-service
   name: storage-service
@@ -12,33 +8,29 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    io.kompose.service: storage-service
+      io.kompose.service: storage-service
   strategy: {}
   template:
     metadata:
-    annotations:
-        kompose.cmd: kompose -f docker-compose-dev.yml convert --volumes hostPath
-        kompose.version: 1.21.0 ()
-    creationTimestamp: null
-    labels:
+      labels:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: storage-service
     spec:
-    containers:
-    - env:
+      containers:
+      - env:
         - name: HOBBIT_RABBIT_HOST
-        value: rabbit
+          value: rabbit
         - name: SPARQL_ENDPOINT_PASSWORD
-        value: Password
+          value: Password
         - name: SPARQL_ENDPOINT_URL
-        value: http://vos:8890/sparql
+          value: http://vos:8890/sparql
         - name: SPARQL_ENDPOINT_USERNAME
-        value: HobbitPlatform
+          value: HobbitPlatform
         image: hobbitproject/hobbit-storage-service:dev
         imagePullPolicy: ""
         name: storage-service
         resources: {}
-    restartPolicy: Always
-    serviceAccountName: ""
-    volumes: null
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
 status: {}

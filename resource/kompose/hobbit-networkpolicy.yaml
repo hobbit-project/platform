@@ -8,7 +8,7 @@ spec:
   - from:
     - podSelector:
         matchLabels:
-          io.kompose.network/hobbit: "true"
+        io.kompose.network/hobbit: "true"
   podSelector:
     matchLabels:
-      io.kompose.network/hobbit: "true"
+    io.kompose.network/hobbit: "true"

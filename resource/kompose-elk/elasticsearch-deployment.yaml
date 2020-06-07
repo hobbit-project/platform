@@ -1,10 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose -f docker-compose-elk.yml convert --volumes hostPath
-    kompose.version: 1.21.0 ()
-  creationTimestamp: null
   labels:
     io.kompose.service: elasticsearch
   name: elasticsearch
@@ -17,10 +13,6 @@ spec:
     type: Recreate
   template:
     metadata:
-    annotations:
-        kompose.cmd: kompose -f docker-compose-elk.yml convert --volumes hostPath
-        kompose.version: 1.21.0 ()
-    creationTimestamp: null
     labels:
         io.kompose.network/hobbit: "true"
         io.kompose.network/hobbit-core: "true"
@@ -54,12 +46,12 @@ spec:
     serviceAccountName: ""
     volumes:
     - hostPath:
-        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/elasticsearch.yml
+        path: ./resource/kompose-elk/config/elk/elasticsearch.yml
         name: elasticsearch-hostpath0
     - hostPath:
-        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/jvm.options
+        path: ./resource/kompose-elk/config/elk/jvm.options
         name: elasticsearch-hostpath1
     - hostPath:
-        path: /Users/hasi/Documents/Masters/PG/platform/resource/kompose-elk/config/elk/logs
+        path: ./resource/kompose-elk/config/elk/logs
         name: elasticsearch-hostpath2
 status: {}

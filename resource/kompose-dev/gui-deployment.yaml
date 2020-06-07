@@ -1,10 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose -f docker-compose-dev.yml convert --volumes hostPath
-    kompose.version: 1.21.0 ()
-  creationTimestamp: null
   labels:
     io.kompose.service: gui
   name: gui
@@ -12,40 +8,36 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-    io.kompose.service: gui
+      io.kompose.service: gui
   strategy: {}
   template:
     metadata:
-    annotations:
-        kompose.cmd: kompose -f docker-compose-dev.yml convert --volumes hostPath
-        kompose.version: 1.21.0 ()
-    creationTimestamp: null
-    labels:
+      labels:
         io.kompose.network/hobbit: "true"
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: gui
     spec:
-    containers:
-    - env:
+      containers:
+      - env:
         - name: CHECK_REALM_URL
-        value: "false"
+          value: "false"
         - name: ELASTICSEARCH_HOST
-        value: elasticsearch
+          value: elasticsearch
         - name: ELASTICSEARCH_HTTP_PORT
-        value: "9200"
+          value: "9200"
         - name: HOBBIT_RABBIT_HOST
-        value: rabbit
+          value: rabbit
         - name: KEYCLOAK_AUTH_URL
-        value: http://localhost:8181/auth
+          value: http://localhost:8181/auth
         - name: KEYCLOAK_DIRECT_URL
-        value: http://keycloak:8080/auth
+          value: http://keycloak:8080/auth
         image: hobbitproject/hobbit-gui:dev
         imagePullPolicy: ""
         name: gui
         ports:
         - containerPort: 8080
         resources: {}
-    restartPolicy: Always
-    serviceAccountName: ""
-    volumes: null
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
 status: {}
