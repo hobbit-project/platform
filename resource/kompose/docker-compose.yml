@@ -1,0 +1,106 @@
+version: '3.3'
+services:
+  platform-controller:
+    image: hobbitproject/hobbit-platform-controller:latest
+    networks:
+      - hobbit-core
+    environment:
+      HOBBIT_RABBIT_HOST: "rabbit"
+      HOBBIT_RABBIT_EXPERIMENTS_HOST: "rabbit"
+      HOBBIT_REDIS_HOST: "redis"
+      DEPLOY_ENV: "testing"
+      GITLAB_USER: "${GITLAB_USER}"
+      GITLAB_EMAIL: "${GITLAB_EMAIL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
+      #LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      SWARM_NODE_NUMBER: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # HOBBIT GUI
+  gui:
+    image: hobbitproject/hobbit-gui:latest
+    ports:
+      - "8080:8080"
+    networks:
+      - hobbit-core
+      - hobbit
+    environment:
+      - HOBBIT_RABBIT_HOST=rabbit
+      #- KEYCLOAK_AUTH_URL=http://192.168.99.100:8181/auth
+      - KEYCLOAK_AUTH_URL=http://localhost:8181/auth
+      - CHECK_REALM_URL=false
+      - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_HTTP_PORT=9200
+
+  # Keycloak user management (used by the GUI)
+  keycloak:
+    image: hobbitproject/hobbit-keycloak:latest
+    ports:
+      - "8181:8080"
+    networks:
+      - hobbit
+    volumes:
+      - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
+
+  # HOBBIT Analysis component
+  analysis:
+    image: hobbitproject/hobbit-analysis-component:latest
+    networks:
+      - hobbit-core
+    environment:
+      - HOBBIT_RABBIT_HOST=rabbit
+
+  # message bus
+  rabbit:
+    image: rabbitmq:management
+    networks:
+      - hobbit
+      - hobbit-core
+    ports:
+      - "8081:15672"
+      # Forwarding the port for testing
+      - "5672:5672"
+
+  # DB for controller
+  redis:
+    image: redis:4.0.7
+    volumes:
+      - ./config/redis-db:/data
+    command: ["redis-server", "/data/redis.conf"]
+    networks:
+      - hobbit-core
+
+  # Triple store
+  vos:
+    image: hobbitproject/virtuoso_opensource:v07.20.3217
+    hostname: vos
+    container_name: vos
+    stop_signal: SIGINT
+    stop_grace_period: 2m
+    volumes:
+      - ./config/db:/opt/virtuoso-opensource/database
+    networks:
+      - hobbit-core
+    ports:
+      - "8890:8890"
+
+  # Storage service
+  storage-service:
+    image: hobbitproject/hobbit-storage-service:latest
+    networks:
+      - hobbit-core
+    environment:
+      - SPARQL_ENDPOINT_URL=http://vos:8890/sparql
+      - HOBBIT_RABBIT_HOST=rabbit
+      - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
+      - SPARQL_ENDPOINT_PASSWORD=Password
+
+networks:
+  hobbit:
+    external:
+      name: hobbit
+  hobbit-core:
+    external:
+      name: hobbit-core

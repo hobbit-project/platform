@@ -1,0 +1,14 @@
+apiVersion: extensions/v1beta1
+kind: NetworkPolicy
+metadata:
+  creationTimestamp: null
+  name: hobbit-services
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+        io.kompose.network/hobbit-services: "true"
+  podSelector:
+    matchLabels:
+    io.kompose.network/hobbit-services: "true"
