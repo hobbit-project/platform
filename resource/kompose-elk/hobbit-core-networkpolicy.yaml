@@ -6,6 +6,8 @@ metadata:
 spec:
   ingress:
   - from:
+    - ipBlock:
+        cidr: 172.16.101.0/24
     - podSelector:
         matchLabels:
         io.kompose.network/hobbit-core: "true"
