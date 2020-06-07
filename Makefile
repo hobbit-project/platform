@@ -109,3 +109,14 @@ lc-run:
 dev:
 	docker-compose -f docker-compose-dev.yml build
 	docker-compose -f docker-compose-dev.yml -f docker-compose.override.yml up
+
+#kubernetes configurations
+
+start-platform:
+	kubectl apply -f ./resource/kompose
+
+start-dev-platform:
+	kubectl apply -f ./resource/kompose-dev
+
+start-elk-platform:
+	kubectl apply -f ./resource/kompose-elk
