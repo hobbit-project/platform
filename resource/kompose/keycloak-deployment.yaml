@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: keycloak
   name: keycloak
+  namespace: hobbit
 spec:
   replicas: 1
   selector:
