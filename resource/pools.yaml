@@ -1,0 +1,9 @@
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: hobbit
+spec:
+  cidr: 172.16.100.0/24
+  blockSize: 29
+  ipipMode: Always
+  natOutgoing: true
