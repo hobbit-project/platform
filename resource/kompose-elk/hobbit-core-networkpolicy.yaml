@@ -4,6 +4,9 @@ metadata:
   creationTimestamp: null
   name: hobbit-core
 spec:
+  policyTypes:
+    - Ingress
+    - Egress
   ingress:
   - from:
     - ipBlock:

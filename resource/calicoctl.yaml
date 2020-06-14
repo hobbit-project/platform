@@ -105,4 +105,3 @@ subjects:
 - kind: ServiceAccount
   name: calicoctl
   namespace: kube-system
-

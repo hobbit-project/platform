@@ -1,9 +1,12 @@
 apiVersion: extensions/v1beta1
 kind: NetworkPolicy
 metadata:
-  creationTimestamp: null
   name: hobbit
+  namespace: hobbit
 spec:
+  policyTypes:
+  - Ingress
+  - Egress
   ingress:
   - from:
     - ipBlock:

@@ -588,7 +588,7 @@ spec:
           image: calico/node:v3.11.3
           env:
             - name: IP_AUTODETECTION_METHOD
-              value: "interface=ens."      
+              value: "interface=ens."
             # Use Kubernetes API as the backing datastore.
             - name: DATASTORE_TYPE
               value: "kubernetes"
@@ -790,5 +790,3 @@ metadata:
 
 ---
 # Source: calico/templates/configure-canal.yaml
-
-

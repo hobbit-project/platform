@@ -5,6 +5,9 @@ metadata:
   name: hobbit-core
   namespace: hobbit-core
 spec:
+  policyTypes:
+  - Ingress
+  - Egress
   ingress:
   - from:
     - ipBlock:
@@ -15,4 +18,3 @@ spec:
   podSelector:
     matchLabels:
       io.kompose.network/hobbit-core: "true"
-

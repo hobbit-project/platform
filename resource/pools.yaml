@@ -31,4 +31,3 @@ spec:
   blockSize: 29
   ipipMode: Always
   natOutgoing: true
-
