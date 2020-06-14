@@ -111,6 +111,7 @@ dev:
 	docker-compose -f docker-compose-dev.yml -f docker-compose.override.yml up
 
 #kubernetes configurations
+#-
 create-cluster:
 	sudo kubeadm init --pod-network-cidr=192.168.0.0/16
 
