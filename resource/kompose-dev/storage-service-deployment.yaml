@@ -27,7 +27,7 @@ spec:
         - name: SPARQL_ENDPOINT_USERNAME
           value: HobbitPlatform
         image: hobbitproject/hobbit-storage-service:dev
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: storage-service
         resources: {}
       restartPolicy: Always

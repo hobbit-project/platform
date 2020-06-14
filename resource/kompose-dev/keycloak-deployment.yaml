@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: keycloak
   name: keycloak
+  namespace: hobbit
 spec:
   replicas: 1
   selector:
@@ -19,7 +20,7 @@ spec:
     spec:
       containers:
       - image: hobbitproject/hobbit-keycloak:latest
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: keycloak
         ports:
         - containerPort: 8080

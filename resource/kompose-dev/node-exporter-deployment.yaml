@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - image: prom/node-exporter
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: node-exporter
         resources: {}
       restartPolicy: Always

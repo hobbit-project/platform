@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - image: hobbitproject/virtuoso_opensource:v07.20.3217
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: vos
         ports:
         - containerPort: 8890

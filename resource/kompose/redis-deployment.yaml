@@ -22,7 +22,7 @@ spec:
         - redis-server
         - /data/redis.conf
         image: redis:4.0.7
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: redis
         resources: {}
         volumeMounts:

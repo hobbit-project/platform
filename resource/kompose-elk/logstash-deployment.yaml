@@ -30,7 +30,7 @@ spec:
         - name: constraint:org.hobbit.type
         value: =data
         image: docker.elastic.co/logstash/logstash:5.2.2
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: logstash
         ports:
         - containerPort: 12201

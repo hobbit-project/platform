@@ -21,7 +21,7 @@ spec:
       - args:
         - --config.file=/config/prometheus.conf
         image: prom/prometheus
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: prometheus
         ports:
         - containerPort: 9090

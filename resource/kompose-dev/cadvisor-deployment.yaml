@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - image: google/cadvisor
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: cadvisor
         resources: {}
         volumeMounts:

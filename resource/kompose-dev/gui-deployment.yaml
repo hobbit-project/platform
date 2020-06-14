@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: gui
   name: gui
+  namespace: hobbit
 spec:
   replicas: 1
   selector:
@@ -32,7 +33,7 @@ spec:
         - name: KEYCLOAK_DIRECT_URL
           value: http://keycloak:8080/auth
         image: hobbitproject/hobbit-gui:dev
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: gui
         ports:
         - containerPort: 8080

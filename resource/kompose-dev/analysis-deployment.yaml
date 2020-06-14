@@ -21,7 +21,7 @@ spec:
         - name: HOBBIT_RABBIT_HOST
           value: rabbit
         image: hobbitproject/hobbit-analysis-component:dev
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: analysis
         resources: {}
       restartPolicy: Always

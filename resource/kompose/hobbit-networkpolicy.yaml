@@ -10,7 +10,7 @@ spec:
         cidr: 172.16.100.0/24
     - podSelector:
         matchLabels:
-        io.kompose.network/hobbit: "true"
+          io.kompose.network/hobbit: "true"
   podSelector:
     matchLabels:
     io.kompose.network/hobbit: "true"

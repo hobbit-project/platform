@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: analysis
   name: analysis
+  namespace: hobbit-core
 spec:
   replicas: 1
   selector:
@@ -21,7 +22,7 @@ spec:
         - name: HOBBIT_RABBIT_HOST
           value: rabbit
         image: hobbitproject/hobbit-analysis-component:latest
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: analysis
         resources: {}
       restartPolicy: Always

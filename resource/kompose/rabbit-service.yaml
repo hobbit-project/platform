@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: rabbit
   name: rabbit
+  namespace: hobbit
 spec:
   ports:
   - name: "8081"

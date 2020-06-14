@@ -4,6 +4,7 @@ metadata:
   labels:
     io.kompose.service: keycloak
   name: keycloak
+  namespace: hobbit
 spec:
   ports:
   - name: "8181"

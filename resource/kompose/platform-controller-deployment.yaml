@@ -33,7 +33,7 @@ spec:
         - name: SWARM_NODE_NUMBER
           value: "1"
         image: hobbitproject/hobbit-platform-controller:latest
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: platform-controller
         resources: {}
         volumeMounts:

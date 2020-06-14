@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - image: rabbitmq:management
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: rabbit
         ports:
         - containerPort: 15672

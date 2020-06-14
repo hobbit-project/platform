@@ -31,7 +31,7 @@ spec:
         - name: XPACK_SECURITY_ENABLED
         value: "false"
         image: docker.elastic.co/kibana/kibana:5.2.2
-        imagePullPolicy: ""
+        imagePullPolicy: IfNotPresent
         name: kibana
         ports:
         - containerPort: 5601
