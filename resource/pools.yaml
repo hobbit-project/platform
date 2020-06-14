@@ -7,3 +7,28 @@ spec:
   blockSize: 29
   ipipMode: Always
   natOutgoing: true
+
+---
+
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: hobbit-core
+spec:
+  cidr: 172.16.101.0/24
+  blockSize: 29
+  ipipMode: Always
+  natOutgoing: true
+
+---
+
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: hobbit-services
+spec:
+  cidr: 172.16.102.0/24
+  blockSize: 29
+  ipipMode: Always
+  natOutgoing: true
+
