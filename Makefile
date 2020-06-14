@@ -111,7 +111,31 @@ dev:
 	docker-compose -f docker-compose-dev.yml -f docker-compose.override.yml up
 
 #kubernetes configurations
-#-
+create-cluster:
+	sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+
+configure-kubectl:
+	mkdir -p $HOME/.kube
+    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+schedule-on-master:
+	kubectl taint nodes --all node-role.kubernetes.io/master-
+
+start-cni:
+	kubectl apply -f ./resource/calico.yaml && kubectl apply -f - <resource/calicoctl.yaml && alias calicoctl="kubectl exec -i -n kube-system calicoctl /calicoctl -- "
+
+create-ippool:
+	calicoctl apply -f ./resource/pools.yaml
+
+create-namespace:
+	kubectl create -f ./resource/namespaces.yaml
+
+assign-to-ippool:
+	kubectl annotate namespace hobbit "cni.projectcalico.org/ipv4pools"='[“hobbit"]'
+	kubectl annotate namespace hobbit-core "cni.projectcalico.org/ipv4pools"='[“hobbit-core"]'
+	kubectl annotate namespace hobbit-service "cni.projectcalico.org/ipv4pools"='[“hobbit-service"]'
+
 start-platform:
 	kubectl apply -f ./resource/kompose
 
