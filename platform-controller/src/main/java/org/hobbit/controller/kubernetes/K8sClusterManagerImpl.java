@@ -22,23 +22,19 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
 
-    private ApiClient k8sclient;
-    private CoreV1Api api;
-    private SharedInformerFactory factory;
+    private final CoreV1Api api;
 
     private long expectedNumberOfPods = 0;
-    private SharedIndexInformer<V1Node> nodeInformer;
-
-    private String K8S_PODS_NUMBER = null;
+    private final SharedIndexInformer<V1Node> nodeInformer;
 
     public K8sClusterManagerImpl() throws IOException, ApiException {
-        k8sclient = ClientBuilder.cluster().build();
+        ApiClient k8sclient = ClientBuilder.standard().build();
         Configuration.setDefaultApiClient(k8sclient);
         api = new CoreV1Api();
 
-        K8S_PODS_NUMBER = System.getenv("K8S_PODS_NUMBER");
+        String k8S_PODS_NUMBER = System.getenv("K8S_PODS_NUMBER");
 
-        factory = new SharedInformerFactory();
+        SharedInformerFactory factory = new SharedInformerFactory();
 
         nodeInformer =
             factory.sharedIndexInformerFor(
@@ -58,15 +54,17 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
                 V1Node.class,
                 V1NodeList.class);
 
-
-        expectedNumberOfPods = Integer.parseInt(K8S_PODS_NUMBER);
+        System.out.println("**********" +k8S_PODS_NUMBER);
+        expectedNumberOfPods = Integer.parseInt(k8S_PODS_NUMBER);
     }
 
 
     @Override
     public V1PodList getPodsInfo() throws ApiException {
 
-        V1PodList list = api.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+        V1PodList list = api.listPodForAllNamespaces(null,
+            null, null, null, null,
+            null, null, null, null);
         // k8sclient = ClientBuilder.kubeconfig(KubeConfig.loadKubeConfig(new FileReader(kubeConfigPath))).build();
         // Parameters are currently commented because I do not know the right values yet
 
