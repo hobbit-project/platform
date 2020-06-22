@@ -27,11 +27,16 @@ public class ClusterManagerImpl implements ClusterManager {
      * Docker client instance
      */
     private DockerClient dockerClient;
+//    private KubernetesClient kubernetesClient;
+
     private long expectedNumberOfNodes = 0;
     private String SWARM_NODE_NUMBER = null;
 
     public ClusterManagerImpl() throws DockerCertificateException {
         dockerClient = DockerUtility.getDockerClient();
+//        kubernetesClient = K8sUtility.kubeClient;
+
+
         SWARM_NODE_NUMBER = System.getenv("SWARM_NODE_NUMBER");
         if(SWARM_NODE_NUMBER == null) {
             expectedNumberOfNodes = 1;

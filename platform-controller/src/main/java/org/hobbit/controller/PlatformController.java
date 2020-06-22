@@ -32,6 +32,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
@@ -60,6 +62,8 @@ import org.hobbit.controller.docker.ImageManagerFacade;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
+import org.hobbit.controller.kubernetes.fabric8.PodsManager;
+import org.hobbit.controller.kubernetes.fabric8.PodsManagerImpl;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -168,6 +172,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected ContainerManager containerManager;
     /**
+     * A manager for Kubernetes pods.
+     */
+    protected PodsManager podsManager;
+    /**
      * The observer of docker containers.
      */
     protected ContainerStateObserver containerObserver;
@@ -237,8 +245,19 @@ public class PlatformController extends AbstractCommandReceivingComponent
     @Override
     public void init() throws Exception {
         // First initialize the super class
-        super.init();
+        // remember to uncomment this super.init();
         LOGGER.debug("Platform controller initialization started.");
+
+        LOGGER.debug("Testing my stuff");
+        podsManager = new PodsManagerImpl();
+        PodList pods = podsManager.getPods();
+
+        for (Pod pod: pods.getItems()) {
+            LOGGER.info("Pod Unique ID "+ pod.getMetadata().getName());
+        }
+
+
+
         if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
             rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
             if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
@@ -672,7 +691,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     /**
      * The controller overrides the super method because it does not need to check
      * for the leading hobbit id and delegates the command handling to the
-     * {@link #receiveCommand(byte, byte[], String, String)} method.
+     * {@link # receiveCommand(byte, byte[], String, String)} method.
      */
     protected void handleCmd(byte bytes[], AMQP.BasicProperties props) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
@@ -1312,7 +1331,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     /**
      * @deprecated Not used inside the controller. Use
-     *             {@link #receiveCommand(byte, byte[], String, String)} instead.
+     *             {@link # receiveCommand(byte, byte[], String, String)} instead.
      */
     @Deprecated
     @Override
