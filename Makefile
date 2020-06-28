@@ -117,8 +117,8 @@ create-cluster:
 
 configure-kubectl:
 	mkdir -p $HOME/.kube
-    sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-    sudo chown $(id -u):$(id -g) $HOME/.kube/config
+	sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+	sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 schedule-on-master:
 	kubectl taint nodes --all node-role.kubernetes.io/master-
