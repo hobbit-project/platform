@@ -15,16 +15,16 @@ import java.io.FileNotFoundException;
 public class ServiceManagerImpl implements ServiceManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
-    private KubernetesClient kubeClient;
+    private KubernetesClient k8sClient;
 
     public ServiceManagerImpl() {
-        this.kubeClient = K8sUtility.kubeClient;
+        this.k8sClient = K8sUtility.getK8sClient();
     }
 
     @Override
     public Service getService(String yaml_file) {
         try {
-            Service service = kubeClient.services().load(new FileInputStream(yaml_file)).get();
+            Service service = k8sClient.services().load(new FileInputStream(yaml_file)).get();
             return service;
         } catch (FileNotFoundException e) {
             LOGGER.debug(e.getMessage());
@@ -37,7 +37,7 @@ public class ServiceManagerImpl implements ServiceManager {
     @Override
     public Service getService(String namespace, String name) {
         namespace = K8sUtility.defaultNamespace(namespace);
-        Service service = kubeClient.services().inNamespace(namespace).withName(name).get();
+        Service service = k8sClient.services().inNamespace(namespace).withName(name).get();
 
         return service;
     }
@@ -69,26 +69,26 @@ public class ServiceManagerImpl implements ServiceManager {
             .endStatus()
             .build();
 
-        service = kubeClient.services().inNamespace(kubeClient.getNamespace()).create(service);
+        service = k8sClient.services().inNamespace(k8sClient.getNamespace()).create(service);
         return service;
     }
 
     @Override
     public ServiceList getServices() {
-        ServiceList services = kubeClient.services().inAnyNamespace().list();
+        ServiceList services = k8sClient.services().inAnyNamespace().list();
         return services;
     }
 
     @Override
     public ServiceList getServices(String namespace, String label1, String label2) {
         namespace = K8sUtility.defaultNamespace(namespace);
-        ServiceList services = kubeClient.services().inNamespace(namespace).withLabel(label1, label2).list();
+        ServiceList services = k8sClient.services().inNamespace(namespace).withLabel(label1, label2).list();
         return services;
     }
 
     @Override
     public Boolean deleteService(String namespace, String name) {
-        Boolean isDeleted = kubeClient.services().inNamespace(namespace).withName(name).delete();
+        Boolean isDeleted = k8sClient.services().inNamespace(namespace).withName(name).delete();
         return isDeleted;
     }
 
