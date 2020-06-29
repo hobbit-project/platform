@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: NetworkPolicy
+metadata:
+  creationTimestamp: null
+  name: hobbit-services
+spec:
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 172.16.102.0/24
+    - podSelector:
+        matchLabels:
+        io.kompose.network/hobbit-services: "true"
+  podSelector:
+    matchLabels:
+    io.kompose.network/hobbit-services: "true"
