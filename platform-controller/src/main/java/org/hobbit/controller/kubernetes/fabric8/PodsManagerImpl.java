@@ -1,8 +1,9 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
-import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.RegistryAuth;
 import io.fabric8.kubernetes.api.model.*;
+import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinition;
+import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinitionList;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.api.model.networking.NetworkPolicy;
@@ -10,8 +11,12 @@ import io.fabric8.kubernetes.api.model.networking.NetworkPolicyBuilder;
 import io.fabric8.kubernetes.api.model.networking.NetworkPolicyList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
-import org.hobbit.controller.docker.ClusterManagerImpl;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.DoneableNetworkAttachmentDefinition;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.NetworkAttachmentDefinition;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.NetworkAttachmentDefinitionList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +73,33 @@ public class PodsManagerImpl implements PodsManager {
                 LOGGING_GELF_ADDRESS_KEY);
         }
 
+        LOGGER.info(
+            "Fuck Shit");
+
+
+        CustomResourceDefinition cniCrd = k8sClient.customResourceDefinitions().withName("network-attachment-definitions.k8s.cni.cncf.io").get();
+
+
+
+        MixedOperation<NetworkAttachmentDefinition, NetworkAttachmentDefinitionList, DoneableNetworkAttachmentDefinition,
+            Resource<NetworkAttachmentDefinition, DoneableNetworkAttachmentDefinition>> netAttachmentDefClient = k8sClient
+            .customResources(cniCrd, NetworkAttachmentDefinition.class, NetworkAttachmentDefinitionList.class, DoneableNetworkAttachmentDefinition.class);
+
+
+        NetworkAttachmentDefinitionList netInterfaces = netAttachmentDefClient.inAnyNamespace().list();
+        LOGGER.info("Will it work? God please");
+
+        for (NetworkAttachmentDefinition net: netInterfaces.getItems()){
+            LOGGER.info("Network Interface: "+ net.getKind());
+            LOGGER.info("Network Interface: "+ net.getMetadata().getName());
+        }
+
+
+        LOGGER.info("It works. Thank You Jesus");
+
+
+
+
         //Retrieve all network policies
         NetworkPolicyList networkPolicyList = k8sClient.network().networkPolicies().list();
         String hobbitNetworkPolicyNamespace = null;
@@ -83,6 +115,12 @@ public class PodsManagerImpl implements PodsManager {
                 break;
             }
         }
+
+
+        //CustomResourceDefinitionList crdNetInterfaceList = k8sClient.customResourceDefinitions().withField("kind","NetworkAttachmentDefinition").list();
+
+
+
 
 
         if(networkPolicyList == null) {

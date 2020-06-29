@@ -2,6 +2,8 @@ package org.hobbit.controller.kubernetes.fabric8;
 
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.internal.KubernetesDeserializer;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.NetworkAttachmentDefinition;
 
 public class K8sUtility {
 
@@ -16,6 +18,7 @@ public class K8sUtility {
         if(k8sClient == null) {
             k8sClient = new DefaultKubernetesClient();
         }
+        KubernetesDeserializer.registerCustomKind("k8s.cni.cncf.io/v1", "NetworkAttachmentDefinition", NetworkAttachmentDefinition.class);
         return k8sClient;
     }
 
