@@ -1,5 +1,6 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
+import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.RegistryAuth;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinition;
@@ -48,7 +49,7 @@ public class PodsManagerImpl implements PodsManager {
     /**
      * Default network policy namespace for new pods
      */
-    public static final String HOBBIT_K8S_NAMESPACE = "hobbit";
+    public static final String HOBBIT_K8S_NETWORK = "hobbit";
 
     public PodsManagerImpl() {
         this.k8sClient = K8sUtility.getK8sClient();
@@ -73,8 +74,7 @@ public class PodsManagerImpl implements PodsManager {
                 LOGGING_GELF_ADDRESS_KEY);
         }
 
-        LOGGER.info(
-            "Fuck Shit");
+        LOGGER.info("Shit");
 
 
         CustomResourceDefinition cniCrd = k8sClient.customResourceDefinitions().withName("network-attachment-definitions.k8s.cni.cncf.io").get();
@@ -89,9 +89,28 @@ public class PodsManagerImpl implements PodsManager {
         NetworkAttachmentDefinitionList netInterfaces = netAttachmentDefClient.inAnyNamespace().list();
         LOGGER.info("Will it work? God please");
 
+
+        // try to find hobbit network in existing network interfaces
+        String hobbitNetwork = null;
         for (NetworkAttachmentDefinition net: netInterfaces.getItems()){
             LOGGER.info("Network Interface: "+ net.getKind());
             LOGGER.info("Network Interface: "+ net.getMetadata().getName());
+            if (net.getMetadata().getName().equals(HOBBIT_K8S_NETWORK)){
+                hobbitNetwork = net.getSpec().getConfig().getType();
+                break;
+            }
+        }
+
+        // if not found - create new one
+        if (hobbitNetwork == null){
+            LOGGER.warn("Could not find hobbit kubernetes CNI network interface, creating a new one");
+
+            NetworkAttachmentDefinition network = new NetworkAttachmentDefinition();
+            ObjectMeta meta = new ObjectMeta();
+            meta.setName("HOBBIT_K8S_NETWORK");
+
+            // Not finished
+            // Still adding other properties
         }
 
 
@@ -99,48 +118,6 @@ public class PodsManagerImpl implements PodsManager {
 
 
 
-
-        //Retrieve all network policies
-        NetworkPolicyList networkPolicyList = k8sClient.network().networkPolicies().list();
-        String hobbitNetworkPolicyNamespace = null;
-
-        List<NetworkPolicy> networkPolicies = networkPolicyList.getItems();
-
-
-        for(NetworkPolicy netPolicy : networkPolicies) {
-
-            LOGGER.info("NetworkPolicy : ", netPolicy.getMetadata().getUid());
-            if (netPolicy.getMetadata().getNamespace().equals(HOBBIT_K8S_NAMESPACE)) {
-                hobbitNetworkPolicyNamespace = netPolicy.getMetadata().getUid();
-                break;
-            }
-        }
-
-
-        //CustomResourceDefinitionList crdNetInterfaceList = k8sClient.customResourceDefinitions().withField("kind","NetworkAttachmentDefinition").list();
-
-
-
-
-
-        if(networkPolicyList == null) {
-            LOGGER.info("No existing Network Policy found");
-
-            // Create NetworkPolicy
-            NetworkPolicy networkPolicy = new NetworkPolicyBuilder()
-                .withNewMetadata()
-                .withName(HOBBIT_K8S_NAMESPACE)
-                .endMetadata()
-                .withNewSpec()
-                .withNewPodSelector()
-                .withMatchLabels(new HashMap<String, String>() {{
-                    put("project", "hobbit");
-                }})
-                .endPodSelector()
-                .endSpec()
-                .build();
-
-        }
 
     }
 
