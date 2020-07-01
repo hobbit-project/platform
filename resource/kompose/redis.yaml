@@ -23,12 +23,12 @@ spec:
         image: redis:4.0.7
         imagePullPolicy: IfNotPresent
         volumeMounts:
-        - name: redis-db
+        - name: redis-server
           mountPath: "/data"
         command:
           - redis-server
           - "/data/redis.conf"
       volumes:
-      - name: redis-db
+      - name: redis-server
         hostPath:
           path: /config/redis-db
