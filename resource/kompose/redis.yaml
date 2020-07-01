@@ -31,4 +31,4 @@ spec:
       volumes:
       - name: redis-db
         hostPath:
-        path: /config/redis-db
+          path: /config/redis-db
