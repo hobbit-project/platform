@@ -48,4 +48,4 @@ spec:
   - name: http
     port: 8890
   selector:
-    app: 8890
+    app: vos
