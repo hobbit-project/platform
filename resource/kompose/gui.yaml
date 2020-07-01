@@ -29,7 +29,7 @@ spec:
             value: "http://localhost:8181/auth"
           - name: CHECK_REALM_URL
             value: "false"
-           - name: KEYCLOAK_DIRECT_URL
+          - name: KEYCLOAK_DIRECT_URL
             value: "http://keycloak:8080/auth"
           - name: ELASTICSEARCH_HOST
             value: "elasticsearch"
