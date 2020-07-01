@@ -43,11 +43,11 @@ spec:
       volumes:
       - name: keycloakdata
         hostPath:
-          path: ./config/keycloak
+          path: /config/keycloak
 
 ---
 
-apiVersion: apps/v1
+apiVersion: v1
 kind: Service
 metadata:
   name: keycloak
