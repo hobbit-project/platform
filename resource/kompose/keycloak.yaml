@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit\"]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+      annotations:
+        "cni.projectcalico.org/ipv4pools": "[\"hobbit\"]"
+    spec:
+      containers:
+      - name: keycloak
+        image: hobbitproject/hobbit-keycloak:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HOBBIT_RABBIT_HOST
+          value: "rabbit"
+        - name: KEYCLOAK_AUTH_URL
+          value: "http://localhost:8181/auth"
+        - name: CHECK_REALM_URL
+          value: "false"
+        - name: KEYCLOAK_DIRECT_URL
+          value: "http://keycloak:8080/auth"
+        - name: ELASTICSEARCH_HOST
+          value: "elasticsearch"
+        - name: ELASTICSEARCH_HTTP_PORT
+          value: "9200"
+        ports:
+        - containerPort: 8080
+          volumeMounts:
+          - name: keycloakdata
+            mountPath: "/opt/jboss/keycloak/standalone/data/db"
+      volumes:
+      - name: keycloakdata
+        hostPath:
+          path: ./config/keycloak
+
+---
+
+apiVersion: apps/v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit\"]"
+spec:
+  ports:
+    - port: 8181
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: keycloak
