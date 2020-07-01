@@ -22,6 +22,7 @@ spec:
       - name: vos
         image: hobbitproject/virtuoso_opensource:v07.20.3217
         imagePullPolicy: IfNotPresent
+        privileged: true
         ports:
         - name: http
           containerPort: 8890
