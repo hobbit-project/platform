@@ -19,19 +19,19 @@ spec:
         "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
     spec:
       containers:
-        - name: vos
-          image: hobbitproject/virtuoso_opensource:v07.20.3217
-          imagePullPolicy: IfNotPresent
-          ports:
-            - name: http
-              containerPort: 8890
-          volumeMounts:
-            - name: db
-              mountPath: "/opt/virtuoso-opensource/database"
-      volumes:
+      - name: vos
+        image: hobbitproject/virtuoso_opensource:v07.20.3217
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8890
+        volumeMounts:
         - name: db
-          hostPath:
-            path: /config/db
+          mountPath: "/opt/virtuoso-opensource/database"
+      volumes:
+      - name: db
+        hostPath:
+          path: /config/db
 
 ---
 
@@ -45,7 +45,7 @@ metadata:
     "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
 spec:
   ports:
-    - name: http
-      port: 8890
+  - name: http
+    port: 8890
   selector:
     app: 8890
