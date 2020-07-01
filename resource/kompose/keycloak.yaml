@@ -37,9 +37,9 @@ spec:
           value: "9200"
         ports:
         - containerPort: 8080
-          volumeMounts:
-          - name: keycloakdata
-            mountPath: "/opt/jboss/keycloak/standalone/data/db"
+        volumeMounts:
+        - name: keycloakdata
+          mountPath: "/opt/jboss/keycloak/standalone/data/db"
       volumes:
       - name: keycloakdata
         hostPath:
