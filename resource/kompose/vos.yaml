@@ -24,6 +24,7 @@ spec:
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
+          allowPrivilegeEscalation: true
         ports:
         - name: http
           containerPort: 8890
