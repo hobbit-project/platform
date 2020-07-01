@@ -19,9 +19,9 @@ spec:
         "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
     spec:
       containers:
-        - name: analysis
-          image: hobbitproject/hobbit-analysis-component:latest
-          imagePullPolicy: IfNotPresent
-          env:
-            - name: HOBBIT_RABBIT_HOST
-              value: "rabbit"
+      - name: analysis
+        image: hobbitproject/hobbit-analysis-component:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HOBBIT_RABBIT_HOST
+          value: "rabbit"
