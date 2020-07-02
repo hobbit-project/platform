@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vos
+  labels:
+    app: vos
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vos
+  template:
+    metadata:
+      labels:
+        app: vos
+      annotations:
+        "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
+    spec:
+      containers:
+        - name: vos
+          image: hobbitproject/virtuoso_opensource:v07.20.3217
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            allowPrivilegeEscalation: true
+          ports:
+            - name: http
+              containerPort: 8890
+          volumeMounts:
+            - name: db
+              mountPath: "/opt/virtuoso-opensource/database"
+      volumes:
+        - name: db
+          hostPath:
+            path: /config/db
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: vos
+  labels:
+    app: vos
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
+spec:
+  ports:
+    - name: http
+      port: 8890
+  selector:
+    app: vos
