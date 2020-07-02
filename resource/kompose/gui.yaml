@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gui
+  labels:
+    app: gui
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\",\"hobbit\"]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gui
+  template:
+    metadata:
+      labels:
+        app: gui
+      annotations:
+        "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\",\"hobbit\"]"
+    spec:
+      containers:
+        - name: gui
+          image: hobbitproject/hobbit-gui:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: HOBBIT_RABBIT_HOST
+              value: "rabbit"
+            - name: KEYCLOAK_AUTH_URL
+              value: "http://localhost:8181/auth"
+            - name: CHECK_REALM_URL
+              value: "false"
+            - name: KEYCLOAK_DIRECT_URL
+              value: "http://keycloak:8080/auth"
+            - name: ELASTICSEARCH_HOST
+              value: "elasticsearch"
+            - name: ELASTICSEARCH_HTTP_PORT
+              value: "9200"
+          ports:
+            - containerPort: 8080
+
+---
+
+apiVersion: apps/v1
+kind: Service
+metadata:
+  name: gui
+  labels:
+    app: gui
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\",\"hobbit\"]"
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+  selector:
+    app: gui
