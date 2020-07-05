@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: platform-controller
+  name: platform-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: platform-controller
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.service: platform-controller
+    spec:
+      containers:
+      - env:
+        - name: DEPLOY_ENV
+          value: testing
+        - name: GITLAB_EMAIL
+        - name: GITLAB_TOKEN
+        - name: GITLAB_USER
+        - name: HOBBIT_RABBIT_EXPERIMENTS_HOST
+          value: rabbit
+        - name: HOBBIT_RABBIT_HOST
+          value: rabbit
+        - name: HOBBIT_REDIS_HOST
+          value: redis
+        - name: LOGGING_GELF_ADDRESS
+          value: udp://localhost:12201
+        - name: PROMETHEUS_HOST
+          value: prometheus
+        - name: PROMETHEUS_PORT
+          value: "9090"
+        - name: SWARM_NODE_NUMBER
+          value: "1"
+        image: hobbitproject/hobbit-platform-controller:dev
+        imagePullPolicy: IfNotPresent
+        name: platform-controller
+        resources: {}
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: platform-controller-claim0
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: platform-controller-claim0
+        persistentVolumeClaim:
+          claimName: platform-controller-claim0
+status: {}

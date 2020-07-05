@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: node-exporter
+  name: node-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: node-exporter
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.service: node-exporter
+    spec:
+      containers:
+      - image: prom/node-exporter
+        imagePullPolicy: IfNotPresent
+        name: node-exporter
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

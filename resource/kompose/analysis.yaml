@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analysis
+  labels:
+    app: analysis
+  annotations:
+    "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analysis
+  template:
+    metadata:
+      labels:
+        app: analysis
+      annotations:
+        "cni.projectcalico.org/ipv4pools": "[\"hobbit-core\"]"
+    spec:
+      containers:
+      - name: analysis
+        image: hobbitproject/hobbit-analysis-component:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: HOBBIT_RABBIT_HOST
+          value: "rabbit"

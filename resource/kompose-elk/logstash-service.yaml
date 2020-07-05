@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: logstash
+  name: logstash
+spec:
+  ports:
+  - name: "12201"
+    port: 12201
+    targetPort: 12201
+  - name: 12201-udp
+    port: 12201
+    protocol: UDP
+    targetPort: 12201
+  selector:
+    io.kompose.service: logstash
+status:
+  loadBalancer: {}

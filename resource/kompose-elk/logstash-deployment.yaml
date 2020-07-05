@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: logstash
+  name: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+    io.kompose.service: logstash
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+    labels:
+        io.kompose.network/hobbit: "true"
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.network/hobbit-services: "true"
+        io.kompose.service: logstash
+    spec:
+    containers:
+    - args:
+        - logstash
+        - -f
+        - /usr/share/logstash/config/logstash.conf
+        env:
+        - name: LS_JAVA_OPTS
+        value: -Xmx256m -Xms256m
+        - name: constraint:org.hobbit.type
+        value: =data
+        image: docker.elastic.co/logstash/logstash:5.2.2
+        imagePullPolicy: IfNotPresent
+        name: logstash
+        ports:
+        - containerPort: 12201
+        - containerPort: 12201
+        protocol: UDP
+        resources: {}
+        volumeMounts:
+        - mountPath: /usr/share/logstash/config/logstash.conf
+        name: logstash-hostpath0
+        readOnly: true
+        - mountPath: /usr/share/logstash/config/logstash.yml
+        name: logstash-hostpath1
+        readOnly: true
+    restartPolicy: Always
+    serviceAccountName: ""
+    volumes:
+    - hostPath:
+        path: ./resource/kompose-elk/config/elk/logstash.conf
+        name: logstash-hostpath0
+    - hostPath:
+        path: ./resource/kompose-elk/config/elk/logstash.yml
+        name: logstash-hostpath1
+status: {}
