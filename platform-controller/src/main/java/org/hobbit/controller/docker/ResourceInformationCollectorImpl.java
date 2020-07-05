@@ -44,7 +44,7 @@ import com.spotify.docker.client.messages.swarm.Task;
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
  */
-public class ResourceInformationCollectorImpl implements ResourceInformationCollector {
+public class  ResourceInformationCollectorImpl implements ResourceInformationCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollectorImpl.class);
 

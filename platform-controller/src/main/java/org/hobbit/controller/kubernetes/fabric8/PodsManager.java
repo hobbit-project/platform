@@ -31,7 +31,7 @@ public interface PodsManager {
 
     String getPodLog(String name, String namespace );
 
-    LogWatch watchPod(String name, String namespace );
+    LogWatch getStats(String podName, String namespace );
 
     Boolean deletePod(String namespace, String name);
 

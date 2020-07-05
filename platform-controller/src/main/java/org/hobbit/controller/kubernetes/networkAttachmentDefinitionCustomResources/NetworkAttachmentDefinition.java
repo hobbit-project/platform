@@ -34,7 +34,7 @@ public class NetworkAttachmentDefinition extends CustomResource {
 
     @Override
     public String toString() {
-        return "Star{" +
+        return "NetworkAttachmentDefinition{" +
             "apiVersion='" + getApiVersion() + "'" +
             ", metadata=" + getMetadata() +
             ", spec=" + spec +

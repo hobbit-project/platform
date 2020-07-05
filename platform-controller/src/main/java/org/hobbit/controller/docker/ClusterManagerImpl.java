@@ -34,7 +34,6 @@ public class ClusterManagerImpl implements ClusterManager {
 
     public ClusterManagerImpl() throws DockerCertificateException {
         dockerClient = DockerUtility.getDockerClient();
-//        kubernetesClient = K8sUtility.kubeClient;
 
 
         SWARM_NODE_NUMBER = System.getenv("SWARM_NODE_NUMBER");

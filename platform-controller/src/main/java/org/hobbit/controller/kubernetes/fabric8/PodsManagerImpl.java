@@ -15,13 +15,13 @@ import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
-import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.DoneableNetworkAttachmentDefinition;
-import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.NetworkAttachmentDefinition;
-import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.NetworkAttachmentDefinitionList;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.*;
+import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -74,9 +74,6 @@ public class PodsManagerImpl implements PodsManager {
                 LOGGING_GELF_ADDRESS_KEY);
         }
 
-        LOGGER.info("Shit");
-
-
         CustomResourceDefinition cniCrd = k8sClient.customResourceDefinitions().withName("network-attachment-definitions.k8s.cni.cncf.io").get();
 
 
@@ -87,8 +84,6 @@ public class PodsManagerImpl implements PodsManager {
 
 
         NetworkAttachmentDefinitionList netInterfaces = netAttachmentDefClient.inAnyNamespace().list();
-        LOGGER.info("Will it work? God please");
-
 
         // try to find hobbit network in existing network interfaces
         String hobbitNetwork = null;
@@ -108,18 +103,43 @@ public class PodsManagerImpl implements PodsManager {
             NetworkAttachmentDefinition network = new NetworkAttachmentDefinition();
             ObjectMeta meta = new ObjectMeta();
             meta.setName("HOBBIT_K8S_NETWORK");
+            network.setMetadata(meta);
 
-            // Not finished
-            // Still adding other properties
+            Spec netSpec = new Spec();
+            Config netCofig = new Config();
+
+            netCofig.setCniVersion("0.3.0");
+            netCofig.setType("macvlan");
+            netCofig.setMaster("eth0");
+            netCofig.setMode("bridge");
+
+            Ipam ipam = new Ipam();
+            ipam.setType("host-local");
+            ipam.setSubnet("192.168.59.0/24");
+            ipam.setRangeStart("192.168.59.2");
+            ipam.setRangeEnd("192.168.59.2");
+
+            List<Routes> routes = new ArrayList<>();
+            Routes routes1 = new Routes();
+            routes1.setDst("0.0.0.0/0");
+            routes.add(routes1);
+
+            ipam.setRoutes(routes);
+            ipam.setGateway("192.168.59.1");
+
+            netCofig.setIpam(ipam);
+            netSpec.setConfig(netCofig);
+            network.setSpec(netSpec);
+
+
+            netAttachmentDefClient.createOrReplace(network);
+
+            LOGGER.info("Hobbit Network created: ", network);
+
         }
-
-
-        LOGGER.info("It works. Thank You Jesus");
-
-
-
-
     }
+
+
 
     /**
      * Generates new unique instance name based on image name
@@ -239,6 +259,13 @@ public class PodsManagerImpl implements PodsManager {
 
 
     @Override
+    public Pod getPod(String namespace, String name) {
+        namespace = K8sUtility.defaultNamespace(namespace);
+        Pod pod = k8sClient.pods().inNamespace(namespace).withName(name).get();
+        return pod;
+    }
+
+    @Override
     public Pod getPod(String yaml_path){
 
         Pod pod = null;
@@ -276,12 +303,7 @@ public class PodsManagerImpl implements PodsManager {
         return podList;
     }
 
-    @Override
-    public Pod getPod(String namespace, String name) {
-        namespace = K8sUtility.defaultNamespace(namespace);
-        Pod pod = k8sClient.pods().inNamespace(namespace).withName(name).get();
-        return pod;
-    }
+
 
     @Override
     public void createPod(String name, String container_name, String image, int port, String namespace) {
@@ -320,9 +342,9 @@ public class PodsManagerImpl implements PodsManager {
     }
 
     @Override
-    public LogWatch watchPod(String name, String namespace) {
+    public LogWatch getStats(String podName, String namespace) {
         namespace = K8sUtility.defaultNamespace(namespace);
-        LogWatch watch = k8sClient.pods().inNamespace(namespace).withName(name).tailingLines(10).watchLog(System.out);
+        LogWatch watch = k8sClient.pods().inNamespace(namespace).withName(podName).tailingLines(10).watchLog(System.out);
         return watch;
     }
 
