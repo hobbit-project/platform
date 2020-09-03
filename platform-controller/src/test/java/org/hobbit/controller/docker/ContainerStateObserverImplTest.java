@@ -66,7 +66,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         // step two
         ContainerTerminationCallbackImpl cb2 = new ContainerTerminationCallbackImpl() {
             @Override
-            public void notifyTermination(String containerId, int exitCode) {
+            public void notifyTermination(String containerId, long exitCode) {
                 try {
                     // check that correct values were set
                     assertEquals(containerId, containerTwoId);
@@ -86,7 +86,7 @@ public class ContainerStateObserverImplTest extends ContainerManagerBasedTest {
         // step one
         ContainerTerminationCallbackImpl cb1 = new ContainerTerminationCallbackImpl() {
             @Override
-            public void notifyTermination(String containerId, int exitCode) {
+            public void notifyTermination(String containerId, long exitCode) {
                 try {
                     // check that correct values were set
                     assertEquals("Container ID", containerOneId, containerId);

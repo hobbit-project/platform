@@ -94,7 +94,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                 }
                 for (String id : containerIds) {
                     try {
-                        Integer exitStatus = manager.getContainerExitCode(id);
+                        Long exitStatus = manager.getContainerExitCode(id);
 
                         if (exitStatus != null) {
                             // notify all callbacks

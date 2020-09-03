@@ -562,7 +562,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     @Override
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         LOGGER.info("Container " + containerId + " stopped with exitCode=" + exitCode);
         // Check whether this container was part of an experiment
         expManager.notifyTermination(containerId, exitCode);

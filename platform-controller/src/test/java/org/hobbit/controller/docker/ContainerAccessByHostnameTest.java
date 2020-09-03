@@ -40,7 +40,7 @@ public class ContainerAccessByHostnameTest extends ContainerManagerBasedTest {
 
         dockerClient.connectToNetwork(clientContainer, ContainerManagerImpl.HOBBIT_DOCKER_NETWORK);
         dockerClient.startContainer(clientContainer);
-        int clientStatusCode = dockerClient.waitContainer(clientContainer).statusCode();
+        long clientStatusCode = dockerClient.waitContainer(clientContainer).statusCode();
         assertEquals("Ping exit code", 0, clientStatusCode);
     }
 

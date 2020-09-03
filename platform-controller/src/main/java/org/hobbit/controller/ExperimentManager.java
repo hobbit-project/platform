@@ -481,7 +481,7 @@ public class ExperimentManager implements Closeable {
      * @param exitCode
      *            exit code of the termination
      */
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         boolean consumed = false;
         synchronized (experimentMutex) {
             if (experimentStatus != null) {

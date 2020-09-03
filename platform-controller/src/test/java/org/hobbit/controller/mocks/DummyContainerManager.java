@@ -111,7 +111,7 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public Integer getContainerExitCode(String serviceName) {
+    public Long getContainerExitCode(String serviceName) {
         return null;
     }
 

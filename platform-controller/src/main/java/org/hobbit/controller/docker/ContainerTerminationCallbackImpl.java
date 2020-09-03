@@ -21,10 +21,10 @@ package org.hobbit.controller.docker;
  */
 public class ContainerTerminationCallbackImpl implements ContainerTerminationCallback {
     public String containerId;
-    public int exitCode;
+    public long exitCode;
 
     @Override
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         this.containerId = containerId;
         this.exitCode = exitCode;
     }
