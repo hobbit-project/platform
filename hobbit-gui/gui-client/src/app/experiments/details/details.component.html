@@ -1,3 +1,6 @@
+<div *ngIf="!loaded">
+  <app-loader></app-loader>
+</div>
 <div *ngIf="loaded">
   <div *ngIf="!rows">
     <p>No experiment results found</p>

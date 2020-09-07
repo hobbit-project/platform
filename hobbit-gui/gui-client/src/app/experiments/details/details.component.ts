@@ -84,8 +84,8 @@ export class DetailsComponent implements OnInit, OnChanges {
         this.buildTableRows(this.details);
 
       this.sameBenchmark = new Set(this.experiments.filter(ex => ex.benchmark).map(ex => ex.benchmark.id)).size === 1;
+      this.loaded = true;
     });
-    this.loaded = true;
   }
 
   private buildTableRows(experiments) {

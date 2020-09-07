@@ -13,6 +13,9 @@
   </app-page-header>
 </div>
 <div class="container-fluid">
+  <div *ngIf="!loaded">
+    <app-loader></app-loader>
+  </div>
   <div *ngIf="loaded">
     <div class="row">
       <div class="col-md-12">
