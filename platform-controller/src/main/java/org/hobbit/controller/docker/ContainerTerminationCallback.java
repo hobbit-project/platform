@@ -34,5 +34,5 @@ public interface ContainerTerminationCallback {
      * @param exitCode
      *            the exit code of the container
      */
-    public void notifyTermination(String containerId, int exitCode);
+    public void notifyTermination(String containerId, long exitCode);
 }

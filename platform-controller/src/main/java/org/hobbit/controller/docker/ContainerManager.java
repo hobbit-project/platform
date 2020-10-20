@@ -35,7 +35,7 @@ public interface ContainerManager {
      * Exit code of containers
      * where process was terminated with SIGKILL (number 9).
      */
-    public static int DOCKER_EXITCODE_SIGKILL = 128 + 9;
+    public static long DOCKER_EXITCODE_SIGKILL = 128 + 9;
 
     /**
      * Label that denotes container type
@@ -255,7 +255,7 @@ public interface ContainerManager {
      *
      * @param container
      */
-    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
+    public Long getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
 
     /**
      * Returns container info

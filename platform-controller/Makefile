@@ -16,8 +16,11 @@ run:
 		org.hobbit.controller.PlatformController
 
 test:
+	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we will be not be able to connect to the RabbitMQ platform will create.
 	docker-compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus rabbit redis
+	HOBBIT_RABBIT_IMAGE=rabbitmq:management \
 	HOBBIT_RABBIT_HOST=localhost \
+	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
 	PROMETHEUS_HOST=localhost \
 	mvn --update-snapshots -Dtest=$(test) clean test

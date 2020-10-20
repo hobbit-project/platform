@@ -38,7 +38,7 @@ public class DummyPlatformController extends PlatformController {
     }
 
     @Override
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         expManager.notifyTermination(containerId, exitCode);
     }
 

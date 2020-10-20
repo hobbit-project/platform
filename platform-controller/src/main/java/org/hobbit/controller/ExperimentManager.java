@@ -41,6 +41,7 @@ import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.docker.ClusterManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
+import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
@@ -48,6 +49,7 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
+import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
@@ -68,6 +70,15 @@ public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
     private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
+    /**
+     * Key of the environmental variable used to define
+     * which docker image to use as RabbitMQ.
+     */
+    private static final String RABBIT_IMAGE_ENV_KEY = "HOBBIT_RABBIT_IMAGE";
+    /**
+     * Environmental variable key for the RabbitMQ broker host name used for experiments.
+     */
+    private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
     /**
      * Time interval the experiment manager waits before it checks for the an
      * experiment to start. It is larger than {@link #CHECK_FOR_NEW_EXPERIMENT}
@@ -169,6 +180,8 @@ public class ExperimentManager implements Closeable {
                     experimentStatus = new ExperimentStatus(config,
                             HobbitExperiments.getExperimentURI(config.id));
 
+                    createRabbitMQ(config);
+
                     BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                     if ((benchmark == null) || (benchmark.mainImage == null)) {
                         experimentStatus = new ExperimentStatus(config,
@@ -225,8 +238,8 @@ public class ExperimentManager implements Closeable {
 
                     LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
                     String containerId = controller.containerManager.startContainer(benchmark.mainImage,
-                            Constants.CONTAINER_TYPE_BENCHMARK, null,
-                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                            Constants.CONTAINER_TYPE_BENCHMARK, experimentStatus.getRootContainer(),
+                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
                                     Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
@@ -237,13 +250,16 @@ public class ExperimentManager implements Closeable {
                         throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
                     }
 
+                    if (experimentStatus.getRootContainer() == null) {
+                        experimentStatus.setRootContainer(containerId);
+                    }
                     experimentStatus.setBenchmarkContainer(containerId);
 
                     LOGGER.info("Creating system " + system.mainImage);
                     String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
                     containerId = controller.containerManager.startContainer(system.mainImage,
-                            Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getBenchmarkContainer(),
-                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + controller.rabbitMQHostName(),
+                            Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getRootContainer(),
+                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
                             null, null, config.id);
@@ -265,6 +281,31 @@ public class ExperimentManager implements Closeable {
                 handleExperimentTermination_unsecured();
             }
         }
+    }
+
+    private void createRabbitMQ(ExperimentConfiguration config) throws Exception {
+        String rabbitMQAddress = EnvVariables.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String)null);
+        if (rabbitMQAddress == null) {
+            LOGGER.info("Starting new RabbitMQ for the experiment...");
+            rabbitMQAddress = controller.containerManager.startContainer(EnvVariables.getString(RABBIT_IMAGE_ENV_KEY),
+                    Constants.CONTAINER_TYPE_BENCHMARK, null,
+                    new String[] {  },
+                    null, null, config.id);
+            if (rabbitMQAddress == null) {
+                experimentStatus.addError(HobbitErrors.UnexpectedError); // FIXME
+                throw new Exception("Couldn't start new RabbitMQ for the experiment");
+            }
+
+            experimentStatus.setRootContainer(rabbitMQAddress);
+            LOGGER.info("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
+        } else {
+            LOGGER.info("Using the configured RabbitMQ for the experiment: {}", rabbitMQAddress);
+        }
+        experimentStatus.setRabbitMQContainer(rabbitMQAddress);
+
+        RabbitMQConnector rabbitMQConnector = new RabbitMQConnector(controller, experimentStatus.getRabbitMQContainer());
+        controller.setExpRabbitMQConnector(rabbitMQConnector);
+        rabbitMQConnector.init();
     }
 
     // FIXME add javadoc
@@ -447,6 +488,14 @@ public class ExperimentManager implements Closeable {
                             experimentStatus.getConfig().challengeTaskUri);
                 }
             }
+
+            try {
+                controller.closeExpRabbitMQConnector();
+            } catch (Exception e) {
+                LOGGER.error("Could not switch the command queue to the default broker.");
+            }
+            controller.containerManager.removeContainer(experimentStatus.getRootContainer());
+
             // publish experiment results (if needed)
             // controller.publishChallengeForExperiment(experimentStatus.config);
             // Remove the experiment status object
@@ -464,7 +513,7 @@ public class ExperimentManager implements Closeable {
      */
     private void forceBenchmarkTerminate_unsecured(Resource error) {
         if (experimentStatus != null) {
-            String parent = experimentStatus.getBenchmarkContainer();
+            String parent = experimentStatus.getRootContainer();
             controller.containerManager.removeParentAndChildren(parent);
             if (error != null) {
                 experimentStatus.addError(error);
@@ -481,7 +530,7 @@ public class ExperimentManager implements Closeable {
      * @param exitCode
      *            exit code of the termination
      */
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         boolean consumed = false;
         synchronized (experimentMutex) {
             if (experimentStatus != null) {
@@ -496,14 +545,19 @@ public class ExperimentManager implements Closeable {
                         experimentStatus.addErrorIfNonPresent(HobbitErrors.BenchmarkCrashed);
                     }
                     handleExperimentTermination_unsecured();
+                    consumed = true;
                     // If this is the system container and benchmark and
                     // system are not running
-                    consumed = true;
                 } else if (containerId.equals(experimentStatus.getSystemContainer())
                         && (experimentStatus.getState() == ExperimentStatus.States.INIT)) {
                     LOGGER.info("The system has been stopped before the benchmark has been started. Aborting.");
                     // Cancel the experiment
                     forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCrashed);
+                    consumed = true;
+                } else if (containerId.equals(experimentStatus.getRabbitMQContainer())) {
+                    LOGGER.info("The RabbitMQ has been stopped. Aborting.");
+                    // Cancel the experiment
+                    forceBenchmarkTerminate_unsecured(HobbitErrors.UnexpectedError); // FIXME
                     consumed = true;
                 }
             }

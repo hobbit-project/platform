@@ -62,10 +62,11 @@ import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
+import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
-import org.hobbit.core.components.AbstractCommandReceivingComponent;
+import org.hobbit.core.components.AbstractComponent;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.StartCommandData;
 import org.hobbit.core.data.StopCommandData;
@@ -77,7 +78,6 @@ import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.DataSender;
 import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.RabbitMQUtils;
-import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.EnvVariables;
@@ -92,10 +92,6 @@ import com.google.gson.GsonBuilder;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Consumer;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.MessageProperties;
 
 /**
@@ -104,7 +100,7 @@ import com.rabbitmq.client.MessageProperties;
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
-public class PlatformController extends AbstractCommandReceivingComponent
+public class PlatformController extends AbstractComponent
         implements ContainerTerminationCallback, ExperimentAnalyzer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlatformController.class);
@@ -138,10 +134,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
             : true;
     /**
-     * Environmental variable key for the RabbitMQ broker host name used for experiments.
-     */
-    private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
-    /**
      * Environmental variable key for the local metadata directory.
      */
     private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
@@ -151,6 +143,10 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     public static final long PUBLISH_CHALLENGES = 60 * 60 * 1000;
 
+    /**
+     * Connector for the experiment's RabbitMQ service.
+     */
+    protected RabbitMQConnector rabbitMQConnector = null;
     /**
      * RabbitMQ channel between front end and platform controller.
      */
@@ -213,16 +209,12 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * Timer used to trigger publishing of challenges and checking for repeatable challenges.
      */
     protected Timer challengeCheckTimer;
-    /**
-     * Name of the RabbitMQ broker used for experiments.
-     */
-    protected String rabbitMQExperimentsHostName;
 
     /**
      * Default constructor.
      */
     public PlatformController() {
-        super(true);
+        super();
     }
 
     /**
@@ -239,23 +231,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
-        if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
-            rabbitMQExperimentsHostName = System.getenv().get(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY);
-            if (!rabbitMQHostName.equals(rabbitMQExperimentsHostName)) {
-                switchCmdToExpRabbit();
-                LOGGER.info("Using {} as message broker for experiments.", rabbitMQExperimentsHostName);
-            } else {
-                LOGGER.warn(
-                        "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
-                        rabbitMQHostName);
-            }
-        } else {
-            // the platform and its experiment are sharing a single RabbitMQ instance
-            rabbitMQExperimentsHostName = rabbitMQHostName;
-            LOGGER.warn(
-                    "The message broker {} will be used for both - the platform internal communication as well as the experiment communication. It is suggested to have two separated message brokers.",
-                    rabbitMQHostName);
-        }
 
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
@@ -327,52 +302,24 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     /**
-     * This method closes the command queue and its handling and reopens it on the
-     * RabbitMQ broker which will be used for experiments.
+     * This method sets the RabbitMQ connector for the command queue.
+     */
+    public void setExpRabbitMQConnector(RabbitMQConnector rabbitMQConnector) {
+        LOGGER.info("Setting experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        assert this.rabbitMQConnector == null : "RabbitMQ connector should be null";
+        this.rabbitMQConnector = rabbitMQConnector;
+    }
+
+    /**
+     * This method closes and removes the RabbitMQ connector for the command queue.
      *
      * @throws Exception
      */
-    private void switchCmdToExpRabbit() throws Exception {
-        // We have to close the existing command queue
-        try {
-            cmdChannel.close();
-        } catch (Exception e) {
-            LOGGER.warn("Exception while closing command queue. It will be ignored.", e);
-        }
-        IOUtils.closeQuietly(cmdQueueFactory);
-        // temporarily create a new factory to the second broker but keep the reference
-        // to the first broker (XXX this is a dirty workaround to make use of methods
-        // like createConnection())
-        ConnectionFactory tempFactory = connectionFactory;
-        connectionFactory = new ConnectionFactory();
-        connectionFactory.setHost(rabbitMQExperimentsHostName);
-        connectionFactory.setAutomaticRecoveryEnabled(true);
-        // attempt recovery every 10 seconds
-        connectionFactory.setNetworkRecoveryInterval(10000);
-        try {
-            // override the existing command queue factory and the queue itself
-            cmdQueueFactory = new RabbitQueueFactoryImpl(createConnection());
-            cmdChannel = cmdQueueFactory.getConnection().createChannel();
-            String queueName = cmdChannel.queueDeclare().getQueue();
-            cmdChannel.exchangeDeclare(Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "fanout", false, true, null);
-            cmdChannel.queueBind(queueName, Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "");
-
-            Consumer consumer = new DefaultConsumer(cmdChannel) {
-                @Override
-                public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties,
-                        byte[] body) throws IOException {
-                    try {
-                        handleCmd(body, properties);
-                    } catch (Exception e) {
-                        LOGGER.error("Exception while trying to handle incoming command.", e);
-                    }
-                }
-            };
-            cmdChannel.basicConsume(queueName, true, consumer);
-        } finally {
-            // set the factory back
-            connectionFactory = tempFactory;
-        }
+    public void closeExpRabbitMQConnector() {
+        LOGGER.info("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        assert rabbitMQConnector != null : "RabbitMQ connector shouldn't be null";
+        IOUtils.closeQuietly(rabbitMQConnector);
+        rabbitMQConnector = null;
     }
 
     /**
@@ -427,7 +374,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     propsBuilder.deliveryMode(2);
                     propsBuilder.correlationId(props.getCorrelationId());
                     AMQP.BasicProperties replyProps = propsBuilder.build();
-                    cmdChannel.basicPublish("", replyTo, replyProps,
+                    publishToCmdChannel("", replyTo, replyProps,
                             RabbitMQUtils.writeString(containerName));
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
@@ -483,7 +430,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
                     response = new byte[0];
                 }
                 try {
-                    cmdChannel.basicPublish("", replyTo, MessageProperties.PERSISTENT_BASIC, response);
+                    publishToCmdChannel("", replyTo, MessageProperties.PERSISTENT_BASIC, response);
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
                     errMsgBuilder.append("Error, couldn't sent the request resource usage statistics to replyTo=");
@@ -562,7 +509,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
     }
 
     @Override
-    public void notifyTermination(String containerId, int exitCode) {
+    public void notifyTermination(String containerId, long exitCode) {
         LOGGER.info("Container " + containerId + " stopped with exitCode=" + exitCode);
         // Check whether this container was part of an experiment
         expManager.notifyTermination(containerId, exitCode);
@@ -666,7 +613,19 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (attachData) {
             buffer.put(data);
         }
-        cmdChannel.basicPublish(Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "", props, buffer.array());
+        publishToCmdChannel(Constants.HOBBIT_COMMAND_EXCHANGE_NAME, "", props, buffer.array());
+    }
+
+    /**
+     * A wrapper around basicPublish.
+     */
+    private void publishToCmdChannel(String exchange, String routingKey, BasicProperties props, byte[] body) throws IOException {
+        if (rabbitMQConnector != null) {
+            rabbitMQConnector.basicPublish(exchange, routingKey, props, body);
+        } else {
+            LOGGER.error("Trying to publish a command queue message but there is no RabbitMQ connector.");
+            throw new IOException("No RabbitMQ connector to publish command queue messages to.");
+        }
     }
 
     /**
@@ -1303,21 +1262,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
         return storage;
     }
 
-    public String rabbitMQHostName() {
-        return rabbitMQExperimentsHostName;
-    }
-
     ///// There are some methods that shouldn't be used by the controller and
     ///// have been marked as deprecated
-
-    /**
-     * @deprecated Not used inside the controller. Use
-     *             {@link #receiveCommand(byte, byte[], String, String)} instead.
-     */
-    @Deprecated
-    @Override
-    public void receiveCommand(byte command, byte[] data) {
-    }
 
     /**
      * @deprecated The {@link PlatformController} should use
