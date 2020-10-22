@@ -57,13 +57,13 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>20.0</version>
+            <version>24.1.1-jre</version>
         </dependency>
         <!-- Docker Client -->
         <dependency>
             <groupId>com.spotify</groupId>
             <artifactId>docker-client</artifactId>
-            <version>8.11.2</version>
+            <version>8.16.0</version>
         </dependency>
         <!-- JSON lib -->
         <dependency>

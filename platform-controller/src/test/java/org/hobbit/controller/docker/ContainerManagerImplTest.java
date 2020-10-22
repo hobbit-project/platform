@@ -325,13 +325,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         String testTask = manager.startContainer(testImage, Constants.CONTAINER_TYPE_SYSTEM, null);
         services.add(testTask);
         // check if the started service uses the first version of image
-        Integer exitCode = null;
+        Long exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
             exitCode = manager.getContainerExitCode(testTask);
         }
         assertEquals("Service is using first image version",
-                Integer.valueOf(1), exitCode);
+                Long.valueOf(1), exitCode);
         manager.removeContainer(testTask);
         services.remove(testTask);
         // build second version of image
@@ -351,16 +351,16 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
             exitCode = manager.getContainerExitCode(testTask);
         }
         assertEquals("Service is using second image version",
-                Integer.valueOf(2), exitCode);
+                Long.valueOf(2), exitCode);
     }
 
-    private Integer getContainerEnvValue(String envVariable) throws DockerException, InterruptedException {
+    private Long getContainerEnvValue(String envVariable) throws DockerException, InterruptedException {
         String id = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_SYSTEM, null,
                 new String[]{"sh", "-c", "exit $" + envVariable});
         assertNotNull(id);
         services.add(id);
 
-        Integer exitCode = null;
+        Long exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
 
@@ -370,7 +370,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
                 if (taskInfo.status().state().equals(TaskStatus.TASK_STATE_COMPLETE) && exitCode == null) {
                     // assume exit code 0
-                    exitCode = 0;
+                    exitCode = 0l;
                 }
             }
         }
@@ -381,9 +381,9 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     @Test(timeout=60000)
     public void environmentNodesInformation() throws Exception {
-        Integer nodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_NODES_KEY);
-        Integer systemNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY);
-        Integer benchmarkNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY);
+        Long nodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_NODES_KEY);
+        Long systemNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY);
+        Long benchmarkNodes = getContainerEnvValue(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY);
 
         assertTrue("Total nodes should be > 0 (got " + nodes + ")",
             nodes > 0);
@@ -418,13 +418,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(pingContainer);
         services.add(pingContainer);
         Thread.sleep(10000);
-        assertEquals("Result of pinging the container's network alias", (Integer)0, manager.getContainerExitCode(pingContainer));
+        assertEquals("Result of pinging the container's network alias", Long.valueOf(0), manager.getContainerExitCode(pingContainer));
 
         pingContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_BENCHMARK,
                 null, null, null, new String[]{"ping", "-c", "1", "-W", "2", "nonexistant"});
         assertNotNull(pingContainer);
         services.add(pingContainer);
         Thread.sleep(10000);
-        assertEquals("Result of pinging the nonexisting host", (Integer)1, manager.getContainerExitCode(pingContainer));
+        assertEquals("Result of pinging the nonexisting host", Long.valueOf(1), manager.getContainerExitCode(pingContainer));
     }
 }

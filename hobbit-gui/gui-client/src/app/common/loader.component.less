@@ -1,0 +1,29 @@
+:host ::ng-deep {
+  div {
+    background: url("/assets/favicon.ico") no-repeat;
+    width: 48px;
+    height: 48px;
+    margin: 1em auto;
+    opacity: 0;
+    animation-name: loaderAppear, loaderRotate;
+    animation-duration: 1s, 2s;
+    animation-delay: 2s;
+    animation-direction: alternate, normal;
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: both;
+    animation-timing-function: ease-in, linear;
+  }
+  @keyframes loaderAppear {
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes loaderRotate {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  span {
+    display: none;
+  }
+}

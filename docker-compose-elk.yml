@@ -6,7 +6,7 @@ services:
       resources:
         limits:
           memory: 8g
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELK_VERSION}
     command: elasticsearch -E network.host=0.0.0.0
     volumes:
       - ./config/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
@@ -30,7 +30,7 @@ services:
       - hobbit-services
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:5.2.2
+    image: docker.elastic.co/logstash/logstash:${ELK_VERSION}
     command: logstash -f /usr/share/logstash/config/logstash.conf
     environment:
       - constraint:org.hobbit.type==data
@@ -49,7 +49,7 @@ services:
       - elasticsearch
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:5.2.2
+    image: docker.elastic.co/kibana/kibana:${ELK_VERSION}
     environment:
       - ELASTICSEARCH_URL=http://elasticsearch:9200
       - SERVER_NAME=kibana

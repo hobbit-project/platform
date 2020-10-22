@@ -124,6 +124,14 @@ public class ExperimentStatus implements Closeable {
      */
     private Set<String> usedImages = new HashSet<>();
     /**
+     * Name of the root service for this experiment.
+     */
+    private String rootContainer = null;
+    /**
+     * Container name of the RabbitMQ service for this experiment.
+     */
+    private String rabbitMQContainer = null;
+    /**
      * Container name of the system.
      */
     private String benchmarkContainer = null;
@@ -254,6 +262,22 @@ public class ExperimentStatus implements Closeable {
 
     public void setSystemRunning(boolean systemRunning) {
         this.systemRunning = systemRunning;
+    }
+
+    public String getRootContainer() {
+        return rootContainer;
+    }
+
+    public void setRootContainer(String rootContainer) {
+        this.rootContainer = rootContainer;
+    }
+
+    public String getRabbitMQContainer() {
+        return rabbitMQContainer;
+    }
+
+    public void setRabbitMQContainer(String rabbitMQContainer) {
+        this.rabbitMQContainer = rabbitMQContainer;
     }
 
     public String getBenchmarkContainer() {

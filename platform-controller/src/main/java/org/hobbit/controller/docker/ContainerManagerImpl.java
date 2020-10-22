@@ -602,7 +602,7 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void removeContainer(String serviceName) {
         try {
-            Integer exitCode = getContainerExitCode(serviceName);
+            Long exitCode = getContainerExitCode(serviceName);
             if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
                 LOGGER.info(
                         "Will not remove container {}. "
@@ -692,7 +692,7 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
+    public Long getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
         if (getContainerInfo(serviceName) == null) {
             LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
             return DOCKER_EXITCODE_SIGKILL;
@@ -708,10 +708,10 @@ public class ContainerManagerImpl implements ContainerManager {
         for (Task task : tasks) {
             if (!UNFINISHED_TASK_STATES.contains(task.status().state())) {
                 // Task is finished.
-                Integer exitCode = task.status().containerStatus().exitCode();
+                Long exitCode = task.status().containerStatus().exitCode();
                 if (exitCode == null) {
                     LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.", serviceName);
-                    return 0;
+                    return 0l;
                 }
                 return exitCode;
             }

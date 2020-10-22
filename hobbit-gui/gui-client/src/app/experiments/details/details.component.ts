@@ -84,8 +84,8 @@ export class DetailsComponent implements OnInit, OnChanges {
         this.buildTableRows(this.details);
 
       this.sameBenchmark = new Set(this.experiments.filter(ex => ex.benchmark).map(ex => ex.benchmark.id)).size === 1;
+      this.loaded = true;
     });
-    this.loaded = true;
   }
 
   private buildTableRows(experiments) {
@@ -108,6 +108,9 @@ export class DetailsComponent implements OnInit, OnChanges {
     }
 
     this.rows = [];
+
+    // FIXME server should send the real experiment URI
+    this.rows.push(this.buildRow('Experiment', 'URI', 'Permanent URI of the experiment', t => ['http://w3id.org/hobbit/experiments#' + t.id, '']));
 
     this.rows.push(this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => DetailsComponent.safeNameAndDescription(t.benchmark)));
     this.rows.push(this.buildRow('Experiment', 'System', 'The system evaluated', t => DetailsComponent.safeNameAndDescription(t.system)));

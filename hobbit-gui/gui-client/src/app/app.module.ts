@@ -45,6 +45,7 @@ import { CompareComponent } from './experiments/details/compare/compare.componen
 import { GraphComponent } from './experiments/details/graph/graph.component';
 import { PlotComponent } from './experiments/details/plot/plot.component';
 import { BackButtonComponent } from './common/back-button.component';
+import { LoaderComponent } from './common/loader.component';
 
 const appRoutes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -127,7 +128,8 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
     CompareComponent,
     GraphComponent,
     PlotComponent,
-    BackButtonComponent
+    BackButtonComponent,
+    LoaderComponent,
   ],
   imports: [
     BrowserAnimationsModule,

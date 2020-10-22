@@ -39,6 +39,9 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
     @Test
     public void test() throws Exception {
+        LOGGER.info("Waiting to avoid failing container creation, which happens when running the full test suite...");
+        Thread.sleep(10000);
+
         LOGGER.info("Creating first container...");
         String containerId = manager.startContainer(busyboxImageName,
                 Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
@@ -110,11 +113,11 @@ public class ResourceInformationCollectorTest extends ContainerManagerBasedTest 
 
         Assert.assertNotNull("CPU stats", usage.getCpuStats());
         /* FIXME cpu usage */
-        Assert.assertTrue("CPU usage > 0", usage.getCpuStats().getTotalUsage() > 0);
+        Assert.assertTrue("CPU usage > 0", usage.getCpuStats().getTotalUsage() > 0l);
         Assert.assertNotNull("Memory stats", usage.getMemoryStats());
-        Assert.assertTrue("Memory usage > 0", usage.getMemoryStats().getUsageSum() > 0);
+        Assert.assertTrue("Memory usage > 0", usage.getMemoryStats().getUsageSum() > 0l);
         Assert.assertNotNull("Disk stats", usage.getDiskStats());
-        Assert.assertTrue("Disk fs size > 0", usage.getDiskStats().getFsSizeSum() > 0);
+        Assert.assertTrue("Disk fs size > 0", usage.getDiskStats().getFsSizeSum() > 0l);
 
         LOGGER.info("Waiting for the container {} to generate its file...",
                 containerId);
