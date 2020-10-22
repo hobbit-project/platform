@@ -109,3 +109,9 @@ lc-run:
 dev:
 	docker-compose -f docker-compose-dev.yml build
 	docker-compose -f docker-compose-dev.yml -f docker-compose.override.yml up
+
+clean:
+	cd analysis-component && mvn clean
+	cd platform-controller && mvn clean
+	cd platform-storage/storage-service && mvn clean
+	cd hobbit-gui/gui-serverbackend && mvn clean
