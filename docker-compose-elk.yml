@@ -1,3 +1,5 @@
+# environment variables (defined in .env file):
+# - ELK_VERSION: Docker image tag to use for elasticsearch, logstash & kibana
 version: '3.3'
 services:
   # ELK logging stack
