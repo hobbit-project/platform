@@ -2,6 +2,7 @@ package org.hobbit.controller.kubernetes.fabric8;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.api.model.ServiceList;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 
 import java.io.File;
@@ -17,9 +18,9 @@ public interface PodsManager {
 
     PodList getPods(String namespace);
 
-    PodList getPods();
+    ServiceList getPods();
 
-    PodList getPods(String namespace, String label1,  String label2);
+    ServiceList getPods(String namespace, String label1,  String label2);
 
     Pod getPod(String namespace, String name);
 

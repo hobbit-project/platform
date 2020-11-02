@@ -288,19 +288,19 @@ public class PodsManagerImpl implements PodsManager {
     }
 
     @Override
-    public PodList getPods() {
-        PodList podList = k8sClient.pods().inAnyNamespace().list();
-        return podList;
+    public ServiceList getPods() {
+        ServiceList svcList = k8sClient.services().inAnyNamespace().list();
+        return svcList;
     }
 
     @Override
-    public PodList getPods(String namespace, String label1, String label2) {
+    public ServiceList getPods(String namespace, String label1, String label2) {
         namespace = K8sUtility.defaultNamespace(namespace);
 
-        PodList podList = k8sClient.pods().inNamespace(namespace)
+        ServiceList svcList = k8sClient.services().inNamespace(namespace)
                                     .withLabel(label1, label2)
                                     .list();
-        return podList;
+        return svcList;
     }
 
 
