@@ -10,9 +10,15 @@ import java.util.List;
 
 public interface PodsManager {
 
-    // In Kubernetes we don't work with the containers directly, instead we use pods.
-    // The pod houses a container. A pod is a single instance of an application.
-    // It is the simplest object you can create in Kubernetes
+    /**
+     * Label that denotes pod type
+     */
+    public static final String LABEL_TYPE = "org.hobbit.type";
+    /**
+     * Label that denotes pod parent
+     */
+    public static final String LABEL_PARENT = "org.hobbit.parent";
+
 
     Pod getPod(String yaml_path);
 

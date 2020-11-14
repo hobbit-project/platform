@@ -1,14 +1,14 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
-import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.swarm.Task;
-import com.spotify.docker.client.messages.swarm.TaskStatus;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.ServiceList;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentList;
+import io.fabric8.kubernetes.api.model.metrics.v1beta1.NodeMetricsList;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watcher;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,9 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ResourceInformationCollectorImpl implements ResourceInformationCollector {
+public class K8sResourceInformationCollectorImpl implements K8sResourceInformationCollector {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollectorImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(K8sResourceInformationCollectorImpl.class);
 
 
     public static final String PROMETHEUS_HOST_KEY = "PROMETHEUS_HOST";
@@ -43,14 +43,17 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     private String prometheusHost;
     private String prometheusPort;
 
+    private NamespaceManager namespaceManager;
 
-    public ResourceInformationCollectorImpl(PodsManager manager) {
-        this(manager, null, null);
+
+    public K8sResourceInformationCollectorImpl(PodsManager manager, NamespaceManager namespaceManager) {
+        this(manager, namespaceManager, null, null);
     }
 
 
-    public ResourceInformationCollectorImpl(PodsManager manager, String prometheusHost, String prometheusPort) {
+    public K8sResourceInformationCollectorImpl(PodsManager manager,NamespaceManager namespaceManager, String prometheusHost, String prometheusPort) {
         this.manager = manager;
+        this.namespaceManager = namespaceManager;
         this.prometheusHost = prometheusHost;
         if ((this.prometheusHost == null) && System.getenv().containsKey(PROMETHEUS_HOST_KEY)) {
             this.prometheusHost = System.getenv().get(PROMETHEUS_HOST_KEY);
@@ -73,14 +76,39 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
 
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
+        DeploymentList deployments = k8sClient.apps().deployments().inAnyNamespace().withLabel(NamespaceManager.APP_CATEGORY_KEY, NamespaceManager.APP_CATEGORY_VALUE )
+            .withLabel(PodsManager.LABEL_TYPE, PodsManager.LABEL_PARENT).list();
 
+        getUsageInformation(deployments);
 
 
         return null;
     }
 
     @Override
-    public ResourceUsageInformation getUsageInformation() {
+    public ResourceUsageInformation getUsageInformation(DeploymentList deployments) {
+
+        Map<String, Deployment> podMapping = new HashMap<>();
+
+        for (Deployment d: deployments.getItems()){
+            podMapping.put(d.getMetadata().getName(), d);
+        }
+
+        ResourceUsageInformation resourceInfo = podMapping.keySet().parallelStream()
+            // filter all pods that are not running
+            .filter(d -> )
+
+
+        NodeMetricsList nodeMetricList = k8sClient.top().nodes().metrics();
+
+        ResourceUsageInformation resourceInfo =
+
+        nodeMetricList.getItems().forEach(nodeMetrics ->
+                nodeMetrics.getMetadata().getName(),
+                nodeMetrics.getUsage().get("cpu").getAmount(), nodeMetrics.getUsage().get("cpu").getFormat(),
+                nodeMetrics.getUsage().get("memory").getAmount(), nodeMetrics.getUsage().get("memory").getFormat()
+            );
+
         List<Service> svcList = manager.getPods().getItems();
 
         Map<String, Service> podMapping = new HashMap<>();
@@ -96,7 +124,30 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     }
 
 
-    private long countRunningTasks(String serviceName) {
+    private long countRunningTasks(String deploymentName) {
+
+        Deployment d=  k8sClient.apps().deployments().inNamespace("default").withName(deploymentName).get();
+
+
+        // List number of running replicas in deployment
+
+
+        k8sClient.apps().deployments().inNamespace("default").withName(deploymentName).watch(
+            new Watcher<Deployment>() {
+                @Override
+                public void eventReceived(Action action, Deployment deployment) {
+
+                }
+
+                @Override
+                public void onClose(KubernetesClientException e) {
+
+                }
+            }
+        );
+                //.watch();
+
+        d.
         /*
 
         try {

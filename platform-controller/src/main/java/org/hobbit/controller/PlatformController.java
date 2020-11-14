@@ -31,9 +31,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
+import java.util.regex.Pattern;
 
-import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.api.model.PodList;
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
@@ -48,22 +47,11 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ClusterManagerImpl;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerManagerImpl;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.FileBasedImageManager;
-import org.hobbit.controller.docker.GitlabBasedImageManager;
-import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ImageManagerFacade;
+import org.hobbit.controller.docker.*;
 import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
-import org.hobbit.controller.kubernetes.fabric8.PodsManager;
-import org.hobbit.controller.kubernetes.fabric8.PodsManagerImpl;
+import org.hobbit.controller.kubernetes.fabric8.*;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -84,7 +72,6 @@ import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitQueueFactoryImpl;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
-import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;
@@ -171,10 +158,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      * A manager for Docker containers.
      */
     protected ContainerManager containerManager;
-    /**
-     * A manager for Kubernetes pods.
-     */
-    protected PodsManager podsManager;
+
     /**
      * The observer of docker containers.
      */
@@ -226,6 +210,23 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected String rabbitMQExperimentsHostName;
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    /**
+     * Manager handling cluster related data.
+     */
+    protected K8sClusterManager k8sClusterManager;
+    /**
+     * A manager for Kubernetes pods.
+     */
+    protected PodsManager podsManager;
+
+    protected NamespaceManager namespaceManager;
+
+    protected PodStateObserver podObserver;
+
+    protected K8sResourceInformationCollector k8sresInfoCollector;
+
+
     /**
      * Default constructor.
      */
@@ -246,16 +247,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
     public void init() throws Exception {
         // First initialize the super class
         // remember to uncomment this super.init();
-        LOGGER.debug("Platform controller initialization started.");
-
-        LOGGER.debug("Testing my stuff");
-        podsManager = new PodsManagerImpl();
-        PodList pods = podsManager.getPods();
-
-        for (Pod pod: pods.getItems()) {
-            LOGGER.info("Pod Unique ID "+ pod.getMetadata().getName());
-        }
-
 
 
         if (System.getenv().containsKey(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY)) {
@@ -280,23 +271,41 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // containers)
         // Only for prod mode
         clusterManager = new ClusterManagerImpl();
+
+        namespaceManager = new NamespaceManagerImpl();
+
+
         if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
         } else {
             LOGGER.debug(
                     "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
-            clusterManager.setTaskHistoryLimit(0);
+            //clusterManager.setTaskHistoryLimit(0);
+            namespaceManager.deleteNamespaceResources();
         }
 
         // create container manager
-        containerManager = new ContainerManagerImpl();
-        LOGGER.debug("Container manager initialized.");
+        // containerManager = new ContainerManagerImpl();
+
+        podsManager = new PodsManagerImpl();
+
+
+//        LOGGER.debug("Container manager initialized.");
+        LOGGER.debug("Pod manager initialized.");
         // Create container observer (polls status every 5s)
-        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
-        containerObserver.addTerminationCallback(this);
+
+        podObserver = new PodStateObserverImpl(podsManager);
+
+//        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
+//        containerObserver.addTerminationCallback(this);
+
+
         // Tell the manager to add container to the observer
-        containerManager.addContainerObserver(containerObserver);
-        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
+//        containerManager.addContainerObserver(containerObserver);
+
+//        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
+
+        k8sresInfoCollector = new K8sResourceInformationCollectorImpl(podsManager);
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");

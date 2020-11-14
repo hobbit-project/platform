@@ -6,9 +6,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ClusterManagerImpl implements ClusterManager {
+public class K8sClusterManagerImpl implements K8sClusterManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(K8sClusterManagerImpl.class);
 
     /**
      * Kubernetes client instance
@@ -19,7 +19,7 @@ public class ClusterManagerImpl implements ClusterManager {
     private long expectedNumberOfNodes = 0;
     private String K8S_NODE_NUMBER = null;
 
-    public ClusterManagerImpl() {
+    public K8sClusterManagerImpl() {
         this.k8sClient = K8sUtility.getK8sClient();
 
         K8S_NODE_NUMBER = System.getenv("K8S_NODE_NUMBER");

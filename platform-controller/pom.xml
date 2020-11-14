@@ -37,6 +37,15 @@
     </licenses>
     <inceptionYear>2017</inceptionYear>
 
+	<properties>
+		<fabric8.service.name>${project.artifactId}</fabric8.service.name>
+		<fabric8.service.headless>true</fabric8.service.headless>
+
+		<fabric8.metrics.scrape>true</fabric8.metrics.scrape>
+		<fabric8.metrics.port>9779</fabric8.metrics.port>
+		<fabric8.metrics.scheme>http</fabric8.metrics.scheme>
+	</properties>
+
     <dependencies>
         <!-- Hobbit core -->
         <dependency>
@@ -78,6 +87,8 @@
 			<groupId>io.fabric8</groupId>
 			<artifactId>kubernetes-client</artifactId>
 			<version>4.9.0</version>
+
+
 		</dependency>
 
         <!-- JSON lib -->
@@ -239,4 +250,6 @@
             </resource>
         </resources>
     </build>
+
+
 </project>

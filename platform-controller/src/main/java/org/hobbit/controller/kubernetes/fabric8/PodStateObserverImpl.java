@@ -1,8 +1,10 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
 import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import org.apache.log4j.Level;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
@@ -21,26 +23,21 @@ public class PodStateObserverImpl implements PodStateObserver{
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PodStateObserverImpl.class);
 
-    private List<String> monitoredPods;
-
     private List<PodTerminationCallback> terminationCallbacks;
 
     private PodsManager manager;
 
-    private int repeatInterval;
-
     private Timer timer;
+
+    private Watch watch;
 
     private KubernetesClient k8sClient;
 
     final CountDownLatch closeLatch = new CountDownLatch(1);
 
-    public PodStateObserverImpl(PodsManager manager, int repeatInterval) {
-        this.k8sClient = K8sUtility.getK8sClient();
-
+    public PodStateObserverImpl(PodsManager manager) {
+        this.k8sClient = K8sUtility.getK8sClient();;
         this.manager = manager;
-        this.repeatInterval = repeatInterval;
-        monitoredPods = new ArrayList<>();
         terminationCallbacks = new ArrayList<>();
         timer = new Timer();
     }
@@ -48,7 +45,7 @@ public class PodStateObserverImpl implements PodStateObserver{
     @Override
     public void startObserving() {
 
-        k8sClient.pods().inAnyNamespace().watch(new Watcher<Pod>() {
+        watch = k8sClient.pods().inAnyNamespace().watch(new Watcher<Pod>() {
             @Override
             public void eventReceived(Action action, Pod pod) {
                 LOGGER.info( action.name() + " " + pod.getMetadata().getName());
@@ -83,12 +80,14 @@ public class PodStateObserverImpl implements PodStateObserver{
     @Override
     public void stopObserving() {
         try {
+            watch.close();
             closeLatch.await(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             LOGGER.debug(e.getMessage());
         }
     }
 
+    /*
     @Override
     public void addTerminationCallback(PodTerminationCallback callback) {
 
@@ -108,9 +107,11 @@ public class PodStateObserverImpl implements PodStateObserver{
     public void removedObservedPod(String cpodId) {
 
     }
+    */
 
     @Override
-    public List<String> getObservedCPod() {
-        return null;
+    public PodList getObservedPods() {
+        return k8sClient.pods().inAnyNamespace().list();
     }
+
 }
