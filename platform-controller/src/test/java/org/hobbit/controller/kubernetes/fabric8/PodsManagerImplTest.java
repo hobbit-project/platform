@@ -8,7 +8,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class PodsManagerImplTest1 extends PodsManagerImpl {
+public class PodsManagerImplTest extends PodsManagerImpl {
     PodsManagerImpl podmanager = null;
 
     @Before
