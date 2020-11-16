@@ -161,7 +161,16 @@
             <artifactId>system-rules</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
+
+		<!-- https://mvnrepository.com/artifact/io.fabric8/kubernetes-server-mock -->
+		<dependency>
+			<groupId>io.fabric8</groupId>
+			<artifactId>kubernetes-server-mock</artifactId>
+			<version>4.9.0</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- ~~~~~~~~~~~~~~~~~~~ End Testing ~~~~~~~~~~~~~~~~~~~~~~ -->
     </dependencies>
 
     <dependencyManagement>

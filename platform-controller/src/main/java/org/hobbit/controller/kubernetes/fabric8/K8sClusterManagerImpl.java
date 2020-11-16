@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 public class K8sClusterManagerImpl implements K8sClusterManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(K8sClusterManagerImpl.class);
-
     /**
      * Kubernetes client instance
      */
