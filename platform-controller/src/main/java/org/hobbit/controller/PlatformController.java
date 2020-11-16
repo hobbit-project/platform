@@ -210,7 +210,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected String rabbitMQExperimentsHostName;
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////
     /**
      * Manager handling cluster related data.
      */
@@ -224,7 +224,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
     protected PodStateObserver podObserver;
 
-    protected K8sResourceInformationCollector k8sresInfoCollector;
+    protected K8sResourceInformationCollector k8sResInfoCollector;
+
 
 
     /**
@@ -304,11 +305,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
 //        containerManager.addContainerObserver(containerObserver);
 
 //        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
+        namespaceManager = new NamespaceManagerImpl();
+        k8sResInfoCollector = new K8sResourceInformationCollectorImpl(podsManager, namespaceManager);
 
-        k8sresInfoCollector = new K8sResourceInformationCollectorImpl(podsManager);
+        podObserver.startObserving();
 
-        containerObserver.startObserving();
-        LOGGER.debug("Container observer initialized.");
+//        containerObserver.startObserving();
+//        LOGGER.debug("Container observer initialized.");
+        LOGGER.debug("Pod observer initialized.");
 
         List<ImageManager> managers = new ArrayList<ImageManager>();
         if(System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
@@ -342,6 +346,8 @@ public class PlatformController extends AbstractCommandReceivingComponent
 
         // schedule challenges re-publishing
         challengeCheckTimer = new Timer();
+
+
         PlatformController controller = this;
         challengeCheckTimer.schedule(new TimerTask() {
             @Override
@@ -350,7 +356,6 @@ public class PlatformController extends AbstractCommandReceivingComponent
                 republishChallenges(storage, queue, controller);
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
-
         LOGGER.info("Platform controller initialized.");
     }
 
@@ -439,11 +444,14 @@ public class PlatformController extends AbstractCommandReceivingComponent
         case Commands.DOCKER_CONTAINER_START: {
             StartCommandData startParams = null;
             String containerName = "";
+            String podName = "";
+
             if (expManager.isExpRunning(sessionId)) {
                 // Convert data byte array to config data structure
                 startParams = deserializeStartCommandData(data);
                 // trigger creation
                 containerName = createContainer(startParams);
+                //podName =
             } else {
                 LOGGER.error(
                         "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.", sessionId);
@@ -568,6 +576,42 @@ public class PlatformController extends AbstractCommandReceivingComponent
         } else {
             return containerManager.getContainerName(containerId);
         }
+    }
+
+
+
+    private String createPod(StartCommandData data) {
+        String parentId = podsManager.getPodId(data.parent);
+
+        if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
+            LOGGER.error("Couldn't create pod because the parent \"{}\" is not known.", data.parent);
+            return null;
+        }
+        boolean pullImage = false;
+        if (!expManager.experimentStatus.getUsedImages().contains(data.image)) {
+            expManager.experimentStatus.addImage(data.image);
+            pullImage = true;
+        }
+        /////////
+        String containerId = podsManager.startPod(data.image, data.type, parentId, data.environmentVariables,
+            data.networkAliases, null, pullImage);
+        if (containerId == null) {
+            return null;
+        } else {
+            return podsManager.getPodName(containerId);
+        }
+
+        /*
+
+        String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
+            data.networkAliases, null, pullImage);
+        if (containerId == null) {
+            return null;
+        } else {
+            return containerManager.getContainerName(containerId);
+        }
+        */
+        return null;
     }
 
     /**

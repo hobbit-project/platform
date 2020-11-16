@@ -30,6 +30,11 @@ public interface PodsManager {
 
     Pod getPod(String namespace, String name);
 
+    String getPodId(String name);
+
+    public String startPod(String imageName, String containerType, String parentId, String[] env,
+                                 String[] netAliases, String[] command, boolean pullImage);
+
     void createPod(String name, String container_name, String image, int port, String namespace);
 
     void createOrReplacePod(String namespace, Pod pod);

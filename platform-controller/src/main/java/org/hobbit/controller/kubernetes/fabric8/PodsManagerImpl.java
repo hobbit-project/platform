@@ -1,7 +1,11 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
+import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.RegistryAuth;
+import com.spotify.docker.client.messages.ServiceCreateResponse;
+import com.spotify.docker.client.messages.swarm.*;
+import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinition;
 import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinitionList;
@@ -14,17 +18,19 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.LogWatch;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.docker.ClusterManagerImpl;
+import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.*;
 import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.Config;
+import org.hobbit.controller.utils.Waiting;
+import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,6 +50,9 @@ public class PodsManagerImpl implements PodsManager {
 
     private static final int POD_MAX_NAME_LENGTH = 63;
     private static final Pattern PORT_PATTERN = Pattern.compile(":[0-9]+/");
+
+
+    private List<PodStateObserver> podObservers = new ArrayList<>();
 
 
     /**
@@ -266,6 +275,38 @@ public class PodsManagerImpl implements PodsManager {
     }
 
     @Override
+    public String getPodId(String name) {
+        return name;
+    }
+
+    @Override
+    public String startPod(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, boolean pullImage) {
+        if (pullImage) {
+            pullImage(imageName);
+        }
+
+        String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command);
+
+        // if the creation was successful
+        if (containerId != null) {
+            for (PodStateObserver observer : podObservers) {
+                //observer.addObservedContainer(containerId);
+            }
+            return containerId;
+        }
+        return null;
+    }
+
+    public void pullImage(String imageName) {
+    }
+
+
+    private String createContainer(String imageName, String containerType, String parentId, String[] env,
+                                   String[] netAliases, String[] command) {
+    }
+
+
+    @Override
     public Pod getPod(String yaml_path){
 
         Pod pod = null;
@@ -302,6 +343,9 @@ public class PodsManagerImpl implements PodsManager {
                                     .list();
         return svcList;
     }
+
+
+
 
 
 
