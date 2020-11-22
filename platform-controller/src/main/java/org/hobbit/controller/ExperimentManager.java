@@ -38,7 +38,7 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.ochestration.ClusterManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.Commands;

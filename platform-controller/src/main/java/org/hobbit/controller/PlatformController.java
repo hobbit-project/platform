@@ -52,6 +52,7 @@ import org.hobbit.controller.docker.ResourceInformationCollector;
 import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.kubernetes.fabric8.*;
+import org.hobbit.controller.ochestration.ClusterManager;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -201,6 +202,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected ClusterManager clusterManager;
 
+
     /**
      * Timer used to trigger publishing of challenges and checking for repeatable challenges.
      */
@@ -210,7 +212,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
      */
     protected String rabbitMQExperimentsHostName;
 
-    /////////////////////////////////////////////
+    ////////////////////////////
     /**
      * Manager handling cluster related data.
      */
@@ -343,6 +345,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         if (expManager == null) {
             expManager = new ExperimentManager(this);
         }
+
 
         // schedule challenges re-publishing
         challengeCheckTimer = new Timer();

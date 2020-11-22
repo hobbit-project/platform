@@ -1,12 +1,15 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
-import io.fabric8.kubernetes.api.model.Node;
-import io.fabric8.kubernetes.api.model.NodeStatus;
+import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.apps.DeploymentList;
+import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import org.hobbit.controller.ochestration.ClusterManager;
+import org.hobbit.controller.ochestration.objects.ClusterInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class K8sClusterManagerImpl implements K8sClusterManager {
+public class K8sClusterManagerImpl implements ClusterManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(K8sClusterManagerImpl.class);
     /**
@@ -31,9 +34,13 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
     }
 
     @Override
-    public NodeStatus getClusterNodeInfo(String nodeName) {
-        Node node = k8sClient.nodes().withName(nodeName).get();
-        return node.getStatus();
+    public ClusterInfo getClusterInfo() {
+        Config config =  k8sClient.getConfiguration();
+        ClusterInfo clusterInfo = new ClusterInfo();
+        clusterInfo.setHttpProxy(config.getHttpProxy());
+        clusterInfo.setHttpsProxy(config.getHttpsProxy());
+
+        return clusterInfo;
     }
 
     @Override
@@ -63,12 +70,22 @@ public class K8sClusterManagerImpl implements K8sClusterManager {
 
 
     public void setTaskHistoryLimit(Integer taskHistoryLimit){
-        // kubernetes implementation not fully understood
+        DeploymentList deployments = k8sClient.apps().deployments().list();
+        deployments.getItems().forEach(
+            d -> d.getSpec().setRevisionHistoryLimit(taskHistoryLimit)
+        );
     }
 
     public int getTaskHistoryLimit(){
-        // kubernetes implementation not fully understood
-        return 0;
+        // revision history limit is set at deployment level not cluster level
+        // returning the average revision history across the deployments in the cluster instead
+        DeploymentList deployments = k8sClient.apps().deployments().list();
+        int taskHistoryLimit = 0;
+        for (Deployment d : deployments.getItems()){
+            taskHistoryLimit += d.getSpec().getRevisionHistoryLimit();
+        }
+        taskHistoryLimit = taskHistoryLimit/deployments.getItems().size();
+        return taskHistoryLimit;
     }
 
 }

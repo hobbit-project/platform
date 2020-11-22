@@ -1,6 +1,7 @@
 package org.hobbit.controller.docker;
 
 import com.spotify.docker.client.messages.Info;
+import org.hobbit.controller.ochestration.objects.ClusterInfo;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,7 +18,7 @@ public class ClusterManagerImplTest {
 
     @Test
     public void getClusterInfo() throws Exception {
-        final Info info = clusterManager.getClusterInfo();
+        final ClusterInfo info = clusterManager.getClusterInfo();
         assertNotNull(info);
     }
 

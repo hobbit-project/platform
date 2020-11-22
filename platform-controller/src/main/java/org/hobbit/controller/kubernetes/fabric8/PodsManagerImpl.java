@@ -173,6 +173,9 @@ public class PodsManagerImpl implements PodsManager {
      * @return instance name
      */
     private String getInstanceName(String imageName, String prefix) {
+
+
+
         String baseName = imageName;
         // If there is a tag it has to be removed
         if (containsVersionTag(baseName)) {
@@ -303,6 +306,8 @@ public class PodsManagerImpl implements PodsManager {
 
     private String createContainer(String imageName, String containerType, String parentId, String[] env,
                                    String[] netAliases, String[] command) {
+
+        return null;
     }
 
 

@@ -26,6 +26,7 @@ import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.*;
 import com.spotify.docker.client.messages.swarm.*;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
+import org.hobbit.controller.ochestration.ClusterManager;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
