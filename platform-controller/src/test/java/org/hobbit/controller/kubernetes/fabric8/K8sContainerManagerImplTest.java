@@ -8,12 +8,12 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class PodsManagerImplTest extends PodsManagerImpl {
-    PodsManagerImpl podmanager = null;
+public class K8sContainerManagerImplTest extends K8sContainerManagerImpl {
+    K8sContainerManagerImpl podmanager = null;
 
     @Before
     public void setUp() throws Exception {
-        podmanager = new PodsManagerImpl();
+        podmanager = new K8sContainerManagerImpl();
     }
 
     @Test

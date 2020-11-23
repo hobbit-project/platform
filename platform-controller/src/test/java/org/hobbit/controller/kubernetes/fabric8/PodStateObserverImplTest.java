@@ -6,7 +6,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
 import junit.framework.TestCase;
-import org.hobbit.controller.docker.ContainerStateObserverImplTest;
 import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -37,7 +36,7 @@ public class PodStateObserverImplTest extends TestCase {
 
     @Override
     public void setUp() throws Exception {
-        manager = new PodsManagerImpl();
+        manager = new K8sContainerManagerImpl();
         observer = new PodStateObserverImpl(manager);
 
         pod1 = new PodBuilder().withNewMetadata().withNamespace("test").withName("pod1")

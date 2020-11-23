@@ -4,8 +4,8 @@ import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import org.hobbit.controller.ochestration.ClusterManager;
-import org.hobbit.controller.ochestration.objects.ClusterInfo;
+import org.hobbit.controller.orchestration.ClusterManager;
+import org.hobbit.controller.orchestration.objects.ClusterInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

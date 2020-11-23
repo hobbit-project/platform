@@ -1,6 +1,6 @@
-package org.hobbit.controller.ochestration;
+package org.hobbit.controller.orchestration;
 
-import org.hobbit.controller.ochestration.objects.ClusterInfo;
+import org.hobbit.controller.orchestration.objects.ClusterInfo;
 
 public interface ClusterManager {
 

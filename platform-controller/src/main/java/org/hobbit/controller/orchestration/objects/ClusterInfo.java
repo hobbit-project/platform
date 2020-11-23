@@ -1,4 +1,4 @@
-package org.hobbit.controller.ochestration.objects;
+package org.hobbit.controller.orchestration.objects;
 
 import com.google.common.collect.ImmutableList;
 

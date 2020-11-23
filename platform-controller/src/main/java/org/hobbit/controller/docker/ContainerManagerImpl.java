@@ -26,7 +26,8 @@ import com.spotify.docker.client.messages.Network;
 import com.spotify.docker.client.messages.*;
 import com.spotify.docker.client.messages.swarm.*;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
-import org.hobbit.controller.ochestration.ClusterManager;
+import org.hobbit.controller.orchestration.ClusterManager;
+import org.hobbit.controller.orchestration.ContainerManager;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  */
-public class ContainerManagerImpl implements ContainerManager {
+public class ContainerManagerImpl implements ContainerManager<Service, ContainerStats> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
 
@@ -648,7 +649,7 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException {
+    public Service getContainerInfo(String serviceName){
         if (serviceName == null) {
             return null;
         }
@@ -656,13 +657,18 @@ public class ContainerManagerImpl implements ContainerManager {
         try {
             info = dockerClient.inspectService(serviceName);
         } catch (ServiceNotFoundException e) {
-            // return null
+            LOGGER.error(e.toString(), e);
+        } catch (InterruptedException e) {
+            LOGGER.error(e.toString(), e);
+        } catch (DockerException e) {
+            LOGGER.error(e.toString(), e);
         }
         return info;
     }
 
     @Override
-    public List<Service> getContainers(Service.Criteria criteria) {
+    public List<Service> getContainers(String parent) {
+        Service.Criteria criteria = Service.Criteria.builder().labels(ImmutableMap.of(LABEL_PARENT, parent)).build();
         try {
             return dockerClient.listServices(criteria);
         } catch (Exception e) {
@@ -670,15 +676,24 @@ public class ContainerManagerImpl implements ContainerManager {
         }
     }
 
+
+
     @Override
-    public Integer getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
+    public Integer getContainerExitCode(String serviceName){
         if (getContainerInfo(serviceName) == null) {
             LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
             return DOCKER_EXITCODE_SIGKILL;
         }
 
         // Service exists, but no tasks are observed.
-        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+        List<Task> tasks = null;
+        try {
+            tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+        } catch (DockerException e) {
+            LOGGER.error(e.toString(), e);
+        } catch (InterruptedException e) {
+            LOGGER.error(e.toString(), e);
+        }
         if (tasks.size() == 0) {
             LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
             return null;

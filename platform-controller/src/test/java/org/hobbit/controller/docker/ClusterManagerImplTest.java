@@ -1,7 +1,6 @@
 package org.hobbit.controller.docker;
 
-import com.spotify.docker.client.messages.Info;
-import org.hobbit.controller.ochestration.objects.ClusterInfo;
+import org.hobbit.controller.orchestration.objects.ClusterInfo;
 import org.junit.Before;
 import org.junit.Test;
 

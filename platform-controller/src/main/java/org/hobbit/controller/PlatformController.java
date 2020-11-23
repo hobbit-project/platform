@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
-import java.util.regex.Pattern;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
@@ -49,10 +48,9 @@ import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.docker.*;
 import org.hobbit.controller.docker.ResourceInformationCollector;
-import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.kubernetes.fabric8.*;
-import org.hobbit.controller.ochestration.ClusterManager;
+import org.hobbit.controller.orchestration.ClusterManager;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
 import org.hobbit.core.Commands;
@@ -290,7 +288,7 @@ public class PlatformController extends AbstractCommandReceivingComponent
         // create container manager
         // containerManager = new ContainerManagerImpl();
 
-        podsManager = new PodsManagerImpl();
+        podsManager = new K8sContainerManagerImpl();
 
 
 //        LOGGER.debug("Container manager initialized.");
