@@ -1,20 +1,19 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
 
+import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.exceptions.TaskNotFoundException;
+import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.RegistryAuth;
 import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.swarm.*;
 import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.Service;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
-import io.fabric8.kubernetes.api.model.apps.DeploymentSpecBuilder;
-import io.fabric8.kubernetes.api.model.apps.ReplicaSet;
+import io.fabric8.kubernetes.api.model.apps.*;
 import io.fabric8.kubernetes.api.model.metrics.v1beta1.PodMetrics;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -205,9 +204,12 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, boolean pullImage) {
+        /*
         if (pullImage) {
             pullImage(imageName);
         }
+        *
+        */
         String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command);
         // if the creation was successful
         if (containerId != null) {
@@ -220,19 +222,7 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
     }
 
 
-
     private String createContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command) {
-        /*
-        com.spotify.docker.client.messages.swarm.ServiceSpec.Builder serviceCfgBuilder = com.spotify.docker.client.messages.swarm.ServiceSpec.builder();
-
-        TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
-        // we need to run it just once; configure to never restart
-        taskCfgBuilder.restartPolicy(RestartPolicy.builder().condition(RestartPolicy.RESTART_POLICY_NONE).build());
-
-        ContainerSpec.Builder cfgBuilder = ContainerSpec.builder();
-        cfgBuilder.image(imageName);
-
-        */
         DeploymentSpecBuilder serviceCfgBuilder = new DeploymentSpecBuilder();
 
         // generate unique container name
@@ -393,48 +383,49 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
     @Override
     public void removeContainer(String serviceName) {
-        try {
-            Integer exitCode = getContainerExitCode(serviceName);
-            if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
-                LOGGER.info(
-                    "Will not remove container {}. "
-                        + "Development mode is enabled.",
-                    serviceName);
-            } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode == null || exitCode != 0)) {
-                // In testing - do not remove containers if they returned non-zero exit code
-                LOGGER.info(
-                    "Will not remove container {}. "
-                        + "ExitCode: {} != 0 and testing mode is enabled.",
-                    serviceName, exitCode);
-            } else {
-                LOGGER.info("Removing container {}. ", serviceName);
-                dockerClient.removeService(serviceName);
 
-                // wait for the service to disappear
-                Waiting.waitFor(() -> {
-                    try {
-                        dockerClient.inspectService(serviceName);
-                        return false;
-                    } catch (ServiceNotFoundException e) {
-                        return true;
-                    }
-                }, DOCKER_POLL_INTERVAL);
-            }
-        } catch (TaskNotFoundException | ServiceNotFoundException e) {
-            LOGGER.error("Couldn't remove container {} because it doesn't exist", serviceName);
-        } catch (Exception e) {
-            LOGGER.error("Couldn't remove container {}.", serviceName, e);
+        Integer exitCode = getContainerExitCode(serviceName);
+        if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+            LOGGER.info(
+                "Will not remove container {}. "
+                    + "Development mode is enabled.",
+                serviceName);
+        } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode == null || exitCode != 0)) {
+            // In testing - do not remove containers if they returned non-zero exit code
+            LOGGER.info(
+                "Will not remove container {}. "
+                    + "ExitCode: {} != 0 and testing mode is enabled.",
+                serviceName, exitCode);
+        } else {
+            LOGGER.info("Removing container {}. ", serviceName);
+            k8sClient.apps().deployments().inNamespace("default").withName(serviceName).delete();
+            // wait for the service to disappear
+            // ...
         }
+
     }
 
     @Override
     public void stopParentAndChildren(String parentId) {
-
+        LOGGER.error("ContainerManager.stopParentAndChildren() is deprecated! Will remove them instead");
+        removeParentAndChildren(parentId);
     }
 
     @Override
     public void removeParentAndChildren(String parent) {
-
+        // stop parent
+        removeContainer(parent);
+        // find children
+        try {
+            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(LABEL_PARENT, parent).list();
+            services.getItems().forEach(c -> {
+                if (c != null) {
+                removeParentAndChildren(c.getMetadata().getName());
+                }
+            });
+        } catch (Exception e) {
+            LOGGER.error("Error while removing containers: " + e.toString());
+        }
     }
 
     @Override
@@ -443,46 +434,51 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
             LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
             return DOCKER_EXITCODE_SIGKILL;
         }
-        // Service exists, but no tasks are observed.
-        Integer exitCode = null;
-
-        Integer runningReplicas = k8sClient.apps().deployments().inNamespace("default")
-                    .withName(serviceName).get().getStatus().getAvailableReplicas();
-
-        if (runningReplicas == 1) {
+       DeploymentStatus status = k8sClient.apps().deployments().inNamespace("default")
+                    .withName(serviceName).get().getStatus();
+        if (status.getReplicas() == 0){
             LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
             return null;
         }
-
+        if (status.getAvailableReplicas() == 0) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
+            return null;
+        }if (status.getAvailableReplicas() >=1)
+            return 1;
         return null;
     }
 
     @Override
-    public Deployment getContainerInfo(String deploymentName) {
-        if (deploymentName == null) return null;
+    public Deployment getContainerInfo(String serviceName) {
+        if (serviceName == null) return null;
         Deployment info = null;
-        info = k8sClient.apps().deployments().inNamespace("default").withName(deploymentName).get();
+        info = k8sClient.apps().deployments().inNamespace("default").withName(serviceName).get();
         return info;
     }
 
     @Override
     public List<Deployment> getContainers(String parent) {
-        return null;
+        try {
+            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(LABEL_PARENT, parent).list();
+            return services.getItems();
+        }catch (Exception e){
+            return new ArrayList<>();
+        }
     }
 
     @Override
     public String getContainerId(String name) {
-        return null;
+        return name;
     }
 
     @Override
     public String getContainerName(String containerId) {
-        return null;
+        return containerId;
     }
 
     @Override
     public void addContainerObserver(ContainerStateObserver containerObserver) {
-
+        containerObservers.add(containerObserver);
     }
 
     @Override
@@ -492,7 +488,14 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
     @Override
     public PodMetrics getStats(String containerId) {
-        return null;
+        PodMetrics stats = null;
+        try {
+            stats = k8sClient.top().pods().metrics("default", containerId);;
+        } catch (Exception e) {
+            LOGGER.warn("Error while requesting usage stats for {}. Returning null. Error: {}", containerId,
+                e.getLocalizedMessage());
+        }
+        return stats;
     }
 
     private String getInstanceName(String imageName) {
