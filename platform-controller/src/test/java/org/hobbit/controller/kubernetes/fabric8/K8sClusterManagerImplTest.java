@@ -2,22 +2,17 @@ package org.hobbit.controller.kubernetes.fabric8;
 
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.api.model.apps.DeploymentListBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
 import junit.framework.TestCase;
-import org.graalvm.compiler.debug.Assertions;
-import org.hobbit.controller.ochestration.ClusterManager;
+import org.hobbit.controller.orchestration.ClusterManager;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.util.Iterator;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class K8sClusterManagerImplTest extends TestCase {
 
@@ -29,7 +24,7 @@ public class K8sClusterManagerImplTest extends TestCase {
     ClusterManager clusterManager = null;
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp(){
         k8sClient = server.getClient();
 
         clusterManager = new K8sClusterManagerImpl();

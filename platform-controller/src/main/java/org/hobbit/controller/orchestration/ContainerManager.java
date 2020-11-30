@@ -4,7 +4,7 @@ import org.hobbit.controller.docker.ContainerStateObserver;
 
 import java.util.List;
 
-public interface ContainerManager<T, M> {
+public interface ContainerManager<ReplicationController, Metrics> {
 
     /**
      * Exit code of containers
@@ -57,9 +57,9 @@ public interface ContainerManager<T, M> {
 
     Integer getContainerExitCode(String serviceName);
 
-    T getContainerInfo(String serviceName);
+    ReplicationController getContainerInfo(String serviceName);
 
-    List<T> getContainers(String parent);
+    List<ReplicationController> getContainers(String parent);
 
     @Deprecated
     String getContainerId(String name);
@@ -80,5 +80,5 @@ public interface ContainerManager<T, M> {
      * @return statistics of the container with the given Id or {@code null} if the
      *         container can not be found or an error occurs.
      */
-    M getStats(String containerId);
+    Metrics getStats(String containerId);
 }

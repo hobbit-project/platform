@@ -1,34 +1,40 @@
 package org.hobbit.controller.kubernetes.fabric8;
 
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.messages.Network;
-import com.spotify.docker.client.messages.NetworkConfig;
+
+import com.spotify.docker.client.exceptions.DockerCertificateException;
+import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.exceptions.ServiceNotFoundException;
+import com.spotify.docker.client.exceptions.TaskNotFoundException;
 import com.spotify.docker.client.messages.RegistryAuth;
-import com.spotify.docker.client.messages.swarm.TaskStatus;
+import com.spotify.docker.client.messages.ServiceCreateResponse;
+import com.spotify.docker.client.messages.swarm.*;
+import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import io.fabric8.kubernetes.api.model.*;
-import io.fabric8.kubernetes.api.model.apiextensions.CustomResourceDefinition;
+import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentBuilder;
+import io.fabric8.kubernetes.api.model.apps.DeploymentSpecBuilder;
+import io.fabric8.kubernetes.api.model.apps.ReplicaSet;
 import io.fabric8.kubernetes.api.model.metrics.v1beta1.PodMetrics;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.dsl.LogWatch;
-import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.Resource;
-import org.hobbit.controller.docker.ContainerManagerImpl;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watch;
+import io.fabric8.kubernetes.client.Watcher;
+import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.DockerUtility;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
-import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.*;
-import org.hobbit.controller.kubernetes.networkAttachmentDefinitionCustomResources.Config;
+import org.hobbit.controller.orchestration.ClusterManager;
 import org.hobbit.controller.orchestration.ContainerManager;
+import org.hobbit.controller.utils.Waiting;
+import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class K8sContainerManagerImpl implements ContainerManager<Deployment, PodMetrics> {
 
@@ -199,22 +205,226 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, boolean pullImage) {
+        if (pullImage) {
+            pullImage(imageName);
+        }
+        String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command);
+        // if the creation was successful
+        if (containerId != null) {
+            for (ContainerStateObserver observer : containerObservers) {
+                observer.addObservedContainer(containerId);
+            }
+            return containerId;
+        }
         return null;
+    }
+
+
+
+    private String createContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command) {
+        /*
+        com.spotify.docker.client.messages.swarm.ServiceSpec.Builder serviceCfgBuilder = com.spotify.docker.client.messages.swarm.ServiceSpec.builder();
+
+        TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
+        // we need to run it just once; configure to never restart
+        taskCfgBuilder.restartPolicy(RestartPolicy.builder().condition(RestartPolicy.RESTART_POLICY_NONE).build());
+
+        ContainerSpec.Builder cfgBuilder = ContainerSpec.builder();
+        cfgBuilder.image(imageName);
+
+        */
+        DeploymentSpecBuilder serviceCfgBuilder = new DeploymentSpecBuilder();
+
+        // generate unique container name
+        String serviceName = getInstanceName(imageName);
+        serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addNewContainer().withNewName(serviceName);
+        // cfgBuilder.hostname(serviceName);
+        // get parent info
+        EnvVar envContainer = new EnvVarBuilder().withNewName(Constants.CONTAINER_NAME_KEY).withNewValue(serviceName).build();
+        List<EnvVar> defaultEnv = new ArrayList<>();
+        defaultEnv.add(envContainer);
+
+        Deployment parent = getContainerInfo(parentId);
+        String parentType = (parent == null) ? null : parent.getMetadata().getLabels().get(LABEL_TYPE);
+        // If there is no container type try to use the parent type or return null
+        if ((containerType == null) || containerType.isEmpty()) {
+            if ((parentType != null) && (!parentType.isEmpty())) {
+                containerType = parentType;
+            } else {
+                LOGGER.error(
+                    "Can't create container using image {} without a container type (either a given type or one that can be derived from the parent). Returning null.",
+                    imageName);
+                return null;
+            }
+        }
+
+        // Assume we have at least one node (which we're running at).
+        long numberOfSwarmNodes = 1;
+        long numberOfSystemSwarmNodes = 0;
+        long numberOfBenchmarkSwarmNodes = 0;
+
+        ClusterManager clusterManager = new K8sClusterManagerImpl();
+        numberOfSwarmNodes = clusterManager.getNumberOfNodes();
+        numberOfSystemSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
+        numberOfBenchmarkSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=benchmark");
+
+        if (numberOfSwarmNodes > 1) {
+            // If the parent has "system" --> we do not care what the container
+            // would like to have OR if there is no parent or the parent is a
+            // benchmark (in case of the benchmark controller) and the container has
+            // type "system"
+            if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
+                && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
+                || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
+
+                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "system");
+                containerType = Constants.CONTAINER_TYPE_SYSTEM;
+            } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
+                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
+                || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
+                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "benchmark");
+            } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
+                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
+                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "benchmark");
+            } else {
+                LOGGER.error("Got a request to create a container with type={} and parentType={}. "
+                    + "Got no rule to determine its type. Returning null.", containerType, parentType);
+                return null;
+            }
+        } else {
+            LOGGER.warn("The swarm cluster got only 1 node, I will not use placement constraints.");
+        }
+
+        // add hardware information to environment
+        EnvVar envNodes = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_NODES_KEY).withNewValue(Long.toString(numberOfSwarmNodes)).build();
+        defaultEnv.add(envNodes);
+        EnvVar envSystem = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY).withNewValue(Long.toString(numberOfSystemSwarmNodes)).build();
+        defaultEnv.add(envSystem);
+        EnvVar envBenchmark = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY).withNewValue(Long.toString(numberOfBenchmarkSwarmNodes)).build();
+        defaultEnv.add(envBenchmark);
+
+
+        // create env vars to pass
+        if (env != null) {
+            for(String en : env){
+                String[] en_key_val = en.split("=");
+                EnvVar envVar = new EnvVarBuilder().withNewName(en_key_val[0]).withNewValue(en_key_val[1]).build();
+                defaultEnv.add(envVar);
+            }
+
+        }
+        serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().editFirstContainer().addAllToEnv(defaultEnv);
+        // create container labels
+        Map<String, String> labels = new HashMap<>();
+        labels.put(LABEL_TYPE, containerType);
+        if (parentId != null) {
+            labels.put(LABEL_PARENT, parentId);
+        }
+        serviceCfgBuilder.editOrNewTemplate().editOrNewMetadata().addToLabels(labels);
+        // create logging info
+        if (gelfAddress != null) {
+            Map<String, String> logOptions = new HashMap<String, String>();
+            logOptions.put("gelf-address", gelfAddress);
+            String tag = LOGGING_TAG;
+            if (experimentId != null) {
+                tag = containerType + LOGGING_SEPARATOR + experimentId + LOGGING_SEPARATOR + LOGGING_TAG;
+            }
+            logOptions.put("tag", tag);
+            // Not fully understood
+            // taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
+        }
+        // if command is present - execute it
+        if ((command != null) && (command.length > 0)) {
+            for (String cmd : command){
+                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().editFirstContainer().addNewCommand(cmd);
+            }
+        }
+        // trigger creation
+        Deployment deployment = new DeploymentBuilder().withNewMetadata()
+                                                            .withName(serviceName)
+                                                        .endMetadata()
+                                                        .withSpec(serviceCfgBuilder.build()).build();
+
+        // connect to hobbit network only
+        // here I should set the port for the cluster service. what port will be used?
+        /*
+        serviceCfgBuilder.networks(
+            NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).aliases(netAliases).build()
+        );
+        *
+        */
+        try{
+            final CountDownLatch closeLatch = new CountDownLatch(1);
+            k8sClient.apps().deployments().inNamespace("default").create(deployment);
+            Watch watch = k8sClient.apps().deployments().inNamespace("default").withName(serviceName).watch(new Watcher<Deployment>() {
+                @Override
+                public void eventReceived(Action action, Deployment resource) {
+                    if (action.name().equals("ADDED")){
+                        LOGGER.info("Container {} created", serviceName);
+                    }
+                    else if (action.name().equals("ERROR")){
+                        LOGGER.error("Error creating container {}", serviceName);
+                    }
+                }
+                @Override
+                public void onClose(KubernetesClientException cause) {
+                    LOGGER.error(cause.getMessage(), cause);
+                    closeLatch.countDown();
+                }
+            });
+            closeLatch.await(10, TimeUnit.SECONDS);
+            return serviceName;
+        }catch (InterruptedException e){
+            LOGGER.error(e.getMessage());
+            return null;
+        }
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId) {
-        return null;
+        this.experimentId = experimentId;
+        return startContainer(imageName, containerType, parentId, env, netAliases, command);
     }
 
     @Override
     public void stopContainer(String containerId) {
-
+        removeContainer(containerId);
     }
 
     @Override
     public void removeContainer(String serviceName) {
+        try {
+            Integer exitCode = getContainerExitCode(serviceName);
+            if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
+                LOGGER.info(
+                    "Will not remove container {}. "
+                        + "Development mode is enabled.",
+                    serviceName);
+            } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode == null || exitCode != 0)) {
+                // In testing - do not remove containers if they returned non-zero exit code
+                LOGGER.info(
+                    "Will not remove container {}. "
+                        + "ExitCode: {} != 0 and testing mode is enabled.",
+                    serviceName, exitCode);
+            } else {
+                LOGGER.info("Removing container {}. ", serviceName);
+                dockerClient.removeService(serviceName);
 
+                // wait for the service to disappear
+                Waiting.waitFor(() -> {
+                    try {
+                        dockerClient.inspectService(serviceName);
+                        return false;
+                    } catch (ServiceNotFoundException e) {
+                        return true;
+                    }
+                }, DOCKER_POLL_INTERVAL);
+            }
+        } catch (TaskNotFoundException | ServiceNotFoundException e) {
+            LOGGER.error("Couldn't remove container {} because it doesn't exist", serviceName);
+        } catch (Exception e) {
+            LOGGER.error("Couldn't remove container {}.", serviceName, e);
+        }
     }
 
     @Override
@@ -229,12 +439,30 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
     @Override
     public Integer getContainerExitCode(String serviceName) {
+        if (getContainerInfo(serviceName) == null) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
+            return DOCKER_EXITCODE_SIGKILL;
+        }
+        // Service exists, but no tasks are observed.
+        Integer exitCode = null;
+
+        Integer runningReplicas = k8sClient.apps().deployments().inNamespace("default")
+                    .withName(serviceName).get().getStatus().getAvailableReplicas();
+
+        if (runningReplicas == 1) {
+            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
+            return null;
+        }
+
         return null;
     }
 
     @Override
-    public Deployment getContainerInfo(String serviceName) {
-        return null;
+    public Deployment getContainerInfo(String deploymentName) {
+        if (deploymentName == null) return null;
+        Deployment info = null;
+        info = k8sClient.apps().deployments().inNamespace("default").withName(deploymentName).get();
+        return info;
     }
 
     @Override
@@ -314,7 +542,3 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 }
 
 
-
-
-
-}
