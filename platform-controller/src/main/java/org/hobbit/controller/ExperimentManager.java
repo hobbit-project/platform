@@ -407,10 +407,8 @@ public class ExperimentManager implements Closeable {
 
                     experimentStatus.addError(HobbitErrors.ClusterNotHealthy);
                 }
-            } catch (DockerException e) {
+            } catch (Exception e) {
                 LOGGER.error("Could not get cluster health status. ", e);
-            } catch (InterruptedException e) {
-                LOGGER.error("Interrupted. Could not get cluster health status. ", e);
             }
 
             Model resultModel = experimentStatus.getResultModel();
