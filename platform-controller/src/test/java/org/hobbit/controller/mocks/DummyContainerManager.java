@@ -2,13 +2,12 @@ package org.hobbit.controller.mocks;
 
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Service;
-import com.spotify.docker.client.messages.swarm.Service.Criteria;
 import java.util.ArrayList;
 import java.util.concurrent.Semaphore;
 import java.util.List;
-import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.orchestration.ContainerManager;
 
 public class DummyContainerManager implements ContainerManager {
 
@@ -106,7 +105,7 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public List<Service> getContainers(Criteria criteria) {
+    public List<Service> getContainers(String label, String value) {
         return new ArrayList<>(0);
     }
 

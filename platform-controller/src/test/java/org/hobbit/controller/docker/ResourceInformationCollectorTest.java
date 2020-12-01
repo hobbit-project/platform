@@ -8,6 +8,7 @@ import org.apache.jena.sparql.vocabulary.DOAP;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.data.SetupHardwareInformation;
+import org.hobbit.controller.orchestration.ResourceInformationCollector;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.vocab.HOBBIT;

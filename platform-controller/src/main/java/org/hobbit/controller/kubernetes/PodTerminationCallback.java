@@ -1,4 +1,4 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
 public interface PodTerminationCallback {
 

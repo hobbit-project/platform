@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.hobbit.controller.orchestration.ContainerManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +107,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                                 }
                             }
                         }
-                    } catch (DockerException | InterruptedException e) {
+                    } catch (Exception e) {
                         LOGGER.error("Couldn't get the status of container " + id
                                 + ". It will be ignored during this run but will be checked again during the next run.");
                     }

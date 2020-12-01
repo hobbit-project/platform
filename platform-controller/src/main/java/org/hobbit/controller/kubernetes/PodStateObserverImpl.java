@@ -1,4 +1,4 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
@@ -6,10 +6,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
-import org.apache.log4j.Level;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.ContainerTerminationCallbackImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,8 +1,7 @@
 package org.hobbit.controller.mocks;
 
-import com.spotify.docker.client.messages.swarm.Service;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.docker.ResourceInformationCollector;
+import org.hobbit.controller.orchestration.ResourceInformationCollector;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 
 public class DummyResourceInformationCollector implements ResourceInformationCollector {
@@ -13,7 +12,7 @@ public class DummyResourceInformationCollector implements ResourceInformationCol
     };
 
     @Override
-    public ResourceUsageInformation getUsageInformation(Service.Criteria criteria) {
+    public ResourceUsageInformation getUsageInformation() {
         return null;
     };
 

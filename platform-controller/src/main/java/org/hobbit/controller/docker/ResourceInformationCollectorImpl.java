@@ -13,6 +13,8 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
+import org.hobbit.controller.orchestration.ContainerManager;
+import org.hobbit.controller.orchestration.ResourceInformationCollector;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;
@@ -96,9 +98,7 @@ public class  ResourceInformationCollectorImpl implements ResourceInformationCol
 
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(Service.Criteria.builder()
-                .labels(ImmutableMap.of(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM))
-                .build());
+        return getUsageInformation();
     }
 
     private long countRunningTasks(String serviceName) {
@@ -115,9 +115,8 @@ public class  ResourceInformationCollectorImpl implements ResourceInformationCol
     }
 
     @Override
-    public ResourceUsageInformation getUsageInformation(Service.Criteria criteria) {
-        List<Service> services = manager.getContainers(criteria);
-
+    public ResourceUsageInformation getUsageInformation() {
+        List<Service> services = manager.getContainers(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
         Map<String, Service> containerMapping = new HashMap<>();
         for (Service c : services) {
             containerMapping.put(c.spec().name(), c);

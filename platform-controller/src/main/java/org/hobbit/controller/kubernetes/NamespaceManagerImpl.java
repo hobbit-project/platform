@@ -1,6 +1,5 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
-import io.fabric8.kubernetes.api.model.Namespace;
 import io.fabric8.kubernetes.api.model.NamespaceList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 

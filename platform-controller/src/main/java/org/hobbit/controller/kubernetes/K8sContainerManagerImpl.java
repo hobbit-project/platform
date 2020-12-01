@@ -1,16 +1,7 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
-
-import com.google.common.collect.ImmutableMap;
-import com.spotify.docker.client.exceptions.DockerCertificateException;
-import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.exceptions.ServiceNotFoundException;
-import com.spotify.docker.client.exceptions.TaskNotFoundException;
-import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.RegistryAuth;
-import com.spotify.docker.client.messages.ServiceCreateResponse;
 import com.spotify.docker.client.messages.swarm.*;
-import com.spotify.docker.client.messages.swarm.ServiceSpec;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.*;
@@ -19,12 +10,10 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watch;
 import io.fabric8.kubernetes.client.Watcher;
-import org.hobbit.controller.docker.ClusterManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.orchestration.ClusterManager;
 import org.hobbit.controller.orchestration.ContainerManager;
-import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -457,9 +446,9 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
     }
 
     @Override
-    public List<Deployment> getContainers(String parent) {
+    public List<Deployment> getContainers(String label, String value) {
         try {
-            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(LABEL_PARENT, parent).list();
+            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(label, value).list();
             return services.getItems();
         }catch (Exception e){
             return new ArrayList<>();

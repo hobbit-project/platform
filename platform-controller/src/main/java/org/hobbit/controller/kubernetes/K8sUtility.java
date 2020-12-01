@@ -1,4 +1,4 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;

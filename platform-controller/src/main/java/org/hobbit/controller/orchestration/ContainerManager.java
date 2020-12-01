@@ -46,7 +46,7 @@ public interface ContainerManager<ReplicationController, Metrics> {
                                  String[] netAliases, String[] command, String experimentId);
 
     @Deprecated
-    public void stopContainer(String containerId);
+     void stopContainer(String containerId);
 
     void removeContainer(String serviceName);
 
@@ -59,7 +59,7 @@ public interface ContainerManager<ReplicationController, Metrics> {
 
     ReplicationController getContainerInfo(String serviceName);
 
-    List<ReplicationController> getContainers(String parent);
+    List<ReplicationController> getContainers(String label, String value);
 
     @Deprecated
     String getContainerId(String name);

@@ -2,6 +2,7 @@ package org.hobbit.controller.kubernetes.fabric8;
 
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
+import org.hobbit.controller.kubernetes.K8sContainerManagerImpl;
 import org.junit.Before;
 import org.junit.Test;
 

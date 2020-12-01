@@ -667,8 +667,8 @@ public class ContainerManagerImpl implements ContainerManager<Service, Container
     }
 
     @Override
-    public List<Service> getContainers(String parent) {
-        Service.Criteria criteria = Service.Criteria.builder().labels(ImmutableMap.of(LABEL_PARENT, parent)).build();
+    public List<Service> getContainers(String label, String value) {
+        Service.Criteria criteria = Service.Criteria.builder().labels(ImmutableMap.of(label, value)).build();
         try {
             return dockerClient.listServices(criteria);
         } catch (Exception e) {

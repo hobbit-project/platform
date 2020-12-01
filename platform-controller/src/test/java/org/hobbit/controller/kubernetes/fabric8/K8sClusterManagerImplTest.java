@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentListBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
 import junit.framework.TestCase;
+import org.hobbit.controller.kubernetes.K8sClusterManagerImpl;
 import org.hobbit.controller.orchestration.ClusterManager;
 import org.junit.Rule;
 import org.junit.Test;

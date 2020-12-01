@@ -1,20 +1,18 @@
-package org.hobbit.controller.kubernetes.fabric8;
+package org.hobbit.controller.kubernetes;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.fabric8.kubernetes.api.model.PodList;
-import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentList;
-import io.fabric8.kubernetes.api.model.metrics.v1beta1.NodeMetricsList;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.client.Watcher;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ext.com.google.common.collect.Streams;
+import org.hobbit.controller.data.NodeHardwareInformation;
 import org.hobbit.controller.data.SetupHardwareInformation;
+import org.hobbit.controller.orchestration.ContainerManager;
+import org.hobbit.controller.orchestration.ResourceInformationCollector;
+import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;
 import org.hobbit.core.data.usage.MemoryStats;
@@ -28,12 +26,13 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class K8sResourceInformationCollectorImpl implements K8sResourceInformationCollector {
+public class K8sResourceInformationCollectorImpl implements ResourceInformationCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(K8sResourceInformationCollectorImpl.class);
 
@@ -54,22 +53,17 @@ public class K8sResourceInformationCollectorImpl implements K8sResourceInformati
     private static final String PROMETHEUS_METRIC_UNAME = "node_uname_info";
 
 
-    private PodsManager manager;
+    private ContainerManager manager;
     private KubernetesClient  k8sClient;
     private String prometheusHost;
     private String prometheusPort;
 
-    private NamespaceManager namespaceManager;
-
-
-    public K8sResourceInformationCollectorImpl(PodsManager manager, NamespaceManager namespaceManager) {
-        this(manager, namespaceManager, null, null);
+    public K8sResourceInformationCollectorImpl(ContainerManager manager) {
+        this(manager, null, null);
     }
 
-
-    public K8sResourceInformationCollectorImpl(PodsManager manager,NamespaceManager namespaceManager, String prometheusHost, String prometheusPort) {
+    public K8sResourceInformationCollectorImpl(ContainerManager manager, String prometheusHost, String prometheusPort) {
         this.manager = manager;
-        this.namespaceManager = namespaceManager;
         this.prometheusHost = prometheusHost;
         if ((this.prometheusHost == null) && System.getenv().containsKey(PROMETHEUS_HOST_KEY)) {
             this.prometheusHost = System.getenv().get(PROMETHEUS_HOST_KEY);
@@ -86,80 +80,61 @@ public class K8sResourceInformationCollectorImpl implements K8sResourceInformati
             LOGGER.info("Prometheus port env {} is not set. Using default {}.", PROMETHEUS_PORT_KEY, PROMETHEUS_PORT_DEFAULT);
             this.prometheusPort = PROMETHEUS_PORT_DEFAULT;
         }
-
         k8sClient = K8sUtility.getK8sClient();
     }
 
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
-        DeploymentList deployments = k8sClient.apps().deployments().inAnyNamespace().withLabel(NamespaceManager.APP_CATEGORY_KEY, NamespaceManager.APP_CATEGORY_VALUE )
-            .withLabel(PodsManager.LABEL_TYPE, PodsManager.LABEL_PARENT).list();
-
-        getUsageInformation(deployments);
-
-
-        return null;
+        return getUsageInformation();
     }
 
     @Override
-    public ResourceUsageInformation getUsageInformation(DeploymentList deployments) {
-
+    public ResourceUsageInformation getUsageInformation() {
+        List<Deployment> services = manager.getContainers(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
         Map<String, Deployment> podMapping = new HashMap<>();
-
-        for (Deployment d: deployments.getItems()){
-            podMapping.put(d.getMetadata().getName(), d);
+        for (Deployment c: services){
+            podMapping.put(c.getMetadata().getName(), c);
         }
-
         ResourceUsageInformation resourceInfo = podMapping.keySet().parallelStream()
             // filter all pods that are not running
-            .filter(d -> countRunningReplicas(d) !=0)
+            .filter(d -> countRunningTasks(d) !=0)
             // get the stats for the single deployment
             .map(id -> requestCpuAndMemoryStats(id))
             // sum up the stats
             .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
-
-
         return resourceInfo;
     }
 
-
-    private long countRunningReplicas(String deploymentName) {
-        Deployment d =  k8sClient.apps().deployments().inNamespace("default").withName(deploymentName).get();
-        return d.getStatus().getAvailableReplicas();
+    protected ResourceUsageInformation requestCpuAndMemoryStats(String serviceName) {
+        ResourceUsageInformation resInfo = new ResourceUsageInformation();
+        try {
+            Double value = requestAveragePrometheusValue(PROMETHEUS_METRIC_CPU_USAGE, serviceName);
+            if (value != null) {
+                resInfo.setCpuStats(new CpuStats(Math.round(value * 1000)));
+            }
+        } catch (Exception e) {
+            LOGGER.error("Could not get cpu usage stats for container {}", serviceName, e);
+        }
+        try {
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_MEMORY_USAGE, serviceName);
+            if (value != null) {
+                resInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
+            }
+        } catch (Exception e) {
+            LOGGER.error("Could not get memory usage stats for container {}", serviceName, e);
+        }
+        try {
+            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_FS_USAGE, serviceName);
+            if (value != null) {
+                resInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
+            }
+        } catch (Exception e) {
+            LOGGER.error("Could not get disk usage stats for container {}", serviceName, e);
+        }
+        return resInfo;
     }
-
-
-    protected ResourceUsageInformation requestCpuAndMemoryStats(String deploymentName) {
-        ResourceUsageInformation resourceInfo = new ResourceUsageInformation();
-        try {
-            Double value = requestAveragePrometheusValue(PROMETHEUS_METRIC_CPU_USAGE, deploymentName);
-            if (value != null) {
-                resourceInfo.setCpuStats(new CpuStats(Math.round(value * 1000)));
-            }
-        } catch (Exception e) {
-            LOGGER.error("Could not get cpu usage stats for container {}", deploymentName, e);
-        }
-        try {
-            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_MEMORY_USAGE, deploymentName);
-            if (value != null) {
-                resourceInfo.setMemoryStats(new MemoryStats(Long.parseLong(value)));
-            }
-        } catch (Exception e) {
-            LOGGER.error("Could not get memory usage stats for container {}", deploymentName, e);
-        }
-        try {
-            String value = requestSamplePrometheusValue(PROMETHEUS_METRIC_FS_USAGE, deploymentName);
-            if (value != null) {
-                resourceInfo.setDiskStats(new DiskStats(Long.parseLong(value)));
-            }
-        } catch (Exception e) {
-            LOGGER.error("Could not get disk usage stats for container {}", deploymentName, e);
-        }
-        return resourceInfo;
-    }
-
-    private Double requestAveragePrometheusValue(String metric, String deploymentName) {
-        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, deploymentName);
+    private Double requestAveragePrometheusValue(String metric, String serviceName) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, serviceName);
         if (instances.size() == 0) {
             return null;
         }
@@ -176,6 +151,7 @@ public class K8sResourceInformationCollectorImpl implements K8sResourceInformati
         }
         return instances.values().iterator().next().get(metric).get(0);
     }
+
 
     // metrics should not contain regular expression special characters
     private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String deploymentName) {
@@ -253,9 +229,53 @@ public class K8sResourceInformationCollectorImpl implements K8sResourceInformati
         return root.getAsJsonObject("data").getAsJsonArray("result");
     }
 
+
+
+    private long countRunningTasks(String serviceName) {
+        Deployment d =  k8sClient.apps().deployments().inNamespace("default").withName(serviceName).get();
+        return d.getStatus().getAvailableReplicas();
+    }
+
     @Override
     public SetupHardwareInformation getHardwareInformation() {
-        return null;
+        SetupHardwareInformation setupInfo = new SetupHardwareInformation();
+
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {
+            PROMETHEUS_METRIC_CPU_CORES,
+            PROMETHEUS_METRIC_CPU_FREQUENCY,
+            PROMETHEUS_METRIC_MEMORY,
+            PROMETHEUS_METRIC_SWAP,
+            PROMETHEUS_METRIC_UNAME,
+        }, null);
+
+        for (Map.Entry<String, Map<String, List<String>>> entry : instances.entrySet()) {
+            NodeHardwareInformation nodeInfo = new NodeHardwareInformation();
+            nodeInfo.setInstance(entry.getKey());
+
+            Map<String, List<String>> metrics = entry.getValue();
+
+            nodeInfo.setCpu(
+                metrics.getOrDefault(PROMETHEUS_METRIC_CPU_CORES, new ArrayList<String>())
+                    .stream().map(Long::parseLong).findAny().orElse(null),
+                metrics.getOrDefault(PROMETHEUS_METRIC_CPU_FREQUENCY, new ArrayList<String>())
+                    .stream().map(Long::parseLong).collect(Collectors.toList())
+            );
+
+            nodeInfo.setMemory(
+                metrics.getOrDefault(PROMETHEUS_METRIC_MEMORY, new ArrayList<String>())
+                    .stream().map(Long::parseLong).findAny().orElse(null),
+                metrics.getOrDefault(PROMETHEUS_METRIC_SWAP, new ArrayList<String>())
+                    .stream().map(Long::parseLong).findAny().orElse(null)
+            );
+
+            nodeInfo.setOs(
+                metrics.getOrDefault(PROMETHEUS_METRIC_UNAME, new ArrayList<String>())
+                    .stream().findAny().orElse(null)
+            );
+
+            setupInfo.addNode(nodeInfo);
+        }
+        return setupInfo;
     }
 }
 
