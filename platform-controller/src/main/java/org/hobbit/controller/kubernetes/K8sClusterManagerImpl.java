@@ -55,7 +55,9 @@ public class K8sClusterManagerImpl implements ClusterManager {
 
     @Override
     public long getNumberOfNodes() {
-        return k8sClient.nodes().list().getItems().size();
+        long nodes = k8sClient.nodes().list().getItems().size();
+        System.out.println("nodes:" + nodes);
+        return nodes;
     }
 
     @Override
