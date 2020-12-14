@@ -18,7 +18,7 @@ public class K8sUtility {
         if(k8sClient == null) {
             k8sClient = new DefaultKubernetesClient();
         }
-        KubernetesDeserializer.registerCustomKind("k8s.cni.cncf.io/v1", "NetworkAttachmentDefinition", NetworkAttachmentDefinition.class);
+//        KubernetesDeserializer.registerCustomKind("k8s.cni.cncf.io/v1", "NetworkAttachmentDefinition", NetworkAttachmentDefinition.class);
         return k8sClient;
     }
 

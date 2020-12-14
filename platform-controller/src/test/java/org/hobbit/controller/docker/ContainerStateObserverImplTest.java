@@ -16,6 +16,7 @@
  */
 package org.hobbit.controller.docker;
 
+import org.hobbit.controller.orchestration.ContainerManager;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
