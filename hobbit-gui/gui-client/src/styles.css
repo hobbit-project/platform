@@ -35,3 +35,9 @@ button.btn {
   -ms-user-select: auto !important;
   user-select: auto !important;
 }
+
+/* Reduce the padding in PrimeNG DataTable */
+.ui-datatable.ui-datatable-resizable .ui-datatable-thead > tr > th,
+body .ui-datatable .ui-datatable-data > tr > td {
+  padding: 0.25em !important;
+}
