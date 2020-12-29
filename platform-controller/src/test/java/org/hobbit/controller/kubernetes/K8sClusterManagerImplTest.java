@@ -1,6 +1,6 @@
 package org.hobbit.controller.kubernetes;
 
-import io.fabric8.kubernetes.api.model.NodeList;
+
 import io.fabric8.kubernetes.api.model.NodeListBuilder;
 import io.fabric8.kubernetes.api.model.apps.DeploymentListBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;

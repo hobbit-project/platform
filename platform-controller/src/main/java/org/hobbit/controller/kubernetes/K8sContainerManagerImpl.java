@@ -5,6 +5,10 @@ import com.spotify.docker.client.messages.swarm.*;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.Service;
 import io.fabric8.kubernetes.api.model.apps.*;
+import io.fabric8.kubernetes.api.model.batch.Job;
+import io.fabric8.kubernetes.api.model.batch.JobBuilder;
+import io.fabric8.kubernetes.api.model.batch.JobList;
+import io.fabric8.kubernetes.api.model.batch.JobStatus;
 import io.fabric8.kubernetes.api.model.metrics.v1beta1.PodMetrics;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -24,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class K8sContainerManagerImpl implements ContainerManager<Deployment, PodMetrics> {
+public class K8sContainerManagerImpl implements ContainerManager<Job, PodMetrics> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(K8sContainerManagerImpl.class);
 
@@ -126,34 +130,7 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
                 "Didn't find a gelf address ({}). Containers created by this platform will use the default logging.",
                 LOGGING_GELF_ADDRESS_KEY);
         }
-        // try to find hobbit network in existing ones
-        ServiceList networks = k8sClient.services().inAnyNamespace().list();
-        String hobbitNetwork = null;
 
-        for (Service net: networks.getItems()){
-            if (net.getMetadata().getName().equals(HOBBIT_DOCKER_NETWORK)){
-                hobbitNetwork = net.getMetadata().getUid();
-                break;
-            }
-        }
-        // if not found - create new one
-        if (hobbitNetwork == null) {
-            LOGGER.warn("Could not find hobbit kubernetes ClusterIP network service, creating a new one");
-            Service hobbit = new ServiceBuilder()
-                .withNewMetadata()
-                    .withName(HOBBIT_DOCKER_NETWORK)
-                .endMetadata()
-                .withNewSpec()
-                .withSelector(Collections.singletonMap("app", "MyApp"))
-                .addNewPort()
-                .withName("test-port")
-                .withProtocol("TCP")
-                .withPort(80)
-                .withTargetPort(new IntOrString(9376))
-                .endPort()
-                .endSpec()
-                .build();
-        }
     }
 
     @Override
@@ -212,21 +189,30 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
 
 
     private String createContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command) {
-        DeploymentSpecBuilder serviceCfgBuilder = new DeploymentSpecBuilder();
-
         // generate unique container name
         String serviceName = getInstanceName(imageName);
-        serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addNewContainer().withNewName(serviceName);
-        // cfgBuilder.hostname(serviceName);
-        // get parent info
         EnvVar envContainer = new EnvVarBuilder().withNewName(Constants.CONTAINER_NAME_KEY).withNewValue(serviceName).build();
         List<EnvVar> defaultEnv = new ArrayList<>();
         defaultEnv.add(envContainer);
+        // create env vars to pass
+        if (env != null) {
+            for(String en : env){
+                String[] en_key_val = en.split("=");
+                EnvVar envVar = new EnvVarBuilder().withNewName(en_key_val[0]).withNewValue(en_key_val[1]).build();
+                defaultEnv.add(envVar);
+            }
+        }
+        // create container labels
+        Map<String, String> labels = new HashMap<>();
+        labels.put(LABEL_TYPE, containerType);
+        if (parentId != null) {
+            labels.put(LABEL_PARENT, parentId);
+        }
 
-        Deployment parent = getContainerInfo(parentId);
+        Job parent = getContainerInfo(parentId);
         String parentType = (parent == null) ? null : parent.getMetadata().getLabels().get(LABEL_TYPE);
         // If there is no container type try to use the parent type or return null
-        if ((containerType == null) || containerType.isEmpty()) {
+        if (containerType == null || containerType.isEmpty()) {
             if ((parentType != null) && (!parentType.isEmpty())) {
                 containerType = parentType;
             } else {
@@ -237,72 +223,8 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
             }
         }
 
-        // Assume we have at least one node (which we're running at).
-        long numberOfSwarmNodes = 1;
-        long numberOfSystemSwarmNodes = 0;
-        long numberOfBenchmarkSwarmNodes = 0;
-
-        ClusterManager clusterManager = new K8sClusterManagerImpl();
-        numberOfSwarmNodes = clusterManager.getNumberOfNodes();
-        numberOfSystemSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
-        numberOfBenchmarkSwarmNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=benchmark");
-
-        if (numberOfSwarmNodes > 1) {
-            // If the parent has "system" --> we do not care what the container
-            // would like to have OR if there is no parent or the parent is a
-            // benchmark (in case of the benchmark controller) and the container has
-            // type "system"
-            if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
-                && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
-                || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
-
-                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "system");
-                containerType = Constants.CONTAINER_TYPE_SYSTEM;
-            } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
-                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
-                || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
-                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "benchmark");
-            } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
-                && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
-                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().addToNodeSelector("org.hobbit.workergroup", "benchmark");
-            } else {
-                LOGGER.error("Got a request to create a container with type={} and parentType={}. "
-                    + "Got no rule to determine its type. Returning null.", containerType, parentType);
-                return null;
-            }
-        } else {
-            LOGGER.warn("The swarm cluster got only 1 node, I will not use placement constraints.");
-        }
-
-        // add hardware information to environment
-        EnvVar envNodes = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_NODES_KEY).withNewValue(Long.toString(numberOfSwarmNodes)).build();
-        defaultEnv.add(envNodes);
-        EnvVar envSystem = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_SYSTEM_NODES_KEY).withNewValue(Long.toString(numberOfSystemSwarmNodes)).build();
-        defaultEnv.add(envSystem);
-        EnvVar envBenchmark = new EnvVarBuilder().withNewName(Constants.HARDWARE_NUMBER_OF_BENCHMARK_NODES_KEY).withNewValue(Long.toString(numberOfBenchmarkSwarmNodes)).build();
-        defaultEnv.add(envBenchmark);
-
-
-        // create env vars to pass
-        if (env != null) {
-            for(String en : env){
-                String[] en_key_val = en.split("=");
-                EnvVar envVar = new EnvVarBuilder().withNewName(en_key_val[0]).withNewValue(en_key_val[1]).build();
-                defaultEnv.add(envVar);
-            }
-
-        }
-        serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().editFirstContainer().addAllToEnv(defaultEnv);
-        // create container labels
-        Map<String, String> labels = new HashMap<>();
-        labels.put(LABEL_TYPE, containerType);
-        if (parentId != null) {
-            labels.put(LABEL_PARENT, parentId);
-        }
-        serviceCfgBuilder.editOrNewTemplate().editOrNewMetadata().addToLabels(labels);
-        // create logging info
         if (gelfAddress != null) {
-            Map<String, String> logOptions = new HashMap<String, String>();
+            Map<String, String> logOptions = new HashMap<>();
             logOptions.put("gelf-address", gelfAddress);
             String tag = LOGGING_TAG;
             if (experimentId != null) {
@@ -312,32 +234,37 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
             // Not fully understood
             // taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
         }
-        // if command is present - execute it
-        if ((command != null) && (command.length > 0)) {
-            for (String cmd : command){
-                serviceCfgBuilder.editOrNewTemplate().editOrNewSpec().editFirstContainer().addNewCommand(cmd);
-            }
-        }
-        // trigger creation
-        Deployment deployment = new DeploymentBuilder().withNewMetadata()
-                                                            .withName(serviceName)
-                                                        .endMetadata()
-                                                        .withSpec(serviceCfgBuilder.build()).build();
 
-        // connect to hobbit network only
-        // here I should set the port for the cluster service. what port will be used?
-        /*
-        serviceCfgBuilder.networks(
-            NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).aliases(netAliases).build()
-        );
-        *
-        */
+        // trigger creation
+        Job job = new JobBuilder()
+            .withApiVersion("batch/v1")
+            .withNewMetadata()
+                .withName(serviceName)
+                .withLabels(labels)
+            .endMetadata()
+            .withNewSpec()
+                .withNewTemplate()
+                    .withNewSpec()
+                        .addNewContainer()
+                            .withName(serviceName)
+                            .withImage(imageName)
+                            .withArgs(command)
+                            .withEnv(defaultEnv)
+                        .endContainer()
+                        .withRestartPolicy("OnFailure")
+                    .endSpec()
+                .endTemplate()
+            .endSpec()
+            .build();
+
+        k8sClient.batch().jobs().inNamespace("default").create(job);
+
         try{
             final CountDownLatch closeLatch = new CountDownLatch(1);
-            k8sClient.apps().deployments().inNamespace("default").create(deployment);
-            Watch watch = k8sClient.apps().deployments().inNamespace("default").withName(serviceName).watch(new Watcher<Deployment>() {
+            k8sClient.batch().jobs().inNamespace("default").create(job);
+            k8sClient.batch().jobs().inNamespace("default").withName(serviceName).watch(new Watcher<Job>() {
                 @Override
-                public void eventReceived(Action action, Deployment resource) {
+                public void eventReceived(Action action, Job resource) {
                     if (action.name().equals("ADDED")){
                         LOGGER.info("Container {} created", serviceName);
                     }
@@ -387,7 +314,7 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
                 serviceName, exitCode);
         } else {
             LOGGER.info("Removing container {}. ", serviceName);
-            k8sClient.apps().deployments().inNamespace("default").withName(serviceName).delete();
+            k8sClient.batch().jobs().inNamespace("default").withName(serviceName).delete();
             // wait for the service to disappear
             // ...
         }
@@ -406,7 +333,7 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
         removeContainer(parent);
         // find children
         try {
-            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(LABEL_PARENT, parent).list();
+            JobList services = k8sClient.batch().jobs().inNamespace("default").withLabel(LABEL_PARENT, parent).list();
             services.getItems().forEach(c -> {
                 if (c != null) {
                 removeParentAndChildren(c.getMetadata().getName());
@@ -423,32 +350,32 @@ public class K8sContainerManagerImpl implements ContainerManager<Deployment, Pod
             LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
             return DOCKER_EXITCODE_SIGKILL;
         }
-       DeploymentStatus status = k8sClient.apps().deployments().inNamespace("default")
+       JobStatus status = k8sClient.batch().jobs().inNamespace("default")
                     .withName(serviceName).get().getStatus();
-        if (status.getReplicas() == 0){
+        if (status.getActive() == 0){
             LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
             return null;
         }
-        if (status.getAvailableReplicas() == 0) {
+        if (status.getSucceeded() == 0) {
             LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
             return null;
-        }if (status.getAvailableReplicas() >=1)
+        }if (status.getActive() >=1)
             return 1;
         return null;
     }
 
     @Override
-    public Deployment getContainerInfo(String serviceName) {
+    public Job getContainerInfo(String serviceName) {
         if (serviceName == null) return null;
-        Deployment info = null;
-        info = k8sClient.apps().deployments().inNamespace("default").withName(serviceName).get();
+        Job info = null;
+        info = k8sClient.batch().jobs().inNamespace("default").withName(serviceName).get();
         return info;
     }
 
     @Override
-    public List<Deployment> getContainers(String label, String value) {
+    public List<Job> getContainers(String label, String value) {
         try {
-            DeploymentList services = k8sClient.apps().deployments().inNamespace("default").withLabel(label, value).list();
+            JobList services = k8sClient.batch().jobs().inNamespace("default").withLabel(label, value).list();
             return services.getItems();
         }catch (Exception e){
             return new ArrayList<>();
