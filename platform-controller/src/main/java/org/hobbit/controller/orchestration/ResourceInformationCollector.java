@@ -9,5 +9,5 @@ public interface ResourceInformationCollector {
 
     ResourceUsageInformation getUsageInformation();
 
-    SetupHardwareInformation getHardwareInformation();
+    SetupHardwareInformation getHardwareInformation() throws Exception;
 }

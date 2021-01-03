@@ -1,0 +1,238 @@
+package org.hobbit.controller.kubernetes;
+
+import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.Service;
+import io.fabric8.kubernetes.api.model.DoneableNode;
+import io.fabric8.kubernetes.api.model.Node;
+import io.fabric8.kubernetes.api.model.NodeList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.kubernetes.client.server.mock.KubernetesServer;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.sparql.vocabulary.DOAP;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
+import org.hobbit.controller.data.SetupHardwareInformation;
+import org.hobbit.controller.docker.ContainerManagerBasedTest;
+import org.hobbit.controller.docker.ContainerManagerImpl;
+import org.hobbit.controller.orchestration.ContainerManager;
+import org.hobbit.core.Constants;
+import org.hobbit.core.data.usage.ResourceUsageInformation;
+import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.MEXCORE;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static org.hobbit.controller.DockerBasedTest.busyboxImageName;
+import static org.hobbit.controller.DockerBasedTest.sleepCommand;
+import static org.junit.Assert.assertNotNull;
+
+public class K8sResourceInformationCollectorImpl extends ContainerManagerBasedTest {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(K8sResourceInformationCollectorImpl.class);
+
+    public static final String PROMETHEUS_HOST_KEY = "PROMETHEUS_HOST";
+    public static final String PROMETHEUS_PORT_KEY = "PROMETHEUS_PORT";
+
+    public static final String PROMETHEUS_HOST_DEFAULT = "localhost";
+    public static final String PROMETHEUS_PORT_DEFAULT = "9090";
+
+    private static final String PROMETHEUS_METRIC_CPU_CORES = "machine_cpu_cores";
+    private static final String PROMETHEUS_METRIC_CPU_FREQUENCY = "node_cpu_frequency_max_hertz";
+    private static final String PROMETHEUS_METRIC_CPU_USAGE = "container_cpu_usage_seconds_total";
+    private static final String PROMETHEUS_METRIC_FS_USAGE = "container_fs_usage_bytes";
+    private static final String PROMETHEUS_METRIC_MEMORY = "node_memory_MemTotal_bytes";
+    private static final String PROMETHEUS_METRIC_MEMORY_USAGE = "container_memory_usage_bytes";
+    private static final String PROMETHEUS_METRIC_SWAP = "node_memory_SwapTotal_bytes";
+    private static final String PROMETHEUS_METRIC_UNAME = "node_uname_info";
+
+
+    @Rule
+    public KubernetesServer server = new KubernetesServer();
+    public KubernetesClient k8sClient = K8sUtility.getK8sClient();
+    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
+
+
+
+    @Before
+    public void setEnv() {
+        environmentVariables.set(
+            K8sResourceInformationCollectorImpl.PROMETHEUS_HOST_KEY,
+            K8sResourceInformationCollectorImpl.PROMETHEUS_HOST_DEFAULT);
+        environmentVariables.set(
+            K8sResourceInformationCollectorImpl.PROMETHEUS_PORT_KEY,
+            K8sResourceInformationCollectorImpl.PROMETHEUS_PORT_DEFAULT);
+    }
+
+
+
+    @Test
+    public void test() throws Exception {
+        LOGGER.info("Waiting to avoid failing container creation, which happens when running the full test suite...");
+        Thread.sleep(10000);
+
+        LOGGER.info("Creating first container...");
+        String containerId = manager.startContainer(busyboxImageName,
+            Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull("Container ID", containerId);
+        services.add(containerId);
+
+        LOGGER.info("Waiting...");
+        Thread.sleep(10000);
+
+        K8sResourceInformationCollectorImpl collector = new K8sResourceInformationCollectorImpl(manager);
+        LOGGER.info("Requesting system usage information...");
+        ResourceUsageInformation usage = collector.getSystemUsageInformation();
+
+        Assert.assertNotNull("System usage information", usage);
+        LOGGER.info("Got {}", usage);
+
+        Assert.assertNotNull("CPU stats", usage.getCpuStats());
+        Assert.assertTrue(usage.getCpuStats().getTotalUsage() > 0);
+        Assert.assertNotNull("Memory stats", usage.getMemoryStats());
+        Assert.assertTrue(usage.getMemoryStats().getUsageSum() > 0);
+        Assert.assertNotNull("Disk stats", usage.getDiskStats());
+        Assert.assertTrue(usage.getDiskStats().getFsSizeSum() > 0);
+
+        // Generate a second container
+        LOGGER.info("Creating second container...");
+        containerId = manager.startContainer(busyboxImageName,
+            Constants.CONTAINER_TYPE_SYSTEM, null, sleepCommand);
+        assertNotNull("Container ID", containerId);
+        services.add(containerId);
+
+        LOGGER.info("Waiting...");
+        Thread.sleep(10000);
+
+        LOGGER.info("Requesting system usage information...");
+        ResourceUsageInformation usage2 = collector.getSystemUsageInformation();
+        Assert.assertNotNull("System usage information", usage2);
+        LOGGER.info("Got {}", usage2);
+
+        Assert.assertNotNull("CPU stats", usage2.getCpuStats());
+        Assert.assertTrue(usage2.getCpuStats().getTotalUsage() > 0);
+        Assert.assertTrue(usage.getCpuStats().getTotalUsage()
+            <= usage2.getCpuStats().getTotalUsage());
+        Assert.assertNotNull("Memory stats", usage2.getMemoryStats());
+        Assert.assertTrue(usage.getMemoryStats().getUsageSum()
+            <= usage2.getMemoryStats().getUsageSum());
+        Assert.assertNotNull("Disk stats", usage2.getDiskStats());
+        Assert.assertTrue(usage.getDiskStats().getFsSizeSum()
+            <= usage2.getDiskStats().getFsSizeSum());
+    }
+
+
+
+    @Test
+    public void testIncreasingFsSize() throws Exception {
+        K8sResourceInformationCollectorImpl collector = new K8sResourceInformationCollectorImpl(manager);
+        final String[] command = { "sh", "-c",
+            "sleep 20s ; dd if=/dev/zero of=file.txt count=16024 bs=1048576 ; sleep 60s" };
+        LOGGER.info("Creating container...");
+        String containerId = manager.startContainer(busyboxImageName,
+            Constants.CONTAINER_TYPE_SYSTEM, null, command);
+        assertNotNull("Container ID", containerId);
+        services.add(containerId);
+        LOGGER.info("Waiting for the container {} to start...", containerId);
+        Thread.sleep(10000);
+
+        LOGGER.info("Requesting system usage information...");
+        ResourceUsageInformation usage = collector.getSystemUsageInformation();
+
+        Assert.assertNotNull("System usage information", usage);
+        LOGGER.info("Got {}", usage);
+
+        Assert.assertNotNull("CPU stats", usage.getCpuStats());
+        /* FIXME cpu usage */
+        Assert.assertTrue("CPU usage > 0", usage.getCpuStats().getTotalUsage() > 0);
+        Assert.assertNotNull("Memory stats", usage.getMemoryStats());
+        Assert.assertTrue("Memory usage > 0", usage.getMemoryStats().getUsageSum() > 0);
+        Assert.assertNotNull("Disk stats", usage.getDiskStats());
+        Assert.assertTrue("Disk fs size > 0", usage.getDiskStats().getFsSizeSum() > 0);
+
+        LOGGER.info("Waiting for the container {} to generate its file...",
+            containerId);
+        Thread.sleep(30000);
+
+        LOGGER.info("Requesting system usage information...");
+        ResourceUsageInformation usage2 = collector.getSystemUsageInformation();
+        Assert.assertNotNull("System usage information", usage2);
+        LOGGER.info("Got {}", usage2);
+
+        Assert.assertNotNull("CPU stats", usage2.getCpuStats());
+        Assert.assertTrue("CPU usage (after generating the file) > 0", usage2.getCpuStats().getTotalUsage() > 0);
+        // Assert.assertTrue("We expected that the CPU time used to generate the file
+        // would increase the overall CPU time",
+        // usage.getCpuStats().getTotalUsage() < usage2.getCpuStats().getTotalUsage());
+        Assert.assertNotNull("Memory stats", usage2.getMemoryStats());
+        // Assert.assertTrue(usage.getMemoryStats().getUsageSum() <
+        // usage2.getMemoryStats().getUsageSum());
+        Assert.assertNotNull("Disk stats", usage2.getDiskStats());
+        // Assert.assertTrue("We expected that the Fssize would be increased when
+        // generating a huge file",
+        // usage.getDiskStats().getFsSizeSum() < usage2.getDiskStats().getFsSizeSum());
+        Assert.assertTrue("We expected that the consumed memory would be increased when generating a huge file",
+            (usage.getMemoryStats().getUsageSum()
+                + usage.getDiskStats().getFsSizeSum())
+                < (usage2.getMemoryStats().getUsageSum()
+                + usage2.getDiskStats().getFsSizeSum()));
+    }
+
+
+    @Test
+    public SetupHardwareInformation getHardwareInformation() throws Exception {
+
+        LOGGER.info("Requesting hardware information...");
+        K8sResourceInformationCollectorImpl collector = new K8sResourceInformationCollectorImpl(manager);
+        SetupHardwareInformation setupInfo = collector.getHardwareInformation();
+        assertNotNull("Hardware information", setupInfo);
+        LOGGER.info("Got {}", setupInfo);
+
+        Model m = ModelFactory.createDefaultModel();
+        setupInfo.addToModel(m);
+
+        NonNamespaceOperation<Node, NodeList, DoneableNode, Resource<Node, DoneableNode>> nodesInKubernetes = K8sUtility.getK8sClient().nodes();
+
+
+
+            Assert.assertEquals("Number of hobbit:comprises properties is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listObjectsOfProperty(HOBBIT.comprises).toList().size());
+
+            Assert.assertEquals("Number of mexcore:HardwareConfiguration resources is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listSubjectsWithProperty(RDF.type, MEXCORE.HardwareConfiguration).toList().size());
+
+            Assert.assertEquals("Number of rdfs:label properties is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listObjectsOfProperty(RDFS.label).toList().size());
+
+            Assert.assertEquals("Number of mexcore:cpu properties is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listObjectsOfProperty(MEXCORE.cpu).toList().size());
+
+            Assert.assertEquals("Number of mexcore:memory properties is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listObjectsOfProperty(MEXCORE.memory).toList().size());
+
+            Assert.assertEquals("Number of doap:os properties is equal to the number of nodes in the Kubernetes",
+                nodesInKubernetes,
+                m.listObjectsOfProperty(DOAP.os).toList().size());
+
+            Assert.assertEquals("Total number of statements in hardware information model",
+                1 + 6 * nodesInKubernetes,
+                m.listStatements().toList().size());
+        return setupInfo;
+    }
+
+}
+
+
+
