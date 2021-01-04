@@ -20,13 +20,13 @@ spec:
     spec:
       containers:
         - name: platform-controller
-          image: hobbitproject/hobbit-platform-controller:latest
+          image: oluoniyide/platform-controller:3.2.0
           imagePullPolicy: IfNotPresent
           env:
             - name: HOBBIT_RABBIT_HOST
-              value: "rabbit"
+              value: rabbit-rabbitmq.default.svc.cluster.local
             - name: HOBBIT_RABBIT_EXPERIMENTS_HOST
-              value: "rabbit"
+              value: rabbit-rabbitmq.default.svc.cluster.local
             - name: HOBBIT_REDIS_HOST
               value: "redis"
             - name: DEPLOY_ENV
