@@ -2,7 +2,7 @@ FROM maven
 
 LABEL maintainer="Hobbit Team" \
       name="platform-controller" \
-      version="0.1"
+      version="3.0.1"
 
 RUN mkdir -p /usr/src/app
 # Create an empty metadata directory (it will be used as default by the file-based image manager)
@@ -14,3 +14,4 @@ ADD . /usr/src/app
 #RUN mvn package -Dmaven.test.skip=true
 
 CMD ["java", "-cp", "target/platform-controller.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.controller.PlatformController"]
+

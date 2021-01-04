@@ -4,7 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.fabric8.kubernetes.api.model.apps.Deployment;
+import io.fabric8.kubernetes.api.model.batch.Job;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ext.com.google.common.collect.Streams;
@@ -90,15 +90,15 @@ public class K8sResourceInformationCollectorImpl implements ResourceInformationC
 
     @Override
     public ResourceUsageInformation getUsageInformation() {
-        List<Deployment> services = manager.getContainers(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
-        Map<String, Deployment> podMapping = new HashMap<>();
-        for (Deployment c: services){
+        List<Job> services = manager.getContainers(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM);
+        Map<String, Job> podMapping = new HashMap<>();
+        for (Job c: services){
             podMapping.put(c.getMetadata().getName(), c);
         }
         ResourceUsageInformation resourceInfo = podMapping.keySet().parallelStream()
             // filter all pods that are not running
             .filter(d -> countRunningTasks(d) !=0)
-            // get the stats for the single deployment
+            // get the stats for the single job
             .map(id -> requestCpuAndMemoryStats(id))
             // sum up the stats
             .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
@@ -144,8 +144,8 @@ public class K8sResourceInformationCollectorImpl implements ResourceInformationC
             );
     }
 
-    private String requestSamplePrometheusValue(String metric, String deploymentName) {
-        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, deploymentName);
+    private String requestSamplePrometheusValue(String metric, String serviceName) {
+        Map<String, Map<String, List<String>>> instances = requestPrometheusMetrics(new String[] {metric}, serviceName);
         if (instances.size() == 0) {
             return null;
         }
@@ -154,16 +154,16 @@ public class K8sResourceInformationCollectorImpl implements ResourceInformationC
 
 
     // metrics should not contain regular expression special characters
-    private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String deploymentName) {
+    private Map<String, Map<String, List<String>>> requestPrometheusMetrics(String[] metrics, String serviceName) {
         StringBuilder query = new StringBuilder();
         query.append('{');
         query.append("__name__=~").append('"')
             .append("^").append(String.join("|", metrics)).append("$")
             .append('"');
-        if (deploymentName != null) {
+        if (serviceName != null) {
             query.append(", ");
-            query.append("pod_label_com_kubernetes_deployment_name=").append('"')
-                .append(deploymentName)
+            query.append("pod_label_com_kubernetes_job_name=").append('"')
+                .append(serviceName)
                 .append('"');
         }
         query.append('}');
@@ -232,8 +232,8 @@ public class K8sResourceInformationCollectorImpl implements ResourceInformationC
 
 
     private long countRunningTasks(String serviceName) {
-        Deployment d =  k8sClient.apps().deployments().inNamespace("default").withName(serviceName).get();
-        return d.getStatus().getAvailableReplicas();
+        Job job =  k8sClient.batch().jobs().inNamespace("default").withName(serviceName).get();
+        return job.getStatus().getActive();
     }
 
     @Override
