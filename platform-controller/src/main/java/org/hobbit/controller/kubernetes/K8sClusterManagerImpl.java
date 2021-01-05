@@ -1,7 +1,5 @@
 package org.hobbit.controller.kubernetes;
 
-import io.fabric8.kubernetes.api.model.apps.Deployment;
-import io.fabric8.kubernetes.api.model.apps.DeploymentList;
 import io.fabric8.kubernetes.api.model.batch.Job;
 import io.fabric8.kubernetes.api.model.batch.JobList;
 import io.fabric8.kubernetes.client.Config;
@@ -10,9 +8,6 @@ import org.hobbit.controller.orchestration.ClusterManager;
 import org.hobbit.controller.orchestration.objects.ClusterInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class K8sClusterManagerImpl implements ClusterManager {
 
