@@ -2,6 +2,8 @@ package org.hobbit.controller.kubernetes;
 
 import io.fabric8.kubernetes.api.model.apps.Deployment;
 import io.fabric8.kubernetes.api.model.apps.DeploymentList;
+import io.fabric8.kubernetes.api.model.batch.Job;
+import io.fabric8.kubernetes.api.model.batch.JobList;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import org.hobbit.controller.orchestration.ClusterManager;
@@ -92,22 +94,22 @@ public class K8sClusterManagerImpl implements ClusterManager {
 
     public void setTaskHistoryLimit(Integer taskHistoryLimit){
 
-        DeploymentList deployments = k8sClient.apps().deployments().inAnyNamespace().list();
-        System.out.println(deployments);
-        deployments.getItems().forEach(
-            d -> d.getSpec().setRevisionHistoryLimit(taskHistoryLimit)
+        JobList jobs = k8sClient.batch().jobs().inNamespace("default").list();
+        System.out.println(jobs);
+        jobs.getItems().forEach(
+            d -> d.getSpec().setBackoffLimit(taskHistoryLimit)
         );
     }
 
     public int getTaskHistoryLimit(){
         // revision history limit is set at deployment level not cluster level
         // returning the average revision history across the deployments in the cluster instead
-        DeploymentList deployments = k8sClient.apps().deployments().inAnyNamespace().list();
+        JobList jobs = k8sClient.batch().jobs().inNamespace("default").list();
         int taskHistoryLimit = 0;
-        for (Deployment d : deployments.getItems()){
-            taskHistoryLimit += d.getSpec().getRevisionHistoryLimit();
+        for (Job d : jobs.getItems()){
+            taskHistoryLimit += d.getSpec().getBackoffLimit();
         }
-        taskHistoryLimit = taskHistoryLimit/deployments.getItems().size();
+        taskHistoryLimit = taskHistoryLimit/jobs.getItems().size();
         return taskHistoryLimit;
     }
 
