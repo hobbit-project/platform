@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.api.model.batch.Job;
 import io.fabric8.kubernetes.api.model.batch.JobList;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.kubernetes.client.openapi.models.V1Node;
 import org.hobbit.controller.orchestration.ClusterManager;
 import org.hobbit.controller.orchestration.objects.ClusterInfo;
 import org.slf4j.Logger;
@@ -59,11 +60,16 @@ public class K8sClusterManagerImpl implements ClusterManager {
 
     @Override
     public long getNumberOfNodes(String label) {
+
+        if (label == null){
+            return k8sClient.nodes().list().getItems().size();
+        }
+
         String[] key_value = null;
         key_value = label.split("=");
         long numberOfNodes = 0;
         try {
-            numberOfNodes = k8sClient.nodes().withLabelIn(key_value[0], key_value[1]).list().getItems().size();
+            numberOfNodes = k8sClient.nodes().withLabel(key_value[0], key_value[1]).list().getItems().size();
         }catch (Exception e)
         {
             LOGGER.info(e.getMessage());
