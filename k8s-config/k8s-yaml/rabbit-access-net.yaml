@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-rabbit
+spec:
+  podSelector:
+    matchLabels:
+      io.kompose.service: rabbit
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          io.kompose.service: platform-controller
+    - podSelector:
+        matchLabels:
+          io.kompose.service: analysis
