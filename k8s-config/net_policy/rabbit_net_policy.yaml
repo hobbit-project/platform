@@ -14,3 +14,6 @@ spec:
     - podSelector:
         matchLabels:
           io.kompose.service: analysis
+    - podSelector:
+        matchLabels:
+          io.kompose.service: storage-service

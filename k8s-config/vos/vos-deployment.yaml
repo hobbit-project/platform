@@ -25,11 +25,6 @@ spec:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: vos
     spec:
-      # securityContext:
-      #   runAsUser: 1000
-      #   runAsGroup: 3000
-      #   fsGroup: 2000
-        # fsGroupChangePolicy: "OnRootMismatch"
       volumes:
       - name: task-pv-vos
         persistentVolumeClaim:

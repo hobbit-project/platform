@@ -27,7 +27,7 @@ spec:
       containers:
       - env:
         - name: HOBBIT_RABBIT_HOST
-          value: 192.168.141.52:5672
+          value: 192.168.141.26:5672
         image: hobbitproject/hobbit-analysis-component:latest
         imagePullPolicy: "IfNotPresent"
         name: analysis

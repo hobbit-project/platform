@@ -27,11 +27,11 @@ spec:
       containers:
       - env:
         - name: HOBBIT_RABBIT_HOST
-          value: 192.168.141.18:5672
+          value: 192.168.141.26:5672
         - name: SPARQL_ENDPOINT_PASSWORD
           value: Password
         - name: SPARQL_ENDPOINT_URL
-          value: "http://192.168.141.12:8890/sparql"
+          value: "http://192.168.141.24:8890/sparql"
         - name: SPARQL_ENDPOINT_USERNAME
           value: HobbitPlatform
         image: hobbitproject/hobbit-storage-service:latest

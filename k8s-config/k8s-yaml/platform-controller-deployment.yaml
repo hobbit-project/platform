@@ -32,23 +32,23 @@ spec:
           value: oluoniyide@yahoo.com
         - name: GITLAB_TOKEN
           value: zRmVRQiodtu47Sj31Jmu
-        - name: HOBBIT_RABBIT_EXPERIMENTS_HOST_NAME_KEY
-          value: 192.168.141.52:5672
+        - name: HOBBIT_RABBIT_EXPERIMENTS_HOST
+          value: 192.168.141.26:5672
         - name: HOBBIT_RABBIT_HOST
-          value: 192.168.141.52:5672
+          value: 192.168.141.26:5672
         - name: HOBBIT_REDIS_HOST
-          value: 192.168.141.53
+          value: 192.168.141.33
         - name: SWARM_NODE_NUMBER
           value: "1"
         image: oluoniyide/platformcontroller:3.2.1
         imagePullPolicy: ""
         name: platform-controller
         resources: {}
-        volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
+        # volumeMounts:
+        # - mountPath: /var/run/docker.sock
+        #   name: docker-sock
       restartPolicy: Always
       serviceAccountName: ""
-      volumes:
-      - name: docker-sock
-        hostPath:
+      # volumes:
+      # - name: docker-sock
+      #   hostPath:
