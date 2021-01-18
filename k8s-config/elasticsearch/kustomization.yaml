@@ -1,0 +1,10 @@
+configMapGenerator:
+- name: elasticsearch-config
+  files:
+  - elasticsearch.yml
+- name: jvm-config
+  files:
+  - jvm.options
+resources:
+- elasticsearch-deployment.yaml
+- elasticsearch-service.yaml

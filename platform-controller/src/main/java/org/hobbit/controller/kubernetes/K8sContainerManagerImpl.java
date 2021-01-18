@@ -133,6 +133,14 @@ public class K8sContainerManagerImpl implements ContainerManager<Job, PodMetrics
 
     }
 
+    public KubernetesClient getK8sClient() {
+        return k8sClient;
+    }
+
+    public void setK8sClient(KubernetesClient k8sClient) {
+        this.k8sClient = k8sClient;
+    }
+
     @Override
     public String startContainer(String imageName) {
         return startContainer(imageName, null, "", null);
@@ -236,6 +244,7 @@ public class K8sContainerManagerImpl implements ContainerManager<Job, PodMetrics
         }
 
         // trigger creation
+
         Job job = new JobBuilder()
             .withApiVersion("batch/v1")
             .withNewMetadata()
@@ -258,6 +267,8 @@ public class K8sContainerManagerImpl implements ContainerManager<Job, PodMetrics
             .build();
 
         k8sClient.batch().jobs().inNamespace("default").create(job);
+
+        LOGGER.info("here");
 
         try{
             final CountDownLatch closeLatch = new CountDownLatch(1);

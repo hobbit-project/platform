@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+  creationTimestamp: null
+  labels:
+    io.kompose.service: elasticsearch
+  name: elasticsearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: elasticsearch
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.22.0 (955b78124)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/hobbit: "true"
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.network/hobbit-services: "true"
+        io.kompose.service: elasticsearch
+    spec:
+      volumes:
+        - name: task-pv-logs
+          persistentVolumeClaim:
+            claimName: logs-pv-claim
+            readOnly: true
+        - name: elasticsearch-config
+          configMap:
+            name: elasticsearch-config
+            items:
+            - key: elasticsearch.yml
+              path: elasticsearch.yml
+        - name: jvm-config
+          configMap:
+            name: jvm-config
+            items:
+            - key: jvm.options
+              path: jvm.options
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:5.4.0
+          command: ["elasticsearch"]
+          args: ["-E", "network.host=0.0.0.0"]
+          ports:
+            - containerPort: 9200
+            - containerPort: 9300
+          resources:
+            limits:
+              memory: "6Gi"
+          volumeMounts:
+            - name: task-pv-logs
+              mountPath: /usr/share/elasticsearch/data              
+              readOnly: true
+            - mountPath: /usr/share/elasticsearch/config
+              name: jvm-config
+            - mountPath: /usr/share/elasticsearch/config
+              name: elasticsearch-config
+      restartPolicy: Always
+status: {}
