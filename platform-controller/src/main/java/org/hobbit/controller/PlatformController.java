@@ -32,6 +32,7 @@ import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.docker.*;
 import org.hobbit.controller.front.FrontEndApiHandler;
+import org.hobbit.controller.kubernetes.K8sClusterManager;
 import org.hobbit.controller.kubernetes.K8sClusterManagerImpl;
 import org.hobbit.controller.kubernetes.K8sContainerManagerImpl;
 import org.hobbit.controller.kubernetes.K8sResourceInformationCollectorImpl;

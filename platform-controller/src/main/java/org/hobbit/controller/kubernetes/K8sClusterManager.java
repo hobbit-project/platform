@@ -19,5 +19,4 @@ public interface K8sClusterManager {
     //Olu
     public boolean isClusterHealthy();
 
-
 }
