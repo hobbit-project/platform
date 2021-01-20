@@ -1,0 +1,72 @@
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: quickstart
+spec:
+  version: 7.6.2
+  nodeSets:
+    - name: master-nodes
+      count: 2
+      config:
+        node.master: true
+        node.data: true
+        node.ml: false
+        node.store.allow_mmap: false
+        node.attr.temp: hot
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              env:
+                - name: ES_JAVA_OPTS
+                  value: -Xms500m -Xmx500m
+              resources:
+                requests:
+                  cpu: 0.5
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+            storageClassName: manual
+    - name: data-nodes
+      count: 2
+      config:
+        node.master: false
+        node.data: true
+        node.ml: false
+        node.store.allow_mmap: false
+        node.attr.temp: warm
+      podTemplate:
+        spec:
+          containers:
+            - name: elasticsearch
+              env:
+                - name: ES_JAVA_OPTS
+                  value: -Xms500m -Xmx500m
+              resources:
+                    requests:
+                      cpu: 0.5
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes:
+              - ReadWriteOnce
+            resources:
+              requests:
+                storage: 1Gi
+            storageClassName: manual
+  http:
+    service:
+      spec:
+        type: NodePort
+        ports:
+          - port: 9200
+            targetPort: 9200
+            protocol: TCP
+            nodePort: 9200
