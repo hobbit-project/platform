@@ -49,10 +49,10 @@ class K8sClusterManagerImplTest {
     }
 
     @Test
-    void testGetNumberOfNodes() {
+    void getNumberOfNodesWithLabel() {
         // System.out.println(client.nodes().withLabelIn("org.hobbit.workergroup","system" ).list().getItems());
         long numberOfNodes = clusterManager.getNumberOfNodes("org.hobbit.workergroup=system");
-        assertEquals(1, numberOfNodes);
+        assertEquals(0, numberOfNodes);
     }
 
     @Test
