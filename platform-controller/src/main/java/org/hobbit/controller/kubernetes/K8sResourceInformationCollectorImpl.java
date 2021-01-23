@@ -83,6 +83,14 @@ public class K8sResourceInformationCollectorImpl implements ResourceInformationC
         k8sClient = K8sUtility.getK8sClient();
     }
 
+    public KubernetesClient getK8sClient() {
+        return k8sClient;
+    }
+
+    public void setK8sClient(KubernetesClient k8sClient) {
+        this.k8sClient = k8sClient;
+    }
+
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
         return getUsageInformation();
