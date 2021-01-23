@@ -29,9 +29,6 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert
-        kompose.version: 1.21.0 (992df58d8)
       labels:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: redis
@@ -58,4 +55,4 @@ spec:
         volumeMounts:
         - mountPath: /data
           name: task-pv-redis
-      
+

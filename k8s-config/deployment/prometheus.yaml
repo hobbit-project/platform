@@ -115,7 +115,7 @@ spec:
       port: 9090
       targetPort: 9090
       nodePort: 30909
----s
+---
 # Prometheus Deployment
 apiVersion: apps/v1
 kind: Deployment
