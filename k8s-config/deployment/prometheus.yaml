@@ -101,6 +101,21 @@ kind: ConfigMap
 metadata:
   name: prometheus-config
 ---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+spec:
+  selector:
+    app: prometheus
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      nodePort: 30909
+---s
 # Prometheus Deployment
 apiVersion: apps/v1
 kind: Deployment
@@ -131,17 +146,3 @@ spec:
           configMap:
             name: prometheus-config
 ---
-# Service
-kind: Service
-apiVersion: v1
-metadata:
-  name: prometheus
-spec:
-  selector:
-    app: prometheus
-  type: NodePort
-  ports:
-    - protocol: TCP
-      port: 9090
-      targetPort: 9090
-      nodePort: 30909
