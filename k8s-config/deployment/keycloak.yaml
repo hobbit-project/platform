@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    nodePort: 31058
+  selector:
+    app: keycloak
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: default
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      volumes:
+      - name: task-pv-keycloak
+        persistentVolumeClaim:
+          claimName: keycloak-pv-claim
+      nodeSelector:
+        node-role: system
+      containers:
+      - name: keycloak
+        volumeMounts:
+        - mountPath: /opt/jboss/keycloak/standalone/data/db
+          name: task-pv-keycloak
+        image: jboss/keycloak:12.0.0
+        env:
+        - name: DB_VENDOR
+          value: h2
+        - name: KEYCLOAK_USER
+          value: "admin"
+        - name: KEYCLOAK_PASSWORD
+          value: "admin"
+        - name: PROXY_ADDRESS_FORWARDING
+          value: "false"
+        - name: JAVA_TOOLS_OPTS
+          value: "-Djboss.as.management.blocking.timeout=3600"
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8443

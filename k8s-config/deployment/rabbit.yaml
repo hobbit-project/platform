@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: rabbit
+  name: rabbit
+spec:
+  ports:
+  - name: "8081"
+    port: 8081
+    targetPort: 15672
+    nodePort: 31059
+  - name: "5672"
+    port: 5672
+    targetPort: 5672
+    nodePort: 31060
+  selector:
+    io.kompose.service: rabbit
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: rabbit
+  name: rabbit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: rabbit
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        io.kompose.network/hobbit: "true"
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.service: rabbit
+    spec:
+      nodeSelector:
+        node-role: system
+      containers:
+      - image: rabbitmq:management
+        imagePullPolicy: ""
+        name: rabbit
+        ports:
+        - containerPort: 15672
+        - containerPort: 5672
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
+status: {}

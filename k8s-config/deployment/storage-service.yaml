@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    io.kompose.service: storage-service
+  name: storage-service
+spec:
+  ports:
+  - name: "8890"
+    port: 8890
+    targetPort: 8890
+    nodePort: 31063
+  selector:
+    io.kompose.service: storage-service
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    io.kompose.service: storage-service
+  name: storage-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: storage-service
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        io.kompose.network/hobbit-core: "true"
+        io.kompose.service: storage-service
+    spec:
+      nodeSelector:
+        node-role: system
+      containers:
+      - env:
+        - name: HOBBIT_RABBIT_HOST
+          value: 131.234.28.241:31060
+        - name: SPARQL_ENDPOINT_PASSWORD
+          value: Password
+        - name: SPARQL_ENDPOINT_URL
+          value: "http://131.234.28.241:31061/sparql"
+        - name: SPARQL_ENDPOINT_USERNAME
+          value: HobbitPlatform
+        image: hobbitproject/hobbit-storage-service:latest
+        imagePullPolicy: ""
+        name: storage-service
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes: null
