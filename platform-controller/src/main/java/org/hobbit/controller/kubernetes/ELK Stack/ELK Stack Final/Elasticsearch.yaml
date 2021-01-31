@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: es-cluster
+spec:
+  serviceName: elasticsearch # provides association with our previously created elasticsearch Service.
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.5.0
+        resources:
+            limits:
+              cpu: 1000m
+              memory: "1Gi"
+            requests:
+              cpu: 100m
+              memory: "1Gi"
+        ports:
+        - containerPort: 9200 # for REST API.
+          name: rest
+          protocol: TCP
+        - containerPort: 9300 # for inter-node communication.
+          name: inter-node
+          protocol: TCP
+        volumeMounts:
+        - name: node
+          mountPath: /usr/share/elasticsearch/data
+        env:
+          - name: cluster.name
+            value: k8s-logs
+          - name: node
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          # sets a list of master-eligible nodes in the cluster.
+          - name: discovery.seed_hosts
+            value: "es-cluster-0.elasticsearch, es-cluster-1.elasticsearch,es-cluster-2.elasticsearch"
+          # specifies a list of master-eligible nodes that will participate in the master election process.
+          - name: cluster.initial_master_nodes
+            value: "es-cluster-0,es-cluster-1,es-cluster-2"
+          - name: ES_JAVA_OPTS
+            value: "-Xms256m -Xmx256m"
+      # Each init containers run to completion in the specified order.
+      initContainers:
+      # By default k8s mounts the data directory as root, which renders it inaccessible to Elasticsearch.
+      - name: fix-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /usr/share/elasticsearch/data"]
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: node
+          mountPath: /usr/share/elasticsearch/data
+      # To prevent OOM errors.
+      - name: increase-vm-max-map
+        image: busybox
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      # Increase the max number of open file descriptors. 
+      - name: increase-fd-ulimit
+        image: busybox
+        command: ["sh", "-c", "ulimit -n 65536"]
+        securityContext:
+          privileged: true
+  volumeClaimTemplates:
+  - metadata:
+      name: node
+      labels:
+        app: elasticsearch
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: default
+      resources:
+        requests:
+          storage: 10Gi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: elasticsearch
+  labels:
+    app: elasticsearch
+spec:
+  selector:
+    app: elasticsearch
+  type: NodePort
+  ports:
+    - port: 9200
+      name: rest
+      nodePort: 31920
+    - port: 9300
+      nodePort: 31930
+      name: inter-node

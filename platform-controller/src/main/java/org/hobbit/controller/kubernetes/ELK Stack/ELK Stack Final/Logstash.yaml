@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+data:
+  logstash.conf: |-
+      input {
+        beats {
+            port => "5044"
+        }
+      }
+
+      output {
+        # You can uncomment this line to investigate the generated events by the logstash.
+        stdout { codec => rubydebug }
+        elasticsearch {
+            hosts => "elasticsearch:9200"
+            # The events will be stored in elasticsearch under previously defined index_prefix value.  
+            index => "filebeat-%{+YYYY.MM.dd}"
+        }
+      }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  labels:
+    k8s-app: logstash
+spec:
+  selector:
+    matchLabels:
+      k8s-app: logstash
+  template:
+    metadata:
+      labels:
+        k8s-app: logstash
+    spec:
+      hostname: logstash
+      containers:
+      - name: logstash
+        ports:      
+          - containerPort: 5044
+            name: logstash
+        image: docker.elastic.co/logstash/logstash:7.5.0
+        volumeMounts:
+        - name: logstash-config
+          mountPath: /usr/share/logstash/pipeline/
+        command:
+        - logstash
+      volumes:
+      # Previously defined ConfigMap object.
+      - name: logstash-config
+        configMap:
+          name: logstash-config
+          items:
+          - key: logstash.conf
+            path: logstash.conf
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: logstash
+spec:
+  type: NodePort
+  selector:
+    k8s-app: logstash
+  ports:  
+  - protocol: TCP
+    port: 5044
+    targetPort: 5044
+    name: logstash
+    nodePort: 31960
