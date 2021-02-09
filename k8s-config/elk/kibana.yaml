@@ -7,10 +7,10 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - name: "5601"
-      port: 5601
-      targetPort: 5601
-      nodePort: 31068
+    - port: 5601
+      nodePort: 31601
+      protocol: TCP
+      targetPort: ui
   selector:
     k8s-app: kibana
 ---
@@ -29,21 +29,18 @@ spec:
       labels:
         k8s-app: kibana
     spec:
-      nodeSelector:
-        node-role: data
       containers:
-      - name: kibana
-        image: docker.elastic.co/kibana/kibana:6.5.0
-        resources:
-          requests:
-            cpu: 100m
-          limits:
-            cpu: 1000m
-        env:
-          - name: ELASTICSEARCH_URL
-            value: http://192.168.120.23:9200
-        ports:
-        - containerPort: 5601
-          protocol: TCP
----
-
+        - name: kibana
+          image: docker.elastic.co/kibana/kibana:7.5.0
+          resources:
+            requests:
+              cpu: 100m
+            limits:
+              cpu: 1000m
+          env:
+            - name: ELASTICSEARCH_URL
+              value: http://elasticsearch.operations:9200
+          ports:
+            - containerPort: 5601
+              name: ui
+              protocol: TCP

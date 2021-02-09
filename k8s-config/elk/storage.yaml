@@ -1,0 +1,45 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: node-es-cluster-0
+  labels:
+    app: elasticsearch
+spec:
+  storageClassName: default
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/elastic/elastic0"
+
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: node-es-cluster-1
+  labels:
+    app: elasticsearch
+spec:
+  storageClassName: default
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/elastic/elastic1"
+---
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: node-es-cluster-2
+  labels:
+    app: elasticsearch
+spec:
+  storageClassName: default
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/elastic/elastic2"
