@@ -33,6 +33,7 @@ spec:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: redis
     spec:
+      hostname: redis
       nodeSelector:
         node-role: system
       volumes:

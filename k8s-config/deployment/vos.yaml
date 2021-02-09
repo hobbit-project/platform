@@ -33,6 +33,7 @@ spec:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: vos
     spec:
+      hostname: vos
       nodeSelector:
         node-role: system
       volumes:
@@ -51,7 +52,6 @@ spec:
         volumeMounts:
         - mountPath: /opt/virtuoso-opensource/database
           name: task-pv-vos
-      hostname: vos
       restartPolicy: Always
       serviceAccountName: ""
-      
+

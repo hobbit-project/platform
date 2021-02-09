@@ -25,23 +25,23 @@ spec:
   selector:
     matchLabels:
       io.kompose.service: storage-service
-  strategy: {}
   template:
     metadata:
       labels:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: storage-service
     spec:
+      hostname: storage-service
       nodeSelector:
         node-role: system
       containers:
       - env:
         - name: HOBBIT_RABBIT_HOST
-          value: 131.234.28.241:31060
+          value: rabbit.default.svc.cluster.local:5672
         - name: SPARQL_ENDPOINT_PASSWORD
           value: Password
         - name: SPARQL_ENDPOINT_URL
-          value: "http://131.234.28.241:31061/sparql"
+          value: "http://vos.default.svc.cluster.local:8890/sparql"
         - name: SPARQL_ENDPOINT_USERNAME
           value: HobbitPlatform
         image: hobbitproject/hobbit-storage-service:latest
@@ -50,4 +50,3 @@ spec:
         resources: {}
       restartPolicy: Always
       serviceAccountName: ""
-      volumes: null

@@ -33,7 +33,7 @@ spec:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: gui
     spec:
-      hostNetwork: true
+      hostname: gui
       nodeSelector:
         node-role: system
       containers:
@@ -41,11 +41,11 @@ spec:
         - name: CHECK_REALM_URL
           value: "false"
         - name: ELASTICSEARCH_HOST
-          value: elasticsearch
+          value: elasticsearch.default.svc.cluster.local
         - name: ELASTICSEARCH_HTTP_PORT
           value: "9200"
         - name: HOBBIT_RABBIT_HOST
-          value: 192.168.210.214
+          value: rabbit.default.svc.cluster.local
         - name: KEYCLOAK_AUTH_URL
           value: "http://131.234.28.241:31058/auth"
         - name: KEYCLOAK_DIRECT_URL

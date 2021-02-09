@@ -9,19 +9,19 @@ spec:
   selector:
     matchLabels:
       io.kompose.service: analysis
-  strategy: {}
   template:
     metadata:
       labels:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: analysis
     spec:
+      hostname: analysis
       nodeSelector:
         node-role: system
       containers:
       - env:
         - name: HOBBIT_RABBIT_HOST
-          value: 192.168.210.214:5672
+          value: rabbit.default.svc.cluster.local:5672
         image: hobbitproject/hobbit-analysis-component:latest
         imagePullPolicy: "IfNotPresent"
         name: analysis

@@ -36,6 +36,7 @@ spec:
         io.kompose.network/hobbit-core: "true"
         io.kompose.service: rabbit
     spec:
+      hostname: rabbit
       nodeSelector:
         node-role: system
       containers:
@@ -47,4 +48,3 @@ spec:
         - containerPort: 5672
         resources: {}
       restartPolicy: Always
-status: {}

@@ -131,6 +131,7 @@ spec:
       labels:
         app: prometheus
     spec:
+      hostname: prometheus
       serviceAccountName: prometheus
       containers:
         - name: prometheus
