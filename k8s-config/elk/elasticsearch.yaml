@@ -93,11 +93,8 @@ metadata:
 spec:
   selector:
     app: elasticsearch
-  type: NodePort
   ports:
     - port: 9200
       name: rest
-      nodePort: 31920
     - port: 9300
-      nodePort: 31930
       name: inter-node
