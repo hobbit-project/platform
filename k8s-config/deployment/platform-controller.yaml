@@ -24,11 +24,11 @@ spec:
         - name: DEPLOY_ENV
           value: testing
         - name: GITLAB_USER
-          value: oluoniyide
+          value: ""
         - name: GITLAB_EMAIL
-          value: oluoniyide@yahoo.com
+          value: ""
         - name: GITLAB_TOKEN
-          value: zRmVRQiodtu47Sj31Jmu
+          value: ""
         - name: HOBBIT_RABBIT_EXPERIMENTS_HOST
           value: 131.234.28.241:31060
         - name: HOBBIT_RABBIT_HOST

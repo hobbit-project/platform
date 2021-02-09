@@ -1,3 +1,4 @@
+# regulating access to jobs and nodes in default namespace
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -6,15 +7,13 @@ metadata:
   labels:
     app: tools-rbac
 rules:
-- apiGroups: ["batch"]
+- apiGroups: ["batch"] # batch is the core API group for jobs resource
   resources: ["jobs"]
   verbs: ["get", "watch", "list", "create", "delete"]
-- apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["get", "watch", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
+# This role binding allows any user in the "system:serviceaccounts" group retrieve, list, create and delete jobs  in the default namespace
 metadata:
   name: read-jobs
   namespace: default
@@ -35,12 +34,13 @@ kind: ClusterRole
 metadata:
   name: node-cluster-role
 rules:
-  - apiGroups: [""]
+  - apiGroups: [""] # nodes do not have specific apiGroup
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
+# This cluster role binding allows anyone in the "system:serviceaccounts" group to get, list and watch nodes in any namespace.
 metadata:
   name: service-account-clusterrolebinding
   labels:
