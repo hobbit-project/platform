@@ -237,6 +237,16 @@ public class ContainerManagerImpl implements ContainerManager {
         return builder.toString();
     }
 
+    private ServiceCreateResponse createService(ServiceSpec serviceSpec) throws DockerException, InterruptedException {
+        // If we have authentication credentials and the image name contains
+        // the server address of these credentials, we should use them
+        if ((gitlabAuth != null) && (serviceSpec.taskTemplate().containerSpec().image().startsWith(gitlabAuth.serverAddress()))) {
+            return dockerClient.createService(serviceSpec, gitlabAuth);
+        } else {
+            return dockerClient.createService(serviceSpec, nullAuth);
+        }
+    }
+
     /**
      * Pulls the image with the given name.
      *
@@ -292,16 +302,7 @@ public class ContainerManagerImpl implements ContainerManager {
             return;
         }
         try {
-            ServiceCreateResponse resp;
-            // If we have authentication credentials and the image name contains
-            // the server address of these credentials, we should use them
-            if ((gitlabAuth != null) && (imageName.startsWith(gitlabAuth.serverAddress()))) {
-                // pull image and wait for the pull to finish
-                resp = dockerClient.createService(serviceCfg, gitlabAuth);
-            } else {
-                // pull image and wait for the pull to finish
-                resp = dockerClient.createService(serviceCfg, nullAuth);
-            }
+            ServiceCreateResponse resp = createService(serviceCfg);
             String serviceId = resp.id();
             LOGGER.info("Pulling service id: {}", serviceId);
 
@@ -497,7 +498,7 @@ public class ContainerManagerImpl implements ContainerManager {
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
         String serviceId = null;
         try {
-            ServiceCreateResponse resp = dockerClient.createService(serviceCfg, nullAuth);
+            ServiceCreateResponse resp = createService(serviceCfg);
             serviceId = resp.id();
             final String serviceIdForLambda = serviceId;
             // wait for a container of that service to start
