@@ -1,3 +1,4 @@
+import { NgIncludeComponent } from './ng-include/ng-include.component';
 import { RegisterComponent } from './challenges/register/register.component';
 import { ExperimentsComponent } from './experiments/experiments.component';
 import { PathLocationStrategy, LocationChangeListener, LocationStrategy } from '@angular/common';
@@ -99,6 +100,7 @@ export const mergeStrategyProvide = { provide: LocationStrategy, useClass: Merge
 
 @NgModule({
   declarations: [
+    NgIncludeComponent,
     AppComponent,
     NavbarComponent,
     FooterComponent,
