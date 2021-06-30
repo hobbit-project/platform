@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.hobbit.core.Constants;
 import org.junit.Assert;
@@ -48,6 +49,7 @@ import com.spotify.docker.client.messages.swarm.TaskStatus;
  * Created by yamalight on 31/08/16.
  */
 public class ContainerManagerImplTest extends ContainerManagerBasedTest {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImplTest.class);
 
     private void assertContainerIsRunning(String message, String containerId) throws Exception {
         try {
@@ -235,7 +237,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
 
     private void removeImage(String imageName) throws Exception {
         // remove image (FIXME: from all nodes)
-        List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.byName(imageName));
+        List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.filter("reference", imageName));
+        LOGGER.info("Removing image: {} ({})", imageName, images.stream().map(i -> i.id()).collect(Collectors.joining(", ")));
         if (!images.isEmpty()) {
             for (Container c : dockerClient.listContainers(DockerClient.ListContainersParam.allContainers())) {
                 if (c.image().equals(imageName)) {
@@ -243,6 +246,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
                 }
             }
             for (Image image : images) {
+                LOGGER.info("Removing image: {}", image.id());
                 dockerClient.removeImage(image.id(), true, false);
             }
         }
@@ -251,7 +255,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
     private boolean imageExists(String name) {
         // check if image exists (FIXME: on all nodes)
         try {
-            return !dockerClient.listImages(DockerClient.ListImagesParam.byName(name)).isEmpty();
+            return !dockerClient.listImages(DockerClient.ListImagesParam.filter("reference", name)).isEmpty();
         } catch (Exception e) {
             fail("Couldn't list images with name " + name);
             return false;
