@@ -2,7 +2,7 @@ import {Component, Input, OnInit} from '@angular/core';
 import {HttpClient, HttpHeaders} from '@angular/common/http';
 
 @Component({
-  selector: 'ng-include',
+  selector: 'ng-include', // tslint:disable-line
   template: `<div [innerHTML]="body"></div>`,
 })
 export class NgIncludeComponent implements OnInit {
