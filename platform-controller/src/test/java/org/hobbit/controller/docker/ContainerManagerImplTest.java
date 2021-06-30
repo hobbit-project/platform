@@ -240,6 +240,11 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         List<Image> images = dockerClient.listImages(DockerClient.ListImagesParam.filter("reference", imageName));
         LOGGER.info("Removing image: {} ({})", imageName, images.stream().map(i -> i.id()).collect(Collectors.joining(", ")));
         if (!images.isEmpty()) {
+            for (Service s : dockerClient.listServices()) {
+                if (s.spec().taskTemplate().containerSpec().image().equals(imageName)) {
+                    dockerClient.removeService(s.id());
+                }
+            }
             for (Container c : dockerClient.listContainers(DockerClient.ListContainersParam.allContainers())) {
                 if (c.image().equals(imageName)) {
                     dockerClient.removeContainer(c.id());
