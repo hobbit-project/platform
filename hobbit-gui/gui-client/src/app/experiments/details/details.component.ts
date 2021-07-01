@@ -150,7 +150,7 @@ export class DetailsComponent implements OnInit, OnChanges {
     for (let i = 0; i < Object.keys(diagrams).length; i++) {
       const name = Object.keys(diagrams)[i];
       const row = this.buildRow('Plots', name, diagrams[name], e => {
-        const res = e.diagrams.find(d => d.name === name);
+        const res = e.diagrams && e.diagrams.find(d => d.name === name);
         return [res, name];
       });
       this.rows.push(row);

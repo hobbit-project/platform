@@ -81,13 +81,13 @@ run-platform-elk:
 
 test: create-networks install-parent-pom
 	make --directory=platform-controller test
-	cd platform-storage/storage-service && mvn --update-snapshots clean test
-	cd analysis-component && mvn --update-snapshots clean test
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run lint && npm run build-prod
-	cd hobbit-gui/gui-serverbackend && mvn --update-snapshots clean test
+	cd platform-storage/storage-service && mvn --quiet --update-snapshots clean test
+	cd analysis-component && mvn --quiet --update-snapshots clean test
+	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm --quiet ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm --quiet install; true' && npm --quiet run lint && npm --quiet run build-prod
+	cd hobbit-gui/gui-serverbackend && mvn --quiet --update-snapshots clean test
 
 install-parent-pom:
-	cd parent-pom && mvn install
+	cd parent-pom && mvn --quiet install
 
 local-controller: lc-build lc-run
 

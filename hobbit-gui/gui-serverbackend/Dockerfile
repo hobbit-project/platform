@@ -6,4 +6,6 @@ RUN cd $JETTY_BASE && \
  rm -f keycloak-jetty93-adapter-for-hobbit-dist-2.4.0.Final.zip  && \
  java -jar $JETTY_HOME/start.jar --add-to-startd=keycloak
 
+ADD ./messages /var/lib/jetty/webapps/messages
+
 ADD ./target/gui-serverbackend.war $JETTY_BASE/webapps/ROOT.war

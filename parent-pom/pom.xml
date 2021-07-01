@@ -8,7 +8,7 @@
 
     <!-- PROPERTIES -->
     <properties>
-        <hobbitplatform.version>2.0.13</hobbitplatform.version>
+        <hobbitplatform.version>2.0.14</hobbitplatform.version>
         <java.version>1.8</java.version>
         <slf4j.version>1.7.10</slf4j.version>
         <lucene.version>4.4.0</lucene.version>
@@ -30,12 +30,12 @@
         <repository>
             <id>maven.aksw.internal</id>
             <name>University Leipzig, AKSW Maven2 Repository</name>
-            <url>http://maven.aksw.org/repository/internal</url>
+            <url>https://maven.aksw.org/repository/internal</url>
         </repository>
         <repository>
             <id>maven.aksw.snapshots</id>
             <name>University Leipzig, AKSW Maven2 Repository</name>
-            <url>http://maven.aksw.org/repository/snapshots</url>
+            <url>https://maven.aksw.org/repository/snapshots</url>
         </repository>
         <repository>
             <id>Apache Repo</id>
@@ -47,12 +47,12 @@
         <pluginRepository>
             <id>maven.aksw.internal</id>
             <name>University Leipzig, AKSW Maven2 Repository</name>
-            <url>http://maven.aksw.org/repository/internal</url>
+            <url>https://maven.aksw.org/repository/internal</url>
         </pluginRepository>
         <pluginRepository>
             <id>maven.aksw.snapshots</id>
             <name>University Leipzig, AKSW Maven2 Repository</name>
-            <url>http://maven.aksw.org/repository/snapshots</url>
+            <url>https://maven.aksw.org/repository/snapshots</url>
         </pluginRepository>
         <pluginRepository>
             <id>Apache Repo</id>
