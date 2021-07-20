@@ -609,8 +609,9 @@ public class ContainerManagerImpl implements ContainerManager {
                         "Will not remove container {}. "
                         + "Development mode is enabled.",
                         serviceName);
-            } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode == null || exitCode != 0)) {
+            } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != null && exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
+                // null exit code usually means that the container is running at the moment
                 LOGGER.info(
                         "Will not remove container {}. "
                         + "ExitCode: {} != 0 and testing mode is enabled.",
