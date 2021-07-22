@@ -18,8 +18,10 @@ package org.hobbit.controller.gitlab;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +47,7 @@ import org.gitlab.api.Pagination;
 import org.gitlab.api.models.GitlabBranch;
 import org.gitlab.api.models.GitlabProject;
 import org.gitlab.api.models.GitlabUser;
+import org.gitlab.api.query.ProjectsQuery;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
@@ -59,6 +62,9 @@ import com.google.common.cache.LoadingCache;
  */
 public class GitlabControllerImpl implements GitlabController {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitlabControllerImpl.class);
+
+    private static final String ISO_6801_DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_6801_DATE_PATTERN);
 
     public static final String GITLAB_URL_KEY = "GITLAB_URL";
     public static final String GITLAB_TOKEN_KEY = "GITLAB_TOKEN";
@@ -88,6 +94,7 @@ public class GitlabControllerImpl implements GitlabController {
     private boolean projectsFetched = false; // indicates whether projects was
                                              // fetched first time
     private List<Runnable> readyRunnable;
+    private Date mostRecentLastActivityAt;
     // projects map
     private Map<String, Project> projects;
     private Set<String> parsingErrors = new HashSet<String>();
@@ -149,10 +156,20 @@ public class GitlabControllerImpl implements GitlabController {
             @SuppressWarnings("unchecked")
             Map<String, Project> newProjects = Collections.EMPTY_MAP;
             try {
-                // In GitLab API V4, `/projects/visible` & `/projects/all`
-                // are consolidated into `/projects`
-                // and can be used with or without authorization.
-                List<GitlabProject> gitProjects = api.getAllProjects();
+                ProjectsQuery query = new ProjectsQuery();
+                // FIXME: this approach may lead to desynchronization between local and remote project list:
+                // - time is not reliable
+                // - when a project is removed from GitLab, we may not see that
+                if (mostRecentLastActivityAt != null) {
+                    query.append("last_activity_after", dateFormat.format(mostRecentLastActivityAt));
+                }
+
+                LOGGER.info("Projects query: '{}'", query);
+
+                // https://docs.gitlab.com/ee/api/projects.html#list-all-projects
+                // Get a list of all visible projects across GitLab for the authenticated user.
+                // When accessed without authentication, only public projects with simple fields are returned.
+                List<GitlabProject> gitProjects = api.getProjects(query);
 
                 LOGGER.info("Projects: " + gitProjects.size());
 
@@ -184,7 +201,7 @@ public class GitlabControllerImpl implements GitlabController {
                 }
             } else {
                 // update cached version
-                projects = newProjects;
+                projects.putAll(newProjects);
             }
             // indicate that projects were fetched
             if (!projectsFetched) {
@@ -240,6 +257,10 @@ public class GitlabControllerImpl implements GitlabController {
 
     @Override
     public Project gitlabToProject(GitlabProject project) {
+        Date lastActivityAt = project.getLastActivityAt();
+        if (mostRecentLastActivityAt == null || lastActivityAt.after(mostRecentLastActivityAt)) {
+            mostRecentLastActivityAt = lastActivityAt;
+        }
         // get default branch
         GitlabBranch b;
         try {
