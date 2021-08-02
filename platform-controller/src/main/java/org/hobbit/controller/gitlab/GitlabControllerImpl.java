@@ -257,6 +257,8 @@ public class GitlabControllerImpl implements GitlabController {
 
     @Override
     public Project gitlabToProject(GitlabProject project) {
+        String name = project.getNameWithNamespace();
+
         Date lastActivityAt = project.getLastActivityAt();
         if (mostRecentLastActivityAt == null || lastActivityAt.after(mostRecentLastActivityAt)) {
             mostRecentLastActivityAt = lastActivityAt;
@@ -293,11 +295,11 @@ public class GitlabControllerImpl implements GitlabController {
             if (owner != null) {
                 user = owner.getEmail();
             } else {
-                String warning = "The project " + project.getNameWithNamespace() + " has no owner.";
+                String warning = "The project " + name + " has no owner.";
                 handleErrorMsg(warning, null, false);
             }
-            Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
                     project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
+            Project p = new Project(benchmarkModel, systemModel, user, name,
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.
