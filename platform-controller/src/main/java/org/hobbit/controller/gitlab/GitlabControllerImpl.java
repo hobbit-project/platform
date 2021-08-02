@@ -272,10 +272,27 @@ public class GitlabControllerImpl implements GitlabController {
             // we can return null and don't have to log this error
             return null;
         }
+        String commitId;
+        try {
+            commitId = b.getCommit().getId();
+            if (commitId == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        if (projects != null) {
+            Project oldProject = projects.get(name);
+            if (oldProject != null) {
+                if (oldProject.getCommitId().equals(commitId)) {
+                    return oldProject;
+                }
+            }
+        }
         // read system config
         Model systemModel = null;
         try {
-            byte[] systemCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), SYSTEM_CONFIG_FILENAME);
+            byte[] systemCfgBytes = api.getRawFileContent(project, commitId, SYSTEM_CONFIG_FILENAME);
             systemModel = getCheckedModel(systemCfgBytes, "system", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("system.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -283,7 +300,7 @@ public class GitlabControllerImpl implements GitlabController {
         // read benchmark config
         Model benchmarkModel = null;
         try {
-            byte[] benchmarkCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), BENCHMARK_CONFIG_FILENAME);
+            byte[] benchmarkCfgBytes = api.getRawFileContent(project, commitId, BENCHMARK_CONFIG_FILENAME);
             benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("benchmark.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -298,8 +315,8 @@ public class GitlabControllerImpl implements GitlabController {
                 String warning = "The project " + name + " has no owner.";
                 handleErrorMsg(warning, null, false);
             }
-                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
             Project p = new Project(benchmarkModel, systemModel, user, name,
+                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE, commitId);
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.
