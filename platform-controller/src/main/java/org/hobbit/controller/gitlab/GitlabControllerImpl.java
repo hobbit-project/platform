@@ -164,8 +164,6 @@ public class GitlabControllerImpl implements GitlabController {
                     query.append("last_activity_after", dateFormat.format(mostRecentLastActivityAt));
                 }
                 LOGGER.info("Projects query: '{}'", query);
-
-                LOGGER.info("Projects: " + gitProjects.size());
                 // https://docs.gitlab.com/ee/api/projects.html#list-all-projects
                 // Get a list of all visible projects across GitLab for the authenticated user.
                 // When accessed without authentication, only public projects with simple fields are returned.
@@ -255,6 +253,7 @@ public class GitlabControllerImpl implements GitlabController {
 
     @Override
     public Project gitlabToProject(GitlabProject project) {
+        String name = project.getNameWithNamespace();
         Date lastActivityAt = project.getLastActivityAt();
         if (mostRecentLastActivityAt == null || lastActivityAt.after(mostRecentLastActivityAt)) {
             mostRecentLastActivityAt = lastActivityAt;
@@ -268,10 +267,27 @@ public class GitlabControllerImpl implements GitlabController {
             // we can return null and don't have to log this error
             return null;
         }
+        String commitId;
+        try {
+            commitId = b.getCommit().getId();
+            if (commitId == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        if (projects != null) {
+            Project oldProject = projects.get(name);
+            if (oldProject != null) {
+                if (oldProject.getCommitId().equals(commitId)) {
+                    return oldProject;
+                }
+            }
+        }
         // read system config
         Model systemModel = null;
         try {
-            byte[] systemCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), SYSTEM_CONFIG_FILENAME);
+            byte[] systemCfgBytes = api.getRawFileContent(project, commitId, SYSTEM_CONFIG_FILENAME);
             systemModel = getCheckedModel(systemCfgBytes, "system", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("system.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -279,7 +295,7 @@ public class GitlabControllerImpl implements GitlabController {
         // read benchmark config
         Model benchmarkModel = null;
         try {
-            byte[] benchmarkCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), BENCHMARK_CONFIG_FILENAME);
+            byte[] benchmarkCfgBytes = api.getRawFileContent(project, commitId, BENCHMARK_CONFIG_FILENAME);
             benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("benchmark.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -291,11 +307,11 @@ public class GitlabControllerImpl implements GitlabController {
             if (owner != null) {
                 user = owner.getEmail();
             } else {
-                String warning = "The project " + project.getNameWithNamespace() + " has no owner.";
+                String warning = "The project " + name + " has no owner.";
                 handleErrorMsg(warning, null, false);
             }
-            Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
-                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
+            Project p = new Project(benchmarkModel, systemModel, user, name,
+                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE, commitId);
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.

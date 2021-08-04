@@ -57,15 +57,20 @@ public class Project {
      * Flag showing whether the project is private.
      */
     public boolean isPrivate;
+    /**
+     * Commit ID of the default branch of this project.
+     */
+    public String commitId;
 
     public Project(Model benchmarkModel, Model systemModel, String user, String name, Date createdAt,
-            boolean isPrivate) {
+                   boolean isPrivate, String commitId) {
         this.benchmarkModel = benchmarkModel;
         this.systemModel = systemModel;
         this.user = user;
         this.name = name;
         this.createdAt = createdAt;
         this.isPrivate = isPrivate;
+        this.commitId = commitId;
     }
 
     /**
@@ -152,5 +157,19 @@ public class Project {
      */
     public void setPrivate(boolean isPrivate) {
         this.isPrivate = isPrivate;
+    }
+
+    /**
+     * @return the commit ID
+     */
+    public String getCommitId() {
+        return commitId;
+    }
+
+    /**
+     * @param commitId the commit ID to set
+     */
+    public void setCommitId(String commitId) {
+        this.commitId = commitId;
     }
 }
