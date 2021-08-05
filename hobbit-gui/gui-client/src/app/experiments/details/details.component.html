@@ -42,8 +42,14 @@
                 </ng-template>
 
                 <ng-template #graph>
-                  <div *ngIf="isDotLanguage(row.values[i]); else defaultStyle">
+                  <div *ngIf="isDotLanguage(row.values[i]); else resource">
                     <app-experiment-graph [graph]="row.values[i]"></app-experiment-graph>
+                  </div>
+                </ng-template>
+
+                <ng-template #resource>
+                  <div *ngIf="row.labels[i]; else defaultStyle">
+                    <a [href]="row.values[i]">{{row.labels[i]}}</a>
                   </div>
                 </ng-template>
 

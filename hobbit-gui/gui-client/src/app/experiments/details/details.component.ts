@@ -5,7 +5,10 @@ import { Component, OnInit, Input, OnChanges } from '@angular/core';
 
 class TableRow {
   constructor(public group: string, public kpiSample: ConfigParamRealisation,
-    public values: Map<String, String>, public descriptions: Map<String, String>) { }
+              public values: Map<String, String>,
+              public labels: Map<String, String>,
+              public descriptions: Map<String, String>,
+             ) { }
 }
 
 @Component({
@@ -110,14 +113,14 @@ export class DetailsComponent implements OnInit, OnChanges {
     this.rows = [];
 
     // FIXME server should send the real experiment URI
-    this.rows.push(this.buildRow('Experiment', 'URI', 'Permanent URI of the experiment', t => ['http://w3id.org/hobbit/experiments#' + t.id, '']));
+    this.rows.push(this.buildRow('Experiment', 'URI', 'Permanent URI of the experiment', t => ['http://w3id.org/hobbit/experiments#' + t.id, '', '']));
 
     this.rows.push(this.buildRow('Experiment', 'Benchmark', 'The benchmark performed', t => DetailsComponent.safeNameAndDescription(t.benchmark)));
     this.rows.push(this.buildRow('Experiment', 'System', 'The system evaluated', t => DetailsComponent.safeNameAndDescription(t.system)));
     this.rows.push(this.buildRow('Experiment', 'Challenge Task', 'The challenge task performed', t => DetailsComponent.safeNameAndDescription(t.challengeTask)));
 
     if (experiments.some(experiment => experiment.error !== undefined)) {
-      this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '']));
+      this.rows.push(this.buildRow('Experiment', 'Error', 'The error message, if an error occured', t => [t.error, '', '']));
     }
 
     for (const key of Object.keys(experimentParameterSamples)) {
@@ -151,16 +154,16 @@ export class DetailsComponent implements OnInit, OnChanges {
       const name = Object.keys(diagrams)[i];
       const row = this.buildRow('Plots', name, diagrams[name], e => {
         const res = e.diagrams && e.diagrams.find(d => d.name === name);
-        return [res, name];
+        return [res, '', name];
       });
       this.rows.push(row);
     }
 
     this.rows.push(this.buildRow('Logs', 'Benchmark Log', '', t => [
-      t.benchmarkLogAvailable ? [`benchmark/query?id=${t.id}`, `${t.id} benchmark log`] : null, 'Download'
+      t.benchmarkLogAvailable ? [`benchmark/query?id=${t.id}`, `${t.id} benchmark log`] : null, '', 'Download'
     ]));
     this.rows.push(this.buildRow('Logs', 'System Log', '', t => [
-      t.systemLogAvailable ? [`system/query?id=${t.id}`, `${t.id} system log`] : null, 'Download'
+      t.systemLogAvailable ? [`system/query?id=${t.id}`, `${t.id} system log`] : null, '', 'Download'
     ]));
 
     this.rows.sort((a, b) => {
@@ -170,33 +173,37 @@ export class DetailsComponent implements OnInit, OnChanges {
     });
   }
 
-  private buildRow(group: string, name: string, description: string, selector: (ex: Experiment) => [any, string]): TableRow {
+  private buildRow(group: string, name: string, description: string, selector: (ex: Experiment) => [any, string, string]): TableRow {
     return this.buildRowKpi(group, new ConfigParamRealisation('', name, 'xsd.string', '', description), selector);
   }
 
-  private buildRowKpi(group: string, kpi: ConfigParamRealisation, selector: (ex: Experiment) => [any, string]): TableRow {
+  private buildRowKpi(group: string, kpi: ConfigParamRealisation, selector: (ex: Experiment) => [any, string, string]): TableRow {
     const values = new Map<String, String>();
+    const labels = new Map<String, String>();
     const descriptions = new Map<String, String>();
     for (let i = 0; i < this.experiments.length; i++) {
       if (this.experiments[i].benchmark) {
-        const [name, description] = selector(this.experiments[i]);
+        const [name, label, description] = selector(this.experiments[i]);
         values['' + i] = name;
+        labels['' + i] = label;
         descriptions['' + i] = description;
       }
     }
-    return new TableRow(group, kpi, values, descriptions);
+    return new TableRow(group, kpi, values, labels, descriptions);
   }
 
-  static safeNameAndDescription(entity: NamedEntity): [string, string] {
+    static safeNameAndDescription(entity: NamedEntity): [string, string, string] {
     return [
       (entity && entity.name) ? entity.name : '',
+      '',
       (entity && entity.description) ? entity.description : ''
     ];
   }
 
-  static safeValueAndDescription(pv: ConfigParamRealisation): [string, string] {
+    static safeValueAndDescription(pv: ConfigParamRealisation): [string, string, string] {
     return [
       (pv && pv.value) ? pv.value : '',
+      (pv && pv.label) ? pv.label : '',
       (pv && pv.description) ? pv.description : ((pv && pv.name) ? pv.name : '')
     ];
   }

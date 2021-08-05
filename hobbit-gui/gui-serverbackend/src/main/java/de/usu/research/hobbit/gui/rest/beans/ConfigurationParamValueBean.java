@@ -27,6 +27,7 @@ public class ConfigurationParamValueBean extends NamedEntityBean {
     private Datatype datatype;
     private String value;
     private String range;
+    private String label;
 
     public Datatype getDatatype() {
         return datatype;
@@ -55,6 +56,14 @@ public class ConfigurationParamValueBean extends NamedEntityBean {
 
     public void setRange(String range) {
         this.range = range;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+
+    public void setLabel(String label) {
+        this.label = label;
     }
 
 }

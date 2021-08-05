@@ -109,7 +109,7 @@ export class ConfigParamDefinition extends ConfigParam {
 
 export class ConfigParamRealisation extends ConfigParam {
     constructor(id: string, name: string, datatype: string,
-        public value: string, description?: string, range?: string) {
+        public value: string, public label?: string, description?: string, range?: string) {
         super(id, name, datatype, description, range);
     }
 }

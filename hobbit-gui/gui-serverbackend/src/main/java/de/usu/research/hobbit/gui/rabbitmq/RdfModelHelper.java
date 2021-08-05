@@ -526,6 +526,13 @@ public class RdfModelHelper {
                 ConfigurationParamValueBean paramBean = new ConfigurationParamValueBean();
                 paramBean.setId(parameterUri);
                 paramBean.setValue(RdfHelper.getStringValue(model, taskResource, paraProp));
+                Resource valueResource = RdfHelper.getObjectResource(model, taskResource, paraProp);
+                if (valueResource != null) {
+                    String label = RdfHelper.getLabel(model, valueResource);
+                    if (label != null) {
+                        paramBean.setLabel(label);
+                    }
+                }
 
                 paramBean.setName(RdfHelper.getLabel(model, paraProp));
                 if (paramBean.getName() == null) {
