@@ -18,18 +18,22 @@ package org.hobbit.controller.gitlab;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -43,6 +47,7 @@ import org.gitlab.api.Pagination;
 import org.gitlab.api.models.GitlabBranch;
 import org.gitlab.api.models.GitlabProject;
 import org.gitlab.api.models.GitlabUser;
+import org.gitlab.api.query.ProjectsQuery;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
@@ -57,6 +62,9 @@ import com.google.common.cache.LoadingCache;
  */
 public class GitlabControllerImpl implements GitlabController {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitlabControllerImpl.class);
+
+    private static final String ISO_6801_DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssX";
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_6801_DATE_PATTERN);
 
     public static final String GITLAB_URL_KEY = "GITLAB_URL";
     public static final String GITLAB_TOKEN_KEY = "GITLAB_TOKEN";
@@ -86,9 +94,9 @@ public class GitlabControllerImpl implements GitlabController {
     private boolean projectsFetched = false; // indicates whether projects was
                                              // fetched first time
     private List<Runnable> readyRunnable;
-    // projects array
-    private List<Project> projects;
-    private Set<String> projectUris;
+    private Date mostRecentLastActivityAt;
+    // projects map
+    private Map<String, Project> projects;
     private Set<String> parsingErrors = new HashSet<String>();
     private Deque<String> sortedParsingErrors = new LinkedList<String>();
     private LoadingCache<String, Set<String>> visibleProjectsCache;
@@ -108,7 +116,7 @@ public class GitlabControllerImpl implements GitlabController {
         }
         api = GitlabAPI.connect(GITLAB_URL, token);
         timer = new Timer();
-        projects = new ArrayList<>();
+        projects = new HashMap<>();
         readyRunnable = new ArrayList<>();
 
         if (useCache) {
@@ -146,13 +154,22 @@ public class GitlabControllerImpl implements GitlabController {
     protected void fetchProjects() {
         try {
             @SuppressWarnings("unchecked")
-            List<Project> newProjects = Collections.EMPTY_LIST;
-            Set<String> newProjectUris = new HashSet<String>();
+            Map<String, Project> newProjects = Collections.EMPTY_MAP;
             try {
-                // In GitLab API V4, `/projects/visible` & `/projects/all`
-                // are consolidated into `/projects`
-                // and can be used with or without authorization.
-                List<GitlabProject> gitProjects = api.getAllProjects();
+                ProjectsQuery query = new ProjectsQuery();
+                // FIXME: this approach may lead to desynchronization between local and remote project list:
+                // - time is not reliable
+                // - when a project is removed from GitLab, we may not see that
+                if (mostRecentLastActivityAt != null) {
+                    query.append("last_activity_after", dateFormat.format(mostRecentLastActivityAt));
+                }
+
+                LOGGER.info("Projects query: '{}'", query);
+
+                // https://docs.gitlab.com/ee/api/projects.html#list-all-projects
+                // Get a list of all visible projects across GitLab for the authenticated user.
+                // When accessed without authentication, only public projects with simple fields are returned.
+                List<GitlabProject> gitProjects = api.getProjects(query);
 
                 LOGGER.info("Projects: " + gitProjects.size());
 
@@ -166,11 +183,8 @@ public class GitlabControllerImpl implements GitlabController {
                                 && (p.benchmarkModel.contains(null, RDF.type, HOBBIT.Benchmark)))
                                 || ((p.systemModel != null)
                                         && (p.systemModel.contains(null, RDF.type, HOBBIT.SystemInstance))))
-                        // Put remaining projects in a list
-                        .collect(Collectors.toList());
-                for (Project project : newProjects) {
-                    newProjectUris.add(project.name);
-                }
+                        // Put remaining projects in a map
+                        .collect(Collectors.toMap(p -> p.getName(), Function.identity()));
             } catch (Exception | Error e) {
                 LOGGER.error("Couldn't get GitLab projects from {}.", GITLAB_URL, e);
                 // Do not replace previously fetched project list.
@@ -182,14 +196,12 @@ public class GitlabControllerImpl implements GitlabController {
                 // have
                 // to notify threads that are waiting for that
                 projects = newProjects;
-                projectUris = newProjectUris;
                 synchronized (this) {
                     this.notifyAll();
                 }
             } else {
                 // update cached version
-                projects = newProjects;
-                projectUris = newProjectUris;
+                projects.putAll(newProjects);
             }
             // indicate that projects were fetched
             if (!projectsFetched) {
@@ -240,11 +252,17 @@ public class GitlabControllerImpl implements GitlabController {
                 }
             }
         }
-        return projects;
+        return new ArrayList<>(projects.values());
     }
 
     @Override
     public Project gitlabToProject(GitlabProject project) {
+        String name = project.getNameWithNamespace();
+
+        Date lastActivityAt = project.getLastActivityAt();
+        if (mostRecentLastActivityAt == null || lastActivityAt.after(mostRecentLastActivityAt)) {
+            mostRecentLastActivityAt = lastActivityAt;
+        }
         // get default branch
         GitlabBranch b;
         try {
@@ -254,10 +272,27 @@ public class GitlabControllerImpl implements GitlabController {
             // we can return null and don't have to log this error
             return null;
         }
+        String commitId;
+        try {
+            commitId = b.getCommit().getId();
+            if (commitId == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        if (projects != null) {
+            Project oldProject = projects.get(name);
+            if (oldProject != null) {
+                if (oldProject.getCommitId().equals(commitId)) {
+                    return oldProject;
+                }
+            }
+        }
         // read system config
         Model systemModel = null;
         try {
-            byte[] systemCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), SYSTEM_CONFIG_FILENAME);
+            byte[] systemCfgBytes = api.getRawFileContent(project, commitId, SYSTEM_CONFIG_FILENAME);
             systemModel = getCheckedModel(systemCfgBytes, "system", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("system.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -265,7 +300,7 @@ public class GitlabControllerImpl implements GitlabController {
         // read benchmark config
         Model benchmarkModel = null;
         try {
-            byte[] benchmarkCfgBytes = api.getRawFileContent(project, b.getCommit().getId(), BENCHMARK_CONFIG_FILENAME);
+            byte[] benchmarkCfgBytes = api.getRawFileContent(project, commitId, BENCHMARK_CONFIG_FILENAME);
             benchmarkModel = getCheckedModel(benchmarkCfgBytes, "benchmark", project.getWebUrl());
         } catch (Exception e) {
             LOGGER.debug("benchmark.ttl configuration file NOT FOUND in {}", project.getWebUrl());
@@ -277,11 +312,11 @@ public class GitlabControllerImpl implements GitlabController {
             if (owner != null) {
                 user = owner.getEmail();
             } else {
-                String warning = "The project " + project.getNameWithNamespace() + " has no owner.";
+                String warning = "The project " + name + " has no owner.";
                 handleErrorMsg(warning, null, false);
             }
-            Project p = new Project(benchmarkModel, systemModel, user, project.getNameWithNamespace(),
-                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE);
+            Project p = new Project(benchmarkModel, systemModel, user, name,
+                    project.getCreatedAt(), project.getVisibility() == GITLAB_VISIBILITY_PRIVATE, commitId);
             return p;
         } else {
             // There is no data which is interesting for us. We can ignore this project.
@@ -392,7 +427,7 @@ public class GitlabControllerImpl implements GitlabController {
             GitlabUser user = getUserByMail(mail);
             if (user == null) {
                 LOGGER.warn("Couldn't find user with mail \"{}\". returning empty list of projects.", mail);
-                return new TreeSet<>();
+                return Collections.EMPTY_SET;
             }
             // List<GitlabProject> gitProjects = api.getProjectsViaSudo(user);
             List<GitlabProject> gitProjects = getProjectsVisibleForUser(user);
@@ -404,7 +439,7 @@ public class GitlabControllerImpl implements GitlabController {
         } else {
             // We can not check the access of a single user. Simply return all known
             // projects.
-            return (projectUris != null) ? projectUris : new TreeSet<>();
+            return (projects != null) ? projects.keySet() : Collections.EMPTY_SET;
         }
     }
 
@@ -449,7 +484,7 @@ public class GitlabControllerImpl implements GitlabController {
                     + "\". Returning null.", e);
             return null;
         }
-        List<Project> userProjects = projects.parallelStream()
+        List<Project> userProjects = projects.values().parallelStream()
                 .filter(p -> ((!p.isPrivate) || projectNames.contains(p.name))).collect(Collectors.toList());
         return userProjects;
     }
