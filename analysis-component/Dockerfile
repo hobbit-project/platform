@@ -1,4 +1,4 @@
-FROM java
+FROM eclipse-temurin:11
 
 ADD target/analysis-component.jar /analysis/analysis-component.jar
 
