@@ -1,7 +1,5 @@
-FROM java
+FROM eclipse-temurin:11-focal
 
-ADD target/analysis-component.jar /analysis/analysis-component.jar
-
-WORKDIR /analysis
+COPY target/analysis-component.jar .
 
 CMD java -cp analysis-component.jar org.hobbit.core.run.ComponentStarter org.hobbit.analysis.AnalysisComponent

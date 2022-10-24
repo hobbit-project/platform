@@ -1,10 +1,5 @@
-FROM maven
+FROM eclipse-temurin:11-focal
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
+COPY target/storage-service.jar storage-service.jar
 
-ADD . /usr/src/app
-
-#RUN mvn package -Dmaven.test.skip=true
-
-CMD ["java", "-cp", "target/storage-service.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.storage.service.StorageService"]
+CMD ["java", "-cp", "storage-service.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.storage.service.StorageService"]

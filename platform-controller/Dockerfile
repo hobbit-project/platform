@@ -1,12 +1,8 @@
-FROM maven
+FROM eclipse-temurin:11-focal
 
-RUN mkdir -p /usr/src/app
 # Create an empty metadata directory (it will be used as default by the file-based image manager)
 RUN mkdir -p /usr/src/app/metadata
-WORKDIR /usr/src/app
 
-ADD . /usr/src/app
+COPY target/platform-controller.jar platform-controller.jar
 
-#RUN mvn package -Dmaven.test.skip=true
-
-CMD ["java", "-cp", "target/platform-controller.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.controller.PlatformController"]
+CMD ["java", "-cp", "platform-controller.jar", "org.hobbit.core.run.ComponentStarter", "org.hobbit.controller.PlatformController"]
