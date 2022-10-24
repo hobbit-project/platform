@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11
+FROM eclipse-temurin:11-focal
 
 COPY target/storage-service.jar storage-service.jar
 
