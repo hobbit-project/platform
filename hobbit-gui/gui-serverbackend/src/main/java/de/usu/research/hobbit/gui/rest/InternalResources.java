@@ -153,7 +153,13 @@ public class InternalResources {
     static KeycloakConfigBean findKeycloakConfig(InputStream is)
             throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+
+        /*
+          without this, the parser would try (and fail) to load
+          http://www.eclipse.org/jetty/configure_9_3.dtd
+        */
         dbFactory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
         Document doc = dBuilder.parse(is);
         Node node = doc.getDocumentElement();
