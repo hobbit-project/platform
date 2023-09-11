@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.log4j.lf5.util.StreamUtils;
@@ -32,6 +34,8 @@ public class MetaDataFactoryTest {
         expectedMetaData.usedImages.add("hobbit/gerbil_taskgen");
         expectedMetaData.date = new Date(10);
         expectedMetaData.source = "test";
+        Map<String, Object> constraints = new HashMap<>();
+        expectedMetaData.setSystemHardwareConstraints(constraints);
 
         InputStream input = ParameterForwardingTest.class.getClassLoader()
                 .getResourceAsStream("org/hobbit/controller/benchmark.ttl");
@@ -78,7 +82,8 @@ public class MetaDataFactoryTest {
                 expectedMetaData.source, expectedMetaData.date);
         Assert.assertEquals(1, results.size());
         compareMetaData(expectedMetaData, results.get(0));
-        String[] expectedApis = expectedMetaData.implementedApis.toArray(new String[expectedMetaData.implementedApis.size()]);
+        String[] expectedApis = expectedMetaData.implementedApis
+                .toArray(new String[expectedMetaData.implementedApis.size()]);
         Arrays.sort(expectedApis);
         String[] actualApis = results.get(0).implementedApis.toArray(new String[0]);
         Arrays.sort(actualApis);

@@ -23,11 +23,10 @@ import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractPlatformConnectorComponent;
 import org.hobbit.core.components.utils.SystemResourceUsageRequester;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.core.run.ComponentStarter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.rabbitmq.client.QueueingConsumer;
 
 public class RequestSystemResources extends AbstractPlatformConnectorComponent {
 

@@ -17,6 +17,7 @@
 package org.hobbit.controller.docker;
 
 import java.util.List;
+import java.util.Map;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerStats;
@@ -187,11 +188,13 @@ public interface ContainerManager {
      *            commands that should be executed
      * @param pullImage
      *            whether the image needs to be prefetched
+     * @param constraints
+     *            Additional constraints for the container
      *
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-    String[] netAliases, String[] command, boolean pullImage);
+    String[] netAliases, String[] command, boolean pullImage, Map<String, Object> constraints);
 
     /**
      * Starts the container with the given image name.
@@ -208,11 +211,13 @@ public interface ContainerManager {
      *            commands that should be executed
      * @param experimentId
      *            experimentId to add to GELF tag
+     * @param constraints
+     *            Additional constraints for the container
      *
      * @return container Id or null if an error occurred.
      */
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] netAliases, String[] command, String experimentId);
+            String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints);
 
     /**
      * Stops the container with the given container Id.
