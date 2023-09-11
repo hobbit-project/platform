@@ -73,6 +73,7 @@ public class MetaDataFactory {
         metadata.date = date;
         metadata.source = source;
         metadata.rdfModel = model;
+        // TODO Add system constraints if they have been defined!
     }
 
     public static Model ttlStringToModel(String modelString, String lang) {
@@ -93,11 +94,9 @@ public class MetaDataFactory {
      * definitions of other hobbit:Benchmark elements than the benchmark with the
      * given URI.
      * 
-     * @param model
-     *            the model from which all triples will be copied
-     * @param benchmarkUri
-     *            the URI of the only benchmark which is not removed from the copied
-     *            model
+     * @param model        the model from which all triples will be copied
+     * @param benchmarkUri the URI of the only benchmark which is not removed from
+     *                     the copied model
      * @return the copied model
      */
     public static Model getModelWithUniqueBenchmark(Model model, String benchmarkUri) {
@@ -112,11 +111,9 @@ public class MetaDataFactory {
      * for which a triple {@code s rdf:type hobbit:SystemInstance} can be found in
      * the given model.
      * 
-     * @param model
-     *            the model from which all triples will be copied
-     * @param systemUri
-     *            the URI of the only system which is not removed from the copied
-     *            model
+     * @param model     the model from which all triples will be copied
+     * @param systemUri the URI of the only system which is not removed from the
+     *                  copied model
      * @return the copied model
      */
     public static Model getModelWithUniqueSystem(Model model, String systemUri) {

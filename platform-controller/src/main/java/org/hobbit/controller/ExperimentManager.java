@@ -20,9 +20,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -52,7 +50,7 @@ import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
-import org.hobbit.utils.EnvVariables;
+import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
@@ -117,14 +115,19 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     protected Timer expStartTimer;
+    /**
+     * The configuration of this platform.
+     */
+    protected HobbitConfiguration hobbitConfig = null;
 
-    public ExperimentManager(PlatformController controller) {
-        this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
+    public ExperimentManager(PlatformController controller, HobbitConfiguration hobbitConfig) {
+        this(controller, hobbitConfig, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
     }
 
-    protected ExperimentManager(PlatformController controller, long checkForFirstExperiment,
-            long checkForNewExperiment) {
+    protected ExperimentManager(PlatformController controller, HobbitConfiguration hobbitConfig,
+            long checkForFirstExperiment, long checkForNewExperiment) {
         this.controller = controller;
+        this.hobbitConfig = hobbitConfig;
 
         try {
             // TODO environment variable should have been used there
@@ -289,10 +292,10 @@ public class ExperimentManager implements Closeable {
     }
 
     private void createRabbitMQ(ExperimentConfiguration config) throws Exception {
-        String rabbitMQAddress = EnvVariables.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
+        String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
         if (rabbitMQAddress == null) {
             LOGGER.info("Starting new RabbitMQ for the experiment...");
-            rabbitMQAddress = controller.containerManager.startContainer(EnvVariables.getString(RABBIT_IMAGE_ENV_KEY),
+            rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
                     Constants.CONTAINER_TYPE_BENCHMARK, null, new String[] {}, null, null, config.id,
                     Collections.emptyMap());
             if (rabbitMQAddress == null) {
