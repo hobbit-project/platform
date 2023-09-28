@@ -80,7 +80,6 @@ import org.hobbit.core.rabbit.DataSenderImpl;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
-import org.hobbit.utils.EnvVariables;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;
@@ -100,8 +99,7 @@ import com.rabbitmq.client.MessageProperties;
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
  *
  */
-public class PlatformController extends AbstractComponent
-        implements ContainerTerminationCallback, ExperimentAnalyzer {
+public class PlatformController extends AbstractComponent implements ContainerTerminationCallback, ExperimentAnalyzer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PlatformController.class);
 
@@ -127,8 +125,8 @@ public class PlatformController extends AbstractComponent
      */
     private static final String CONTAINER_PARENT_CHECK_ENV_KEY = "CONTAINER_PARENT_CHECK";
     /**
-     * Flag indicating whether a parent check for
-     * newly created containers is necessary or not.
+     * Flag indicating whether a parent check for newly created containers is
+     * necessary or not.
      */
     private static final boolean CONTAINER_PARENT_CHECK = System.getenv().containsKey(CONTAINER_PARENT_CHECK_ENV_KEY)
             ? System.getenv().get(CONTAINER_PARENT_CHECK_ENV_KEY) == "1"
@@ -137,6 +135,10 @@ public class PlatformController extends AbstractComponent
      * Environmental variable key for the local metadata directory.
      */
     private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
+    /**
+     * Environmental variable key for the Gitlab usage flag.
+     */
+    private static final String USE_GITLAB_KEY = "USE_GITLAB";
 
     /**
      * Time interval after which challenges are checked for being published.
@@ -206,7 +208,8 @@ public class PlatformController extends AbstractComponent
     protected ClusterManager clusterManager;
 
     /**
-     * Timer used to trigger publishing of challenges and checking for repeatable challenges.
+     * Timer used to trigger publishing of challenges and checking for repeatable
+     * challenges.
      */
     protected Timer challengeCheckTimer;
 
@@ -258,7 +261,7 @@ public class PlatformController extends AbstractComponent
         LOGGER.debug("Container observer initialized.");
 
         List<ImageManager> managers = new ArrayList<ImageManager>();
-        if(System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
+        if (System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
             String metadataDirectory = System.getenv().get(LOCAL_METADATA_DIR_KEY);
             LOGGER.info("Local metadata directory: {}", metadataDirectory);
             managers.add(new FileBasedImageManager(metadataDirectory));
@@ -266,7 +269,17 @@ public class PlatformController extends AbstractComponent
             LOGGER.info("Using default directory for local metadata.");
             managers.add(new FileBasedImageManager());
         }
-        managers.add(new GitlabBasedImageManager());
+        boolean useGitlab = true;
+        if (System.getenv().containsKey(USE_GITLAB_KEY)) {
+            try {
+                useGitlab = Boolean.parseBoolean(System.getenv().get(USE_GITLAB_KEY));
+            } catch (Exception e) {
+                LOGGER.error("Couldn't parse value of " + USE_GITLAB_KEY + ". It will be ignored.");
+            }
+        }
+        if (useGitlab) {
+            managers.add(new GitlabBasedImageManager());
+        }
         imageManager = new ImageManagerFacade(managers);
         LOGGER.debug("Image manager initialized.");
 
@@ -332,13 +345,11 @@ public class PlatformController extends AbstractComponent
      * <li>{@link Commands#DOCKER_CONTAINER_STOP}</li>
      * </ul>
      *
-     * @param command
-     *            command to be executed
-     * @param data
-     *            byte-encoded supplementary json for the command
+     * @param command command to be executed
+     * @param data    byte-encoded supplementary json for the command
      *
-     *            0 - start container 1 - stop container Data format for each
-     *            command: Start container:
+     *                0 - start container 1 - stop container Data format for each
+     *                command: Start container:
      */
     public void receiveCommand(byte command, byte[] data, String sessionId, AMQP.BasicProperties props) {
         String replyTo = null;
@@ -365,7 +376,8 @@ public class PlatformController extends AbstractComponent
                 containerName = createContainer(startParams);
             } else {
                 LOGGER.error(
-                        "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.", sessionId);
+                        "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.",
+                        sessionId);
             }
 
             if (replyTo != null) {
@@ -374,8 +386,7 @@ public class PlatformController extends AbstractComponent
                     propsBuilder.deliveryMode(2);
                     propsBuilder.correlationId(props.getCorrelationId());
                     AMQP.BasicProperties replyProps = propsBuilder.build();
-                    publishToCmdChannel("", replyTo, replyProps,
-                            RabbitMQUtils.writeString(containerName));
+                    publishToCmdChannel("", replyTo, replyProps, RabbitMQUtils.writeString(containerName));
                 } catch (IOException e) {
                     StringBuilder errMsgBuilder = new StringBuilder();
                     errMsgBuilder.append("Error, couldn't sent response after creation of container (");
@@ -463,8 +474,7 @@ public class PlatformController extends AbstractComponent
      * Creates and starts a container based on the given {@link StartCommandData}
      * instance.
      *
-     * @param data
-     *            the data needed to start the container
+     * @param data the data needed to start the container
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
@@ -492,8 +502,7 @@ public class PlatformController extends AbstractComponent
     /**
      * Stops the container with the given container name.
      *
-     * @param containerName
-     *            name of the container that should be stopped
+     * @param containerName name of the container that should be stopped
      */
     public void stopContainer(String containerName) {
         String containerId = containerManager.getContainerId(containerName);
@@ -587,14 +596,10 @@ public class PlatformController extends AbstractComponent
      * Sends the given command to the command queue with the given data appended and
      * using the given properties.
      *
-     * @param address
-     *            address for the message
-     * @param command
-     *            the command that should be sent
-     * @param data
-     *            data that should be appended to the command
-     * @param props
-     *            properties that should be used for the message
+     * @param address address for the message
+     * @param command the command that should be sent
+     * @param data    data that should be appended to the command
+     * @param props   properties that should be used for the message
      * @throws IOException
      */
     protected void sendToCmdQueue(String address, byte command, byte data[], BasicProperties props) throws IOException {
@@ -619,7 +624,8 @@ public class PlatformController extends AbstractComponent
     /**
      * A wrapper around basicPublish.
      */
-    private void publishToCmdChannel(String exchange, String routingKey, BasicProperties props, byte[] body) throws IOException {
+    private void publishToCmdChannel(String exchange, String routingKey, BasicProperties props, byte[] body)
+            throws IOException {
         if (rabbitMQConnector != null) {
             rabbitMQConnector.basicPublish(exchange, routingKey, props, body);
         } else {
@@ -774,11 +780,9 @@ public class PlatformController extends AbstractComponent
      * Retrieves model for the given challenge from the given graph (or without
      * selecting a certain graph if the graphUri is {@code null}).
      *
-     * @param challengeUri
-     *            the URI for which the model should be retrieved
-     * @param graphUri
-     *            the URI from which the data should be retrieved or {@code null} if
-     *            all graphs should be taken into account.
+     * @param challengeUri the URI for which the model should be retrieved
+     * @param graphUri     the URI from which the data should be retrieved or
+     *                     {@code null} if all graphs should be taken into account.
      * @return the RDF model of the challenge
      */
     protected Model getChallengeFromUri(String challengeUri, String graphUri) {
@@ -833,8 +837,7 @@ public class PlatformController extends AbstractComponent
     /**
      * Inserts the configured experiments of a challenge into the queue.
      *
-     * @param challengeUri
-     *            the URI of the challenge
+     * @param challengeUri the URI of the challenge
      */
     private void executeChallengeExperiments(String challengeUri) {
         // get experiments from the challenge
@@ -855,12 +858,9 @@ public class PlatformController extends AbstractComponent
      * Schedules the date of next execution for a repeatable challenge, or closes
      * it.
      *
-     * @param storage
-     *            storage
-     * @param challengeUri
-     *            challenge URI
-     * @param now
-     *            time to use as current when scheduling
+     * @param storage      storage
+     * @param challengeUri challenge URI
+     * @param now          time to use as current when scheduling
      */
     protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri,
             Calendar now) {
@@ -933,10 +933,8 @@ public class PlatformController extends AbstractComponent
     /**
      * Copies the challenge from challenge definition graph to public graph.
      *
-     * @param storage
-     *            storage
-     * @param challengeUri
-     *            challenge URI
+     * @param storage      storage
+     * @param challengeUri challenge URI
      */
     protected static synchronized boolean copyChallengeToPublicResultGraph(StorageServiceClient storage,
             String challengeUri) {
@@ -951,8 +949,7 @@ public class PlatformController extends AbstractComponent
      * Closes the challenge with the given URI by adding the "closed" triple to its
      * graph and inserting the configured experiments into the queue.
      *
-     * @param challengeUri
-     *            the URI of the challenge that should be closed
+     * @param challengeUri the URI of the challenge that should be closed
      */
     private void closeChallenge(String challengeUri) {
         LOGGER.info("Closing challenge {}...", challengeUri);
@@ -1153,18 +1150,15 @@ public class PlatformController extends AbstractComponent
      * Adds a new experiment with the given benchmark, system and benchmark
      * parameter to the queue.
      *
-     * @param benchmarkUri
-     *            the URI of the benchmark
-     * @param systemUri
-     *            the URI of the system
-     * @param userName
-     *            the name of the user who requested the creation of the experiment
-     * @param serializedBenchParams
-     *            the serialized benchmark parameters
-     * @param executionDate
-     *            the date at which this experiment should be executed as part of a
-     *            challenge. Should be set to <code>null</code> if it is not part of
-     *            a challenge.
+     * @param benchmarkUri          the URI of the benchmark
+     * @param systemUri             the URI of the system
+     * @param userName              the name of the user who requested the creation
+     *                              of the experiment
+     * @param serializedBenchParams the serialized benchmark parameters
+     * @param executionDate         the date at which this experiment should be
+     *                              executed as part of a challenge. Should be set
+     *                              to <code>null</code> if it is not part of a
+     *                              challenge.
      * @return the Id of the created experiment
      */
     protected String addExperimentToQueue(String benchmarkUri, String systemUri, String userName,
@@ -1245,8 +1239,7 @@ public class PlatformController extends AbstractComponent
      * Generates an experiment URI using the given id and the experiment URI
      * namespace defined by {@link Constants#EXPERIMENT_URI_NS}.
      *
-     * @param id
-     *            the id of the experiment
+     * @param id the id of the experiment
      * @return the experiment URI
      */
     @Deprecated
