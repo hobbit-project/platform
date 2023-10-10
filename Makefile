@@ -32,7 +32,7 @@ build-java: install-parent-pom build-controller build-storage build-analysis bui
 
 build-gui:
 	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run build-prod
-	cd hobbit-gui/gui-serverbackend && mvn clean package
+	# see hobbit-gui/gui-serverbackend/Dockerfile
 
 build-controller:
 	cd platform-controller && make build
@@ -49,7 +49,7 @@ build-dev-platform-controller-image:
 	docker build -t hobbitproject/hobbit-platform-controller:dev ./platform-controller
 
 build-dev-gui-image:
-	docker build -t hobbitproject/hobbit-gui:dev ./hobbit-gui/gui-serverbackend
+	docker build -t hobbitproject/hobbit-gui:dev --file hobbit-gui/gui-serverbackend/Dockerfile .
 
 build-dev-analysis-image:
 	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
