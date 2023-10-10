@@ -26,4 +26,4 @@ RUN cd $JETTY_BASE && \
 
 COPY hobbit-gui/gui-serverbackend/messages /var/lib/jetty/webapps/messages
 
-COPY --from=build /usr/src/hobbit-platform/hobbit-gui/gui-serverbackend/target/gui-serverbackend.war $JETTY_BASE/webapps/ROOT.war
+COPY --from=build /usr/src/hobbit-platform/hobbit-gui/gui-serverbackend/target/gui-serverbackend $JETTY_BASE/webapps/ROOT
