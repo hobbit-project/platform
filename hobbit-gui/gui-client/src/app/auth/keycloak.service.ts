@@ -66,6 +66,8 @@ export class KeycloakService {
           .error(() => {
             reject('Failed to refresh token');
           });
+      } else {
+        reject('No token');
       }
     });
   }
