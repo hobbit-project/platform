@@ -31,7 +31,6 @@ build: build-java build-dev-images
 build-java: install-parent-pom build-controller build-storage build-analysis build-gui
 
 build-gui:
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run build-prod
 	# see hobbit-gui/gui-serverbackend/Dockerfile
 
 build-controller:
