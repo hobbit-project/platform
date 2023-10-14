@@ -20,7 +20,9 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -40,6 +42,7 @@ import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.controller.utils.RabbitMQConnector;
@@ -270,7 +273,7 @@ public class ExperimentManager implements Closeable {
                                     Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                            null, null, config.id, benchmark.getSystemHardwareConstraints());
+                            null, null, config.id, getHardwareConstraints(config.serializedBenchParams));
                     if (containerId == null) {
                         LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                         forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
@@ -289,6 +292,29 @@ public class ExperimentManager implements Closeable {
                 handleExperimentTermination_unsecured();
             }
         }
+    }
+
+    protected static Map<String, Object> getHardwareConstraints(String serializedBenchParams) {
+        // If the serialized model could contain the hobbit:maxHardware property
+        if (serializedBenchParams.contains("maxHardware")) {
+            Model model = RabbitMQUtils.readModel(serializedBenchParams);
+            Resource hardware = RdfHelper.getObjectResource(model, HobbitExperiments.New, HOBBIT.maxHardware);
+            if (hardware != null) {
+                Map<String, Object> constraints = new HashMap<>();
+                Integer cpuCount = RdfHelper.getIntValue(model, hardware, HOBBIT.hasCPUTypeCount);
+                if (cpuCount != null) {
+                    // We need the CPU count in nano CPU seconds (i.e., we have to multiply the
+                    // count with 10^9)
+                    constraints.put(ContainerManager.NANO_CPU_LIMIT_CONSTRAINT, cpuCount * 1000000000L);
+                }
+                Long memory = RdfHelper.getLongValue(model, hardware, HOBBIT.hasMemory);
+                if (memory != null) {
+                    constraints.put(ContainerManager.MEMORY_LIMIT_CONSTRAINT, memory);
+                }
+                return constraints;
+            }
+        }
+        return Collections.emptyMap();
     }
 
     private void createRabbitMQ(ExperimentConfiguration config) throws Exception {

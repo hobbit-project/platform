@@ -20,12 +20,15 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
@@ -33,7 +36,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
 import org.apache.commons.configuration2.EnvironmentConfiguration;
-import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -636,7 +638,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         int idLength = buffer.getInt();
         byte sessionIdBytes[] = new byte[idLength];
         buffer.get(sessionIdBytes);
-        String sessionId = new String(sessionIdBytes, Charsets.UTF_8);
+        String sessionId = new String(sessionIdBytes, StandardCharsets.UTF_8);
         byte command = buffer.get();
         byte remainingData[];
         if (buffer.remaining() > 0) {
@@ -699,6 +701,10 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 String systemUri = RabbitMQUtils.readString(buffer);
                 String serializedBenchParams = RabbitMQUtils.readString(buffer);
                 String userName = RabbitMQUtils.readString(buffer);
+
+                Map<String, Object> maxHardwareConstraints = new HashMap<>();
+                // TODO get maximum hardware constraints from the UI
+                // TODO deserialize hardware constraint map
                 String experimentId = addExperimentToQueue(benchmarkUri, systemUri, userName, serializedBenchParams,
                         null, null, null);
                 response = RabbitMQUtils.writeString(experimentId);
@@ -804,6 +810,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             // get benchmark information
             String benchmarkUri = RdfHelper.getStringValue(model, challengeTask, HOBBIT.involvesBenchmark);
             String experimentId, systemUri, serializedBenchParams;
+            // TODO Read maximum hardware constraints from the benchmarking task data
             // iterate participating system instances
             NodeIterator systemInstanceIterator = model.listObjectsOfProperty(challengeTask,
                     HOBBIT.involvesSystemInstance);

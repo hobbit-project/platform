@@ -31,6 +31,9 @@ import com.spotify.docker.client.messages.swarm.Service;
  *
  */
 public interface ContainerManager {
+    
+    public static final String MEMORY_LIMIT_CONSTRAINT = "memory-limit";
+    public static final String NANO_CPU_LIMIT_CONSTRAINT = "nanoCPU-limit";
 
     /**
      * Exit code of containers

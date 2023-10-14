@@ -76,8 +76,6 @@ public class ContainerManagerImpl implements ContainerManager {
     public static final String USER_EMAIL_KEY = "GITLAB_EMAIL";
     public static final String USER_PASSWORD_KEY = GitlabControllerImpl.GITLAB_TOKEN_KEY;
     public static final String REGISTRY_URL_KEY = "REGISTRY_URL";
-    public static final String MEMORY_LIMIT_CONSTRAINT = "memory-limit";
-    public static final String NANO_CPU_LIMIT_CONSTRAINT = "nanoCPU-limit";
 
     private static final int DOCKER_MAX_NAME_LENGTH = 63;
 
