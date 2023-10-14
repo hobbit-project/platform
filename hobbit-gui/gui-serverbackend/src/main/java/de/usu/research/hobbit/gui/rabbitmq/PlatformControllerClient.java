@@ -18,7 +18,6 @@ package de.usu.research.hobbit.gui.rabbitmq;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +29,7 @@ import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.apache.jena.vocabulary.XSD;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
@@ -53,6 +53,7 @@ import com.rabbitmq.client.ShutdownSignalException;
 import de.usu.research.hobbit.gui.rest.Datatype;
 import de.usu.research.hobbit.gui.rest.beans.BenchmarkBean;
 import de.usu.research.hobbit.gui.rest.beans.ConfigurationParamValueBean;
+import de.usu.research.hobbit.gui.rest.beans.HardwareConstraintBean;
 import de.usu.research.hobbit.gui.rest.beans.SubmitModelBean;
 import de.usu.research.hobbit.gui.rest.beans.SystemBean;
 import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
@@ -114,8 +115,7 @@ public class PlatformControllerClient implements Closeable {
      * @throws IOException
      * @throws InterruptedException
      * @throws ConsumerCancelledException
-     * @throws ShutdownSignalException
-     *             If something goes wrong with the request
+     * @throws ShutdownSignalException    If something goes wrong with the request
      */
     public List<BenchmarkBean> requestBenchmarks()
             throws IOException, ShutdownSignalException, ConsumerCancelledException, InterruptedException {
@@ -153,11 +153,11 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Retrieves the benchmark details from the HOBBIT PlatformControler
      *
-     * @param benchmarkUri
-     *            the URI of the benchmark for which the details should be retrieved
-     * @param user
-     *            information about the requesting user which will be used to filter
-     *            the systems that can be used with the requested benchmark.
+     * @param benchmarkUri the URI of the benchmark for which the details should be
+     *                     retrieved
+     * @param user         information about the requesting user which will be used
+     *                     to filter the systems that can be used with the requested
+     *                     benchmark.
      * @return
      * @throws GUIBackendException
      * @throws IOException
@@ -215,16 +215,14 @@ public class PlatformControllerClient implements Closeable {
      * experiment will be started with the chosen system and benchmark
      * configuration.
      *
-     * @param benchmarkConf
-     *            the benchmark configuration with which an experiment should be
-     *            started
-     * @param userName
-     *            the name of the user who submitted the benchmark configuration
+     * @param benchmarkConf the benchmark configuration with which an experiment
+     *                      should be started
+     * @param userName      the name of the user who submitted the benchmark
+     *                      configuration
      * @return The ID of the created experiment
-     * @throws GUIBackendException
-     *             If the given benchmark configuration is not valid
-     * @throws IOException
-     *             If there is a problem during the receiving of the response
+     * @throws GUIBackendException If the given benchmark configuration is not valid
+     * @throws IOException         If there is a problem during the receiving of the
+     *                             response
      */
     public String submitBenchmark(SubmitModelBean benchmarkConf, String userName)
             throws GUIBackendException, IOException {
@@ -257,6 +255,13 @@ public class PlatformControllerClient implements Closeable {
             throw new GUIBackendException("Please check your parameter definitions.");
         }
 
+        try {
+            addHardwareConstraint(model, HobbitExperiments.New, benchmarkConf.getMaxHardwareConstraints());
+        } catch (Exception e) {
+            LOGGER.error("Got an exception while processing the hardware constraints.", e);
+            throw new GUIBackendException("Please check your parameter definitions.");
+        }
+
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),
                         RabbitMQUtils.writeModel(model), RabbitMQUtils.writeString(userName) },
@@ -265,7 +270,7 @@ public class PlatformControllerClient implements Closeable {
         LOGGER.info("Sending request...");
         data = client.request(data);
         if (data == null) {
-            throw new IOException("Didn't got a response.");
+            throw new IOException("Didn't get a response.");
         }
 
         String id = RabbitMQUtils.readString(data);
@@ -279,15 +284,14 @@ public class PlatformControllerClient implements Closeable {
      * Adds the given list of parameters to the given RDF model by creating triples
      * using the given benchmark resource.
      *
-     * @param model
-     *            the RDF model to which the parameter should be added
-     * @param benchmarkInstanceResource
-     *            the resource of the benchmark inside the given RDF model
-     * @param list
-     *            the list of parameters that should be added
+     * @param model              the RDF model to which the parameter should be
+     *                           added
+     * @param experimentInstance the resource of the new experiment inside the given
+     *                           RDF model
+     * @param list               the list of parameters that should be added
      * @return the updated model
      */
-    protected static Model addParameters(Model model, Resource benchmarkInstanceResource,
+    protected static Model addParameters(Model model, Resource experimentInstance,
             List<ConfigurationParamValueBean> list) {
         for (ConfigurationParamValueBean paramValue : list) {
             String uri = paramValue.getId();
@@ -296,21 +300,49 @@ public class PlatformControllerClient implements Closeable {
             String range = paramValue.getRange();
 
             if (range == null) {
-                model.add(benchmarkInstanceResource, model.createProperty(uri),
+                model.add(experimentInstance, model.createProperty(uri),
                         model.createTypedLiteral(value, expandedXsdId(datatype)));
             } else {
                 if (range.startsWith(XSD.NS)) {
-                    model.add(benchmarkInstanceResource, model.createProperty(uri),
-                            model.createTypedLiteral(value, range));
+                    model.add(experimentInstance, model.createProperty(uri), model.createTypedLiteral(value, range));
                 } else {
-                    model.add(benchmarkInstanceResource, model.createProperty(uri), model.createResource(value));
+                    model.add(experimentInstance, model.createProperty(uri), model.createResource(value));
                 }
             }
         }
+        return model;
+    }
 
-        StringWriter writer = new StringWriter();
-        model.write(writer, "Turtle");
-
+    /**
+     * Add hardware constraints defined in the given bean to the given model.
+     * 
+     * @param model              the RDF model to which the constraints should be
+     *                           added
+     * @param experimentInstance the resource of the new experiment for which the
+     *                           constraint should hold inside the given RDF model
+     * @param hardwareConstraint the constraint (or {@code null} if such a
+     *                           constraint doesn't exist)
+     * @return the given, updated model
+     */
+    protected static Model addHardwareConstraint(Model model, Resource experimentInstance,
+            HardwareConstraintBean hardwareConstraint) {
+        if ((hardwareConstraint != null) && (hardwareConstraint.isValidConstraint())) {
+            Resource constraintsResource = model.createResource(hardwareConstraint.getIri());
+            model.add(constraintsResource, RDF.type, HOBBIT.Hardware);
+            String label = hardwareConstraint.getLabel();
+            if ((label != null) && (!label.isEmpty())) {
+                model.addLiteral(constraintsResource, RDFS.label, model.createLiteral(label));
+            }
+            int cpuCount = hardwareConstraint.getCpuCount();
+            if (cpuCount > 0) {
+                model.addLiteral(constraintsResource, HOBBIT.hasCPUTypeCount, cpuCount);
+            }
+            long memory = hardwareConstraint.getMemory();
+            if (memory > 0) {
+                model.addLiteral(constraintsResource, HOBBIT.hasMemory, memory);
+            }
+            model.add(experimentInstance, HOBBIT.maxHardware, constraintsResource);
+        }
         return model;
     }
 
@@ -318,11 +350,11 @@ public class PlatformControllerClient implements Closeable {
      * Requests the status of the controller.
      *
      * @return the status of the controller
-     * @throws IOException
-     *             If no response has been received
+     * @throws IOException If no response has been received
      */
     public ControllerStatus requestStatus(String userName) throws IOException {
-        byte[] data = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS },
+        byte[] data = client
+                .request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS },
                         new byte[][] { RabbitMQUtils.writeString(userName) }, null));
         if (data == null) {
             throw new IOException("Didn't get a response.");
@@ -339,10 +371,8 @@ public class PlatformControllerClient implements Closeable {
     /**
      * Closes the challenge with the given URI.
      *
-     * @param challengeUri
-     *            the URI of the challenge that should be closed
-     * @throws IOException
-     *             If the controller does not responses
+     * @param challengeUri the URI of the challenge that should be closed
+     * @throws IOException If the controller does not responses
      */
     public void closeChallenge(String challengeUri) throws IOException {
         LOGGER.info("Sending request...");
@@ -359,9 +389,8 @@ public class PlatformControllerClient implements Closeable {
      * Requests the systems for the user with the given user mail address. Returns
      * an empty list if an error occurs.
      *
-     * @param userMail
-     *            the mail address of the user for which the systems should be
-     *            requested
+     * @param userMail the mail address of the user for which the systems should be
+     *                 requested
      * @return the systems for the given user or an empty list if an error occurred
      */
     public List<SystemBean> requestSystemsOfUser(String userMail) {
@@ -401,10 +430,8 @@ public class PlatformControllerClient implements Closeable {
      * Requests the deletion of the experiment with the given experiment id with the
      * access rights of the given user.
      *
-     * @param id
-     *            id of the experiment that should be removed
-     * @param userName
-     *            name of the user requesting the deletion
+     * @param id       id of the experiment that should be removed
+     * @param userName name of the user requesting the deletion
      * @return {@code true} if the deletion was successful, else {@code false}
      */
     public boolean requestExperimentDeletion(String id, String userName) {
@@ -497,13 +524,11 @@ public class PlatformControllerClient implements Closeable {
      * Sends a request to the platform controller to terminate the experiment with
      * the given ID using the access rights of the given user.
      *
-     * @param experimentId
-     *            the id of the experiment that should be terminated.
-     * @param preferredUsername
-     *            the name of the user who wants to terminate the experiment
+     * @param experimentId      the id of the experiment that should be terminated.
+     * @param preferredUsername the name of the user who wants to terminate the
+     *                          experiment
      * @return {@code true} if the termination was successful, else {@code false}
-     * @throws IOException
-     *             If communication problems arise.
+     * @throws IOException If communication problems arise.
      */
     public boolean terminateExperiment(String experimentId, String preferredUsername) throws IOException {
         byte[] res = client.request(RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.REMOVE_EXPERIMENT },

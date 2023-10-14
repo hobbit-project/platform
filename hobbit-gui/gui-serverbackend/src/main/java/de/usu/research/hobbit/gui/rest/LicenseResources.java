@@ -16,11 +16,6 @@
  */
 package de.usu.research.hobbit.gui.rest;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -36,7 +31,6 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.DCAT;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.core.Constants;
-import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
 import org.hobbit.utils.rdf.RdfHelper;
@@ -45,11 +39,8 @@ import org.hobbit.vocab.XHV;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.usu.research.hobbit.gui.rabbitmq.GUIBackendException;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClient;
-import de.usu.research.hobbit.gui.rabbitmq.PlatformControllerClientSingleton;
 import de.usu.research.hobbit.gui.rabbitmq.StorageServiceClientSingleton;
-import de.usu.research.hobbit.gui.rest.beans.*;
+import de.usu.research.hobbit.gui.rest.beans.LicenseBean;
 
 @Path("license")
 public class LicenseResources {
