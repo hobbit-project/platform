@@ -16,10 +16,12 @@
  */
 package org.hobbit.controller.docker;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -31,6 +33,8 @@ import org.hobbit.core.Constants;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.spotify.docker.client.DockerClient;
@@ -38,8 +42,8 @@ import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.exceptions.ServiceNotFoundException;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.Image;
 import com.spotify.docker.client.messages.PortBinding;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -103,7 +107,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         final Service serviceInfo = dockerClient.inspectService(containerId);
         assertNotNull("Service inspection response from docker", serviceInfo);
 
-        assertThat("Container ID as seen by the platform (names are used in place of IDs)", containerId, not(equalTo(serviceInfo.id())));
+        assertNotEquals("Container ID as seen by the platform (names are used in place of IDs)", containerId, serviceInfo.id());
         assertEquals("Type label of created swarm service",
                 serviceInfo.spec().labels().get(ContainerManagerImpl.LABEL_TYPE),
                 Constants.CONTAINER_TYPE_SYSTEM);

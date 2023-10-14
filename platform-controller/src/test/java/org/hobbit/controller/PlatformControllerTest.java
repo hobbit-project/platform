@@ -21,10 +21,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
@@ -33,12 +36,12 @@ import org.hobbit.controller.docker.ContainerManagerBasedTest;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
+import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.docker.DockerHelper;
+import org.hobbit.vocab.HobbitExperiments;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Task;
@@ -51,9 +54,6 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
     private static final String RABBIT_HOST_NAME = DockerHelper.getHost();
     private static final String SESSION_ID = "test-session";
 
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
     private PlatformController controller;
 
     private void assertDockerImageEquals(String message, String expected, String got) throws Exception {
@@ -64,12 +64,16 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
 
     @Before
     public void init() throws Exception {
-        environmentVariables.set(Constants.RABBIT_MQ_HOST_NAME_KEY, RABBIT_HOST_NAME);
-        environmentVariables.set(Constants.GENERATOR_ID_KEY, "0");
-        environmentVariables.set(Constants.GENERATOR_COUNT_KEY, "1");
-        environmentVariables.set(Constants.HOBBIT_SESSION_ID_KEY, "0");
+        Map<String, String> envVariables = new HashMap<>();
+        envVariables.put(Constants.RABBIT_MQ_HOST_NAME_KEY, RABBIT_HOST_NAME);
+        envVariables.put(Constants.GENERATOR_ID_KEY, "0");
+        envVariables.put(Constants.GENERATOR_COUNT_KEY, "1");
+        envVariables.put(Constants.HOBBIT_SESSION_ID_KEY, "0");
 
-        controller = new PlatformController(new LocalExperimentManager(null, SESSION_ID));
+        HobbitConfiguration configuration = new HobbitConfiguration();
+        configuration.addConfiguration(new MapConfiguration(envVariables));
+
+        controller = new PlatformController(new LocalExperimentManager(null, configuration, SESSION_ID));
         try {
             controller.init();
         } catch (Exception e) {
@@ -142,11 +146,11 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
 
     protected static class LocalExperimentManager extends ExperimentManager {
 
-        public LocalExperimentManager(PlatformController controller, String session) {
-            super(controller);
+        public LocalExperimentManager(PlatformController controller, HobbitConfiguration config, String session) {
+            super(controller, config);
             experimentStatus = new ExperimentStatus(
                     new ExperimentConfiguration(session, "TestBenchmark", "", "TestSytem"),
-                    Constants.EXPERIMENT_URI_NS + session);
+                    HobbitExperiments.getExperimentURI(session));
             experimentStatus.setState(States.STARTED);
         }
 

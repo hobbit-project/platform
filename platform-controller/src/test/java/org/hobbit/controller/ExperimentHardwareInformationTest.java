@@ -1,29 +1,26 @@
 package org.hobbit.controller;
 
-import org.apache.jena.sparql.vocabulary.DOAP;
-import org.apache.jena.vocabulary.RDF;
-import org.apache.jena.vocabulary.RDFS;
-import org.hobbit.vocab.MEXCORE;
-import org.apache.jena.rdf.model.RDFNode;
 import java.util.List;
-import org.apache.jena.rdf.model.Resource;
-import org.hobbit.controller.PlatformController;
-import org.hobbit.controller.ExperimentManager;
 
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.sparql.vocabulary.DOAP;
+import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
-import org.hobbit.controller.mocks.DummyPlatformController;
 import org.hobbit.controller.mocks.DummyImageManager;
+import org.hobbit.controller.mocks.DummyPlatformController;
 import org.hobbit.controller.mocks.DummyStorageServiceClient;
+import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.MEXCORE;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,15 +41,13 @@ public class ExperimentHardwareInformationTest extends DockerBasedTest {
     private ExperimentManager manager;
     private PlatformController controller;
 
-    @Rule
-    public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
     @Before
     public void init() throws Exception {
         controller = new DummyPlatformController();
         controller.resInfoCollector = new ResourceInformationCollectorImpl(controller.containerManager);
         controller.queue.add(new ExperimentConfiguration(EXPERIMENT_ID, DummyImageManager.BENCHMARK_NAME, "{}", DummyImageManager.SYSTEM_URI));
-        manager = new ExperimentManager(controller, 1000, 1000);
+        HobbitConfiguration configuration = new HobbitConfiguration();
+        manager = new ExperimentManager(controller, configuration, 1000L, 1000L);
         controller.expManager = manager;
     }
 

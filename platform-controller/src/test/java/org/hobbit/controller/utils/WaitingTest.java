@@ -1,8 +1,8 @@
 package org.hobbit.controller.utils;
 
 import org.junit.Test;
+import org.junit.Assert;
 
-import junit.framework.Assert;
 
 public class WaitingTest {
 
