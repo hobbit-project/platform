@@ -36,20 +36,22 @@ services:
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_HTTP_PORT=9200
-    #volumes:
+      - USE_UI_AUTH=false
+    volumes:
+      - ./config/jetty/web-without-ui-auth.xml:/var/lib/jetty/webapps/ROOT/WEB-INF/web.xml
       #- /data/docker/messages/global.html:/var/lib/jetty/webapps/messages/global.html
       #- /data/docker/messages/benchmark.html:/var/lib/jetty/webapps/messages/benchmark.html
       #- /data/docker/messages/status.html:/var/lib/jetty/webapps/messages/status.html
 
   # Keycloak user management (used by the GUI)
-  keycloak:
-    image: hobbitproject/hobbit-keycloak:latest
-    ports:
-      - "8181:8080"
-    networks:
-      - hobbit
-    volumes:
-      - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
+  # keycloak:
+  #   image: hobbitproject/hobbit-keycloak:latest
+  #   ports:
+  #     - "8181:8080"
+  #   networks:
+  #     - hobbit
+  #   volumes:
+  #     - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
 
   # HOBBIT Analysis component
   analysis:

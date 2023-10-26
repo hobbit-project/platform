@@ -93,14 +93,17 @@ export class CustomHttp {
 
     const obs = Observable.fromPromise(this.keycloakService.getToken()).map(token => {
       const requestUrl = environment.backendUrl + url.substr(environment.backendPrefix.length);
-      const headers = { 'Authorization': 'bearer ' + token };
+      const headers = {};
+      if (token !== null) {
+        Object.assign(headers, {Authorization: 'bearer ' + token});
+      }
       let requestOptions = options;
       if (!options)
         requestOptions = { 'headers': new HttpHeaders(headers) };
       else if (!options.headers)
         requestOptions.headers = new HttpHeaders(headers);
       else
-        requestOptions.headers = requestOptions.headers.set('Authorization', headers['Authorization']);
+        Object.assign(requestOptions.headers, headers);
       return { url: requestUrl, options: requestOptions };
     });
     return obs;

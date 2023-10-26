@@ -18,6 +18,14 @@ export class KeycloakService {
       req.onload = (e) => {
         const keycloakConfig = JSON.parse(req.responseText);
 
+        if (keycloakConfig.clientId === 'DISABLED') {
+          console.log('UI auth is disabled');
+          KeycloakService.auth.loggedIn = true;
+          KeycloakService.auth.authz = true;
+          resolve(null);
+          return;
+        }
+
         const keycloakAuth: any = Keycloak(keycloakConfig);
         keycloakAuth.init({ onLoad: 'login-required' })
           .success(() => {
@@ -66,6 +74,12 @@ export class KeycloakService {
           .error(() => {
             reject('Failed to refresh token');
           });
+      } else {
+        if (KeycloakService.auth.authz === true) {
+          resolve(null);
+          return;
+        }
+        reject('No token');
       }
     });
   }
