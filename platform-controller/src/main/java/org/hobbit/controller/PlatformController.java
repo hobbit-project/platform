@@ -139,6 +139,10 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * Environmental variable key for the local metadata directory.
      */
     private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
+    /**
+     * Environmental variable key for the Gitlab usage flag.
+     */
+    private static final String USE_GITLAB_KEY = "USE_GITLAB";
 
     /**
      * Time interval after which challenges are checked for being published.
@@ -273,7 +277,17 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             LOGGER.info("Using default directory for local metadata.");
             managers.add(new FileBasedImageManager());
         }
-        managers.add(new GitlabBasedImageManager());
+        boolean useGitlab = true;
+        if (System.getenv().containsKey(USE_GITLAB_KEY)) {
+            try {
+                useGitlab = Boolean.parseBoolean(System.getenv().get(USE_GITLAB_KEY));
+            } catch (Exception e) {
+                LOGGER.error("Couldn't parse value of " + USE_GITLAB_KEY + ". It will be ignored.");
+            }
+        }
+        if (useGitlab) {
+            managers.add(new GitlabBasedImageManager());
+        }
         imageManager = new ImageManagerFacade(managers);
         LOGGER.debug("Image manager initialized.");
 

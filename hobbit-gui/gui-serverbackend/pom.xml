@@ -148,6 +148,19 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-war-plugin</artifactId>
                     <version>3.0.0</version>
+                    <executions>
+                        <execution>
+                            <id>default-war</id>
+                            <phase>none</phase>
+                        </execution>
+                        <execution>
+                            <id>war-exploded</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>exploded</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                     <configuration>
                         <webResources>
                             <resource>
