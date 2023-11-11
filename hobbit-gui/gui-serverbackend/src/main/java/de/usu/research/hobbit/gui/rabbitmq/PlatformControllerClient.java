@@ -39,6 +39,7 @@ import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.rabbit.RabbitRpcClient;
+import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
@@ -211,6 +212,31 @@ public class PlatformControllerClient implements Closeable {
     }
 
     /**
+     * Sends the given RDF model containing a benchmark configuration to the
+     * platform controller where an experiment will be started based on that model.
+     *
+     * @param model the RDF model containing all necessary information to start an
+     *              experiment.
+     * @throws IOException If there is a problem during the receiving of the
+     *                     response
+     */
+    public String submitBenchmark(Model model, String userName) throws GUIBackendException, IOException {
+        Resource benchmark = RdfHelper.getObjectResource(model, HobbitExperiments.New, HOBBIT.involvesBenchmark);
+        if ((benchmark == null) || (!benchmark.isURIResource())) {
+            String msg = "The given experiment configuration does not contain a benchmark IRI. Aborting.";
+            LOGGER.error(msg);
+            throw new GUIBackendException(msg);
+        }
+        Resource system = RdfHelper.getObjectResource(model, HobbitExperiments.New, HOBBIT.involvesSystemInstance);
+        if ((system == null) || (!system.isURIResource())) {
+            String msg = "The given experiment configuration does not contain a system instance IRI. Aborting.";
+            LOGGER.error(msg);
+            throw new GUIBackendException(msg);
+        }
+        return submitBenchmark(benchmark.getURI(), system.getURI(), model, userName);
+    }
+
+    /**
      * Sends the given benchmark configuration to the platform controller where an
      * experiment will be started with the chosen system and benchmark
      * configuration.
@@ -261,7 +287,11 @@ public class PlatformControllerClient implements Closeable {
             LOGGER.error("Got an exception while processing the hardware constraints.", e);
             throw new GUIBackendException("Please check your parameter definitions.");
         }
+        return submitBenchmark(benchmarkUri, systemUri, model, userName);
+    }
 
+    protected String submitBenchmark(String benchmarkUri, String systemUri, Model model, String userName)
+            throws IOException {
         byte[] data = RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.ADD_EXPERIMENT_CONFIGURATION },
                 new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(systemUri),
                         RabbitMQUtils.writeModel(model), RabbitMQUtils.writeString(userName) },

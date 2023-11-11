@@ -1,6 +1,9 @@
 package de.usu.research.hobbit.gui.rest.beans;
 
+import java.beans.Transient;
+
 import javax.xml.bind.annotation.XmlRootElement;
+import javax.xml.bind.annotation.XmlTransient;
 
 @XmlRootElement
 public class HardwareConstraintBean {
@@ -72,6 +75,8 @@ public class HardwareConstraintBean {
      * 
      * @return {@code true} if the constraint is valid, otherwise {@code false}
      */
+    @XmlTransient
+    @Transient
     public boolean isValidConstraint() {
         return (iri != null) && (!iri.isEmpty()) && (cpuCount > 0) || (memory > 0);
     }
