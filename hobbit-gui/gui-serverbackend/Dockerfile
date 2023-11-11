@@ -1,5 +1,9 @@
 # https://nodejs.org/en/docs/guides/nodejs-docker-webapp
-FROM node:16 AS build-client
+
+# https://www.npmjs.com/package/node-sass#node-version-support-policy
+# node-sass 4.10.0 (../gui-client/package-lock.json) ⇒ node <= 11
+
+FROM node:11 AS build-client
 WORKDIR /usr/src/hobbit-platform
 COPY hobbit-gui/gui-client/package*.json ./hobbit-gui/gui-client/
 RUN npm --prefix hobbit-gui/gui-client ci --omit=dev
