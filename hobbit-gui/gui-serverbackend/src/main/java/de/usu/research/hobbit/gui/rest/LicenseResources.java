@@ -48,7 +48,7 @@ public class LicenseResources {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getLicense(@Context SecurityContext sc) throws Exception {
+    public Response getLicense() throws Exception {
         LOGGER.info("Requesting dataset license...");
         LicenseBean info = new LicenseBean();
         String query = SparqlQueries.getLicenseOfDataset(Constants.PUBLIC_RESULT_GRAPH_URI);
