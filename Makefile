@@ -34,7 +34,7 @@ build-gui:
 	# see hobbit-gui/gui-serverbackend/Dockerfile
 
 build-controller:
-	cd platform-controller && make build
+	# see platform-controller/Dockerfile
 
 build-storage:
 	cd platform-storage/storage-service && mvn clean package -U
@@ -45,7 +45,7 @@ build-analysis:
 build-dev-images: build-dev-platform-controller-image build-dev-gui-image build-dev-analysis-image build-dev-storage-image
 
 build-dev-platform-controller-image:
-	docker build -t hobbitproject/hobbit-platform-controller:dev ./platform-controller
+	docker build -t hobbitproject/hobbit-platform-controller:dev --file platform-controller/Dockerfile .
 
 build-dev-gui-image:
 	docker build -t hobbitproject/hobbit-gui:dev --file hobbit-gui/gui-serverbackend/Dockerfile .
