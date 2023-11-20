@@ -1,6 +1,7 @@
 FROM maven:3-eclipse-temurin-11 AS build
 WORKDIR /usr/src/hobbit-platform
 COPY parent-pom/pom.xml parent-pom/
+RUN mvn --file parent-pom -Dmaven.test.skip=true install
 ARG project=analysis-component
 COPY ${project}/pom.xml ${project}/
 RUN mvn --file ${project} dependency:go-offline
