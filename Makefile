@@ -40,7 +40,7 @@ build-storage:
 	# see platform-storage/storage-service/Dockerfile
 
 build-analysis:
-	cd analysis-component && mvn clean package -U
+	# see analysis-component/Dockerfile
 
 build-dev-images: build-dev-platform-controller-image build-dev-gui-image build-dev-analysis-image build-dev-storage-image
 
@@ -51,7 +51,7 @@ build-dev-gui-image:
 	docker build -t hobbitproject/hobbit-gui:dev --file hobbit-gui/gui-serverbackend/Dockerfile .
 
 build-dev-analysis-image:
-	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
+	docker build -t hobbitproject/hobbit-analysis-component:dev --file ./analysis-component/Dockerfile .
 
 build-dev-storage-image:
 	docker build -t hobbitproject/hobbit-storage-service:dev --file ./platform-storage/storage-service/Dockerfile .
