@@ -37,7 +37,7 @@ build-controller:
 	# see platform-controller/Dockerfile
 
 build-storage:
-	cd platform-storage/storage-service && mvn clean package -U
+	# see platform-storage/storage-service/Dockerfile
 
 build-analysis:
 	cd analysis-component && mvn clean package -U
@@ -54,7 +54,7 @@ build-dev-analysis-image:
 	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
 
 build-dev-storage-image:
-	docker build -t hobbitproject/hobbit-storage-service:dev ./platform-storage/storage-service
+	docker build -t hobbitproject/hobbit-storage-service:dev --file ./platform-storage/storage-service/Dockerfile .
 
 create-networks:
 	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
