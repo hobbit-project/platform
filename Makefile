@@ -1,5 +1,4 @@
-# build platform components
-default: build
+build: build-dev-images
 
 deploy: create-networks start
 
@@ -25,22 +24,6 @@ start-dev-platform:
 
 start-dev-elk:
 	docker-compose -f docker-compose-elk.yml up -d
-
-build: build-java build-dev-images
-
-build-java: install-parent-pom build-controller build-storage build-analysis build-gui
-
-build-gui:
-	# see hobbit-gui/gui-serverbackend/Dockerfile
-
-build-controller:
-	# see platform-controller/Dockerfile
-
-build-storage:
-	# see platform-storage/storage-service/Dockerfile
-
-build-analysis:
-	# see analysis-component/Dockerfile
 
 build-dev-images: build-dev-platform-controller-image build-dev-gui-image build-dev-analysis-image build-dev-storage-image
 
