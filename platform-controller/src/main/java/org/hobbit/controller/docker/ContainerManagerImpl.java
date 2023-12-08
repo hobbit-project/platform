@@ -777,4 +777,14 @@ public class ContainerManagerImpl implements ContainerManager {
         }
         return stats;
     }
+
+    @Override
+    public String getContainerType(String containerId) {
+        Service container = null;
+        try {
+            container = getContainerInfo(containerId);
+        } catch (Exception e) {
+        }
+        return (container == null) ? null : container.spec().labels().get(LABEL_TYPE);
+    }
 }

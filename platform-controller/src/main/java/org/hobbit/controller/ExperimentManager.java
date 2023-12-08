@@ -27,15 +27,19 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
@@ -49,15 +53,18 @@ import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
+import org.hobbit.core.data.ErrorData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.vocab.Algorithm;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitErrors;
 import org.hobbit.vocab.HobbitExperiments;
+import org.hobbit.vocab.PROV;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,6 +104,10 @@ public class ExperimentManager implements Closeable {
      */
     public static final long CHECK_FOR_NEW_EXPERIMENT = 10000;
     /**
+     * IRI name space used for the generation of IRIs for error instances.
+     */
+    public static final String ERROR_INSTANCE_NAMESPACE = "http://project-hobbit.org/error-instances/";
+    /**
      * Default time an experiment has to terminate after it has been started.
      */
     public long defaultMaxExecutionTime = DEFAULT_MAX_EXECUTION_TIME;
@@ -118,6 +129,10 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     protected Timer expStartTimer;
+    /**
+     * The last error Id that has been used for the currently running session.
+     */
+    private AtomicInteger lastErrorReportId;
     /**
      * The configuration of this platform.
      */
@@ -788,5 +803,56 @@ public class ExperimentManager implements Closeable {
 
     public void setController(PlatformController controller) {
         this.controller = controller;
+    }
+
+    /**
+     * Add reported error to the experiment result model if the experiment with the
+     * given session is still running.
+     * 
+     * @param sessionId            the session ID of the container that reported the
+     *                             error
+     * @param errorData            the data of the reported error
+     * @param isBenchmarkContainer a flag that shows whether the error came from a
+     *                             container that belongs to the benchmark
+     *                             ({@code true}) or to the benchmarked system
+     *                             ({@code false}).
+     */
+    public void handleErrorReport(String sessionId, ErrorData errorData, boolean isBenchmarkContainer) {
+        // Transform the error data into RDF
+        Model resultModel = ModelFactory.createDefaultModel();
+        // Generate IRI for this error
+        Resource error = ResourceFactory.createResource(new StringBuilder(ERROR_INSTANCE_NAMESPACE).append(sessionId)
+                .append('_').append(lastErrorReportId.getAndIncrement()).toString());
+        // Add the error type
+        Resource errorType = (errorData.getErrorType() == null) ? HobbitErrors.UnspecifiedError
+                : ResourceFactory.createResource(errorData.getErrorType());
+        resultModel.add(error, RDF.type, errorType);
+        // Add connection to experiment
+        resultModel.add(error, PROV.wasGeneratedBy, ResourceFactory.createResource(experimentStatus.experimentUri));
+
+        // Add source
+        if (isBenchmarkContainer) {
+            resultModel.add(error, PROV.wasAttributedTo,
+                    ResourceFactory.createResource(experimentStatus.getConfig().benchmarkUri));
+        } else {
+            resultModel.add(error, PROV.wasAttributedTo,
+                    ResourceFactory.createResource(experimentStatus.getConfig().systemUri));
+        }
+        // Add details
+        if (errorData.getLabel() != null) {
+            resultModel.add(error, RDFS.label, errorData.getLabel());
+        }
+        if (errorData.getDescription() != null) {
+            resultModel.add(error, RDFS.comment, errorData.getDescription());
+        }
+        if (errorData.getDetails() != null) {
+            resultModel.add(error, Algorithm.errorDetails, errorData.getLabel());
+        }
+        synchronized (experimentMutex) {
+            // Check again whether we are still working on the same experiment
+            if (isExpRunning(sessionId)) {
+                setResultModel_unsecured(resultModel);
+            }
+        }
     }
 }

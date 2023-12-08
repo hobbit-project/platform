@@ -148,4 +148,9 @@ public class DummyContainerManager implements ContainerManager {
         return null;
     }
 
+    @Override
+    public String getContainerType(String containerId) {
+        return null;
+    }
+
 }

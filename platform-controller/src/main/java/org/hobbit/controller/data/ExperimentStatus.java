@@ -37,7 +37,6 @@ import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.docker.ImageManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
-import org.hobbit.core.Constants;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;

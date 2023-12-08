@@ -71,6 +71,7 @@ import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractComponent;
 import org.hobbit.core.data.BenchmarkMetaData;
+import org.hobbit.core.data.ErrorData;
 import org.hobbit.core.data.StartCommandData;
 import org.hobbit.core.data.StopCommandData;
 import org.hobbit.core.data.SystemMetaData;
@@ -80,6 +81,7 @@ import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.DataSender;
 import org.hobbit.core.rabbit.DataSenderImpl;
+import org.hobbit.core.rabbit.GsonUtils;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -379,7 +381,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
                 // Convert data byte array to config data structure
-                startParams = deserializeStartCommandData(data);
+                startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class);
                 // trigger creation
                 containerName = createContainer(startParams);
             } else {
@@ -411,7 +413,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
         case Commands.DOCKER_CONTAINER_STOP: {
             // get containerId from params
-            StopCommandData stopParams = deserializeStopCommandData(data);
+            StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class);
             // trigger stop
             stopContainer(stopParams.containerName);
             break;
@@ -459,23 +461,27 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 }
             }
         }
+        case Commands.REPORT_ERROR: {
+            // Ensure that the container belongs to the current Experiment
+            if (expManager.isExpRunning(sessionId)) {
+                ErrorData errorData = GsonUtils.deserializeObjectWithGson(gson, data, ErrorData.class);
+                if (errorData != null) {
+                    try {
+                        handleErrorReport(sessionId, errorData);
+                    } catch (Exception e) {
+                        LOGGER.error("Exception while handling error report. It will be ignored.", e);
+                    }
+                } else {
+                    LOGGER.error("Couldn't parse error command received for experiment \"{}\". It will be ignored.",
+                            sessionId);
+                }
+            } else {
+                LOGGER.error(
+                        "Got an error report of the experiment \"{}\" which is either not running or was already stopped.",
+                        sessionId);
+            }
         }
-    }
-
-    private StopCommandData deserializeStopCommandData(byte[] data) {
-        if (data == null) {
-            return null;
         }
-        String dataString = RabbitMQUtils.readString(data);
-        return gson.fromJson(dataString, StopCommandData.class);
-    }
-
-    private StartCommandData deserializeStartCommandData(byte[] data) {
-        if (data == null) {
-            return null;
-        }
-        String dataString = RabbitMQUtils.readString(data);
-        return gson.fromJson(dataString, StartCommandData.class);
     }
 
     /**
@@ -786,6 +792,23 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             }
         }
         LOGGER.debug("Finished handling of front end request.");
+    }
+
+    private void handleErrorReport(String sessionId, ErrorData errorData) {
+        // Identify whether the container belongs to the benchmark or the system
+        if (errorData.getContainerId() == null) {
+            LOGGER.error("Got an error report without container ID. It will be ignored.");
+            return;
+        }
+        String containerType = containerManager.getContainerType(errorData.getContainerId());
+        boolean isBenchmarkContainer = Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType);
+        if (!isBenchmarkContainer && (!Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))) {
+            LOGGER.error(
+                    "Got an error report from a container with type \"{}\" which is neither a benchmark nor a system container. It will be ignored.");
+            return;
+        }
+        // Give the error report to the experiment manager
+        expManager.handleErrorReport(sessionId, errorData, isBenchmarkContainer);
     }
 
     /**
