@@ -49,10 +49,11 @@ import org.apache.jena.update.UpdateFactory;
 import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractComponent;
 import org.hobbit.core.data.RabbitQueue;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.Delivery;
 
 /**
  *
@@ -127,11 +128,10 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     /**
      * Calls the SPARQL Endpoint denoted by the URL, to execute the queryString.
      *
-     * @param queryString
-     *            The query to be executed
+     * @param queryString The query to be executed
      * @return Returns the queryString results serialized in JSON
-     * @throws Exception
-     *             If endpoint not reachable, exception while executing query, etc.
+     * @throws Exception If endpoint not reachable, exception while executing query,
+     *                   etc.
      */
     public String callSparqlEndpoint(String queryString) throws Exception {
         String response = null;
@@ -236,7 +236,7 @@ public class StorageService extends AbstractComponent implements CredentialsProv
         LOGGER.info("[Storage Service] Awaiting Storage Service requests");
         ExecutorService executor = Executors.newFixedThreadPool(MAX_NUMBER_PARALLEL_REQUESTS);
         while (true) {
-            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+            Delivery delivery = consumer.getDeliveryQueue().poll();
             executor.execute(new DeliveryProcessing(this, delivery, queue));
         }
     }
@@ -246,8 +246,7 @@ public class StorageService extends AbstractComponent implements CredentialsProv
      * outside of brackets, i.e.,parts that match {{@code ...}} and {@code <...>}
      * are removed. It can be used to make sure that only keywords are processed.
      *
-     * @param query
-     *            the SPARQL query that should be reduced
+     * @param query the SPARQL query that should be reduced
      * @return the reduced SPARQL query
      */
     protected static String reduceQueryToKeyWords(String query) {
@@ -278,16 +277,13 @@ public class StorageService extends AbstractComponent implements CredentialsProv
      * <code>true</code> an {@link IllegalStateException} is thrown. If the flag is
      * <code>false</code>, <code>null</code> is returned.
      *
-     * @param key
-     *            the name of the environmental variable
-     * @param essential
-     *            a flag indicating whether the value must be retrievable
+     * @param key       the name of the environmental variable
+     * @param essential a flag indicating whether the value must be retrievable
      * @return the value of the environmental variable or <code>null</code> if the
      *         variable couldn't be found and the essential flag is
      *         <code>false</code>.
-     * @throws IllegalStateException
-     *             if the variable couldn't be found and the essential flag is
-     *             <code>true</code>.
+     * @throws IllegalStateException if the variable couldn't be found and the
+     *                               essential flag is <code>true</code>.
      */
     protected String getEnvValue(String key, boolean essential) {
         String value = null;

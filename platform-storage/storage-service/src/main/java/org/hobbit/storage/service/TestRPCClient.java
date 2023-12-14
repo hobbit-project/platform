@@ -21,11 +21,6 @@
  */
 package org.hobbit.storage.service;
 
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.QueueingConsumer;
-import com.rabbitmq.client.AMQP.BasicProperties;
 import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
@@ -34,9 +29,16 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.core.Constants;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Delivery;
 
 /**
  *
@@ -113,7 +115,7 @@ public class TestRPCClient {
         channel.basicPublish("", requestQueueName, props, message.getBytes("UTF-8"));
 
         while (true) {
-            QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+            Delivery delivery = consumer.getDeliveryQueue().poll();
             if (delivery.getProperties().getCorrelationId().equals(corrId)) {
                 response = new String(delivery.getBody(), "UTF-8");
                 break;
