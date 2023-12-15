@@ -9,16 +9,20 @@ services:
       HOBBIT_RABBIT_IMAGE: "rabbitmq:management"
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
-      DEPLOY_ENV: "testing"
-      GITLAB_USER: "${GITLAB_USER}"
-      GITLAB_EMAIL: "${GITLAB_EMAIL}"
-      GITLAB_TOKEN: "${GITLAB_TOKEN}"
-      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      DEPLOY_ENV: "develop"
+      #GITLAB_USER: "${GITLAB_USER}"
+      #GITLAB_EMAIL: "${GITLAB_EMAIL}"
+      #GITLAB_TOKEN: "${GITLAB_TOKEN}"
+      #LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
       PROMETHEUS_HOST: prometheus
       PROMETHEUS_PORT: 9090
+      USE_GITLAB: "false"
+      LOCAL_METADATA_DIRECTORY: "/metadata"
+      DOCKER_AUTOPULL: "0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./metadata:/metadata
 
   # HOBBIT GUI
   gui:
@@ -37,8 +41,8 @@ services:
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_HTTP_PORT=9200
       - USE_UI_AUTH=false
-    volumes:
-      - ./config/jetty/web-without-ui-auth.xml:/var/lib/jetty/webapps/ROOT/WEB-INF/web.xml
+    #volumes:
+      #- ./config/jetty/web-without-ui-auth.xml:/var/lib/jetty/webapps/ROOT/WEB-INF/web.xml
       #- /data/docker/messages/global.html:/var/lib/jetty/webapps/messages/global.html
       #- /data/docker/messages/benchmark.html:/var/lib/jetty/webapps/messages/benchmark.html
       #- /data/docker/messages/status.html:/var/lib/jetty/webapps/messages/status.html
@@ -92,7 +96,8 @@ services:
     stop_signal: SIGINT
     stop_grace_period: 2m
     volumes:
-      - ./config/db:/opt/virtuoso-opensource/database
+      - ./config/db:/opt/virtuoso-opensource/var/lib/virtuoso/db
+      #- ./config/db:/opt/virtuoso-opensource/database
     networks:
       - hobbit-core
     ports:
