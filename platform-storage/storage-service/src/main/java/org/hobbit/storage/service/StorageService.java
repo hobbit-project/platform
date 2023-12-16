@@ -25,6 +25,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.aksw.jena_sparql_api.core.QueryExecutionFactory;
 import org.aksw.jena_sparql_api.http.QueryExecutionFactoryHttp;
@@ -65,6 +66,11 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     private static final Logger LOGGER = LoggerFactory.getLogger(StorageService.class);
 
     private static final int MAX_NUMBER_PARALLEL_REQUESTS = 10;
+    /**
+     * The time the main receiver thread will sleep if it didn't receive any message
+     * (in seconds).
+     */
+    private static final int WAITING_TIME_BEFORE_CHECKING_STATUS = 60;
 
     /**
      * Maximum result size used for pagination.
@@ -235,9 +241,21 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     public void run() throws Exception {
         LOGGER.info("[Storage Service] Awaiting Storage Service requests");
         ExecutorService executor = Executors.newFixedThreadPool(MAX_NUMBER_PARALLEL_REQUESTS);
+        Delivery delivery;
         while (true) {
-            Delivery delivery = consumer.getDeliveryQueue().poll();
-            executor.execute(new DeliveryProcessing(this, delivery, queue));
+            delivery = null;
+            // Let's wait for a delivery for 60 seconds
+            try {
+                delivery = consumer.getDeliveryQueue().poll(WAITING_TIME_BEFORE_CHECKING_STATUS, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // interrupted; just continue
+            }
+            if (delivery != null) {
+                executor.execute(new DeliveryProcessing(this, delivery, queue));
+            } else {
+                // This would be the place at which we could react to signals, e.g., terminate
+                // the service if needed.
+            }
         }
     }
 

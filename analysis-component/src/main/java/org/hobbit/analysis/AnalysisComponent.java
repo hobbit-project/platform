@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,6 +81,12 @@ import weka.core.SparseInstance;
  * TODO:: !!REFACTOR INTO A MORE GENERIC DESIGN!!
  */
 public class AnalysisComponent extends AbstractComponent {
+    /**
+     * The time the main receiver thread will sleep if it didn't receive any message
+     * (in seconds).
+     */
+    private static final int WAITING_TIME_BEFORE_CHECKING_STATUS = 60;
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(AnalysisComponent.class);
     private static final String GRAPH_URI = Constants.PUBLIC_RESULT_GRAPH_URI;
     protected RabbitQueue controller2AnalysisQueue;
@@ -108,14 +115,22 @@ public class AnalysisComponent extends AbstractComponent {
         LOGGER.info("Awaiting requests");
         Delivery delivery;
         while (true) {
-            delivery = consumer.getDeliveryQueue().poll();
+            delivery = null;
+            // Let's wait for a delivery for 60 seconds
+            try {
+                delivery = consumer.getDeliveryQueue().poll(WAITING_TIME_BEFORE_CHECKING_STATUS, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // interrupted; just continue
+            }
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
                 handleRequest(expUri);
+            } else {
+                // This would be the place at which we could react to signals, e.g., terminate
+                // the service if needed.
             }
         }
-
     }
 
     protected void handleRequest(String expUri) {
@@ -259,18 +274,17 @@ public class AnalysisComponent extends AbstractComponent {
      *            The model of the experiment
      * @return Returns the analyzed model
      */
-
-    /**
+    /*
      private AnalysisModel analyseExperiment(Model experimentModel, String expUri){
      AnalysisModel analysisModel = new AnalysisModel(experimentModel, expUri);
      analysisModel.analyse();
      return analysisModel;
      }*/
 
-    private void notifyQueue(){
+    /*private void notifyQueue(){
         //TODO:: return the status of component
 
-    }
+    }*/
 
     /**
      * This class implements the functionality of the Analysis Model which
