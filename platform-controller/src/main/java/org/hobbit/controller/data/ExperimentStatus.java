@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Timer;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -150,15 +151,17 @@ public class ExperimentStatus implements Closeable {
      * Timer used to abort the experiment if it takes too much time.
      */
     private final Timer abortTimer;
+    /**
+     * The next error Id that will be used for the currently running session.
+     */
+    private AtomicInteger nextErrorReportId = new AtomicInteger(0);
 
     /**
      * Creates an experiment status with the given experiment config, the given
      * experiment URI and the current system time as start time.
      *
-     * @param config
-     *            the configuration of the experiment
-     * @param experimentUri
-     *            the URI of the experiment
+     * @param config        the configuration of the experiment
+     * @param experimentUri the URI of the experiment
      */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
@@ -170,12 +173,9 @@ public class ExperimentStatus implements Closeable {
      * timer using the given maximum runtime of the experiment and the experiment
      * manager which will be used to abort the experiment if the time is exceeded.
      *
-     * @param config
-     *            the configuration of the experiment
-     * @param experimentUri
-     *            the URI of the experiment
-     * @param startTimeStamp
-     *            the time stamp at which the experiment is started.
+     * @param config         the configuration of the experiment
+     * @param experimentUri  the URI of the experiment
+     * @param startTimeStamp the time stamp at which the experiment is started.
      */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, long startTimeStamp) {
         this(config, experimentUri, null, 0, System.currentTimeMillis());
@@ -188,16 +188,12 @@ public class ExperimentStatus implements Closeable {
      * experiment manager which will be used to abort the experiment if the time is
      * exceeded.
      *
-     * @param config
-     *            the configuration of the experiment
-     * @param experimentUri
-     *            the URI of the experiment
-     * @param manager
-     *            experiment manager which is used if the maximum runtime is
-     *            exceeded
-     * @param timeUntilAborting
-     *            the maximum runtime for this experiment which is used to configure
-     *            the internal timer.
+     * @param config            the configuration of the experiment
+     * @param experimentUri     the URI of the experiment
+     * @param manager           experiment manager which is used if the maximum
+     *                          runtime is exceeded
+     * @param timeUntilAborting the maximum runtime for this experiment which is
+     *                          used to configure the internal timer.
      */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting) {
@@ -210,18 +206,13 @@ public class ExperimentStatus implements Closeable {
      * timer using the given maximum runtime of the experiment and the experiment
      * manager which will be used to abort the experiment if the time is exceeded.
      *
-     * @param config
-     *            the configuration of the experiment
-     * @param experimentUri
-     *            the URI of the experiment
-     * @param manager
-     *            experiment manager which is used if the maximum runtime is
-     *            exceeded
-     * @param timeUntilAborting
-     *            the maximum runtime for this experiment which is used to configure
-     *            the internal timer.
-     * @param startTimeStamp
-     *            the time stamp at which the experiment is started.
+     * @param config            the configuration of the experiment
+     * @param experimentUri     the URI of the experiment
+     * @param manager           experiment manager which is used if the maximum
+     *                          runtime is exceeded
+     * @param timeUntilAborting the maximum runtime for this experiment which is
+     *                          used to configure the internal timer.
+     * @param startTimeStamp    the time stamp at which the experiment is started.
      */
     public ExperimentStatus(ExperimentConfiguration config, String experimentUri, ExperimentManager manager,
             long timeUntilAborting, long startTimeStamp) {
@@ -306,8 +297,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Adds an image to the set of images used in this experiment.
      *
-     * @param image
-     *            image name to add
+     * @param image image name to add
      */
     public void addImage(String image) {
         usedImages.add(image);
@@ -327,12 +317,10 @@ public class ExperimentStatus implements Closeable {
      * and the experiment manager which will be used to abort the experiment if the
      * time is exceeded.
      *
-     * @param manager
-     *            experiment manager which is used if the maximum runtime is
-     *            exceeded
-     * @param timeUntilAborting
-     *            the maximum runtime for this experiment which is used to configure
-     *            the internal timer.
+     * @param manager           experiment manager which is used if the maximum
+     *                          runtime is exceeded
+     * @param timeUntilAborting the maximum runtime for this experiment which is
+     *                          used to configure the internal timer.
      */
     public void startAbortionTimer(ExperimentManager manager, long timeUntilAborting) {
         abortionTimeStamp = System.currentTimeMillis() + timeUntilAborting;
@@ -345,9 +333,8 @@ public class ExperimentStatus implements Closeable {
      * benchmark is ready and returns <code>true</code> if internally both have the
      * state of being ready.
      *
-     * @param systemReportedReady
-     *            <code>true</code> if the system is ready or <code>false</code> if
-     *            the benchmark is ready
+     * @param systemReportedReady <code>true</code> if the system is ready or
+     *                            <code>false</code> if the benchmark is ready
      * @return <code>true</code> if system and benchmark are ready
      */
     public synchronized boolean setReadyAndCheck(boolean systemReportedReady) {
@@ -371,8 +358,7 @@ public class ExperimentStatus implements Closeable {
      * This method is thread-safe.
      * </p>
      *
-     * @param resultModel
-     *            the new result model
+     * @param resultModel the new result model
      */
     public void setOrMergeResultModel(Model resultModel) {
         try {
@@ -400,8 +386,7 @@ public class ExperimentStatus implements Closeable {
      * This method is thread-safe.
      * </p>
      *
-     * @param resultModel
-     *            the new result model
+     * @param resultModel the new result model
      */
     public void setResultModel(Model resultModel) {
         try {
@@ -426,8 +411,7 @@ public class ExperimentStatus implements Closeable {
      * This method is thread-safe.
      * </p>
      *
-     * @param error
-     *            the error that should be added to the result model
+     * @param error the error that should be added to the result model
      */
     public void addErrorIfNonPresent(Resource error) {
         try {
@@ -457,8 +441,7 @@ public class ExperimentStatus implements Closeable {
      * This method is thread-safe.
      * </p>
      *
-     * @param error
-     *            the error that should be added to the result model
+     * @param error the error that should be added to the result model
      */
     public void addError(Resource error) {
         try {
@@ -484,8 +467,7 @@ public class ExperimentStatus implements Closeable {
      * This method is <b>not thread-safe</b>.
      * </p>
      *
-     * @param error
-     *            the error that should be added to the result model
+     * @param error the error that should be added to the result model
      */
     private void addError_Unsecured(Resource error) {
         if (this.resultModel == null) {
@@ -530,8 +512,7 @@ public class ExperimentStatus implements Closeable {
         if (config.serializedBenchParams != null) {
             try {
                 Model benchmarkParamModel = RabbitMQUtils.readModel(config.serializedBenchParams);
-                StmtIterator iterator = benchmarkParamModel.listStatements(
-                        HobbitExperiments.New, null, (RDFNode) null);
+                StmtIterator iterator = benchmarkParamModel.listStatements(HobbitExperiments.New, null, (RDFNode) null);
                 Statement statement;
                 while (iterator.hasNext()) {
                     statement = iterator.next();
@@ -555,15 +536,14 @@ public class ExperimentStatus implements Closeable {
      * Uses the given {@link ImageManager} instance to add additional meta data
      * regarding the benchmark and the system to the experiment result model.
      *
-     * @param imageManager
-     *            used to get RDF models for the benchmark and the system of this
-     *            experiment
-     * @param endTimeStamp
-     *            point in time at which the experiment ended
-     * @param hardwareInformation
-     *            hardware information on which experiment was carried out
+     * @param imageManager        used to get RDF models for the benchmark and the
+     *                            system of this experiment
+     * @param endTimeStamp        point in time at which the experiment ended
+     * @param hardwareInformation hardware information on which experiment was
+     *                            carried out
      */
-    public void addMetaDataToResult(ImageManager imageManager, long endTimeStamp, SetupHardwareInformation hardwareInformation) {
+    public void addMetaDataToResult(ImageManager imageManager, long endTimeStamp,
+            SetupHardwareInformation hardwareInformation) {
         try {
             modelMutex.acquire();
         } catch (InterruptedException e) {
@@ -594,11 +574,13 @@ public class ExperimentStatus implements Closeable {
             // Add end date
             Calendar endDate = Calendar.getInstance();
             endDate.setTimeInMillis(endTimeStamp);
-            resultModel.add(resultModel.getResource(experimentUri), HOBBIT.endTime, resultModel.createTypedLiteral(endDate));
+            resultModel.add(resultModel.getResource(experimentUri), HOBBIT.endTime,
+                    resultModel.createTypedLiteral(endDate));
 
             // Add hardware information
             if (hardwareInformation != null) {
-                resultModel.add(resultModel.getResource(experimentUri), HOBBIT.wasCarriedOutOn, hardwareInformation.addToModel(resultModel));
+                resultModel.add(resultModel.getResource(experimentUri), HOBBIT.wasCarriedOutOn,
+                        hardwareInformation.addToModel(resultModel));
             }
 
             // Remove statements that shouldn't be part of the result model.
@@ -611,6 +593,16 @@ public class ExperimentStatus implements Closeable {
         } finally {
             modelMutex.release();
         }
+    }
+
+    /**
+     * Returns the next error report ID for this experiment. Note that each call of
+     * this method increases the error ID counter internally.
+     * 
+     * @return the next error report ID for this experiment
+     */
+    public int getNextErrorReportId() {
+        return nextErrorReportId.getAndIncrement();
     }
 
     @Override

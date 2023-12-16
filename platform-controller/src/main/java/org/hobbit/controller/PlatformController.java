@@ -351,15 +351,18 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * <p>
      * Commands handled by this method:
      * <ul>
+     * <li>{@link Commands#BENCHMARK_FINISHED_SIGNAL}</li>
+     * <li>{@link Commands#BENCHMARK_READY_SIGNAL}</li>
      * <li>{@link Commands#DOCKER_CONTAINER_START}</li>
      * <li>{@link Commands#DOCKER_CONTAINER_STOP}</li>
+     * <li>{@link Commands#REPORT_ERROR}</li>
+     * <li>{@link Commands#REQUEST_SYSTEM_RESOURCES_USAGE}</li>
+     * <li>{@link Commands#SYSTEM_READY_SIGNAL}</li>
+     * <li>{@link Commands#TASK_GENERATION_FINISHED}</li>
      * </ul>
      *
      * @param command command to be executed
      * @param data    byte-encoded supplementary json for the command
-     *
-     *                0 - start container 1 - stop container Data format for each
-     *                command: Start container:
      */
     public void receiveCommand(byte command, byte[] data, String sessionId, AMQP.BasicProperties props) {
         String replyTo = null;
@@ -373,15 +376,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         } else {
             LOGGER.info("received command: session={}, command={}", sessionId, Commands.toString(command));
         }
-        // This command will receive data from Rabbit
-        // determine the command
+        // Determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
             StartCommandData startParams = null;
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
                 // Convert data byte array to config data structure
-                startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class);
+                startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class, false);
                 // trigger creation
                 containerName = createContainer(startParams);
             } else {
@@ -413,7 +415,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
         case Commands.DOCKER_CONTAINER_STOP: {
             // get containerId from params
-            StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class);
+            StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
             stopContainer(stopParams.containerName);
             break;
@@ -462,9 +464,10 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             }
         }
         case Commands.REPORT_ERROR: {
+            LOGGER.warn("Received error report for session {}.", sessionId);
             // Ensure that the container belongs to the current Experiment
             if (expManager.isExpRunning(sessionId)) {
-                ErrorData errorData = GsonUtils.deserializeObjectWithGson(gson, data, ErrorData.class);
+                ErrorData errorData = GsonUtils.deserializeObjectWithGson(gson, data, ErrorData.class, false);
                 if (errorData != null) {
                     try {
                         handleErrorReport(sessionId, errorData);

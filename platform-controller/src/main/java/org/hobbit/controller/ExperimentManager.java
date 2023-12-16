@@ -27,7 +27,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
@@ -130,10 +129,6 @@ public class ExperimentManager implements Closeable {
      */
     protected Timer expStartTimer;
     /**
-     * The last error Id that has been used for the currently running session.
-     */
-    private AtomicInteger lastErrorReportId;
-    /**
      * The configuration of this platform.
      */
     protected HobbitConfiguration hobbitConfig = null;
@@ -208,6 +203,7 @@ public class ExperimentManager implements Closeable {
 
                     BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                     if ((benchmark == null) || (benchmark.mainImage == null)) {
+                        // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
                                 this, defaultMaxExecutionTime);
                         experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
@@ -216,6 +212,7 @@ public class ExperimentManager implements Closeable {
 
                     SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
                     if ((system == null) || (system.mainImage == null)) {
+                        // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
                                 this, defaultMaxExecutionTime);
                         experimentStatus.addError(HobbitErrors.SystemImageMissing);
@@ -556,6 +553,7 @@ public class ExperimentManager implements Closeable {
      */
     private void forceBenchmarkTerminate_unsecured(Resource error) {
         if (experimentStatus != null) {
+            experimentStatus.setState(States.STOPPED);
             String parent = experimentStatus.getRootContainer();
             controller.containerManager.removeParentAndChildren(parent);
             if (error != null) {
@@ -822,7 +820,7 @@ public class ExperimentManager implements Closeable {
         Model resultModel = ModelFactory.createDefaultModel();
         // Generate IRI for this error
         Resource error = ResourceFactory.createResource(new StringBuilder(ERROR_INSTANCE_NAMESPACE).append(sessionId)
-                .append('_').append(lastErrorReportId.getAndIncrement()).toString());
+                .append('_').append(experimentStatus.getNextErrorReportId()).toString());
         // Add the error type
         Resource errorType = (errorData.getErrorType() == null) ? HobbitErrors.UnspecifiedError
                 : ResourceFactory.createResource(errorData.getErrorType());
@@ -846,7 +844,7 @@ public class ExperimentManager implements Closeable {
             resultModel.add(error, RDFS.comment, errorData.getDescription());
         }
         if (errorData.getDetails() != null) {
-            resultModel.add(error, Algorithm.errorDetails, errorData.getLabel());
+            resultModel.add(error, Algorithm.errorDetails, errorData.getDetails());
         }
         synchronized (experimentMutex) {
             // Check again whether we are still working on the same experiment
