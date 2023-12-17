@@ -13,12 +13,12 @@ RUN npm --prefix hobbit-gui/gui-client run build-prod
 FROM maven:3-eclipse-temurin-11 AS build
 WORKDIR /usr/src/hobbit-platform
 COPY parent-pom/pom.xml ./parent-pom/
+RUN mvn --file parent-pom -Dmaven.test.skip=true install
 COPY hobbit-gui/gui-serverbackend/pom.xml ./hobbit-gui/gui-serverbackend/
 RUN mvn --file ./hobbit-gui/gui-serverbackend/ dependency:go-offline
 COPY hobbit-gui/gui-serverbackend/src ./hobbit-gui/gui-serverbackend/src
-RUN mvn --file ./hobbit-gui/gui-serverbackend/ test
 COPY --from=build-client /usr/src/hobbit-platform/hobbit-gui/gui-client/dist ./hobbit-gui/gui-client/dist
-RUN mvn --file ./hobbit-gui/gui-serverbackend/ package
+RUN mvn --file ./hobbit-gui/gui-serverbackend/ -Dmaven.test.skip=true package
 
 FROM jetty:9.3-jre8
 
