@@ -843,9 +843,6 @@ public class ExperimentManager implements Closeable {
         if (errorData.getDescription() != null) {
             resultModel.add(error, RDFS.comment, errorData.getDescription());
         }
-        if (errorData.getDetails() != null) {
-            resultModel.add(error, Algorithm.errorDetails, errorData.getDetails());
-        }
         synchronized (experimentMutex) {
             // Check again whether we are still working on the same experiment
             if (isExpRunning(sessionId)) {
