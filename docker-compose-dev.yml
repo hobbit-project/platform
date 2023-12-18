@@ -10,9 +10,9 @@ services:
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
       DEPLOY_ENV: "develop"
-      #GITLAB_USER: "${GITLAB_USER}"
-      #GITLAB_EMAIL: "${GITLAB_EMAIL}"
-      #GITLAB_TOKEN: "${GITLAB_TOKEN}"
+      GITLAB_USER: "${GITLAB_USER}"
+      GITLAB_EMAIL: "${GITLAB_EMAIL}"
+      GITLAB_TOKEN: "${GITLAB_TOKEN}"
       #LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
       PROMETHEUS_HOST: prometheus
@@ -42,7 +42,6 @@ services:
       - ELASTICSEARCH_HTTP_PORT=9200
       - USE_UI_AUTH=false
     #volumes:
-      #- ./config/jetty/web-without-ui-auth.xml:/var/lib/jetty/webapps/ROOT/WEB-INF/web.xml
       #- /data/docker/messages/global.html:/var/lib/jetty/webapps/messages/global.html
       #- /data/docker/messages/benchmark.html:/var/lib/jetty/webapps/messages/benchmark.html
       #- /data/docker/messages/status.html:/var/lib/jetty/webapps/messages/status.html
@@ -111,8 +110,8 @@ services:
     environment:
       - SPARQL_ENDPOINT_URL=http://vos:8890/sparql
       - HOBBIT_RABBIT_HOST=rabbit
-      - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
-      - SPARQL_ENDPOINT_PASSWORD=Password
+      - SPARQL_ENDPOINT_USERNAME=dba
+      - SPARQL_ENDPOINT_PASSWORD=dba
 
   node-exporter:
     image: prom/node-exporter
