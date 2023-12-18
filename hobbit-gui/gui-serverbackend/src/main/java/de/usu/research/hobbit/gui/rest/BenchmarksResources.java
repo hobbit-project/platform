@@ -65,12 +65,13 @@ public class BenchmarksResources {
                     throw new GUIBackendException("Couldn't connect to platform controller.");
                 }
                 benchmarks = client.requestBenchmarks();
-            }
-            catch (Exception ex) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
+            } catch (Exception ex) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
-        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks){}).build();
+        return Response.ok(new GenericEntity<List<BenchmarkBean>>(benchmarks) {
+        }).build();
     }
 
     @GET
@@ -100,9 +101,9 @@ public class BenchmarksResources {
                     benchmarkDetails.setSystems(new ArrayList<>(0));
                 }
                 return Response.ok(benchmarkDetails).build();
-            }
-            catch (Exception ex) {
-                return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(ex.getMessage())).build();
+            } catch (Exception ex) {
+                return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity(InfoBean.withMessage(ex.getMessage())).build();
             }
         }
     }
@@ -123,7 +124,28 @@ public class BenchmarksResources {
             return Response.ok(new SubmitResponseBean(id)).build();
         } catch (Exception e) {
             LOGGER.warn("Failed to submit benchmark: " + e.getMessage());
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage())).build();
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage()))
+                    .build();
         }
     }
+
+    // TODO: we should also accept RDF data to start an experiment
+//    @POST
+//    @Consumes("text/turtle")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public Response submitBenchmark(@Context SecurityContext sc, String modelString) {
+//        try {
+//            UserInfoBean userInfo = InternalResources.getUserInfoBean(sc);
+//            PlatformControllerClient client = PlatformControllerClientSingleton.getInstance();
+//            if (client == null) {
+//                throw new GUIBackendException("Couldn't connect to platform controller.");
+//            }
+//            String id = client.submitBenchmark(model, userInfo.getPreferredUsername());
+//            return Response.ok(new SubmitResponseBean(id)).build();
+//        } catch (Exception e) {
+//            LOGGER.warn("Failed to submit benchmark: " + e.getMessage());
+//            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(InfoBean.withMessage(e.getMessage())).build();
+//        }
+//    }
+
 }

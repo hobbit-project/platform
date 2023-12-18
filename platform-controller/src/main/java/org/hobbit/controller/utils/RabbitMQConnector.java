@@ -16,11 +16,11 @@
  */
 package org.hobbit.controller.utils;
 
-import org.hobbit.controller.PlatformController;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.io.Charsets;
+import org.hobbit.controller.PlatformController;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
 
 import com.rabbitmq.client.AMQP;
@@ -60,7 +60,7 @@ public class RabbitMQConnector extends AbstractCommandReceivingComponent {
         int idLength = buffer.getInt();
         byte sessionIdBytes[] = new byte[idLength];
         buffer.get(sessionIdBytes);
-        String sessionId = new String(sessionIdBytes, Charsets.UTF_8);
+        String sessionId = new String(sessionIdBytes, StandardCharsets.UTF_8);
         byte command = buffer.get();
         byte remainingData[];
         if (buffer.remaining() > 0) {
@@ -78,7 +78,7 @@ public class RabbitMQConnector extends AbstractCommandReceivingComponent {
 
     @Override
     public String toString() {
-        return String.format("{rabbitMQHostName=%s}", this.rabbitMQHostName);
+        return String.format("RabbitMQConnector{rabbitMQHostName=%s}", this.rabbitMQHostName);
     }
 
     ///// There are some methods that shouldn't be used by the controller and

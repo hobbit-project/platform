@@ -78,7 +78,8 @@ public class MetaDataFactoryTest {
                 expectedMetaData.source, expectedMetaData.date);
         Assert.assertEquals(1, results.size());
         compareMetaData(expectedMetaData, results.get(0));
-        String[] expectedApis = expectedMetaData.implementedApis.toArray(new String[expectedMetaData.implementedApis.size()]);
+        String[] expectedApis = expectedMetaData.implementedApis
+                .toArray(new String[expectedMetaData.implementedApis.size()]);
         Arrays.sort(expectedApis);
         String[] actualApis = results.get(0).implementedApis.toArray(new String[0]);
         Arrays.sort(actualApis);

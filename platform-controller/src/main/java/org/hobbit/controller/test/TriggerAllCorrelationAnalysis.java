@@ -16,21 +16,19 @@
  */
 package org.hobbit.controller.test;
 
-import org.hobbit.vocab.HOBBIT;
 import org.apache.jena.query.QuerySolution;
 import org.apache.jena.query.ResultSet;
-import org.hobbit.storage.client.StorageServiceClient;
-
 import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractPlatformConnectorComponent;
 import org.hobbit.core.rabbit.DataSender;
 import org.hobbit.core.rabbit.DataSenderImpl;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.core.run.ComponentStarter;
+import org.hobbit.storage.client.StorageServiceClient;
+import org.hobbit.vocab.HOBBIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.rabbitmq.client.QueueingConsumer;
 
 public class TriggerAllCorrelationAnalysis extends AbstractPlatformConnectorComponent {
 

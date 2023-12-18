@@ -50,6 +50,8 @@ import com.spotify.docker.client.messages.swarm.ContainerSpec;
 import com.spotify.docker.client.messages.swarm.Driver;
 import com.spotify.docker.client.messages.swarm.NetworkAttachmentConfig;
 import com.spotify.docker.client.messages.swarm.Placement;
+import com.spotify.docker.client.messages.swarm.ResourceRequirements;
+import com.spotify.docker.client.messages.swarm.Resources;
 import com.spotify.docker.client.messages.swarm.RestartPolicy;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.ServiceMode;
@@ -188,8 +190,7 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Generates new unique instance name based on image name
      *
-     * @param imageName
-     *            base image name
+     * @param imageName base image name
      *
      * @return instance name
      */
@@ -200,10 +201,8 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Generates new unique instance name based on image name
      *
-     * @param imageName
-     *            base image name
-     * @param prefix
-     *            additional prefix
+     * @param imageName base image name
+     * @param prefix    additional prefix
      *
      * @return instance name
      */
@@ -240,7 +239,8 @@ public class ContainerManagerImpl implements ContainerManager {
     private ServiceCreateResponse createService(ServiceSpec serviceSpec) throws DockerException, InterruptedException {
         // If we have authentication credentials and the image name contains
         // the server address of these credentials, we should use them
-        if ((gitlabAuth != null) && (serviceSpec.taskTemplate().containerSpec().image().startsWith(gitlabAuth.serverAddress()))) {
+        if ((gitlabAuth != null)
+                && (serviceSpec.taskTemplate().containerSpec().image().startsWith(gitlabAuth.serverAddress()))) {
             return dockerClient.createService(serviceSpec, gitlabAuth);
         } else {
             return dockerClient.createService(serviceSpec, nullAuth);
@@ -250,8 +250,7 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Pulls the image with the given name.
      *
-     * @param imageName
-     *            the name of the image that should be pulled
+     * @param imageName the name of the image that should be pulled
      */
     public void pullImage(String imageName) {
         // do not pull if env var is set to false
@@ -320,7 +319,8 @@ public class ContainerManagerImpl implements ContainerManager {
                             if (state.equals(TaskStatus.TASK_STATE_REJECTED)) {
                                 LOGGER.error("Couldn't pull image {} on node {}. {}", imageName, pullingTask.nodeId(),
                                         pullingTask.status().err());
-                                throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ": " + pullingTask.status().err());
+                                throw new Exception("Couldn't pull image on node " + pullingTask.nodeId() + ": "
+                                        + pullingTask.status().err());
                             }
                             finshedTaskIds.add(pullingTask.id());
                         }
@@ -348,21 +348,17 @@ public class ContainerManagerImpl implements ContainerManager {
     /**
      * Creates new container using given image and assigns given type and parent
      *
-     * @param imageName
-     *            image to use as base for container
-     * @param containerType
-     *            container type
-     * @param parentId
-     *            parent id
-     * @param env
-     *            (optional) environment variables
-     * @param command
-     *            (optional) command to be executed with image
+     * @param imageName     image to use as base for container
+     * @param containerType container type
+     * @param parentId      parent id
+     * @param env           (optional) environment variables
+     * @param command       (optional) command to be executed with image
+     * @param constraints   additional constraints
      *
      * @return String the container Id or <code>null</code> if an error occurs
      */
     private String createContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] netAliases, String[] command) {
+            String[] netAliases, String[] command, Map<String, Object> constraints) {
         ServiceSpec.Builder serviceCfgBuilder = ServiceSpec.builder();
 
         TaskSpec.Builder taskCfgBuilder = TaskSpec.builder();
@@ -478,6 +474,24 @@ public class ContainerManagerImpl implements ContainerManager {
             logOptions.put("tag", tag);
             taskCfgBuilder.logDriver(Driver.builder().name(LOGGING_DRIVER_GELF).options(logOptions).build());
         }
+        // If there are resource limitations
+        if (constraints != null && (constraints.containsKey(MEMORY_LIMIT_CONSTRAINT)
+                || constraints.containsKey(NANO_CPU_LIMIT_CONSTRAINT))) {
+            Resources.Builder rBuilder = Resources.builder();
+            // if there is a memory limitation
+            if (constraints.containsKey(MEMORY_LIMIT_CONSTRAINT)) {
+                long memory = (Long) constraints.get(MEMORY_LIMIT_CONSTRAINT);
+                rBuilder.memoryBytes(memory);
+            }
+            // if there is a CPU limitation
+            if (constraints.containsKey(NANO_CPU_LIMIT_CONSTRAINT)) {
+                // CPU quota in units of 10^-9 CPUs.
+                long nanoCPUs = (Long) constraints.get(NANO_CPU_LIMIT_CONSTRAINT);
+                rBuilder.nanoCpus(nanoCPUs);
+            }
+            // Add the limitations to the task config
+            taskCfgBuilder.resources(ResourceRequirements.builder().limits(rBuilder.build()).build());
+        }
 
         // if command is present - execute it
         if ((command != null) && (command.length > 0)) {
@@ -490,9 +504,8 @@ public class ContainerManagerImpl implements ContainerManager {
         serviceCfgBuilder.taskTemplate(taskCfgBuilder.build());
 
         // connect to hobbit network only
-        serviceCfgBuilder.networks(
-            NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).aliases(netAliases).build()
-        );
+        serviceCfgBuilder
+                .networks(NetworkAttachmentConfig.builder().target(HOBBIT_DOCKER_NETWORK).aliases(netAliases).build());
 
         serviceCfgBuilder.name(serviceName);
         ServiceSpec serviceCfg = serviceCfgBuilder.build();
@@ -505,7 +518,8 @@ public class ContainerManagerImpl implements ContainerManager {
             List<Task> serviceTasks = new ArrayList<Task>();
             Waiting.waitFor(() -> {
                 serviceTasks.clear();
-                serviceTasks.addAll(dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceIdForLambda).build()));
+                serviceTasks.addAll(
+                        dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceIdForLambda).build()));
 
                 if (!serviceTasks.isEmpty()) {
                     TaskStatus status = serviceTasks.get(0).status();
@@ -564,24 +578,25 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-    String[] netAliases, String[] command) {
-        return startContainer(imageName, containerType, parentId, env, netAliases, command, true);
+            String[] netAliases, String[] command) {
+        return startContainer(imageName, containerType, parentId, env, netAliases, command, true,
+                Collections.emptyMap());
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] command, boolean pullImage) {
-        return startContainer(imageName, containerType, parentId, env, null, command, true);
+        return startContainer(imageName, containerType, parentId, env, null, command, true, Collections.emptyMap());
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] netAliases, String[] command, boolean pullImage) {
+            String[] netAliases, String[] command, boolean pullImage, Map<String, Object> constraints) {
         if (pullImage) {
             pullImage(imageName);
         }
 
-        String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command);
+        String containerId = createContainer(imageName, containerType, parentId, env, netAliases, command, constraints);
 
         // if the creation was successful
         if (containerId != null) {
@@ -595,9 +610,9 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-            String[] netAliases, String[] command, String experimentId) {
+            String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints) {
         this.experimentId = experimentId;
-        return startContainer(imageName, containerType, parentId, env, netAliases, command);
+        return startContainer(imageName, containerType, parentId, env, netAliases, command, true, constraints);
     }
 
     @Override
@@ -605,16 +620,11 @@ public class ContainerManagerImpl implements ContainerManager {
         try {
             Long exitCode = getContainerExitCode(serviceName);
             if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
-                LOGGER.info(
-                        "Will not remove container {}. "
-                        + "Development mode is enabled.",
-                        serviceName);
+                LOGGER.info("Will not remove container {}. " + "Development mode is enabled.", serviceName);
             } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != null && exitCode != 0)) {
                 // In testing - do not remove containers if they returned non-zero exit code
                 // null exit code usually means that the container is running at the moment
-                LOGGER.info(
-                        "Will not remove container {}. "
-                        + "ExitCode: {} != 0 and testing mode is enabled.",
+                LOGGER.info("Will not remove container {}. " + "ExitCode: {} != 0 and testing mode is enabled.",
                         serviceName, exitCode);
             } else {
                 LOGGER.info("Removing container {}. ", serviceName);
@@ -658,7 +668,8 @@ public class ContainerManagerImpl implements ContainerManager {
 
         // find children
         try {
-            List<Service> services = dockerClient.listServices(Service.Criteria.builder().labels(ImmutableMap.of(LABEL_PARENT, parent)).build());
+            List<Service> services = dockerClient
+                    .listServices(Service.Criteria.builder().labels(ImmutableMap.of(LABEL_PARENT, parent)).build());
 
             for (Service c : services) {
                 if (c != null) {
@@ -696,14 +707,17 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public Long getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
         if (getContainerInfo(serviceName) == null) {
-            LOGGER.warn("Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.", serviceName);
+            LOGGER.warn(
+                    "Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.",
+                    serviceName);
             return DOCKER_EXITCODE_SIGKILL;
         }
 
         // Service exists, but no tasks are observed.
         List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
         if (tasks.size() == 0) {
-            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.", serviceName);
+            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.",
+                    serviceName);
             return null;
         }
 
@@ -712,7 +726,8 @@ public class ContainerManagerImpl implements ContainerManager {
                 // Task is finished.
                 Long exitCode = task.status().containerStatus().exitCode();
                 if (exitCode == null) {
-                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.", serviceName);
+                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.",
+                            serviceName);
                     return 0l;
                 }
                 return exitCode;
@@ -761,5 +776,15 @@ public class ContainerManagerImpl implements ContainerManager {
                     e.getLocalizedMessage());
         }
         return stats;
+    }
+
+    @Override
+    public String getContainerType(String containerId) {
+        Service container = null;
+        try {
+            container = getContainerInfo(containerId);
+        } catch (Exception e) {
+        }
+        return (container == null) ? null : container.spec().labels().get(LABEL_TYPE);
     }
 }

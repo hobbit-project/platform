@@ -17,6 +17,7 @@
 package org.hobbit.controller.data;
 
 import java.util.Calendar;
+import java.util.Map;
 
 /**
  * This data structure contains the information about a planned experiment.

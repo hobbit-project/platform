@@ -20,19 +20,22 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
-import org.apache.commons.io.Charsets;
+import org.apache.commons.configuration2.EnvironmentConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
@@ -68,6 +71,7 @@ import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractComponent;
 import org.hobbit.core.data.BenchmarkMetaData;
+import org.hobbit.core.data.ErrorData;
 import org.hobbit.core.data.StartCommandData;
 import org.hobbit.core.data.StopCommandData;
 import org.hobbit.core.data.SystemMetaData;
@@ -77,9 +81,11 @@ import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import org.hobbit.core.rabbit.DataSender;
 import org.hobbit.core.rabbit.DataSenderImpl;
+import org.hobbit.core.rabbit.GsonUtils;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
+import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitExperiments;
@@ -212,6 +218,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * challenges.
      */
     protected Timer challengeCheckTimer;
+    protected HobbitConfiguration hobbitConfig;
 
     /**
      * Default constructor.
@@ -234,6 +241,9 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // First initialize the super class
         super.init();
         LOGGER.debug("Platform controller initialization started.");
+
+        hobbitConfig = new HobbitConfiguration();
+        hobbitConfig.addConfiguration(new EnvironmentConfiguration());
 
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
@@ -297,7 +307,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // the experiment manager should be the last module to create since it
         // directly starts to use the other modules
         if (expManager == null) {
-            expManager = new ExperimentManager(this);
+            expManager = new ExperimentManager(this, hobbitConfig);
         }
 
         // schedule challenges re-publishing
@@ -341,15 +351,18 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * <p>
      * Commands handled by this method:
      * <ul>
+     * <li>{@link Commands#BENCHMARK_FINISHED_SIGNAL}</li>
+     * <li>{@link Commands#BENCHMARK_READY_SIGNAL}</li>
      * <li>{@link Commands#DOCKER_CONTAINER_START}</li>
      * <li>{@link Commands#DOCKER_CONTAINER_STOP}</li>
+     * <li>{@link Commands#REPORT_ERROR}</li>
+     * <li>{@link Commands#REQUEST_SYSTEM_RESOURCES_USAGE}</li>
+     * <li>{@link Commands#SYSTEM_READY_SIGNAL}</li>
+     * <li>{@link Commands#TASK_GENERATION_FINISHED}</li>
      * </ul>
      *
      * @param command command to be executed
      * @param data    byte-encoded supplementary json for the command
-     *
-     *                0 - start container 1 - stop container Data format for each
-     *                command: Start container:
      */
     public void receiveCommand(byte command, byte[] data, String sessionId, AMQP.BasicProperties props) {
         String replyTo = null;
@@ -363,15 +376,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         } else {
             LOGGER.info("received command: session={}, command={}", sessionId, Commands.toString(command));
         }
-        // This command will receive data from Rabbit
-        // determine the command
+        // Determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
             StartCommandData startParams = null;
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
                 // Convert data byte array to config data structure
-                startParams = deserializeStartCommandData(data);
+                startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class, false);
                 // trigger creation
                 containerName = createContainer(startParams);
             } else {
@@ -403,7 +415,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
         case Commands.DOCKER_CONTAINER_STOP: {
             // get containerId from params
-            StopCommandData stopParams = deserializeStopCommandData(data);
+            StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
             stopContainer(stopParams.containerName);
             break;
@@ -451,23 +463,28 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 }
             }
         }
+        case Commands.REPORT_ERROR: {
+            LOGGER.warn("Received error report for session {}.", sessionId);
+            // Ensure that the container belongs to the current Experiment
+            if (expManager.isExpRunning(sessionId)) {
+                ErrorData errorData = GsonUtils.deserializeObjectWithGson(gson, data, ErrorData.class, false);
+                if (errorData != null) {
+                    try {
+                        handleErrorReport(sessionId, errorData);
+                    } catch (Exception e) {
+                        LOGGER.error("Exception while handling error report. It will be ignored.", e);
+                    }
+                } else {
+                    LOGGER.error("Couldn't parse error command received for experiment \"{}\". It will be ignored.",
+                            sessionId);
+                }
+            } else {
+                LOGGER.error(
+                        "Got an error report of the experiment \"{}\" which is either not running or was already stopped.",
+                        sessionId);
+            }
         }
-    }
-
-    private StopCommandData deserializeStopCommandData(byte[] data) {
-        if (data == null) {
-            return null;
         }
-        String dataString = RabbitMQUtils.readString(data);
-        return gson.fromJson(dataString, StopCommandData.class);
-    }
-
-    private StartCommandData deserializeStartCommandData(byte[] data) {
-        if (data == null) {
-            return null;
-        }
-        String dataString = RabbitMQUtils.readString(data);
-        return gson.fromJson(dataString, StartCommandData.class);
     }
 
     /**
@@ -491,7 +508,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
 
         String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
-                data.networkAliases, null, pullImage);
+                data.networkAliases, null, pullImage, null);
         if (containerId == null) {
             return null;
         } else {
@@ -644,7 +661,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         int idLength = buffer.getInt();
         byte sessionIdBytes[] = new byte[idLength];
         buffer.get(sessionIdBytes);
-        String sessionId = new String(sessionIdBytes, Charsets.UTF_8);
+        String sessionId = new String(sessionIdBytes, StandardCharsets.UTF_8);
         byte command = buffer.get();
         byte remainingData[];
         if (buffer.remaining() > 0) {
@@ -707,6 +724,10 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 String systemUri = RabbitMQUtils.readString(buffer);
                 String serializedBenchParams = RabbitMQUtils.readString(buffer);
                 String userName = RabbitMQUtils.readString(buffer);
+
+                Map<String, Object> maxHardwareConstraints = new HashMap<>();
+                // TODO get maximum hardware constraints from the UI
+                // TODO deserialize hardware constraint map
                 String experimentId = addExperimentToQueue(benchmarkUri, systemUri, userName, serializedBenchParams,
                         null, null, null);
                 response = RabbitMQUtils.writeString(experimentId);
@@ -776,6 +797,23 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         LOGGER.debug("Finished handling of front end request.");
     }
 
+    private void handleErrorReport(String sessionId, ErrorData errorData) {
+        // Identify whether the container belongs to the benchmark or the system
+        if (errorData.getContainerId() == null) {
+            LOGGER.error("Got an error report without container ID. It will be ignored.");
+            return;
+        }
+        String containerType = containerManager.getContainerType(errorData.getContainerId());
+        boolean isBenchmarkContainer = Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType);
+        if (!isBenchmarkContainer && (!Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))) {
+            LOGGER.error(
+                    "Got an error report from a container with type \"{}\" which is neither a benchmark nor a system container. It will be ignored.");
+            return;
+        }
+        // Give the error report to the experiment manager
+        expManager.handleErrorReport(sessionId, errorData, isBenchmarkContainer);
+    }
+
     /**
      * Retrieves model for the given challenge from the given graph (or without
      * selecting a certain graph if the graphUri is {@code null}).
@@ -812,6 +850,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             // get benchmark information
             String benchmarkUri = RdfHelper.getStringValue(model, challengeTask, HOBBIT.involvesBenchmark);
             String experimentId, systemUri, serializedBenchParams;
+            // TODO Read maximum hardware constraints from the benchmarking task data
             // iterate participating system instances
             NodeIterator systemInstanceIterator = model.listObjectsOfProperty(challengeTask,
                     HOBBIT.involvesSystemInstance);

@@ -17,12 +17,14 @@
 package org.hobbit.controller.test;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.QueuedExperiment;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.Delivery;
 
 public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
 
@@ -69,7 +71,7 @@ public class ControllerStatusRequest extends AbstractCommandReceivingComponent {
         frontEnd2Controller.basicPublish("", Constants.FRONT_END_2_CONTROLLER_QUEUE_NAME, props,
                 new byte[] { FrontEndApiCommands.LIST_CURRENT_STATUS });
         LOGGER.info("Waiting for response...");
-        QueueingConsumer.Delivery delivery = consumer.nextDelivery(REQUEST_TIMEOUT);
+        Delivery delivery = consumer.getDeliveryQueue().poll(REQUEST_TIMEOUT, TimeUnit.MILLISECONDS);
         if (delivery == null) {
             throw new IOException("Didn't got a response after \"" + REQUEST_TIMEOUT + "\" ms.");
         }

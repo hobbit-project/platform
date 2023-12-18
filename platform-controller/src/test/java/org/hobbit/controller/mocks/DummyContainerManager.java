@@ -1,14 +1,17 @@
 package org.hobbit.controller.mocks;
 
-import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Service;
-import com.spotify.docker.client.messages.swarm.Service.Criteria;
 import java.util.ArrayList;
-import java.util.concurrent.Semaphore;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Semaphore;
+
 import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
+
+import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.swarm.Service;
+import com.spotify.docker.client.messages.swarm.Service.Criteria;
 
 public class DummyContainerManager implements ContainerManager {
 
@@ -65,13 +68,13 @@ public class DummyContainerManager implements ContainerManager {
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] netAliases, String[] command, boolean pullImage) {
+            String[] netAliases, String[] command, boolean pullImage, Map<String, Object> constraints) {
         return containerName(imageName);
     }
 
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
-                                 String[] netAliases, String[] command, String experimentId) {
+            String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints) {
         return containerName(imageName);
     }
 
@@ -142,6 +145,11 @@ public class DummyContainerManager implements ContainerManager {
 
     @Override
     public ContainerStats getStats(String containerId) {
+        return null;
+    }
+
+    @Override
+    public String getContainerType(String containerId) {
         return null;
     }
 

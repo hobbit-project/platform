@@ -1,7 +1,5 @@
 package de.usu.research.hobbit.gui.rest.beans;
 
-import java.util.List;
-
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**

@@ -16,22 +16,42 @@
  */
 package org.hobbit.analysis;
 
-import java.util.stream.Stream;
-import java.util.stream.Collectors;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.aksw.palmetto.evaluate.correlation.PearsonsSampleCorrelationCoefficient;
+import org.apache.commons.io.IOUtils;
 import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
-import org.apache.jena.rdf.model.*;
+import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.rdf.model.Property;
+import org.apache.jena.rdf.model.RDFNode;
+import org.apache.jena.rdf.model.ResIterator;
+import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
+import org.apache.jena.rdf.model.Statement;
+import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.DCTerms;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.XSD;
-import org.apache.commons.io.IOUtils;
 import org.hobbit.core.Constants;
 import org.hobbit.core.components.AbstractComponent;
 import org.hobbit.core.data.RabbitQueue;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.storage.client.StorageServiceClient;
 import org.hobbit.storage.queries.SparqlQueries;
@@ -42,13 +62,18 @@ import org.hobbit.vocab.HobbitExperiments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.Delivery;
 
-import weka.attributeSelection.*;
 import weka.attributeSelection.AttributeSelection;
+import weka.attributeSelection.CfsSubsetEval;
+import weka.attributeSelection.GreedyStepwise;
 import weka.classifiers.functions.LinearRegression;
 import weka.clusterers.SimpleKMeans;
-import weka.core.*;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
+import weka.core.Instance;
+import weka.core.Instances;
+import weka.core.SparseInstance;
 
 
 /**
@@ -56,6 +81,12 @@ import weka.core.*;
  * TODO:: !!REFACTOR INTO A MORE GENERIC DESIGN!!
  */
 public class AnalysisComponent extends AbstractComponent {
+    /**
+     * The time the main receiver thread will sleep if it didn't receive any message
+     * (in seconds).
+     */
+    private static final int WAITING_TIME_BEFORE_CHECKING_STATUS = 60;
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(AnalysisComponent.class);
     private static final String GRAPH_URI = Constants.PUBLIC_RESULT_GRAPH_URI;
     protected RabbitQueue controller2AnalysisQueue;
@@ -82,16 +113,24 @@ public class AnalysisComponent extends AbstractComponent {
     @Override
     public void run() throws Exception {
         LOGGER.info("Awaiting requests");
-        QueueingConsumer.Delivery delivery;
+        Delivery delivery;
         while (true) {
-            delivery = consumer.nextDelivery();
+            delivery = null;
+            // Let's wait for a delivery for 60 seconds
+            try {
+                delivery = consumer.getDeliveryQueue().poll(WAITING_TIME_BEFORE_CHECKING_STATUS, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                // interrupted; just continue
+            }
             if (delivery != null) {
                 LOGGER.info("Received a request. Processing...");
                 String expUri = RabbitMQUtils.readString(delivery.getBody());
                 handleRequest(expUri);
+            } else {
+                // This would be the place at which we could react to signals, e.g., terminate
+                // the service if needed.
             }
         }
-
     }
 
     protected void handleRequest(String expUri) {
@@ -235,18 +274,17 @@ public class AnalysisComponent extends AbstractComponent {
      *            The model of the experiment
      * @return Returns the analyzed model
      */
-
-    /**
+    /*
      private AnalysisModel analyseExperiment(Model experimentModel, String expUri){
      AnalysisModel analysisModel = new AnalysisModel(experimentModel, expUri);
      analysisModel.analyse();
      return analysisModel;
      }*/
 
-    private void notifyQueue(){
+    /*private void notifyQueue(){
         //TODO:: return the status of component
 
-    }
+    }*/
 
     /**
      * This class implements the functionality of the Analysis Model which

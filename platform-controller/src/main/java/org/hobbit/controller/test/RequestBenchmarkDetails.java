@@ -21,12 +21,14 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jena.rdf.model.Model;
 import org.hobbit.core.Constants;
 import org.hobbit.core.FrontEndApiCommands;
 import org.hobbit.core.components.AbstractCommandReceivingComponent;
 import org.hobbit.core.data.SystemMetaData;
+import org.hobbit.core.rabbit.QueueingConsumer;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +37,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.QueueingConsumer;
+import com.rabbitmq.client.Delivery;
 
 public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
 
@@ -85,7 +87,7 @@ public class RequestBenchmarkDetails extends AbstractCommandReceivingComponent {
                 RabbitMQUtils.writeByteArrays(new byte[] { FrontEndApiCommands.GET_BENCHMARK_DETAILS },
                         new byte[][] { RabbitMQUtils.writeString(benchmarkUri), RabbitMQUtils.writeString(userName) }, null));
         LOGGER.info("Waiting for response...");
-        QueueingConsumer.Delivery delivery = consumer.nextDelivery(REQUEST_TIMEOUT);
+        Delivery delivery = consumer.getDeliveryQueue().poll(REQUEST_TIMEOUT, TimeUnit.MILLISECONDS);
         if (delivery == null) {
             throw new IOException("Didn't got a response after \"" + REQUEST_TIMEOUT + "\" ms.");
         }
