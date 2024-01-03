@@ -119,7 +119,7 @@ services:
       - hobbit-core
 
   cadvisor:
-    image: google/cadvisor
+    image: gcr.io/cadvisor/cadvisor
     networks:
       - hobbit-core
     volumes:
