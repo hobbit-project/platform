@@ -2,7 +2,8 @@ name: make
 on: push
 jobs:
   make:
-    runs-on: ubuntu-20.04
+    # https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-java@v1
