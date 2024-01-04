@@ -144,8 +144,6 @@ services:
 
 networks:
   hobbit:
-    external:
-      name: hobbit
+    external: true
   hobbit-core:
-    external:
-      name: hobbit-core
+    external: true
