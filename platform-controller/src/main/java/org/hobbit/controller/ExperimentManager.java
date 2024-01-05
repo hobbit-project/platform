@@ -143,10 +143,7 @@ public class ExperimentManager implements Closeable {
         this.hobbitConfig = hobbitConfig;
 
         try {
-            // TODO environment variable should have been used there
-            // TODO global static method in hobbit core for retrieving values like this
-            defaultMaxExecutionTime = Long
-                    .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+            defaultMaxExecutionTime = hobbitConfig.getLong("MAX_EXECUTION_TIME", 1200000L, LOGGER);
         } catch (Exception e) {
             LOGGER.debug("Could not get execution time from env, using default value..");
         }
@@ -329,7 +326,7 @@ public class ExperimentManager implements Closeable {
         return Collections.emptyMap();
     }
 
-    private void createRabbitMQ(ExperimentConfiguration config) throws Exception {
+    protected void createRabbitMQ(ExperimentConfiguration config) throws Exception {
         String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
         if (rabbitMQAddress == null) {
             LOGGER.info("Starting new RabbitMQ for the experiment...");
