@@ -42,7 +42,7 @@ import org.junit.Test;
  * Updated by Michael Röder to run only if the test instance is available-
  */
 public class GitlabControllerImplTest {
-    private static final String GITLAB_URL = "https://git.project-hobbit.eu/";
+    public static final String GITLAB_URL = "https://git.project-hobbit.eu/";
     GitlabControllerImpl controller;
     GitlabProject gitlabProject;
     GitlabBranch gitlabBranch;
@@ -97,7 +97,7 @@ public class GitlabControllerImplTest {
         // wait for controller to fetch projects
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getAllProjects() {
         controller.fetchProjects();
         List<Project> projects = controller.getAllProjects();
@@ -106,7 +106,7 @@ public class GitlabControllerImplTest {
         assertTrue("There are more than 10 projects", projects.size() > 10);
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getProjectsOfUnknownUser() throws IOException {
         Set<String> projects = controller.getProjectsOfUser("nonexisting@example.com");
         assertEquals("Empty project list for unknown user", 0, projects.size());
@@ -123,7 +123,7 @@ public class GitlabControllerImplTest {
     }
     */
 
-    @Test
+    @Test (timeout = 120000)
     public void gitlabToProject() {
         Project project = controller.gitlabToProject(gitlabProject);
         assertNotNull("Project shouldn't be null", project);
@@ -131,7 +131,7 @@ public class GitlabControllerImplTest {
                 "gitadmin / testing-benchmark", project.getName());
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getCheckedModel() throws IOException {
         byte[] benchmarkCfgBytes = api.getRawFileContent(gitlabProject.getId(), gitlabBranch.getCommit().getId(), "benchmark.ttl");
         Model checkedModel = controller.getCheckedModel(benchmarkCfgBytes, "benchmark", gitlabProject.getWebUrl());
