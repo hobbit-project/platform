@@ -28,6 +28,8 @@ import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
+import org.hobbit.controller.ConnectivityAssumptionUtils;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -37,6 +39,7 @@ import org.junit.Test;
 
 /**
  * Created by Timofey Ermilov on 17/10/2016.
+ * Updated by Michael Röder to run only if the test instance is available-
  */
 public class GitlabControllerImplTest {
     private static final String GITLAB_URL = "https://git.project-hobbit.eu/";
@@ -47,6 +50,7 @@ public class GitlabControllerImplTest {
 
     @Before
     public void init() throws InterruptedException {
+        ConnectivityAssumptionUtils.assumeConnectivity(GITLAB_URL);
         gitlabProject = new GitlabProject();
         gitlabProject.setId(526);
         gitlabProject.setName("testing-benchmark");
