@@ -340,9 +340,12 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     public void closeExpRabbitMQConnector() {
         LOGGER.info("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
-        assert rabbitMQConnector != null : "RabbitMQ connector shouldn't be null";
-        IOUtils.closeQuietly(rabbitMQConnector);
-        rabbitMQConnector = null;
+        if(rabbitMQConnector != null) {
+            IOUtils.closeQuietly(rabbitMQConnector);
+            rabbitMQConnector = null;
+        } else {
+            LOGGER.warn("Got a request to close the RabbitMQ connector but it was already null.");
+        }
     }
 
     /**
