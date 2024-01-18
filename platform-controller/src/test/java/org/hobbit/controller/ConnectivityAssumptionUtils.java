@@ -18,6 +18,8 @@ public class ConnectivityAssumptionUtils {
         try {
             URL pingUrl = new URL(httpUrl);
             HttpURLConnection connection = (HttpURLConnection) pingUrl.openConnection();
+            // The service has 10 seconds to establish a connection
+            connection.setConnectTimeout(10000);
 
             Assume.assumeTrue(
                     "Got a wrong status (" + connection.getResponseCode()
