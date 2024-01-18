@@ -59,8 +59,8 @@ import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.rdf.RdfHelper;
-import org.hobbit.vocab.Algorithm;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitErrorInstances;
 import org.hobbit.vocab.HobbitErrors;
 import org.hobbit.vocab.HobbitExperiments;
 import org.hobbit.vocab.PROV;
@@ -102,10 +102,6 @@ public class ExperimentManager implements Closeable {
      * to start.
      */
     public static final long CHECK_FOR_NEW_EXPERIMENT = 10000;
-    /**
-     * IRI name space used for the generation of IRIs for error instances.
-     */
-    public static final String ERROR_INSTANCE_NAMESPACE = "http://project-hobbit.org/error-instances/";
     /**
      * Default time an experiment has to terminate after it has been started.
      */
@@ -816,8 +812,8 @@ public class ExperimentManager implements Closeable {
         // Transform the error data into RDF
         Model resultModel = ModelFactory.createDefaultModel();
         // Generate IRI for this error
-        Resource error = ResourceFactory.createResource(new StringBuilder(ERROR_INSTANCE_NAMESPACE).append(sessionId)
-                .append('_').append(experimentStatus.getNextErrorReportId()).toString());
+        Resource error = HobbitErrorInstances.getErrorInstance(
+                new StringBuilder(sessionId).append('_').append(experimentStatus.getNextErrorReportId()).toString());
         // Add the error type
         Resource errorType = (errorData.getErrorType() == null) ? HobbitErrors.UnspecifiedError
                 : ResourceFactory.createResource(errorData.getErrorType());
