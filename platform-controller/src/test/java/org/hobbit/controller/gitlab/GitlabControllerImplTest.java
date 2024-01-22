@@ -28,6 +28,8 @@ import org.apache.jena.rdf.model.impl.PropertyImpl;
 import org.apache.jena.rdf.model.impl.ResourceImpl;
 import org.gitlab.api.GitlabAPI;
 import org.gitlab.api.models.*;
+import org.hobbit.controller.ConnectivityAssumptionUtils;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -37,9 +39,10 @@ import org.junit.Test;
 
 /**
  * Created by Timofey Ermilov on 17/10/2016.
+ * Updated by Michael Röder to run only if the test instance is available-
  */
 public class GitlabControllerImplTest {
-    private static final String GITLAB_URL = "https://git.project-hobbit.eu/";
+    public static final String GITLAB_URL = "https://git.project-hobbit.eu/";
     GitlabControllerImpl controller;
     GitlabProject gitlabProject;
     GitlabBranch gitlabBranch;
@@ -47,6 +50,7 @@ public class GitlabControllerImplTest {
 
     @Before
     public void init() throws InterruptedException {
+        ConnectivityAssumptionUtils.assumeConnectivity(GITLAB_URL);
         gitlabProject = new GitlabProject();
         gitlabProject.setId(526);
         gitlabProject.setName("testing-benchmark");
@@ -93,7 +97,7 @@ public class GitlabControllerImplTest {
         // wait for controller to fetch projects
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getAllProjects() {
         controller.fetchProjects();
         List<Project> projects = controller.getAllProjects();
@@ -102,7 +106,7 @@ public class GitlabControllerImplTest {
         assertTrue("There are more than 10 projects", projects.size() > 10);
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getProjectsOfUnknownUser() throws IOException {
         Set<String> projects = controller.getProjectsOfUser("nonexisting@example.com");
         assertEquals("Empty project list for unknown user", 0, projects.size());
@@ -119,7 +123,7 @@ public class GitlabControllerImplTest {
     }
     */
 
-    @Test
+    @Test (timeout = 120000)
     public void gitlabToProject() {
         Project project = controller.gitlabToProject(gitlabProject);
         assertNotNull("Project shouldn't be null", project);
@@ -127,7 +131,7 @@ public class GitlabControllerImplTest {
                 "gitadmin / testing-benchmark", project.getName());
     }
 
-    @Test
+    @Test (timeout = 120000)
     public void getCheckedModel() throws IOException {
         byte[] benchmarkCfgBytes = api.getRawFileContent(gitlabProject.getId(), gitlabBranch.getCommit().getId(), "benchmark.ttl");
         Model checkedModel = controller.getCheckedModel(benchmarkCfgBytes, "benchmark", gitlabProject.getWebUrl());

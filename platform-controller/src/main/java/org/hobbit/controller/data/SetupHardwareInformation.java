@@ -18,14 +18,15 @@ package org.hobbit.controller.data;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.rdf.model.Statement;
 import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.jena.rdf.model.impl.StatementImpl;
-import org.hobbit.utils.rdf.RdfHelper;
+import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
+import org.hobbit.utils.rdf.TripleHashCalculator;
 import org.hobbit.vocab.HOBBIT;
 import org.hobbit.vocab.HobbitHardware;
 
@@ -48,8 +49,8 @@ public class SetupHardwareInformation {
 
     private String hash() {
         Model dummyModel = ModelFactory.createDefaultModel();
-        Resource dummyRes = dummyModel.createResource(RdfHelper.HASH_SELF_URI);
-        return RdfHelper.hashProperties(distinguishingProperties(dummyModel, dummyRes));
+        Resource dummyRes = dummyModel.createResource(TripleHashCalculator.HASH_SELF_URI);
+        return TripleHashCalculator.calculateHash(distinguishingProperties(dummyModel, dummyRes));
     }
 
     public String getURI() {

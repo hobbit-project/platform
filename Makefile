@@ -1,5 +1,4 @@
-# build platform components
-default: build
+build: build-dev-images
 
 deploy: create-networks start
 
@@ -26,36 +25,19 @@ start-dev-platform:
 start-dev-elk:
 	docker-compose -f docker-compose-elk.yml up -d
 
-build: build-java build-dev-images
-
-build-java: install-parent-pom build-controller build-storage build-analysis build-gui
-
-build-gui:
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm install; true' && npm run build-prod
-	cd hobbit-gui/gui-serverbackend && mvn clean package
-
-build-controller:
-	cd platform-controller && make build
-
-build-storage:
-	cd platform-storage/storage-service && mvn clean package -U
-
-build-analysis:
-	cd analysis-component && mvn clean package -U
-
 build-dev-images: build-dev-platform-controller-image build-dev-gui-image build-dev-analysis-image build-dev-storage-image
 
 build-dev-platform-controller-image:
-	docker build -t hobbitproject/hobbit-platform-controller:dev ./platform-controller
+	docker build -t hobbitproject/hobbit-platform-controller:dev --file platform-controller/Dockerfile .
 
 build-dev-gui-image:
-	docker build -t hobbitproject/hobbit-gui:dev ./hobbit-gui/gui-serverbackend
+	docker build -t hobbitproject/hobbit-gui:dev --file hobbit-gui/gui-serverbackend/Dockerfile .
 
 build-dev-analysis-image:
-	docker build -t hobbitproject/hobbit-analysis-component:dev ./analysis-component
+	docker build -t hobbitproject/hobbit-analysis-component:dev --file ./analysis-component/Dockerfile .
 
 build-dev-storage-image:
-	docker build -t hobbitproject/hobbit-storage-service:dev ./platform-storage/storage-service
+	docker build -t hobbitproject/hobbit-storage-service:dev --file ./platform-storage/storage-service/Dockerfile .
 
 create-networks:
 	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")

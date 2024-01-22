@@ -1,4 +1,3 @@
-<!-- This web.xml file assumes that the GUI uses Keycloak for authentication -->
 <web-app version="3.0"
          xmlns="http://java.sun.com/xml/ns/javaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
@@ -55,15 +54,7 @@
       <http-method>PUT</http-method>
       <http-method>DELETE</http-method>
     </web-resource-collection>
-    <auth-constraint>
-      <role-name>system-provider</role-name>
-      <role-name>challenge-organiser</role-name>
-      <role-name>guest</role-name>
-    </auth-constraint>
-    <user-data-constraint>
-      <!--transport-guarantee>CONFIDENTIAL</transport-guarantee-->
-      <transport-guarantee>NONE</transport-guarantee>
-    </user-data-constraint>
+    <!-- no constraints when UI auth (keycloak) is disabled -->
   </security-constraint>
 
   <login-config>

@@ -19,7 +19,10 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.Timer;
@@ -28,32 +31,39 @@ import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.NodeIterator;
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
+import org.apache.jena.rdf.model.ResourceFactory;
 import org.apache.jena.vocabulary.RDF;
+import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.config.HobbitConfig;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.docker.ContainerManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.BenchmarkMetaData;
+import org.hobbit.core.data.ErrorData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.data.status.ControllerStatus;
 import org.hobbit.core.data.status.RunningExperiment;
 import org.hobbit.core.rabbit.RabbitMQUtils;
-import org.hobbit.utils.EnvVariables;
+import org.hobbit.utils.config.HobbitConfiguration;
 import org.hobbit.utils.rdf.RdfHelper;
 import org.hobbit.vocab.HOBBIT;
+import org.hobbit.vocab.HobbitErrorInstances;
 import org.hobbit.vocab.HobbitErrors;
 import org.hobbit.vocab.HobbitExperiments;
+import org.hobbit.vocab.PROV;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,12 +81,13 @@ public class ExperimentManager implements Closeable {
     private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
     /**
-     * Key of the environmental variable used to define
-     * which docker image to use as RabbitMQ.
+     * Key of the environmental variable used to define which docker image to use as
+     * RabbitMQ.
      */
     private static final String RABBIT_IMAGE_ENV_KEY = "HOBBIT_RABBIT_IMAGE";
     /**
-     * Environmental variable key for the RabbitMQ broker host name used for experiments.
+     * Environmental variable key for the RabbitMQ broker host name used for
+     * experiments.
      */
     private static final String RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY = "HOBBIT_RABBIT_EXPERIMENTS_HOST";
     /**
@@ -113,20 +124,22 @@ public class ExperimentManager implements Closeable {
      * Timer used to trigger the creation of the next benchmark.
      */
     protected Timer expStartTimer;
+    /**
+     * The configuration of this platform.
+     */
+    protected HobbitConfiguration hobbitConfig = null;
 
-    public ExperimentManager(PlatformController controller) {
-        this(controller, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
+    public ExperimentManager(PlatformController controller, HobbitConfiguration hobbitConfig) {
+        this(controller, hobbitConfig, CHECK_FOR_FIRST_EXPERIMENT, CHECK_FOR_NEW_EXPERIMENT);
     }
 
-    protected ExperimentManager(PlatformController controller, long checkForFirstExperiment,
-            long checkForNewExperiment) {
+    protected ExperimentManager(PlatformController controller, HobbitConfiguration hobbitConfig,
+            long checkForFirstExperiment, long checkForNewExperiment) {
         this.controller = controller;
+        this.hobbitConfig = hobbitConfig;
 
         try {
-            // TODO environment variable should have been used there
-            // TODO global static method in hobbit core for retrieving values like this
-            defaultMaxExecutionTime = Long
-                    .parseLong(System.getProperty("MAX_EXECUTION_TIME", Long.toString(DEFAULT_MAX_EXECUTION_TIME)));
+            defaultMaxExecutionTime = hobbitConfig.getLong("MAX_EXECUTION_TIME", 1200000L, LOGGER);
         } catch (Exception e) {
             LOGGER.debug("Could not get execution time from env, using default value..");
         }
@@ -177,21 +190,22 @@ public class ExperimentManager implements Closeable {
                     }
                     LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                             + " and system " + config.systemUri + " to the queue.");
-                    experimentStatus = new ExperimentStatus(config,
-                            HobbitExperiments.getExperimentURI(config.id));
+                    experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id));
 
                     createRabbitMQ(config);
 
                     BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
                     if ((benchmark == null) || (benchmark.mainImage == null)) {
-                        experimentStatus = new ExperimentStatus(config,
-                                HobbitExperiments.getExperimentURI(config.id), this, defaultMaxExecutionTime);
+                        // Think about reusing the existing object created above
+                        experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
+                                this, defaultMaxExecutionTime);
                         experimentStatus.addError(HobbitErrors.BenchmarkImageMissing);
                         throw new Exception("Couldn't find image name for benchmark " + config.benchmarkUri);
                     }
 
                     SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
                     if ((system == null) || (system.mainImage == null)) {
+                        // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
                                 this, defaultMaxExecutionTime);
                         experimentStatus.addError(HobbitErrors.SystemImageMissing);
@@ -239,12 +253,13 @@ public class ExperimentManager implements Closeable {
                     LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
                     String containerId = controller.containerManager.startContainer(benchmark.mainImage,
                             Constants.CONTAINER_TYPE_BENCHMARK, experimentStatus.getRootContainer(),
-                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
+                            new String[] {
+                                    Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
                                     Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
                                     Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
-                            null, null, config.id);
+                            null, null, config.id, Collections.emptyMap());
                     if (containerId == null) {
                         experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
                         throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
@@ -259,10 +274,11 @@ public class ExperimentManager implements Closeable {
                     String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
                     containerId = controller.containerManager.startContainer(system.mainImage,
                             Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getRootContainer(),
-                            new String[] { Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
+                            new String[] {
+                                    Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
-                            null, null, config.id);
+                            null, null, config.id, getHardwareConstraints(config.serializedBenchParams));
                     if (containerId == null) {
                         LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                         forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
@@ -283,14 +299,36 @@ public class ExperimentManager implements Closeable {
         }
     }
 
-    private void createRabbitMQ(ExperimentConfiguration config) throws Exception {
-        String rabbitMQAddress = EnvVariables.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String)null);
+    protected static Map<String, Object> getHardwareConstraints(String serializedBenchParams) {
+        // If the serialized model could contain the hobbit:maxHardware property
+        if (serializedBenchParams.contains("maxHardware")) {
+            Model model = RabbitMQUtils.readModel(serializedBenchParams);
+            Resource hardware = RdfHelper.getObjectResource(model, HobbitExperiments.New, HOBBIT.maxHardware);
+            if (hardware != null) {
+                Map<String, Object> constraints = new HashMap<>();
+                Integer cpuCount = RdfHelper.getIntValue(model, hardware, HOBBIT.hasCPUTypeCount);
+                if (cpuCount != null) {
+                    // We need the CPU count in nano CPU seconds (i.e., we have to multiply the
+                    // count with 10^9)
+                    constraints.put(ContainerManager.NANO_CPU_LIMIT_CONSTRAINT, cpuCount * 1000000000L);
+                }
+                Long memory = RdfHelper.getLongValue(model, hardware, HOBBIT.hasMemory);
+                if (memory != null) {
+                    constraints.put(ContainerManager.MEMORY_LIMIT_CONSTRAINT, memory);
+                }
+                return constraints;
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    protected void createRabbitMQ(ExperimentConfiguration config) throws Exception {
+        String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
         if (rabbitMQAddress == null) {
             LOGGER.info("Starting new RabbitMQ for the experiment...");
-            rabbitMQAddress = controller.containerManager.startContainer(EnvVariables.getString(RABBIT_IMAGE_ENV_KEY),
-                    Constants.CONTAINER_TYPE_BENCHMARK, null,
-                    new String[] {  },
-                    null, null, config.id);
+            rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
+                    Constants.CONTAINER_TYPE_BENCHMARK, null, new String[] {}, null, null, config.id,
+                    Collections.emptyMap());
             if (rabbitMQAddress == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError); // FIXME
                 throw new Exception("Couldn't start new RabbitMQ for the experiment");
@@ -303,7 +341,8 @@ public class ExperimentManager implements Closeable {
         }
         experimentStatus.setRabbitMQContainer(rabbitMQAddress);
 
-        RabbitMQConnector rabbitMQConnector = new RabbitMQConnector(controller, experimentStatus.getRabbitMQContainer());
+        RabbitMQConnector rabbitMQConnector = new RabbitMQConnector(controller,
+                experimentStatus.getRabbitMQContainer());
         controller.setExpRabbitMQConnector(rabbitMQConnector);
         rabbitMQConnector.init();
     }
@@ -355,13 +394,10 @@ public class ExperimentManager implements Closeable {
      * {@link #experimentStatus} object and therefore blocking all other operations
      * on that object.
      *
-     * @param sessionId
-     *            the experiment ID to which the result model belongs to
-     * @param data
-     *            binary data containing a serialized RDF model
-     * @param function
-     *            a deserialization function transforming the binary data into an
-     *            RDF model
+     * @param sessionId the experiment ID to which the result model belongs to
+     * @param data      binary data containing a serialized RDF model
+     * @param function  a deserialization function transforming the binary data into
+     *                  an RDF model
      */
     public void setResultModel(String sessionId, byte[] data, Function<? super byte[], ? extends Model> function) {
         synchronized (experimentMutex) {
@@ -377,8 +413,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Sets the result model of the current running experiment.
      *
-     * @param model
-     *            the result model
+     * @param model the result model
      */
     public void setResultModel(Model model) {
         synchronized (experimentMutex) {
@@ -389,8 +424,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Sets the result model of the current running experiment.
      *
-     * @param model
-     *            the result model
+     * @param model the result model
      */
     private void setResultModel_unsecured(Model model) {
         if (experimentStatus != null) {
@@ -508,11 +542,11 @@ public class ExperimentManager implements Closeable {
      * given error is not <code>null</code> it is added to the result model of the
      * experiment.
      *
-     * @param error
-     *            error that is added to the result model of the experiment
+     * @param error error that is added to the result model of the experiment
      */
     private void forceBenchmarkTerminate_unsecured(Resource error) {
         if (experimentStatus != null) {
+            experimentStatus.setState(States.STOPPED);
             String parent = experimentStatus.getRootContainer();
             controller.containerManager.removeParentAndChildren(parent);
             if (error != null) {
@@ -525,10 +559,8 @@ public class ExperimentManager implements Closeable {
      * Handles the termination of the container with the given container Id and the
      * given exit code.
      *
-     * @param containerId
-     *            Id of the terminated container
-     * @param exitCode
-     *            exit code of the termination
+     * @param containerId Id of the terminated container
+     * @param exitCode    exit code of the termination
      */
     public void notifyTermination(String containerId, long exitCode) {
         boolean consumed = false;
@@ -590,9 +622,9 @@ public class ExperimentManager implements Closeable {
      * Handles the messages that either the system or the benchmark controller are
      * ready.
      *
-     * @param systemReportedReady
-     *            <code>true</code> if the message was sent by the system,
-     *            <code>false</code> if the benchmark controller is ready
+     * @param systemReportedReady <code>true</code> if the message was sent by the
+     *                            system, <code>false</code> if the benchmark
+     *                            controller is ready
      */
     public void systemOrBenchmarkReady(boolean systemReportedReady, String sessionId) {
         synchronized (experimentMutex) {
@@ -626,9 +658,9 @@ public class ExperimentManager implements Closeable {
     /**
      * Sends the start message to the benchmark controller.
      *
-     * @throws IOException
-     *             if there is a communication problem or if the name of the system
-     *             container can not be retrieved from the docker daemon
+     * @throws IOException if there is a communication problem or if the name of the
+     *                     system container can not be retrieved from the docker
+     *                     daemon
      */
     private void startBenchmark_unsecured() throws IOException {
         String containerName = controller.containerManager.getContainerName(experimentStatus.getSystemContainer());
@@ -652,8 +684,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Adds the status of the current experiment to the given status object.
      *
-     * @param status
-     *            the status object to which the data should be added
+     * @param status the status object to which the data should be added
      */
     public void addStatusInfo(ControllerStatus status, String userName) {
         // copy the pointer to the experiment status to make sure that we can
@@ -702,10 +733,9 @@ public class ExperimentManager implements Closeable {
      * Called by the {@link ExperimentAbortTimerTask} if the maximum runtime of an
      * experiment has been reached.
      *
-     * @param expiredState
-     *            the experiment status the timer was working on which is used to
-     *            make sure that the timer was started for the currently running
-     *            experiment.
+     * @param expiredState the experiment status the timer was working on which is
+     *                     used to make sure that the timer was started for the
+     *                     currently running experiment.
      */
     public void notifyExpRuntimeExpired(ExperimentStatus expiredState) {
         Objects.requireNonNull(expiredState);
@@ -728,8 +758,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Stops the currently running experiment if it has the given experiment id.
      *
-     * @param experimentId
-     *            the id of the experiment that should be stopped
+     * @param experimentId the id of the experiment that should be stopped
      */
     public void stopExperimentIfRunning(String experimentId) {
         synchronized (experimentMutex) {
@@ -765,5 +794,53 @@ public class ExperimentManager implements Closeable {
 
     public void setController(PlatformController controller) {
         this.controller = controller;
+    }
+
+    /**
+     * Add reported error to the experiment result model if the experiment with the
+     * given session is still running.
+     * 
+     * @param sessionId            the session ID of the container that reported the
+     *                             error
+     * @param errorData            the data of the reported error
+     * @param isBenchmarkContainer a flag that shows whether the error came from a
+     *                             container that belongs to the benchmark
+     *                             ({@code true}) or to the benchmarked system
+     *                             ({@code false}).
+     */
+    public void handleErrorReport(String sessionId, ErrorData errorData, boolean isBenchmarkContainer) {
+        // Transform the error data into RDF
+        Model resultModel = ModelFactory.createDefaultModel();
+        // Generate IRI for this error
+        Resource error = HobbitErrorInstances.getErrorInstance(
+                new StringBuilder(sessionId).append('_').append(experimentStatus.getNextErrorReportId()).toString());
+        // Add the error type
+        Resource errorType = (errorData.getErrorType() == null) ? HobbitErrors.UnspecifiedError
+                : ResourceFactory.createResource(errorData.getErrorType());
+        resultModel.add(error, RDF.type, errorType);
+        // Add connection to experiment
+        resultModel.add(error, PROV.wasGeneratedBy, ResourceFactory.createResource(experimentStatus.experimentUri));
+
+        // Add source
+        if (isBenchmarkContainer) {
+            resultModel.add(error, PROV.wasAttributedTo,
+                    ResourceFactory.createResource(experimentStatus.getConfig().benchmarkUri));
+        } else {
+            resultModel.add(error, PROV.wasAttributedTo,
+                    ResourceFactory.createResource(experimentStatus.getConfig().systemUri));
+        }
+        // Add details
+        if (errorData.getLabel() != null) {
+            resultModel.add(error, RDFS.label, errorData.getLabel());
+        }
+        if (errorData.getDescription() != null) {
+            resultModel.add(error, RDFS.comment, errorData.getDescription());
+        }
+        synchronized (experimentMutex) {
+            // Check again whether we are still working on the same experiment
+            if (isExpRunning(sessionId)) {
+                setResultModel_unsecured(resultModel);
+            }
+        }
     }
 }

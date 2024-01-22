@@ -25,7 +25,7 @@ public class SubmitModelBean {
     private String benchmark;
     private String system;
     private List<ConfigurationParamValueBean> configurationParams;
-
+    private HardwareConstraintBean maxHardwareConstraints;
 
     public List<ConfigurationParamValueBean> getConfigurationParams() {
         return configurationParams;
@@ -44,5 +44,17 @@ public class SubmitModelBean {
     }
     public void setSystem(String system) {
         this.system = system;
+    }
+    /**
+     * @return the maxHardwareConstraints
+     */
+    public HardwareConstraintBean getMaxHardwareConstraints() {
+        return maxHardwareConstraints;
+    }
+    /**
+     * @param maxHardwareConstraints the maxHardwareConstraints to set
+     */
+    public void setMaxHardwareConstraints(HardwareConstraintBean maxHardwareConstraints) {
+        this.maxHardwareConstraints = maxHardwareConstraints;
     }
 }

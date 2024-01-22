@@ -9,16 +9,20 @@ services:
       HOBBIT_RABBIT_IMAGE: "rabbitmq:management"
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
-      DEPLOY_ENV: "testing"
+      DEPLOY_ENV: "develop"
       GITLAB_USER: "${GITLAB_USER}"
       GITLAB_EMAIL: "${GITLAB_EMAIL}"
       GITLAB_TOKEN: "${GITLAB_TOKEN}"
-      LOGGING_GELF_ADDRESS: "udp://localhost:12201"
+      #LOGGING_GELF_ADDRESS: "udp://localhost:12201"
       SWARM_NODE_NUMBER: "1"
       PROMETHEUS_HOST: prometheus
       PROMETHEUS_PORT: 9090
+      USE_GITLAB: "false"
+      LOCAL_METADATA_DIRECTORY: "/metadata"
+      DOCKER_AUTOPULL: "0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./metadata:/metadata
 
   # HOBBIT GUI
   gui:
@@ -36,20 +40,21 @@ services:
       - KEYCLOAK_DIRECT_URL=http://keycloak:8080/auth
       - ELASTICSEARCH_HOST=elasticsearch
       - ELASTICSEARCH_HTTP_PORT=9200
+      - USE_UI_AUTH=false
     #volumes:
       #- /data/docker/messages/global.html:/var/lib/jetty/webapps/messages/global.html
       #- /data/docker/messages/benchmark.html:/var/lib/jetty/webapps/messages/benchmark.html
       #- /data/docker/messages/status.html:/var/lib/jetty/webapps/messages/status.html
 
   # Keycloak user management (used by the GUI)
-  keycloak:
-    image: hobbitproject/hobbit-keycloak:latest
-    ports:
-      - "8181:8080"
-    networks:
-      - hobbit
-    volumes:
-      - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
+  # keycloak:
+  #   image: hobbitproject/hobbit-keycloak:latest
+  #   ports:
+  #     - "8181:8080"
+  #   networks:
+  #     - hobbit
+  #   volumes:
+  #     - ./config/keycloak:/opt/jboss/keycloak/standalone/data/db
 
   # HOBBIT Analysis component
   analysis:
@@ -90,7 +95,8 @@ services:
     stop_signal: SIGINT
     stop_grace_period: 2m
     volumes:
-      - ./config/db:/opt/virtuoso-opensource/database
+      - ./config/db:/opt/virtuoso-opensource/var/lib/virtuoso/db
+      #- ./config/db:/opt/virtuoso-opensource/database
     networks:
       - hobbit-core
     ports:
@@ -104,8 +110,8 @@ services:
     environment:
       - SPARQL_ENDPOINT_URL=http://vos:8890/sparql
       - HOBBIT_RABBIT_HOST=rabbit
-      - SPARQL_ENDPOINT_USERNAME=HobbitPlatform
-      - SPARQL_ENDPOINT_PASSWORD=Password
+      - SPARQL_ENDPOINT_USERNAME=dba
+      - SPARQL_ENDPOINT_PASSWORD=dba
 
   node-exporter:
     image: prom/node-exporter
@@ -113,7 +119,7 @@ services:
       - hobbit-core
 
   cadvisor:
-    image: google/cadvisor
+    image: gcr.io/cadvisor/cadvisor
     networks:
       - hobbit-core
     volumes:
@@ -138,8 +144,10 @@ services:
 
 networks:
   hobbit:
-    external:
-      name: hobbit
+    name: hobbit
+    external: true
+    driver: overlay
   hobbit-core:
-    external:
-      name: hobbit-core
+    name: hobbit-core
+    external: true
+    driver: overlay

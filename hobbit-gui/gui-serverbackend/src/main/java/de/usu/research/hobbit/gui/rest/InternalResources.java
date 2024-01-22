@@ -64,6 +64,11 @@ import de.usu.research.hobbit.gui.rest.beans.UserInfoBean;
 public class InternalResources {
     private static final Logger LOGGER = LoggerFactory.getLogger(InternalResources.class);
 
+    /**
+     * Environmental variable key for the UI authorization (keycloak) usage flag.
+     */
+    private static final String USE_UI_AUTH_KEY = "USE_UI_AUTH";
+
     private static volatile KeycloakConfigBean cachedBean;
     private static Cache<String, UserInfoBean> userInfoCache = CacheBuilder.newBuilder().maximumSize(100)
             .expireAfterWrite(1, TimeUnit.HOURS).build();
@@ -74,6 +79,22 @@ public class InternalResources {
     public Response getKeycloakConfig(@Context ServletContext servletContext) {
         if (cachedBean != null) {
             return Response.ok(cachedBean).build();
+        }
+
+        boolean useAuth = true;
+        if (System.getenv().containsKey(USE_UI_AUTH_KEY)) {
+            try {
+                useAuth = Boolean.parseBoolean(System.getenv().get(USE_UI_AUTH_KEY));
+            } catch (Exception e) {
+                LOGGER.error("Couldn't parse value of %s. It will be ignored.", USE_UI_AUTH_KEY);
+            }
+        }
+        if (!useAuth) {
+            KeycloakConfigBean bean = cachedBean = new KeycloakConfigBean();
+            bean.setRealm("");
+            bean.setUrl("");
+            bean.setClientId("DISABLED");
+            return Response.ok(bean).build();
         }
 
         try (InputStream is = servletContext.getResourceAsStream("/WEB-INF/jetty-web.xml")) {
@@ -102,6 +123,23 @@ public class InternalResources {
     }
 
     public static UserInfoBean getUserInfoBean(SecurityContext sc) {
+        boolean useAuth = true;
+        if (System.getenv().containsKey(USE_UI_AUTH_KEY)) {
+            try {
+                useAuth = Boolean.parseBoolean(System.getenv().get(USE_UI_AUTH_KEY));
+            } catch (Exception e) {
+                LOGGER.error("Couldn't parse value of %s. It will be ignored.", USE_UI_AUTH_KEY);
+            }
+        }
+        if (!useAuth) {
+            UserInfoBean bean = new UserInfoBean();
+            bean.setRoles(Arrays.asList("challenge-organiser", "guest", "system-provider"));
+            bean.setUserPrincipalName("guest");
+            bean.setPreferredUsername("guest");
+            bean.setName("Guest");
+            return bean;
+        }
+
         Principal userPrincipal = sc.getUserPrincipal();
         String userPrincipalName = userPrincipal.getName();
 

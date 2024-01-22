@@ -3,7 +3,7 @@
 VOS_CONTAINER_ID=$(docker ps -aqf "name=vos")
 VOS_CONTAINER_NUMBER=$(docker ps -aqf "name=vos" | wc -l)
 if [ "$VOS_CONTAINER_NUMBER" -eq "1" ]; then
-  docker exec -it $VOS_CONTAINER_ID bash ./storage-init.sh
+  docker exec -it $VOS_CONTAINER_ID bash /opt/virtuoso-opensource/var/lib/virtuoso/db/storage-init.sh
 else
   echo "Can not determine vos container name..."
   echo "Use docker ps to determine vos container name and execute the following command manually:"

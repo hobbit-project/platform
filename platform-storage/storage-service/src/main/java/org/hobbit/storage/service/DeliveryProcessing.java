@@ -23,16 +23,15 @@ import org.hobbit.encryption.AESException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.QueueingConsumer.Delivery;
+import com.rabbitmq.client.Delivery;
 
 public class DeliveryProcessing implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DeliveryProcessing.class);
 
     private StorageService storage;
-    private QueueingConsumer.Delivery delivery;
+    private Delivery delivery;
     private RabbitQueue queue;
 
     public DeliveryProcessing(StorageService storage, Delivery delivery, RabbitQueue queue) {

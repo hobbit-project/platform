@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/hobbit-project/platform.svg?branch=master)](https://travis-ci.org/hobbit-project/platform)
+[![make](https://github.com/hobbit-project/platform/actions/workflows/make.yml/badge.svg?branch=master)](https://github.com/hobbit-project/platform/actions/workflows/make.yml)
 
 # HOBBIT platform
 

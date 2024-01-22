@@ -16,8 +16,8 @@ run:
 		org.hobbit.controller.PlatformController
 
 test:
-	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we will be not be able to connect to the RabbitMQ platform will create.
-	docker-compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus rabbit redis
+	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we won't be able to connect to RabbitMQ
+	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus rabbit redis
 	HOBBIT_RABBIT_IMAGE=rabbitmq:management \
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
@@ -48,7 +48,7 @@ cAdvisor:
 		-v /sys:/sys:ro \
 		-v /var/lib/docker/:/var/lib/docker:ro \
 		-v /dev/disk:/dev/disk:ro \
-		google/cadvisor
+		gcr.io/cadvisor/cadvisor
 
 trigger-all-correlation-analysis:
 	docker run --network hobbit-core --volume $(CURDIR):/data:ro -e "HOBBIT_RABBIT_HOST=rabbit" java:alpine /data/test_trigger_all_correlation_analysis.sh

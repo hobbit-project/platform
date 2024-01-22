@@ -19,6 +19,7 @@ package org.hobbit.controller.data;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.rdf.model.Resource;
@@ -28,12 +29,13 @@ import org.apache.jena.rdf.model.impl.StatementImpl;
 import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
 import org.apache.jena.sparql.vocabulary.DOAP;
 import org.apache.jena.vocabulary.RDFS;
-import org.hobbit.utils.rdf.RdfHelper;
+import org.hobbit.utils.rdf.TripleHashCalculator;
 import org.hobbit.vocab.HobbitHardware;
 import org.hobbit.vocab.MEXCORE;
 
 /**
- * This class is used to store information about hardware the experiment runs on.
+ * This class is used to store information about hardware the experiment runs
+ * on.
  *
  * @author Denis Kuchelev
  *
@@ -51,8 +53,7 @@ public class NodeHardwareInformation {
     /**
      * Formats a frequency value.
      *
-     * @param frequency
-     *            the frequency value in Hz
+     * @param frequency the frequency value in Hz
      * @return formatted value with a unit of measure
      */
     private String formatFrequencyValue(Long frequency) {
@@ -62,8 +63,7 @@ public class NodeHardwareInformation {
     /**
      * Formats a memory amount value.
      *
-     * @param memory
-     *            the memory value in B
+     * @param memory the memory value in B
      * @return formatted value with a unit of measure
      */
     private String formatMemoryValue(Long memory) {
@@ -86,8 +86,7 @@ public class NodeHardwareInformation {
         }
 
         if (frequencies.size() != 0) {
-            builder
-                    .append("(")
+            builder.append("(")
                     .append(frequencies.stream().map(this::formatFrequencyValue).collect(Collectors.joining(", ")))
                     .append(")");
         }
@@ -123,8 +122,8 @@ public class NodeHardwareInformation {
 
     private String hash() {
         Model dummyModel = ModelFactory.createDefaultModel();
-        Resource dummyRes = dummyModel.createResource(RdfHelper.HASH_SELF_URI);
-        return RdfHelper.hashProperties(distinguishingProperties(dummyModel, dummyRes));
+        Resource dummyRes = dummyModel.createResource(TripleHashCalculator.HASH_SELF_URI);
+        return TripleHashCalculator.calculateHash(distinguishingProperties(dummyModel, dummyRes));
     }
 
     public String getURI() {
@@ -138,27 +137,18 @@ public class NodeHardwareInformation {
     }
 
     private StmtIterator distinguishingProperties(Model model, Resource self) {
-        return new StmtIteratorImpl(Stream.of(
-            (Statement) new StatementImpl(
-                self, RDFS.label, model.createLiteral(instance)),
-            (Statement) new StatementImpl(
-                self, MEXCORE.cpu, model.createLiteral(cpu)),
-            (Statement) new StatementImpl(
-                self, MEXCORE.memory, model.createLiteral(memory)),
-            (Statement) new StatementImpl(
-                self, DOAP.os, model.createLiteral(os))
-        ).iterator());
+        return new StmtIteratorImpl(
+                Stream.of((Statement) new StatementImpl(self, RDFS.label, model.createLiteral(instance)),
+                        (Statement) new StatementImpl(self, MEXCORE.cpu, model.createLiteral(cpu)),
+                        (Statement) new StatementImpl(self, MEXCORE.memory, model.createLiteral(memory)),
+                        (Statement) new StatementImpl(self, DOAP.os, model.createLiteral(os))).iterator());
     }
 
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder
-                .append("NodeHardwareInformation [")
-                .append("instance=").append(instance).append(", ")
-                .append("cpu=").append(cpu).append(", ")
-                .append("memory=").append(memory).append(", ")
-                .append("os=").append(os)
+        builder.append("NodeHardwareInformation [").append("instance=").append(instance).append(", ").append("cpu=")
+                .append(cpu).append(", ").append("memory=").append(memory).append(", ").append("os=").append(os)
                 .append("]");
         return builder.toString();
     }

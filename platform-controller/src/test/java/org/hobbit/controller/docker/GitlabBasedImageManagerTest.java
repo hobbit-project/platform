@@ -25,6 +25,8 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.vocabulary.RDF;
+import org.hobbit.controller.ConnectivityAssumptionUtils;
+import org.hobbit.controller.gitlab.GitlabControllerImplTest;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.hobbit.core.rabbit.RabbitMQUtils;
@@ -45,6 +47,7 @@ public class GitlabBasedImageManagerTest {
 
     @Before
     public void initObserver() {
+        ConnectivityAssumptionUtils.assumeConnectivity(GitlabControllerImplTest.GITLAB_URL);
         imageManager = new GitlabBasedImageManager();
     }
 
@@ -59,7 +62,7 @@ public class GitlabBasedImageManagerTest {
     // "http://example.org/GerbilBenchmark");
     // }
 
-    @Test
+    @Test (timeout = 120000)
     public void getBenchmarks() throws Exception {
 
         // use future to make test wait for async stuff (sigh, java)
