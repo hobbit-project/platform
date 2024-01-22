@@ -97,3 +97,61 @@ clean:
 	cd platform-controller && mvn clean
 	cd platform-storage/storage-service && mvn clean
 	cd hobbit-gui/gui-serverbackend && mvn clean
+	
+version=2.0.17
+minor=2.0
+major=2
+
+controllerImage=hobbitproject/hobbit-platform-controller
+storageImage=hobbitproject/hobbit-storage-service
+guiImage=hobbitproject/hobbit-gui
+analysisImage=hobbitproject/hobbit-analysis-component
+
+# Build dev images and tag them
+build-images: build
+	docker tag hobbitproject/hobbit-platform-controller:dev git.project-hobbit.eu:4567/gitadmin/platform-controller-image
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-controller-image git.project-hobbit.eu:4567/gitadmin/platform-controller-image:$(version)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-controller-image git.project-hobbit.eu:4567/gitadmin/platform-controller-image:$(minor)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-controller-image git.project-hobbit.eu:4567/gitadmin/platform-controller-image:$(major)
+	docker tag hobbitproject/hobbit-storage-service:dev git.project-hobbit.eu:4567/gitadmin/platform-storage-image
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-storage-image git.project-hobbit.eu:4567/gitadmin/platform-storage-image:$(version)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-storage-image git.project-hobbit.eu:4567/gitadmin/platform-storage-image:$(minor)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-storage-image git.project-hobbit.eu:4567/gitadmin/platform-storage-image:$(major)
+	docker tag hobbitproject/hobbit-gui:dev git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-gui-image git.project-hobbit.eu:4567/gitadmin/platform-gui-image:$(version)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-gui-image git.project-hobbit.eu:4567/gitadmin/platform-gui-image:$(minor)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-gui-image git.project-hobbit.eu:4567/gitadmin/platform-gui-image:$(major)
+	docker tag hobbitproject/hobbit-analysis-component:dev git.project-hobbit.eu:4567/gitadmin/platform-analysis-image
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-analysis-image git.project-hobbit.eu:4567/gitadmin/platform-analysis-image:$(version)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-analysis-image git.project-hobbit.eu:4567/gitadmin/platform-analysis-image:$(minor)
+	docker tag git.project-hobbit.eu:4567/gitadmin/platform-analysis-image git.project-hobbit.eu:4567/gitadmin/platform-analysis-image:$(major)
+
+# create and push docker images for deployment
+push: build-images
+	docker push git.project-hobbit.eu:4567/gitadmin/platform-controller-image
+	docker push git.project-hobbit.eu:4567/gitadmin/platform-storage-image
+	docker push git.project-hobbit.eu:4567/gitadmin/platform-gui-image
+	docker push git.project-hobbit.eu:4567/gitadmin/platform-analysis-image
+
+build-images-docker-hub: build-images
+	docker tag hobbitproject/hobbit-platform-controller:dev $(controllerImage)
+	docker tag $(controllerImage) $(controllerImage):$(version)
+	docker tag hobbitproject/hobbit-storage-service:dev $(storageImage)
+	docker tag $(storageImage) $(storageImage):$(version)
+	docker tag hobbitproject/hobbit-gui:dev $(guiImage)
+	docker tag $(guiImage) $(guiImage):$(version) 
+	docker tag hobbitproject/hobbit-analysis-component:dev $(analysisImage)
+	docker tag $(analysisImage) $(analysisImage):$(version)
+
+# create and push docker images for deployment
+push-docker-hub: 
+	docker login
+	docker push $(controllerImage):latest
+	docker push $(storageImage):latest
+	docker push $(guiImage):latest
+	docker push $(analysisImage):latest
+	docker push $(controllerImage):$(version)
+	docker push $(storageImage):$(version)
+	docker push $(guiImage):$(version)
+	docker push $(analysisImage):$(version)
+
