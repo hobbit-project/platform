@@ -41,6 +41,8 @@ import com.google.gson.reflect.TypeToken;
 
 /**
  * Created by Timofey Ermilov on 22/09/16.
+ *
+ * TODO: maybe need to move
  */
 public class GitlabBasedImageManagerTest {
     private GitlabBasedImageManager imageManager;

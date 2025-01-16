@@ -21,7 +21,10 @@ import static org.junit.Assert.assertNotNull;
 import org.hobbit.core.Constants;
 import org.junit.Test;
 
-
+/**
+ *
+ * TODO: maybe need to move
+ */
 public class LongImageNameTest extends ContainerManagerBasedTest {
 
     private static final String imageName = "hobbitproject/nonexisting_image_name_thats_too_long";

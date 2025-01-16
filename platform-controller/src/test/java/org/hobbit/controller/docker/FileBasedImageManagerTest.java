@@ -8,9 +8,10 @@ import org.junit.Test;
 /**
  * A simple test which tests the ability of the {@link FileBasedImageManager}
  * class to load metadata from a file.
- * 
+ *
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
+ * TODO: maybe need to move
  */
 public class FileBasedImageManagerTest {
 

@@ -11,7 +11,7 @@ run:
 	DOCKER_HOST=tcp://localhost:2375 \
 	HOBBIT_RABBIT_HOST=localhost \
 	java -cp \
-		target/platform-controller-0.0.1-SNAPSHOT.jar \
+		target/platform-controller.jar \
 		org.hobbit.core.run.ComponentStarter \
 		org.hobbit.controller.PlatformController
 

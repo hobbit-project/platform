@@ -27,6 +27,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+
+/**
+ *
+ * TODO: maybe have a single class implementing the containsVersionTag method independently of Docker swarm or Kubernetes
+ */
 @RunWith(Parameterized.class)
 public class VersionTagIdentificationTest {
 
