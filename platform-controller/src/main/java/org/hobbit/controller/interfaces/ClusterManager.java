@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.interfaces;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;

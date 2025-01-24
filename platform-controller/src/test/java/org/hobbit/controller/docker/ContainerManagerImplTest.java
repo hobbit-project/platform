@@ -235,8 +235,8 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         services.add(containerId);
 
         // compare containerId and retrieved id
-        String containerName = manager.getContainerName(containerId);
-        assertEquals(containerId, manager.getContainerId(containerName));
+        String containerName = manager.getContainerPodName(containerId);
+        assertEquals(containerId, manager.getContainerPodId(containerName));
     }
 
     private void removeImage(String imageName) throws Exception {
@@ -341,7 +341,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         Long exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
-            exitCode = manager.getContainerExitCode(testTask);
+            exitCode = manager.getContainerPodExitCode(testTask);
         }
         assertEquals("Service is using first image version",
                 Long.valueOf(1), exitCode);
@@ -361,7 +361,7 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         exitCode = null;
         while (exitCode == null) {
             Thread.sleep(500);
-            exitCode = manager.getContainerExitCode(testTask);
+            exitCode = manager.getContainerPodExitCode(testTask);
         }
         assertEquals("Service is using second image version",
                 Long.valueOf(2), exitCode);
@@ -431,13 +431,13 @@ public class ContainerManagerImplTest extends ContainerManagerBasedTest {
         assertNotNull(pingContainer);
         services.add(pingContainer);
         Thread.sleep(10000);
-        assertEquals("Result of pinging the container's network alias", Long.valueOf(0), manager.getContainerExitCode(pingContainer));
+        assertEquals("Result of pinging the container's network alias", Long.valueOf(0), manager.getContainerPodExitCode(pingContainer));
 
         pingContainer = manager.startContainer(busyboxImageName, Constants.CONTAINER_TYPE_BENCHMARK,
                 null, null, null, new String[]{"ping", "-c", "1", "-W", "2", "nonexistant"});
         assertNotNull(pingContainer);
         services.add(pingContainer);
         Thread.sleep(10000);
-        assertEquals("Result of pinging the nonexisting host", Long.valueOf(1), manager.getContainerExitCode(pingContainer));
+        assertEquals("Result of pinging the nonexisting host", Long.valueOf(1), manager.getContainerPodExitCode(pingContainer));
     }
 }

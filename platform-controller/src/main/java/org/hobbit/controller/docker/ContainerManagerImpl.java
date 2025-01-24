@@ -30,6 +30,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
+import org.hobbit.controller.interfaces.ClusterManager;
+import org.hobbit.controller.interfaces.ContainerManager;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -561,8 +563,8 @@ public class ContainerManagerImpl implements ContainerManager {
         return startContainer(imageName, null, "", command);
     }
 
-    public String startContainer(String imageName, String type, String parent) {
-        return startContainer(imageName, type, parent, null);
+    public String startContainer(String imageName, String type, String parentId) {
+        return startContainer(imageName, type, parentId, null);
     }
 
     @Override
@@ -618,7 +620,7 @@ public class ContainerManagerImpl implements ContainerManager {
     @Override
     public void removeContainer(String serviceName) {
         try {
-            Long exitCode = getContainerExitCode(serviceName);
+            Long exitCode = getContainerPodExitCode(serviceName);
             if (DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
                 LOGGER.info("Will not remove container {}. " + "Development mode is enabled.", serviceName);
             } else if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) && (exitCode != null && exitCode != 0)) {
@@ -681,7 +683,7 @@ public class ContainerManagerImpl implements ContainerManager {
         }
     }
 
-    @Override
+    //@Override
     public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException {
         if (serviceName == null) {
             return null;
@@ -705,7 +707,7 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
-    public Long getContainerExitCode(String serviceName) throws DockerException, InterruptedException {
+    public Long getContainerPodExitCode(String serviceName) throws DockerException, InterruptedException {
         if (getContainerInfo(serviceName) == null) {
             LOGGER.warn(
                     "Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.",
@@ -740,13 +742,13 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Deprecated
     @Override
-    public String getContainerId(String name) {
+    public String getContainerPodId(String name) {
         return name;
     }
 
     @Deprecated
     @Override
-    public String getContainerName(String containerId) {
+    public String getContainerPodName(String containerId) {
         return containerId;
     }
 
@@ -778,7 +780,7 @@ public class ContainerManagerImpl implements ContainerManager {
         return stats;
     }
 
-    @Override
+    //@Override
     public String getContainerType(String containerId) {
         Service container = null;
         try {

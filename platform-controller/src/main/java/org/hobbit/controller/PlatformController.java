@@ -49,9 +49,9 @@ import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ClusterManager;
+import org.hobbit.controller.interfaces.ClusterManager;
 import org.hobbit.controller.docker.ClusterManagerImpl;
-import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.interfaces.ContainerManager;
 import org.hobbit.controller.docker.ContainerManagerImpl;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerStateObserverImpl;
@@ -498,7 +498,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
-        String parentId = containerManager.getContainerId(data.parent);
+        String parentId = containerManager.getContainerPodId(data.parent);
         if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
@@ -515,7 +515,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         if (containerId == null) {
             return null;
         } else {
-            return containerManager.getContainerName(containerId);
+            return containerManager.getContainerPodName(containerId);
         }
     }
 
@@ -525,7 +525,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @param containerName name of the container that should be stopped
      */
     public void stopContainer(String containerName) {
-        String containerId = containerManager.getContainerId(containerName);
+        String containerId = containerManager.getContainerPodId(containerName);
         if (containerId != null) {
             containerManager.removeContainer(containerId);
         }

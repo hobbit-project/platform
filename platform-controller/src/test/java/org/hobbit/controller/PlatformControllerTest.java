@@ -93,7 +93,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
      * container creation is checked by the test. The second command has an invalid
      * (because unknown) session id and the test checks whether the second command
      * creates an additional container.
-     * 
+     *
      * @throws Exception
      */
     @Test
@@ -103,7 +103,7 @@ public class PlatformControllerTest extends ContainerManagerBasedTest {
         // create and execute parent container
         final String parentId = manager.startContainer("busybox", Constants.CONTAINER_TYPE_SYSTEM, null,
                 new String[] { "sh", "-c", "while :; do sleep 1; done" });
-        final String parentName = manager.getContainerName(parentId);
+        final String parentName = manager.getContainerPodName(parentId);
         services.add(parentId);
 
         // create and execute test container

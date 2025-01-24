@@ -44,8 +44,8 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.interfaces.ClusterManager;
+import org.hobbit.controller.interfaces.ContainerManager;
 import org.hobbit.controller.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.controller.utils.RabbitMQConnector;
@@ -599,7 +599,7 @@ public class ExperimentManager implements Closeable {
             // send a message using sendToCmdQueue(command,
             // data) comprising a command that indicates that a
             // container terminated and the container name
-            String containerName = controller.containerManager.getContainerName(containerId);
+            String containerName = controller.containerManager.getContainerPodName(containerId);
             if (containerName != null) {
                 try {
                     controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
@@ -663,7 +663,7 @@ public class ExperimentManager implements Closeable {
      *                     daemon
      */
     private void startBenchmark_unsecured() throws IOException {
-        String containerName = controller.containerManager.getContainerName(experimentStatus.getSystemContainer());
+        String containerName = controller.containerManager.getContainerPodName(experimentStatus.getSystemContainer());
         if (containerName == null) {
             throw new IOException(
                     "Couldn't derive container name of the system container for sending start message to the benchmark.");
@@ -799,7 +799,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Add reported error to the experiment result model if the experiment with the
      * given session is still running.
-     * 
+     *
      * @param sessionId            the session ID of the container that reported the
      *                             error
      * @param errorData            the data of the reported error

@@ -14,11 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.interfaces;
 
 import java.util.List;
 import java.util.Map;
 
+import io.kubernetes.client.openapi.ApiException;
+import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.core.Constants;
 
 import com.spotify.docker.client.exceptions.DockerException;
@@ -26,7 +28,7 @@ import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Service;
 
 /**
- * This interface is implemented by classes that can be used to manage Docker
+ * This interface is implemented by classes that can be used to manage Docker or Kubernetes
  * containers.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
@@ -85,12 +87,12 @@ public interface ContainerManager {
      *
      * @param imageName name of the image to start
      * @param type      container type
-     * @param parent    parent id
+     * @param parentId    parent id
      *
      *
      * @return container id
      */
-    public String startContainer(String imageName, String type, String parent);
+    public String startContainer(String imageName, String type, String parentId);
 
     /**
      * Starts the container with the given image name.
@@ -216,16 +218,18 @@ public interface ContainerManager {
     /**
      * Returns container's exit code or null if container is still running.
      *
-     * @param container
+     * @param serviceName
      */
-    public Long getContainerExitCode(String serviceName) throws DockerException, InterruptedException;
+    public Long getContainerPodExitCode(String serviceName) throws DockerException, InterruptedException, ApiException;
 
-    /**
-     * Returns container info
-     *
-     * @param containerId
-     */
-    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
+
+    //TODO maybe remove this method from interface just keeo the usage in implementation for dokcer
+//    /**
+//     * Returns container info
+//     *
+//     * @param serviceName
+//     */
+//    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
 
     /**
      * Get a list of services
@@ -248,24 +252,24 @@ public interface ContainerManager {
      *             be found.
      */
     @Deprecated
-    public String getContainerId(String name);
+    public String getContainerPodId(String name);
 
     /**
      * @deprecated Platform uses names as IDs. Returns the name of the container
      *             with the given Id or {@code null} if such a container can not be
      *             found
-     * 
+     *
      * @param containerId the Id of the container for which the name should be
      *                    retrieved
      * @return the name of the container with the given Id or {@code null} if such a
      *         container can not be found
      */
     @Deprecated
-    public String getContainerName(String containerId);
+    public String getContainerPodName(String containerId);
 
     /**
      * Adds the given observer to the list of internal observers.
-     * 
+     *
      * @param containerObserver the observer that should be added to the internal
      *                          list
      */
@@ -281,7 +285,7 @@ public interface ContainerManager {
     /**
      * Returns statistics of the container with the given Id or {@code null} if the
      * container can not be found or an error occurs.
-     * 
+     *
      * @param containerId the Id of the container for which statistics should be
      *                    requested
      * @return statistics of the container with the given Id or {@code null} if the
@@ -294,7 +298,7 @@ public interface ContainerManager {
      * {@link Constants#CONTAINER_TYPE_BENCHMARK},
      * {@link Constants#CONTAINER_TYPE_DATABASE} or
      * {@link Constants#CONTAINER_TYPE_SYSTEM}.
-     * 
+     *
      * @param containerId
      * @return
      */

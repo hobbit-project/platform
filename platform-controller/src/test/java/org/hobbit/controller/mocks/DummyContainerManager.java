@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-import org.hobbit.controller.docker.ContainerManager;
+import org.hobbit.controller.interfaces.ContainerManager;
 import org.hobbit.controller.docker.ContainerStateObserver;
 import org.hobbit.controller.docker.ContainerTerminationCallback;
 
@@ -107,10 +107,10 @@ public class DummyContainerManager implements ContainerManager {
         stopContainer(parent);
     }
 
-    @Override
-    public Service getContainerInfo(String serviceName) {
-        return null;
-    }
+//    @Override
+//    public Service getContainerInfo(String serviceName) {
+//        return null;
+//    }
 
     @Override
     public List<Service> getContainers(Criteria criteria) {
@@ -118,17 +118,17 @@ public class DummyContainerManager implements ContainerManager {
     }
 
     @Override
-    public Long getContainerExitCode(String serviceName) {
+    public Long getContainerPodExitCode(String serviceName) {
         return null;
     }
 
     @Override
-    public String getContainerId(String name) {
+    public String getContainerPodId(String name) {
         return name;
     }
 
     @Override
-    public String getContainerName(String containerId) {
+    public String getContainerPodName(String containerId) {
         return containerId;
     }
 
