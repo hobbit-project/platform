@@ -10,6 +10,7 @@ import java.util.List;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.log4j.lf5.util.StreamUtils;
 import org.hobbit.controller.ParameterForwardingTest;
+import org.hobbit.controller.containers.docker.MetaDataFactory;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ImageMetaData;
 import org.hobbit.core.data.SystemMetaData;

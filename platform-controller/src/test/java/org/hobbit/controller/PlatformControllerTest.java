@@ -33,7 +33,7 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.docker.ContainerManagerBasedTest;
-import org.hobbit.controller.docker.ContainerManagerImpl;
+import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.hobbit.core.Commands;
 import org.hobbit.core.Constants;
 import org.hobbit.utils.config.HobbitConfiguration;

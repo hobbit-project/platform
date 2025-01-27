@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ConnectivityAssumptionUtils;
+import org.hobbit.controller.containers.docker.GitlabBasedImageManager;
 import org.hobbit.controller.gitlab.GitlabControllerImplTest;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;

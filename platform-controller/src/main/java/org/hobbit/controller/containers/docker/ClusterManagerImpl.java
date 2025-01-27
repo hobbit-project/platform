@@ -1,8 +1,8 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.stream.Stream;
 
-import org.hobbit.controller.interfaces.ClusterManager;
+import org.hobbit.controller.containers.ClusterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,12 +1,11 @@
-package org.hobbit.controller.kubernetes;
+package org.hobbit.controller.containers.kubernetes;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Placement;
 import com.spotify.docker.client.messages.swarm.Resources;
 import com.spotify.docker.client.messages.swarm.Service;
-import org.hobbit.controller.interfaces.ContainerManager;
-import org.hobbit.controller.docker.ContainerStateObserver;
+import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.docker.ContainerStateObserver;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -26,7 +25,7 @@ import java.util.*;
 
 public class ContainerManagerImpl implements ContainerManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(org.hobbit.controller.kubernetes.ContainerManagerImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);
     private ApiClient client;
     //TODO make configable
     private int TIMEOUT_MILLISECONDS = 60000;

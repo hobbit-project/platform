@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.hobbit.core.Constants;
 import org.junit.Assert;
 import org.junit.Assume;

@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;

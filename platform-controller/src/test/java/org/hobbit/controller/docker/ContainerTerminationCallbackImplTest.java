@@ -16,6 +16,7 @@
  */
 package org.hobbit.controller.docker;
 
+import org.hobbit.controller.containers.docker.ContainerTerminationCallbackImpl;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

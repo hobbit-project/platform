@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +30,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
-import org.hobbit.controller.interfaces.ClusterManager;
-import org.hobbit.controller.interfaces.ContainerManager;
+import org.hobbit.controller.containers.ClusterManager;
+import org.hobbit.controller.containers.ContainerManager;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;

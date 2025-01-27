@@ -14,18 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 /**
- * Created by Timofey Ermilov on 01/09/16.
+ * These methods have to be implemented by a class that should be called if a
+ * {@link ContainerStateObserver} determines the termination of a container.
+ *
+ * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
+ *
  */
-public class ContainerTerminationCallbackImpl implements ContainerTerminationCallback {
-    public String containerId;
-    public long exitCode;
+public interface ContainerTerminationCallback {
 
-    @Override
-    public void notifyTermination(String containerId, long exitCode) {
-        this.containerId = containerId;
-        this.exitCode = exitCode;
-    }
+    /**
+     * This method is called if the container with the given container Id
+     * terminated.
+     *
+     * @param containerId
+     *            the id of the container that terminated
+     * @param exitCode
+     *            the exit code of the container
+     */
+    public void notifyTermination(String containerId, long exitCode);
 }

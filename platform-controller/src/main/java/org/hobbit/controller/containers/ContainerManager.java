@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.interfaces;
+package org.hobbit.controller.containers;
 
 import java.util.List;
 import java.util.Map;
 
 import io.kubernetes.client.openapi.ApiException;
-import org.hobbit.controller.docker.ContainerStateObserver;
+import org.hobbit.controller.containers.docker.ContainerStateObserver;
 import org.hobbit.core.Constants;
 
 import com.spotify.docker.client.exceptions.DockerException;

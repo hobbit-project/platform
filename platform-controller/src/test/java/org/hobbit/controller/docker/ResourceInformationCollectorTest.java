@@ -7,6 +7,8 @@ import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.sparql.vocabulary.DOAP;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
+import org.hobbit.controller.containers.docker.ResourceInformationCollector;
+import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.ResourceUsageInformation;

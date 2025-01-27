@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -93,7 +93,7 @@ public class MetaDataFactory {
      * Creates a new model that contains all triples of the old model except the
      * definitions of other hobbit:Benchmark elements than the benchmark with the
      * given URI.
-     * 
+     *
      * @param model        the model from which all triples will be copied
      * @param benchmarkUri the URI of the only benchmark which is not removed from
      *                     the copied model
@@ -110,7 +110,7 @@ public class MetaDataFactory {
      * have a system URI as subject. A system URI is a URI of a resource {@code s}
      * for which a triple {@code s rdf:type hobbit:SystemInstance} can be found in
      * the given model.
-     * 
+     *
      * @param model     the model from which all triples will be copied
      * @param systemUri the URI of the only system which is not removed from the
      *                  copied model

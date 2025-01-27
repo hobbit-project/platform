@@ -5,9 +5,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-import org.hobbit.controller.interfaces.ContainerManager;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
+import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.docker.ContainerStateObserver;
+import org.hobbit.controller.containers.docker.ContainerTerminationCallback;
 
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Service;

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.List;
 
@@ -73,7 +73,7 @@ public interface ContainerStateObserver {
 
     /**
      * Returns the list of observed containers.
-     * 
+     *
      * @return the list of containers that should be observer
      */
     public List<String> getObservedContainers();

@@ -35,8 +35,8 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
-import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.MetaDataFactory;
+import org.hobbit.controller.containers.docker.ImageManager;
+import org.hobbit.controller.containers.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.rabbit.RabbitMQUtils;
 import org.hobbit.vocab.HOBBIT;
@@ -598,7 +598,7 @@ public class ExperimentStatus implements Closeable {
     /**
      * Returns the next error report ID for this experiment. Note that each call of
      * this method increases the error ID counter internally.
-     * 
+     *
      * @return the next error report ID for this experiment
      */
     public int getNextErrorReportId() {

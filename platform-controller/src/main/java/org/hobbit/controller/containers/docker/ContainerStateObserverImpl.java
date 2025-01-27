@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +22,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import io.kubernetes.client.openapi.ApiException;
-import org.hobbit.controller.interfaces.ContainerManager;
+import org.hobbit.controller.containers.ContainerManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

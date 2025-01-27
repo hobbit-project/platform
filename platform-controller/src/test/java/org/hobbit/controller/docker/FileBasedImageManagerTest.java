@@ -1,5 +1,6 @@
 package org.hobbit.controller.docker;
 
+import org.hobbit.controller.containers.docker.FileBasedImageManager;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.junit.Assert;

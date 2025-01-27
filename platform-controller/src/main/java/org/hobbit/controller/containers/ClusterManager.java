@@ -1,4 +1,4 @@
-package org.hobbit.controller.interfaces;
+package org.hobbit.controller.containers;
 
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Info;
@@ -16,7 +16,8 @@ public interface ClusterManager {
      *
      * @return com.spotify.docker.client.messages.Info
      */
-    public Info getClusterInfo() throws DockerException, InterruptedException;
+    // it just used in one test then commented
+    //public Info getClusterInfo() throws DockerException, InterruptedException;
 
     /**
      * Get number of nodes in the cluster

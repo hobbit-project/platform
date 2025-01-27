@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,7 +14,7 @@ import org.hobbit.core.data.SystemMetaData;
 /**
  * An abstract implementation of the {@link ImageManager} interface which takes
  * care of systems or benchmarks which have the same URI.
- * 
+ *
  * @author Michael R&ouml;der (michael.roeder@uni-paderborn.de)
  *
  */
@@ -30,7 +30,7 @@ public abstract class AbstactImageManager implements ImageManager {
     /**
      * A method that returns a list of unchecked benchmarks (they may have
      * overlapping URIs).
-     * 
+     *
      * @return a list of known benchmarks
      */
     protected abstract List<BenchmarkMetaData> getUncheckedBenchmarks();
@@ -43,7 +43,7 @@ public abstract class AbstactImageManager implements ImageManager {
     /**
      * A method that returns a list of unchecked systems (they may have overlapping
      * URIs).
-     * 
+     *
      * @return a list of known systems
      */
     protected abstract List<SystemMetaData> getUncheckedSystems();
@@ -85,7 +85,7 @@ public abstract class AbstactImageManager implements ImageManager {
     /**
      * Identifies duplicates and marks them using the
      * {@link #addErrorToDuplicates(List)} method.
-     * 
+     *
      * @param images
      *            a list of images that may contain duplicates
      * @return the same list
@@ -98,7 +98,7 @@ public abstract class AbstactImageManager implements ImageManager {
     /**
      * Sets the {@link ImageMetaData#defError} attribute of all meta data elements
      * that are identified as duplicates.
-     * 
+     *
      * @param images
      *            the list of image meta data objects that have the same URI
      */
@@ -127,7 +127,7 @@ public abstract class AbstactImageManager implements ImageManager {
     /**
      * Creates a stream of lists each containing all image meta data instances that
      * are sharing the same URI.
-     * 
+     *
      * @param images
      *            a list of image meta data instances
      * @return a stream of lists grouped by the image meta data URI
@@ -143,7 +143,7 @@ public abstract class AbstactImageManager implements ImageManager {
      * makes sure that the correct {@link #getSystems()} method is used (i.e., the
      * method that adds additional information to the systems which can not be added
      * later on, after the filtering).
-     * 
+     *
      * @param filter
      *            the filter that is used. Should be thread safe.
      * @return the filtered list

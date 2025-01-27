@@ -16,7 +16,9 @@
  */
 package org.hobbit.controller.docker;
 
-import org.hobbit.controller.interfaces.ContainerManager;
+import org.hobbit.controller.containers.docker.ContainerStateObserverImpl;
+import org.hobbit.controller.containers.docker.ContainerTerminationCallbackImpl;
+import org.hobbit.controller.containers.ContainerManager;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

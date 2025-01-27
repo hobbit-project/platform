@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.spotify.docker.client.messages.ContainerConfig;
+import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.hobbit.core.Constants;
 import org.junit.Test;
 

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.util.List;
 import java.util.Set;
@@ -29,9 +29,9 @@ import org.hobbit.core.data.SystemMetaData;
 /**
  * An {@link ImageManager} implementation relying on the usage of a
  * {@link GitlabController}.
- * 
+ *
  * Created by Timofey Ermilov on 22/09/16.
- * 
+ *
  */
 public class GitlabBasedImageManager extends AbstactImageManager implements ImageManager {
 

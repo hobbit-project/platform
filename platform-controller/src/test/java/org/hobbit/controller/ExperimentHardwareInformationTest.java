@@ -10,7 +10,7 @@ import org.apache.jena.sparql.vocabulary.DOAP;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
+import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.mocks.DummyImageManager;
 import org.hobbit.controller.mocks.DummyPlatformController;
 import org.hobbit.controller.mocks.DummyStorageServiceClient;

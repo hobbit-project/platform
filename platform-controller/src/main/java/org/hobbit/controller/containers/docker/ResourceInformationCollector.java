@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.core.data.usage.ResourceUsageInformation;

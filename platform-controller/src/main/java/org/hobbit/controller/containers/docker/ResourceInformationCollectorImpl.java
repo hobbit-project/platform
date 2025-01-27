@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
-import org.hobbit.controller.interfaces.ContainerManager;
+import org.hobbit.controller.containers.ContainerManager;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;

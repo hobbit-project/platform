@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.hobbit.controller.DockerBasedTest;
+import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
