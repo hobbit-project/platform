@@ -35,7 +35,7 @@ import org.apache.jena.rdf.model.StmtIterator;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.ExperimentManager;
 import org.hobbit.controller.PlatformController;
-import org.hobbit.controller.containers.docker.ImageManager;
+import org.hobbit.controller.containers.ImageManager;
 import org.hobbit.controller.containers.docker.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.core.rabbit.RabbitMQUtils;

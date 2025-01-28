@@ -23,6 +23,8 @@ import java.util.TimerTask;
 
 import io.kubernetes.client.openapi.ApiException;
 import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.ContainerStateObserver;
+import org.hobbit.controller.containers.ContainerTerminationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

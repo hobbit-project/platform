@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 
 import io.kubernetes.client.openapi.ApiException;
-import org.hobbit.controller.containers.docker.ContainerStateObserver;
 import org.hobbit.core.Constants;
 
 import com.spotify.docker.client.exceptions.DockerException;

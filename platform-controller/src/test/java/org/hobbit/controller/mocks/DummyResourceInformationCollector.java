@@ -2,7 +2,7 @@ package org.hobbit.controller.mocks;
 
 import com.spotify.docker.client.messages.swarm.Service;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.containers.docker.ResourceInformationCollector;
+import org.hobbit.controller.containers.ResourceInformationCollector;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 
 public class DummyResourceInformationCollector implements ResourceInformationCollector {

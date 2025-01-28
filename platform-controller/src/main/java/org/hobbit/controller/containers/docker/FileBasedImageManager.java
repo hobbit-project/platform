@@ -28,6 +28,7 @@ import java.util.TimerTask;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jena.rdf.model.Model;
+import org.hobbit.controller.containers.AbstactImageManager;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 import org.slf4j.Logger;

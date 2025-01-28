@@ -1,4 +1,4 @@
-package org.hobbit.controller.containers.docker;
+package org.hobbit.controller.containers;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.hobbit.controller.containers.ImageManager;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.ImageMetaData;
 import org.hobbit.core.data.SystemMetaData;

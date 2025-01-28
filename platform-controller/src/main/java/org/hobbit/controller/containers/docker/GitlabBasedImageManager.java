@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.hobbit.controller.containers.AbstactImageManager;
+import org.hobbit.controller.containers.ImageManager;
 import org.hobbit.controller.gitlab.GitlabController;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.gitlab.Project;

@@ -16,6 +16,8 @@
  */
 package org.hobbit.controller.containers.docker;
 
+import org.hobbit.controller.containers.ContainerTerminationCallback;
+
 /**
  * Created by Timofey Ermilov on 01/09/16.
  */

@@ -14,7 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.containers.docker;
+package org.hobbit.controller.containers;
+
+import org.hobbit.controller.containers.ContainerStateObserver;
 
 /**
  * These methods have to be implemented by a class that should be called if a

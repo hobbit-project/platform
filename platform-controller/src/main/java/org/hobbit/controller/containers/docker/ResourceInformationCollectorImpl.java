@@ -14,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.io.IOUtils;
 import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.ResourceInformationCollector;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;

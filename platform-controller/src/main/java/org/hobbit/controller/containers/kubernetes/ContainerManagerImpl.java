@@ -1,11 +1,7 @@
 package org.hobbit.controller.containers.kubernetes;
 
-import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Resources;
-import com.spotify.docker.client.messages.swarm.Service;
 import org.hobbit.controller.containers.ContainerManager;
-import org.hobbit.controller.containers.docker.ContainerStateObserver;
+import org.hobbit.controller.containers.ContainerStateObserver;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -462,7 +458,6 @@ public class ContainerManagerImpl implements ContainerManager {
 //    }
 
 
-    // used in ResourceInformationCollectorImpl
     @Override
     public List<Service> getContainers(Service.Criteria criteria) {
         return null;

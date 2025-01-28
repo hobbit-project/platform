@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.hobbit.controller.containers.docker.ImageManager;
+import org.hobbit.controller.containers.ImageManager;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
 

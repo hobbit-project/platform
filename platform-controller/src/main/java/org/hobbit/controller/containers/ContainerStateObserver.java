@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.containers.docker;
+package org.hobbit.controller.containers;
 
 import java.util.List;
 

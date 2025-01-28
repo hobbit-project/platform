@@ -29,6 +29,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.hobbit.controller.containers.ContainerStateObserver;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.containers.ClusterManager;
 import org.hobbit.controller.containers.ContainerManager;
