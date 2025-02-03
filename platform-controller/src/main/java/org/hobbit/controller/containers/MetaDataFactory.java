@@ -1,4 +1,4 @@
-package org.hobbit.controller.containers.docker;
+package org.hobbit.controller.containers;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;

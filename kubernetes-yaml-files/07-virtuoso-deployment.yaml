@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: virtuoso
+    labels:
+        app: virtuoso
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: virtuoso
+    template:
+        metadata:
+            labels:
+                app: virtuoso
+        spec:
+            containers:
+                - name: virtuoso
+                  image: openlink/virtuoso-opensource-7:latest
+                  ports:
+                      - containerPort: 8890  # HTTP (SPARQL endpoint)
+                      - containerPort: 1111  # ISQL (command-line interface)
+                  env:
+                      - name: VIRTUOSO_DBNAME
+                        value: "virtuoso"
+                      - name: VIRTUOSO_USER
+                        value: "dba"
+                      - name: VIRTUOSO_PASSWORD
+                        value: "dba"
+                  volumeMounts:
+                      - mountPath: /data
+                        name: virtuoso-storage
+            volumes:
+                - name: virtuoso-storage
+                  persistentVolumeClaim:
+                      claimName: virtuoso-pvc

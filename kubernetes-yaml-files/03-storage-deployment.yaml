@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: hobbit-storage-service-deployment
+    labels:
+        app: hobbit-storage-service
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: hobbit-storage-service
+    template:
+        metadata:
+            labels:
+                app: hobbit-storage-service
+        spec:
+            containers:
+                - name: storage-service
+                  image: hobbit/storage_service:latest
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - containerPort: 8080
+                  env:
+                      - name: JAVA_OPTS
+                        value: "-Xmx256m -Xms128m"
+                      - name: HOBBIT_RABBIT_HOST
+                        value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
+                  volumeMounts:
+                      - mountPath: /path/to/mount
+                        name: storage-volume
+                  livenessProbe:
+                      httpGet:
+                          path: /actuator/health
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                  readinessProbe:
+                      httpGet:
+                          path: /actuator/health
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+            volumes:
+                - name: storage-volume
+                  persistentVolumeClaim:
+                      claimName: hobbit-storage-pvc
