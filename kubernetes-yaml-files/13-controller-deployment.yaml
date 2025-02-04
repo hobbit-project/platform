@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: controller
+    labels:
+        app: controller
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: controller
+    template:
+        metadata:
+            labels:
+                app: controller
+        spec:
+            containers:
+                - name: controller
+                  image: hobbit/platform_controller:dev0.0.4
+                  imagePullPolicy: IfNotPresent
+                  ports:
+                      - containerPort: 8080
+                  env:
+                      -   name: HOBBIT_RABBIT_HOST
+                          value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
+                      -   name: SPARQL_ENDPOINT_URL
+                          value: virtuoso
+                      -   name: SPARQL_ENDPOINT_USERNAME
+                          value: "dba"
+                      -   name: SPARQL_ENDPOINT_PASSWORD
+                          value: "dba"
+                      -   name: SPARQL_ENDPOINT_DATABASE
+                          value: "virtuoso"
+                      -   name: HOBBIT_REDIS_HOST
+                          value: "redis-service"
+                      -   name: GITLAB_TOKEN
+                          valueFrom:
+                                  secretKeyRef:
+                                      name: gitlab-secret
+                                      key: GITLAB_TOKEN
+                      -   name: GITLAB_USER
+                          value: "gitadmin"
+                      -   name: GITLAB_EMAIL
+                          value: "gitadmin@project-hobbit.eu"
+                  volumeMounts:
+                      - mountPath: /data
+                        name: controller-storage  # Only if you are using a PVC
+            volumes:
+                - name: controller-storage
+                  persistentVolumeClaim:
+                      claimName: controller-pvc  # Only if you are using a PVC
