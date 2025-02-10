@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+    name: controller-pv
+spec:
+    capacity:
+        storage: 2Gi # Increased to 2Gi to match the PVC request
+    accessModes:
+        - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Retain # Or Delete, as needed
+    storageClassName: "" # Important: Leave empty if not using Storage Classes
+    nfs:
+        server: 131.234.29.64 # Your NFS server IP
+        path: /data/nfs/kubedata/controller
