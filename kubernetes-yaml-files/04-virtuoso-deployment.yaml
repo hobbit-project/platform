@@ -17,6 +17,9 @@ spec:
             containers:
                 - name: virtuoso
                   image: openlink/virtuoso-opensource-7:latest
+                  securityContext:
+                      runAsUser: 79184 # Replace with the actual numeric user ID
+                      runAsGroup: 10000
                   ports:
                       - containerPort: 8890  # HTTP (SPARQL endpoint)
                       - containerPort: 1111  # ISQL (command-line interface)

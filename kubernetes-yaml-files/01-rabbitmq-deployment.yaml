@@ -51,6 +51,9 @@ spec:
             containers:
                 - name: rabbitmq
                   image: rabbitmq:3-management
+                  securityContext:
+                      runAsUser: 79184 # Replace with the actual numeric user ID
+                      runAsGroup: 10000
                   ports:
                       - containerPort: 5672  # AMQP protocol (for applications)
                       - containerPort: 15672 # Management UI (for admins)

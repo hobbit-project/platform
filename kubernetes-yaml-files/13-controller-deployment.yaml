@@ -19,6 +19,9 @@ spec:
                 - name: controller
                   image: hub.cs.upb.de/dice-research/images/hobbit-platform_controller:dev0.0.9
                   imagePullPolicy: IfNotPresent
+                  securityContext:
+                      runAsUser: 79184 # Replace with the actual numeric user ID
+                      runAsGroup: 10000
                   ports:
                       - containerPort: 8080
                   env:

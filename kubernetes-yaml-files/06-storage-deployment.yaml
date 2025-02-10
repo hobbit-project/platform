@@ -17,6 +17,9 @@ spec:
             containers:
                 - name: storage-service
                   image: hub.cs.upb.de/dice-research/images/hobbit-storage_service:dev0.0.1
+                  securityContext:
+                      runAsUser: 79184 # Replace with the actual numeric user ID
+                      runAsGroup: 10000
                   imagePullPolicy: IfNotPresent
                   ports:
                       - containerPort: 8080
