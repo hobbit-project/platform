@@ -14,9 +14,10 @@ spec:
             labels:
                 app: controller
         spec:
+            serviceAccountName: controller-service-sa
             containers:
                 - name: controller
-                  image: hobbit/platform_controller:dev0.0.4
+                  image: hub.cs.upb.de/dice-research/images/hobbit-platform_controller:dev0.0.9
                   imagePullPolicy: IfNotPresent
                   ports:
                       - containerPort: 8080
@@ -42,10 +43,33 @@ spec:
                           value: "gitadmin"
                       -   name: GITLAB_EMAIL
                           value: "gitadmin@project-hobbit.eu"
+                      -   name: DEPLOY_ENV
+                          value: "develop"
+                      -   name: MAX_EXECUTION_TIME
+                          value: "1200000"
                   volumeMounts:
                       - mountPath: /data
                         name: controller-storage  # Only if you are using a PVC
+                      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                        name: kube-api-access
+                        readOnly: true
             volumes:
                 - name: controller-storage
                   persistentVolumeClaim:
                       claimName: controller-pvc  # Only if you are using a PVC
+                - name: kube-api-access
+                  projected:
+                    sources:
+                    - serviceAccountToken:
+                        expirationSeconds: 3607
+                        path: token
+                    - configMap:
+                        name: kube-root-ca.crt
+                        items:
+                            - key: ca.crt
+                              path: ca.crt
+                    - downwardAPI:
+                        items:
+                            - path: namespace
+                              fieldRef:
+                                  fieldPath: metadata.namespace

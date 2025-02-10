@@ -5,24 +5,18 @@ metadata:
     namespace: default
 rules:
     - apiGroups: [""]
-      resources: ["nodes"]
-      verbs: ["get", "list", "watch"]
-    - apiGroups: [""]
-      resources: ["services"]
-      verbs: ["create", "get", "update", "delete", "list", "watch"]
-    - apiGroups: [""]
-      resources: ["pods"]
+      resources: ["nodes", "pods", "services", "namespaces"]
       verbs: ["create", "get", "update", "delete", "list", "watch"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-    name: my-service-account-binding
+    name: controller-service-account-binding
     namespace: default
 subjects:
     - kind: ServiceAccount
-      name: controller-service
+      name: controller-service-sa
       namespace: default
 roleRef:
     kind: Role

@@ -16,7 +16,7 @@ spec:
         spec:
             containers:
                 - name: storage-service
-                  image: hobbit/storage_service:latest
+                  image: hub.cs.upb.de/dice-research/images/hobbit-storage_service:dev0.0.1
                   imagePullPolicy: IfNotPresent
                   ports:
                       - containerPort: 8080
@@ -26,7 +26,7 @@ spec:
                       - name: HOBBIT_RABBIT_HOST
                         value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
                       - name:  SPARQL_ENDPOINT_URL
-                        value: virtuoso
+                        value: virtuoso-service
                       - name: SPARQL_ENDPOINT_USERNAME
                         value: "dba"
                       - name: SPARQL_ENDPOINT_PASSWORD
