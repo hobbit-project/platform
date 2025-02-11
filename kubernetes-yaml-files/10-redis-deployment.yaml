@@ -14,12 +14,12 @@ spec:
             labels:
                 app: redis
         spec:
+            securityContext:
+                fsGroup: 1000
+                runAsUser: 79184 #because it need to run chown if user is different
             containers:
                 - name: redis
                   image: redis:6.2.6
-                  securityContext:
-                      runAsUser: 79184 # Replace with the actual numeric user ID
-                      runAsGroup: 10000
                   ports:
                       - containerPort: 6379
                   volumeMounts:
