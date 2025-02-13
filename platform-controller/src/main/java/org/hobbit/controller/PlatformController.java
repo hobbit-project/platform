@@ -35,6 +35,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.util.ClientBuilder;
+import io.kubernetes.client.util.Config;
 import org.apache.commons.configuration2.EnvironmentConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
@@ -50,18 +55,22 @@ import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
 import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.containers.ClusterManager;
-import org.hobbit.controller.containers.docker.ClusterManagerImpl;
+//import org.hobbit.controller.containers.docker.ClusterManagerImpl;
+import org.hobbit.controller.containers.kubernetes.ClusterManagerImpl;
 import org.hobbit.controller.containers.ContainerManager;
-import org.hobbit.controller.containers.docker.ContainerManagerImpl;
+//import org.hobbit.controller.containers.docker.ContainerManagerImpl;
+import org.hobbit.controller.containers.kubernetes.ContainerManagerImpl;
 import org.hobbit.controller.containers.ContainerStateObserver;
-import org.hobbit.controller.containers.docker.ContainerStateObserverImpl;
+//import org.hobbit.controller.containers.docker.ContainerStateObserverImpl;
+import org.hobbit.controller.containers.kubernetes.ContainerStateObserverImpl;
 import org.hobbit.controller.containers.ContainerTerminationCallback;
-import org.hobbit.controller.containers.docker.FileBasedImageManager;
-import org.hobbit.controller.containers.docker.GitlabBasedImageManager;
+import org.hobbit.controller.containers.FileBasedImageManager;
+import org.hobbit.controller.containers.GitlabBasedImageManager;
 import org.hobbit.controller.containers.ImageManager;
 import org.hobbit.controller.containers.ImageManagerFacade;
 import org.hobbit.controller.containers.ResourceInformationCollector;
-import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
+//import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
+import org.hobbit.controller.containers.kubernetes.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
@@ -220,6 +229,9 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     protected Timer challengeCheckTimer;
     protected HobbitConfiguration hobbitConfig;
 
+    //@Value("${container.manager.timeoutMilliSeconds:60000}")
+    private int TIMEOUT_MILLISECONDS = 60000;
+
     /**
      * Default constructor.
      */
@@ -240,7 +252,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     public void init() throws Exception {
         // First initialize the super class
         super.init();
-        LOGGER.debug("Platform controller initialization started.");
+        LOGGER.info("Platform controller initialization started.");
 
         hobbitConfig = new HobbitConfiguration();
         hobbitConfig.addConfiguration(new EnvironmentConfiguration());
@@ -248,7 +260,21 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
         // Only for prod mode
-        clusterManager = new ClusterManagerImpl();
+
+        LOGGER.info("configuration initialized.");
+
+       // Config.fromConfig("/var/run/secrets/kubernetes.io/serviceaccount/token");
+        //ApiClient client = Configuration.get();
+        ApiClient client = Config.defaultClient();
+        client.setConnectTimeout(TIMEOUT_MILLISECONDS);
+        client.setReadTimeout(TIMEOUT_MILLISECONDS);
+        client.setWriteTimeout(TIMEOUT_MILLISECONDS);
+        Configuration.setDefaultApiClient(client);
+
+        LOGGER.info("kub client initialized.");
+
+
+        clusterManager = new ClusterManagerImpl(client);
         if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
         } else {
@@ -258,14 +284,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
 
         // create container manager
-        containerManager = new ContainerManagerImpl();
-        LOGGER.debug("Container manager initialized.");
+        containerManager = new ContainerManagerImpl(client);
+        LOGGER.info("Container manager initialized.");
         // Create container observer (polls status every 5s)
-        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
+        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000, client);
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
-        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
+        resInfoCollector = new ResourceInformationCollectorImpl(containerManager,client,new CoreV1Api(client));
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");

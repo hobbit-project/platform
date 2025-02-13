@@ -46,7 +46,7 @@ import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.controller.containers.ClusterManager;
 import org.hobbit.controller.containers.ContainerManager;
-import org.hobbit.controller.containers.docker.MetaDataFactory;
+import org.hobbit.controller.containers.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
@@ -168,6 +168,7 @@ public class ExperimentManager implements Closeable {
      * experiment waiting in the queue.
      */
     public void createNextExperiment() {
+        LOGGER.info("create experiment");
         synchronized (experimentMutex) {
             try {
                 // if there is no benchmark running, the queue has been
@@ -324,6 +325,7 @@ public class ExperimentManager implements Closeable {
 
     protected void createRabbitMQ(ExperimentConfiguration config) throws Exception {
         String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
+        LOGGER.info("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         if (rabbitMQAddress == null) {
             LOGGER.info("Starting new RabbitMQ for the experiment...");
             rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),

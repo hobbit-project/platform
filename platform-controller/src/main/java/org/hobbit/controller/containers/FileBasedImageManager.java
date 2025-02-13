@@ -38,7 +38,7 @@ public class FileBasedImageManager extends AbstactImageManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(FileBasedImageManager.class);
 
-    private static final String DEFAULT_DEF_FOLDER = "metadata";
+    private static final String DEFAULT_DEF_FOLDER = "/data/metadata";
     private static final Date DEFAULT_DATE = new Date(0);
 
     private final String inputFolder;

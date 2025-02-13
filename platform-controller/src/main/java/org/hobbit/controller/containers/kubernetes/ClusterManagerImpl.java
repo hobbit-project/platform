@@ -6,16 +6,28 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeList;
 import org.hobbit.controller.containers.ClusterManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class ClusterManagerImpl implements ClusterManager {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
     private final CoreV1Api coreV1Api;
     private Integer taskHistoryLimit = 0; // Default task history limit
 
     public ClusterManagerImpl(ApiClient apiClient) {
+        LOGGER.info("Creating a new cluster manager ");
         this.coreV1Api = new CoreV1Api(apiClient);
+        LOGGER.info("coreV1Api created, lets test it");
+        try{
+
+            V1NodeList nodeList = coreV1Api.listNode(null, null, null, null, null, null, null, null, null, false);
+            List<V1Node> nodes = nodeList.getItems();
+            LOGGER.info(nodes.size() + " nodes found");
+        }catch(Exception e){
+            LOGGER.error("Failed to create cluster manager coreV1Api is the root of the problem", e);
+        }
     }
 
 
@@ -42,9 +54,11 @@ public class ClusterManagerImpl implements ClusterManager {
 
     @Override
     public boolean isClusterHealthy() throws InterruptedException {
+        LOGGER.info("Checking cluster health");
         try {
             V1NodeList nodeList = coreV1Api.listNode(null, null, null, null, null, null, null, null, null, false);
             List<V1Node> nodes = nodeList.getItems();
+            LOGGER.info(nodes.size() + " nodes found");
             for (V1Node node : nodes) {
                 String status = node.getStatus().getConditions()
                     .stream()
@@ -59,6 +73,8 @@ public class ClusterManagerImpl implements ClusterManager {
             }
             return true;
         } catch (ApiException e) {
+            LOGGER.error(e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("Failed to check cluster health", e);
         }
     }

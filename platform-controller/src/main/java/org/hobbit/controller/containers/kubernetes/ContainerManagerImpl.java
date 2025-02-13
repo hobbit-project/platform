@@ -1,7 +1,9 @@
 package org.hobbit.controller.containers.kubernetes;
 
 import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.ContainerPodException;
 import org.hobbit.controller.containers.ContainerStateObserver;
+import org.hobbit.controller.data.ContainerCriteria;
 import org.hobbit.controller.utils.Waiting;
 import org.hobbit.core.Constants;
 import org.slf4j.Logger;
@@ -18,6 +20,8 @@ import io.kubernetes.client.openapi.models.*;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ContainerManagerImpl implements ContainerManager {
 
@@ -32,7 +36,7 @@ public class ContainerManagerImpl implements ContainerManager {
      * Logging separator for type/experiment id.
      */
     private static final String LOGGING_SEPARATOR = "_sep_";
-    public static final String LOGGING_TAG = "{{.ImageName}}/{{.Name}}/{{.ID}}";
+    //public static final String LOGGING_TAG = "{{.ImageName}}/{{.Name}}/{{.ID}}";
     public static final String DEPLOY_ENV_KEY = "DEPLOY_ENV";
     private static final String DEPLOY_ENV_DEVELOP = "develop";
     private static final String DEPLOY_ENV_TESTING = "testing";
@@ -40,20 +44,19 @@ public class ContainerManagerImpl implements ContainerManager {
         ? System.getenv().get(DEPLOY_ENV_KEY)
         : "production";
 
+    private static final int MAX_POD_NAME_LENGTH = 63;
+    private static final Pattern VALID_POD_NAME_REGEX = Pattern.compile("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$");
+
+
     /**
      * Observers that should be notified if a container terminates.
      */
     private final List<ContainerStateObserver> containerObservers = new ArrayList<>();
 
 
-    public ContainerManagerImpl() {
-        try {
-            if (client == null) {
-                client = initiateClient();
-            }
-        } catch (Exception ex) {
-            LOGGER.error("Error initializing Kubernetes client: ", ex);
-        }
+    public ContainerManagerImpl(ApiClient client) {
+        LOGGER.info("Initializing Kubernetes client");
+            this.client = client;
     }
 
 
@@ -104,14 +107,112 @@ public class ContainerManagerImpl implements ContainerManager {
         return startContainer(imageName, containerType, parentId, env, null,  command, "", constraints);
     }
 
+    public String generatePodName(String moduleIri,String containerType) {
+        /*
+         * MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+         * messageDigest.update(moduleIri.getBytes()); String stringHash = new
+         * String(messageDigest.digest());
+         */
+        if(containerType==null){
+            return "notype" + (moduleIri.hashCode() * 31 + (int) (System.currentTimeMillis()));
+        }
+        return containerType + (moduleIri.hashCode() * 31 + (int) (System.currentTimeMillis()));
+
+    }
+
+    public static String shortenAndValidatePodName(String podName) {
+        if (podName == null || podName.isEmpty()) {
+            throw new IllegalArgumentException("Pod name cannot be null or empty.");
+        }
+
+        String shortenedName = podName;
+
+        if (podName.length() > MAX_POD_NAME_LENGTH) {
+            // Shorten the name, prioritizing the end (more unique).
+            int excessLength = podName.length() - MAX_POD_NAME_LENGTH;
+            int charsToKeep = podName.length() - excessLength;
+            shortenedName = podName.substring(0, charsToKeep);
+
+            //Ensure it ends with alphanumeric
+            while (shortenedName.length() > 0 && !Character.isLetterOrDigit(shortenedName.charAt(shortenedName.length()-1))) {
+                shortenedName = shortenedName.substring(0, shortenedName.length()-1);
+            }
+        }
+
+        //Validate the shortened name
+        Matcher matcher = VALID_POD_NAME_REGEX.matcher(shortenedName);
+        if (!matcher.matches()) {
+            //Handle invalid characters (replace with hyphens or remove)
+            shortenedName = shortenedName.replaceAll("[^a-z0-9-]", "-");
+            // Ensure starts and ends with alphanumeric after sanitization
+            while (shortenedName.length() > 0 && !Character.isLetterOrDigit(shortenedName.charAt(0))) {
+                shortenedName = shortenedName.substring(1);
+            }
+            while (shortenedName.length() > 0 && !Character.isLetterOrDigit(shortenedName.charAt(shortenedName.length()-1))) {
+                shortenedName = shortenedName.substring(0, shortenedName.length()-1);
+            }
+            //Re-check length after sanitization
+            if (shortenedName.length() > MAX_POD_NAME_LENGTH) {
+                shortenedName = shortenedName.substring(0, MAX_POD_NAME_LENGTH);
+            }
+            matcher = VALID_POD_NAME_REGEX.matcher(shortenedName);
+            if (!matcher.matches()) {
+                throw new IllegalArgumentException("Pod name could not be sanitized to comply with naming conventions.");
+            }
+        }
+
+        return shortenedName;
+    }
+
     // we do not use netAliases
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints) {
-        String podName = LOGGING_TAG;
+        String podName = generatePodName(imageName,containerType);
         if (experimentId != null) {
-            podName = containerType + LOGGING_SEPARATOR + experimentId + LOGGING_SEPARATOR + LOGGING_TAG;
+            podName =  experimentId + LOGGING_SEPARATOR + generatePodName(imageName,containerType);
         }
-        return createContainerKub(imageName, podName,containerType,parentId, env,command,constraints);
+
+        podName = shortenAndValidatePodName(podName);
+
+        LOGGER.info("start Container podname is {}", podName);
+
+        if (imageName != null) {
+            LOGGER.info("image name is {}", imageName);
+        } else {
+            LOGGER.info("image name is null");
+        }
+
+        if (containerType != null) {
+            LOGGER.info("container type is {}", containerType);
+        } else {
+            LOGGER.info("container type is null");
+        }
+
+        if (parentId != null) {
+            LOGGER.info("Parent ID is {}", parentId);
+        } else {
+            LOGGER.info("Parent ID is null");
+        }
+
+        if (env != null && env.length > 0) {
+            LOGGER.info("env is {}", String.join(",", env));
+        } else {
+            LOGGER.info("env is null or empty");
+        }
+
+        if (command != null && command.length > 0) {
+            LOGGER.info("command is {}", String.join(",", command));
+        } else {
+            LOGGER.info("command is null or empty");
+        }
+
+        if (experimentId != null) {
+            LOGGER.info("experimentID is {}", experimentId);
+        } else {
+            LOGGER.info("experimentID is null");
+        }
+
+        return createContainerKub(imageName, podName, containerType, parentId, env, command, constraints);
     }
 
     /**
@@ -166,35 +267,58 @@ public class ContainerManagerImpl implements ContainerManager {
         // Prepare environment variable
         List<V1EnvVar> environmentVariables = new ArrayList<>();
         if (env != null) {
+            LOGGER.info("Processing environment variables, total count: {}", env.length);
+
             for (String envVar : env) {
+                LOGGER.info("Parsing environment variable: {}", envVar);
                 String[] parts = envVar.split("=", 2);
+
                 if (parts.length == 2) {
+                    LOGGER.info("Adding environment variable - Name: {}, Value: {}", parts[0], parts[1]);
                     environmentVariables.add(new V1EnvVar().name(parts[0]).value(parts[1]));
+                } else {
+                    LOGGER.warn("Skipping invalid environment variable: {}", envVar);
                 }
             }
+        } else {
+            LOGGER.warn("No environment variables provided.");
         }
 
-        String parentType = getContainerType(parentPodName);
-        // if there is no container type then try to use the type of the parent
-        if(containerType == null || containerType.isEmpty()) {
+        LOGGER.info("Determining container type for parent pod: {}", parentPodName);
+        String parentType = null;
+        if(parentPodName != null) {
+            parentType = getContainerType(parentPodName);
+        }
+
+
+        if (containerType == null || containerType.isEmpty()) {
+            LOGGER.info("No container type provided, attempting to use parent pod's type.");
+
             if (parentType == null) {
-                // If it can not resolve then return, because we don't want to make a pod with no type
+                LOGGER.error("Unable to resolve parent container type. Returning null to avoid creating pod with no type.");
                 return null;
-            }else{
+            } else {
+                LOGGER.info("Using parent container type: {}", parentType);
                 containerType = parentType;
             }
         }
 
+
         // Create resource requirements if constraints are provided
+        LOGGER.info("Creating resource requirements from constraints.");
         V1ResourceRequirements resourceRequirements = createResourceRequirementsFromConstraints(constraints);
 
         // Prepare the container specification
+        LOGGER.info("Preparing container specification with name: {}, image: {}", podName, imageName);
         V1Container container = new V1Container()
             .name(podName)
             .image(imageName)
             .env(environmentVariables)
             .command(command != null ? Arrays.asList(command) : null)
             .resources(resourceRequirements);
+
+        LOGGER.info("Container specification created successfully.");
+
 
         // Create a volume and volume mount for shared directories
 //        V1Volume volume = createVolumeForSharedDirectory();
@@ -205,84 +329,113 @@ public class ContainerManagerImpl implements ContainerManager {
 //        container.setVolumeMounts(Collections.singletonList(volumeMount));
 
         // Create the pod specification
+        LOGGER.info("Creating pod specification for container: {}", podName);
         V1PodSpec podSpec = new V1PodSpec()
             .restartPolicy("Never")
             .containers(Collections.singletonList(container));
             //.volumes(Collections.singletonList(volume));
 
+        LOGGER.info("Determining node selector based on container type: {} and parent type: {}", containerType, parentType);
         if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
             && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
             || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
+
+            LOGGER.info("Setting node selector to 'system-nodes' for container type: {}", containerType);
             podSpec.nodeSelector(Collections.singletonMap("node-group", "system-nodes"));
-            // todo : why we set the container type here ?
+
+            LOGGER.debug("Assigning container type to SYSTEM.");
             containerType = Constants.CONTAINER_TYPE_SYSTEM;
+
         } else if (Constants.CONTAINER_TYPE_DATABASE.equals(containerType)
             && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType)
             || Constants.CONTAINER_TYPE_DATABASE.equals(parentType))) {
 
+            LOGGER.info("Setting node selector to 'benchmark-nodes' for DATABASE container type.");
             podSpec.nodeSelector(Collections.singletonMap("node-group", "benchmark-nodes"));
 
         } else if (Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType)
             && ((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))) {
 
+            LOGGER.info("Setting node selector to 'benchmark-nodes' for BENCHMARK container type.");
             podSpec.nodeSelector(Collections.singletonMap("node-group", "benchmark-nodes"));
 
         } else {
             LOGGER.error("Got a request to create a container with type={} and parentType={}. "
-                + "Got no rule to determine its type. Returning null.", containerType, parentType);
+                + "No rule found to determine its type. Returning null.", containerType, parentType);
             return null;
         }
 
+        LOGGER.info("Pod specification created successfully.");
 
-        Map<String,String> labels = new HashMap<>();
+
+        LOGGER.info("Creating labels for pod: {}", podName);
+
+        Map<String, String> labels = new HashMap<>();
         labels.put(LABEL_TYPE, containerType);
         labels.put(LABEL_PARENT, parentPodName);
 
+        LOGGER.info("Labels set - Type: {}, Parent: {}", containerType, parentPodName);
 
-        // Build the pod metadata
+// Build the pod metadata
+        LOGGER.info("Building pod metadata for pod: {} in namespace: {}", podName, nameSpace);
         V1ObjectMeta metadata = new V1ObjectMeta()
             .name(podName)
             .namespace(nameSpace)
             .labels(labels);
 
-
-        // Build the pod object
+// Build the pod object
+        LOGGER.info("Constructing the pod object.");
         V1Pod pod = new V1Pod()
             .metadata(metadata)
             .spec(podSpec);
 
+        LOGGER.info("Pod object created successfully: {}", podName);
+
+
         // Deploy the pod
         try {
-            GenericKubernetesApi<V1Pod, V1PodList> podClient = new GenericKubernetesApi<>(V1Pod.class, V1PodList.class, "", "v1", "pods", client);
+            GenericKubernetesApi<V1Pod, V1PodList> podClient =
+                new GenericKubernetesApi<>(V1Pod.class, V1PodList.class, "", "v1", "pods", client);
+
+            LOGGER.info("Sending request to create pod with name: {}", podName);
+
             V1Pod createdPod = podClient.create(pod).throwsApiException().getObject();
-            String podUid = createdPod.getMetadata().getUid();
-            LOGGER.info("Successfully created container with Pod UID: {}", podUid);
-            // if the creation was successful
-            if (podUid != null) {
+            String createdPodName = createdPod.getMetadata().getName();
+
+            // If the creation was successful
+            if (createdPodName != null) {
+                LOGGER.info("Successfully created pod with name: {}", createdPodName);
                 for (ContainerStateObserver observer : containerObservers) {
-                    observer.addObservedContainer(podUid);
+                    LOGGER.info("Notifying observer about created pod with name: {}", createdPodName);
+                    observer.addObservedContainer(createdPodName);
                 }
             }
-            return podUid;
+
+            return createdPodName;
         } catch (ApiException e) {
-            LOGGER.error("Failed to create container for image: {}. Returning null.", imageName, e);
+            LOGGER.error("Failed to create pod for image: {}. Returning null.", imageName, e);
             return null;
         }
+
     }
 
 
     private V1Pod getPod(String podName) {
+        LOGGER.info("Attempting to retrieve pod: {} in namespace: {}", podName, this.nameSpace);
+
         CoreV1Api coreV1Api = new CoreV1Api(client);
 
         try {
             // Inspect the pod by name
             V1Pod pod = coreV1Api.readNamespacedPod(podName, this.nameSpace, null);
+            LOGGER.info("Successfully retrieved pod: {} in namespace: {}", podName, this.nameSpace);
             return pod;
-        }catch (ApiException exc){
-            LOGGER.error("Failed to get container for image: {} in namespace {}. Returning null.", podName, this.nameSpace, exc);
-         return null;
+        } catch (ApiException exc) {
+            LOGGER.error("Failed to get pod: {} in namespace: {}. Error: {}", podName, this.nameSpace, exc.getMessage(), exc);
+            return null;
         }
     }
+
 
 //    /**
 //     *
@@ -302,7 +455,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
         if (constraints != null && (constraints.containsKey(MEMORY_LIMIT_CONSTRAINT)
             || constraints.containsKey(NANO_CPU_LIMIT_CONSTRAINT))) {
-            Resources.Builder rBuilder = Resources.builder();
+
             // if there is a memory limitation
             if (constraints.containsKey(MEMORY_LIMIT_CONSTRAINT)) {
                 long memory = (Long) constraints.get(MEMORY_LIMIT_CONSTRAINT);
@@ -415,7 +568,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
 
     @Override
-    public Long getContainerPodExitCode(String podName) throws DockerException, InterruptedException, ApiException {
+    public Long getContainerPodExitCode(String podName) throws ContainerPodException {
         try {
             // Initialize the API client
             CoreV1Api api = new CoreV1Api(client);
@@ -440,11 +593,7 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.warn("Couldn't get the exit code for pod {}. Pod is not terminated.", podName);
             return null;
         } catch (ApiException e) {
-            if (e.getCode() == 404) {
-                LOGGER.warn("Couldn't get the exit code for pod {}. Pod doesn't exist. Assuming it was stopped by the platform.", podName);
-                return KUBERNETES_EXITCODE_SIGKILL;
-            }
-            throw e;
+            throw new ContainerPodException("Error getting container pod exit code: " + podName, e);
         }
     }
 
@@ -459,7 +608,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
 
     @Override
-    public List<Service> getContainers(Service.Criteria criteria) {
+    public List<String> getContainers(ContainerCriteria criteria) {
         return null;
     }
 
@@ -513,18 +662,33 @@ public class ContainerManagerImpl implements ContainerManager {
         // we dont need this in kubernetes
     }
 
-    //TODO: do we need this for kubernetes? no usage in docker version
-    @Override
-    public ContainerStats getStats(String containerId) {
-        return null;
-    }
+//    //TODO: do we need this for kubernetes? no usage in docker version
+//    @Override
+//    public ContainerStats getStats(String containerId) {
+//        return null;
+//    }
 
 
     @Override
     public String getContainerType(String podName) {
-        // Logic to resolve container type based on the parentId
-        // return null if resolution fails
+        LOGGER.info("Resolving container type for pod: {}", podName);
+
+        // Logic to retrieve the parent pod based on the podName
         V1Pod parent = getPod(podName);
-        return (parent == null) ? null : parent.getMetadata().getLabels().get(LABEL_TYPE);
+
+        if (parent == null) {
+            LOGGER.warn("Parent pod not found for pod name: {}", podName);
+            return null;
+        }
+
+        String containerType = parent.getMetadata().getLabels().get(LABEL_TYPE);
+
+        if (containerType == null) {
+            LOGGER.warn("Container type not found in labels for pod: {}", podName);
+        } else {
+            LOGGER.info("Resolved container type for pod {}: {}", podName, containerType);
+        }
+
+        return containerType;
     }
 }

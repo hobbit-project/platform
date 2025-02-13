@@ -23,6 +23,7 @@ import java.util.TimerTask;
 
 import io.kubernetes.client.openapi.ApiException;
 import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.ContainerPodException;
 import org.hobbit.controller.containers.ContainerStateObserver;
 import org.hobbit.controller.containers.ContainerTerminationCallback;
 import org.slf4j.Logger;
@@ -110,7 +111,7 @@ public class ContainerStateObserverImpl implements ContainerStateObserver {
                                 }
                             }
                         }
-                    } catch (DockerException | ApiException | InterruptedException e ) {
+                    } catch (ContainerPodException | InterruptedException e ) {
                         LOGGER.error("Couldn't get the status of container " + id
                                 + ". It will be ignored during this run but will be checked again during the next run.");
                     }

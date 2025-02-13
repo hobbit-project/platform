@@ -12,6 +12,7 @@ import org.hobbit.controller.containers.ContainerTerminationCallback;
 import com.spotify.docker.client.messages.ContainerStats;
 import com.spotify.docker.client.messages.swarm.Service;
 import com.spotify.docker.client.messages.swarm.Service.Criteria;
+import org.hobbit.controller.data.ContainerCriteria;
 
 public class DummyContainerManager implements ContainerManager {
 
@@ -113,7 +114,7 @@ public class DummyContainerManager implements ContainerManager {
 //    }
 
     @Override
-    public List<Service> getContainers(Criteria criteria) {
+    public List<String> getContainers(ContainerCriteria criteria) {
         return new ArrayList<>(0);
     }
 

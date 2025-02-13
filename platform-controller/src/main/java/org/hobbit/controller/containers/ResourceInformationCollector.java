@@ -1,5 +1,6 @@
 package org.hobbit.controller.containers;
 
+import org.hobbit.controller.data.ContainerCriteria;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.core.data.usage.ResourceUsageInformation;
 import com.spotify.docker.client.messages.swarm.Service.Criteria;
@@ -14,7 +15,7 @@ public interface ResourceInformationCollector {
 
     public ResourceUsageInformation getSystemUsageInformation();
 
-    public ResourceUsageInformation getUsageInformation(Criteria criteria);
+    public ResourceUsageInformation getUsageInformation(ContainerCriteria criteria);
 
     public SetupHardwareInformation getHardwareInformation();
 

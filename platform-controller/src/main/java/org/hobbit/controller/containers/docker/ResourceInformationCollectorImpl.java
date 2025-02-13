@@ -15,6 +15,7 @@ import javax.ws.rs.core.UriBuilder;
 import org.apache.commons.io.IOUtils;
 import org.hobbit.controller.containers.ContainerManager;
 import org.hobbit.controller.containers.ResourceInformationCollector;
+import org.hobbit.controller.data.ContainerCriteria;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.CpuStats;
 import org.hobbit.core.data.usage.DiskStats;
@@ -98,8 +99,8 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
 
     @Override
     public ResourceUsageInformation getSystemUsageInformation() {
-        return getUsageInformation(Service.Criteria.builder()
-                .labels(ImmutableMap.of(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM))
+        return getUsageInformation(ContainerCriteria.builder()
+            .withLabels(ImmutableMap.of(ContainerManager.LABEL_TYPE, Constants.CONTAINER_TYPE_SYSTEM))
                 .build());
     }
 
@@ -116,21 +117,27 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
         }
     }
 
-    @Override
-    public ResourceUsageInformation getUsageInformation(Service.Criteria criteria) {
-        List<Service> services = manager.getContainers(criteria);
-
-        Map<String, Service> containerMapping = new HashMap<>();
-        for (Service c : services) {
-            containerMapping.put(c.spec().name(), c);
+    private boolean isServiceRunning(String serviceName) {
+        try {
+            return dockerClient.listTasks(
+                    Task.Criteria.builder().serviceName(serviceName).build()
+                ).stream()
+                .anyMatch(t -> TaskStatus.TASK_STATE_RUNNING.equals(t.status().state()));
+        } catch (DockerException | InterruptedException e) {
+            LOGGER.error("Error checking if service {} is running: {}", serviceName, e.getMessage(), e);
+            return false; // Or throw an exception if you prefer
         }
-        ResourceUsageInformation resourceInfo = containerMapping.keySet().parallelStream()
-                // filter all containers that are not running
-                .filter(s -> countRunningTasks(s) != 0)
-                // get the stats for the single
-                .map(id -> requestCpuAndMemoryStats(id))
-                // sum up the stats
-                .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
+    }
+
+    @Override
+    public ResourceUsageInformation getUsageInformation(ContainerCriteria criteria) {
+        List<String> servicesName = manager.getContainers(criteria);
+
+        ResourceUsageInformation resourceInfo = servicesName.parallelStream()
+            .filter(this::isServiceRunning) // Use a method to check if the service is running
+            .map(this::requestCpuAndMemoryStats)
+            .collect(Collectors.reducing(ResourceUsageInformation::staticMerge)).orElse(null);
+
         return resourceInfo;
     }
 

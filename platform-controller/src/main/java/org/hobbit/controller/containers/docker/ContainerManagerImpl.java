@@ -29,7 +29,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.hobbit.controller.containers.ContainerPodException;
 import org.hobbit.controller.containers.ContainerStateObserver;
+import org.hobbit.controller.data.ContainerCriteria;
+import org.hobbit.controller.data.ContainerCriteriaToServiceCriteriaMapper;
 import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.containers.ClusterManager;
 import org.hobbit.controller.containers.ContainerManager;
@@ -685,7 +688,7 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     //@Override
-    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException {
+    public Service getContainerInfo(String serviceName) throws InterruptedException, ContainerPodException {
         if (serviceName == null) {
             return null;
         }
@@ -694,51 +697,63 @@ public class ContainerManagerImpl implements ContainerManager {
             info = dockerClient.inspectService(serviceName);
         } catch (ServiceNotFoundException e) {
             // return null
+        } catch (DockerException e) {
+            throw new ContainerPodException("Error getting container pod exit code: " , e);
         }
         return info;
     }
 
     @Override
-    public List<Service> getContainers(Service.Criteria criteria) {
+    public List<String> getContainers(ContainerCriteria criteria) {
         try {
-            return dockerClient.listServices(criteria);
+            Service.Criteria serviceCriteria = ContainerCriteriaToServiceCriteriaMapper.map(criteria);
+            List<Service> services =  dockerClient.listServices(serviceCriteria);
+            List<String> serviceNames = new ArrayList<>();
+            for (Service c : services) {
+                serviceNames.add(c.spec().name());
+            }
+            return serviceNames;
         } catch (Exception e) {
             return new ArrayList<>();
         }
     }
 
     @Override
-    public Long getContainerPodExitCode(String serviceName) throws DockerException, InterruptedException {
-        if (getContainerInfo(serviceName) == null) {
-            LOGGER.warn(
+    public Long getContainerPodExitCode(String serviceName) throws ContainerPodException, InterruptedException {
+        try {
+            if (getContainerInfo(serviceName) == null) {
+                LOGGER.warn(
                     "Couldn't get the exit code for container {}. Service doesn't exist. Assuming it was stopped by the platform.",
                     serviceName);
-            return DOCKER_EXITCODE_SIGKILL;
-        }
-
-        // Service exists, but no tasks are observed.
-        List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
-        if (tasks.size() == 0) {
-            LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.",
-                    serviceName);
-            return null;
-        }
-
-        for (Task task : tasks) {
-            if (!UNFINISHED_TASK_STATES.contains(task.status().state())) {
-                // Task is finished.
-                Long exitCode = task.status().containerStatus().exitCode();
-                if (exitCode == null) {
-                    LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.",
-                            serviceName);
-                    return 0l;
-                }
-                return exitCode;
+                return DOCKER_EXITCODE_SIGKILL;
             }
-        }
 
-        // Task is not finished.
-        return null;
+            // Service exists, but no tasks are observed.
+            List<Task> tasks = dockerClient.listTasks(Task.Criteria.builder().serviceName(serviceName).build());
+            if (tasks.size() == 0) {
+                LOGGER.warn("Couldn't get the exit code for container {}. Service has no tasks. Returning null.",
+                    serviceName);
+                return null;
+            }
+
+            for (Task task : tasks) {
+                if (!UNFINISHED_TASK_STATES.contains(task.status().state())) {
+                    // Task is finished.
+                    Long exitCode = task.status().containerStatus().exitCode();
+                    if (exitCode == null) {
+                        LOGGER.warn("Couldn't get the exit code for container {}. Task is finished. Returning 0.",
+                            serviceName);
+                        return 0l;
+                    }
+                    return exitCode;
+                }
+            }
+
+            // Task is not finished.
+            return null;
+        }catch (DockerException e) {
+            throw new ContainerPodException("Error getting container pod exit code: " , e);
+        }
     }
 
     @Deprecated
@@ -769,17 +784,17 @@ public class ContainerManagerImpl implements ContainerManager {
         return imageName.indexOf(':', pos) >= 0;
     }
 
-    @Override
-    public ContainerStats getStats(String containerId) {
-        ContainerStats stats = null;
-        try {
-            stats = dockerClient.stats(containerId);
-        } catch (Exception e) {
-            LOGGER.warn("Error while requesting usage stats for {}. Returning null. Error: {}", containerId,
-                    e.getLocalizedMessage());
-        }
-        return stats;
-    }
+//    @Override
+//    public ContainerStats getStats(String containerId) {
+//        ContainerStats stats = null;
+//        try {
+//            stats = dockerClient.stats(containerId);
+//        } catch (Exception e) {
+//            LOGGER.warn("Error while requesting usage stats for {}. Returning null. Error: {}", containerId,
+//                    e.getLocalizedMessage());
+//        }
+//        return stats;
+//    }
 
     //@Override
     public String getContainerType(String containerId) {

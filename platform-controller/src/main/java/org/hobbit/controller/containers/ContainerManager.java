@@ -19,12 +19,9 @@ package org.hobbit.controller.containers;
 import java.util.List;
 import java.util.Map;
 
-import io.kubernetes.client.openapi.ApiException;
+import org.hobbit.controller.data.ContainerCriteria;
 import org.hobbit.core.Constants;
 
-import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.ContainerStats;
-import com.spotify.docker.client.messages.swarm.Service;
 
 /**
  * This interface is implemented by classes that can be used to manage Docker or Kubernetes
@@ -182,6 +179,8 @@ public interface ContainerManager {
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints);
 
+
+
     /**
      * Stops the container with the given container Id.
      *
@@ -219,7 +218,7 @@ public interface ContainerManager {
      *
      * @param serviceName
      */
-    public Long getContainerPodExitCode(String serviceName) throws DockerException, InterruptedException, ApiException;
+    public Long getContainerPodExitCode(String serviceName) throws ContainerPodException ,InterruptedException;
 
 
     //TODO maybe remove this method from interface just keeo the usage in implementation for dokcer
@@ -231,10 +230,10 @@ public interface ContainerManager {
 //    public Service getContainerInfo(String serviceName) throws InterruptedException, DockerException;
 
     /**
-     * Get a list of services
+     * Get a list of services names
      */
-    public default List<Service> getContainers() {
-        return getContainers(Service.Criteria.builder().build());
+    public default List<String> getContainers() {
+        return getContainers(ContainerCriteria.builder().build());
     }
 
     /**
@@ -243,7 +242,7 @@ public interface ContainerManager {
      * @Service.Criteria criteria service criteria for filtering the list of
      *                   services
      */
-    public List<Service> getContainers(Service.Criteria criteria);
+    public List<String> getContainers(ContainerCriteria criteria);
 
     /**
      * @deprecated Platform uses names as IDs. Retrieves the container Id for the
@@ -281,16 +280,16 @@ public interface ContainerManager {
      */
     public void pullImage(String imageName);
 
-    /**
-     * Returns statistics of the container with the given Id or {@code null} if the
-     * container can not be found or an error occurs.
-     *
-     * @param containerId the Id of the container for which statistics should be
-     *                    requested
-     * @return statistics of the container with the given Id or {@code null} if the
-     *         container can not be found or an error occurs.
-     */
-    public ContainerStats getStats(String containerId);
+//    /**
+//     * Returns statistics of the container with the given Id or {@code null} if the
+//     * container can not be found or an error occurs.
+//     *
+//     * @param containerId the Id of the container for which statistics should be
+//     *                    requested
+//     * @return statistics of the container with the given Id or {@code null} if the
+//     *         container can not be found or an error occurs.
+//     */
+//    public ContainerStats getStats(String containerId);
 
     /**
      * Returns the type of the container as string. The type is typically one of
