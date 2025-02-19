@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: hobbit-benchmark
+spec:
+    template:
+        spec:
+            securityContext:
+                fsGroup: 1000
+            containers:
+                - name: hobbit-benchmark
+                  image: maven
+                  command: ["/bin/bash", "-c"]
+                  args:
+                      - |
+                          java -cp target/platform-controller.jar org.hobbit.core.run.ComponentStarter org.hobbit.controller.test.StartBenchmarkRequest
+                  env:
+                      - name: HOBBIT_RABBIT_HOST
+                        value: "rabbitmq"
+                      - name: BENCHMARK
+                        value: "http://example.org/GerbilBenchmark"
+                      - name: SYSTEM
+                        value: "http://example.org/DummySystemInstance1"
+                      - name: BENCHMARK_PARAM_FILE
+                        value: "src/test/resources/exampleExperiment.ttl"
+                      - name: USERNAME
+                        value: "testuser"
+                  volumeMounts:
+                      - name: app-volume
+                        mountPath: /usr/src/app
+            restartPolicy: Never
+            volumes:
+                -   name: app-volume
+                    nfs:
+                        server: 131.234.29.64
+                        path: /data/nfs/kubedata/test
+                        readOnly: false

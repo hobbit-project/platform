@@ -4,8 +4,8 @@ metadata:
     name: node-reader
 rules:
     - apiGroups: [""]
-      resources: ["nodes"]
-      verbs: ["get", "list", "watch"]  # Minimum permissions needed
+      resources: ["nodes" , "pods", "services", "namespaces"]
+      verbs: ["create", "get", "update", "delete", "list", "watch"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
