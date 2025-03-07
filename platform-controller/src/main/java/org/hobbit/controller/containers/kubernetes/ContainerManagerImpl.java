@@ -1,5 +1,6 @@
 package org.hobbit.controller.containers.kubernetes;
 
+import io.kubernetes.client.custom.IntOrString;
 import org.hobbit.controller.containers.ContainerManager;
 import org.hobbit.controller.containers.ContainerPodException;
 import org.hobbit.controller.containers.ContainerStateObserver;
@@ -19,9 +20,13 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.*;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class ContainerManagerImpl implements ContainerManager {
 
@@ -43,7 +48,7 @@ public class ContainerManagerImpl implements ContainerManager {
     private static final String DEPLOY_ENV = System.getenv().containsKey(DEPLOY_ENV_KEY)
         ? System.getenv().get(DEPLOY_ENV_KEY)
         : "production";
-
+    private static final long TIMEOUT_SECONDS = 60; // Adjust the timeout as needed
     private static final int MAX_POD_NAME_LENGTH = 63;
     private static final Pattern VALID_POD_NAME_REGEX = Pattern.compile("^[a-z0-9]([-a-z0-9]*[a-z0-9])?$");
 
@@ -215,6 +220,117 @@ public class ContainerManagerImpl implements ContainerManager {
         return createContainerKub(imageName, podName, containerType, parentId, env, command, constraints);
     }
 
+    private boolean isPodRunning(String namespace, String podName) {
+        try {
+            GenericKubernetesApi<V1Pod, V1PodList> podClient =
+                new GenericKubernetesApi<>(V1Pod.class, V1PodList.class, "", "v1", "pods", client);
+
+            V1Pod pod = podClient.get(namespace, podName).throwsApiException().getObject();
+            if (pod != null && pod.getStatus() != null && "Running".equals(pod.getStatus().getPhase())) {
+                return true;
+            }
+        } catch (ApiException e) {
+            LOGGER.error("Error checking pod status in namespace {}: {}", namespace, podName, e);
+        }
+        return false;
+    }
+
+    private boolean waitForPodToBeRunning(String namespace, String podName) {
+        final int maxAttempts = 10;
+        final int sleepMillis = 5000;
+
+        LOGGER.info("Waiting for pod '{}' in namespace '{}' to reach 'Running' state (max {} attempts).", podName, namespace, maxAttempts);
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            if (isPodRunning(namespace, podName)) {
+                LOGGER.info("Pod '{}' is now running in namespace '{}' after {} attempts.", podName, namespace, attempt);
+                return true;
+            }
+
+            LOGGER.warn("Attempt {}/{}: Pod '{}' is not running yet. Retrying in {} seconds...", attempt, maxAttempts, podName, sleepMillis / 1000);
+
+            try {
+                Thread.sleep(sleepMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOGGER.error("Thread interrupted while waiting for pod '{}' in namespace '{}'. Aborting wait.", podName, namespace, e);
+                return false;
+            }
+        }
+
+        LOGGER.error("Pod '{}' in namespace '{}' did not reach 'Running' state after {} attempts.", podName, namespace, maxAttempts);
+        return false;
+    }
+
+
+    @Override
+    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer, Integer> ports) {
+        LOGGER.info("Starting service for pod: {}", containerIdentifier);
+
+        // Wait for pod to be in running state with a timeout
+        if (!waitForPodToBeRunning(nameSpace, containerIdentifier)) {
+            LOGGER.error("Pod {} did not reach running state within timeout. Cannot start service.", containerIdentifier);
+            return null;
+        }
+
+        LOGGER.info("Pod {} is running. Proceeding to create service.", containerIdentifier);
+
+        // Generate a unique service name
+        String serviceName = "service-"+containerIdentifier;
+        if (serviceName.length() > MAX_POD_NAME_LENGTH) {
+            serviceName = serviceName.substring(0, MAX_POD_NAME_LENGTH);
+        }
+
+        // Define the service spec
+        V1ServiceSpec serviceSpec = new V1ServiceSpec()
+            .selector(Collections.singletonMap("app", containerIdentifier))
+            .ports(ports.entrySet().stream()
+                .map(entry -> new V1ServicePort()
+                    .name("port-" + entry.getKey())
+                    .protocol("TCP")
+                    .port(entry.getKey())
+                    .targetPort(new IntOrString(entry.getValue()))
+                ).collect(Collectors.toList()))
+            .type("ClusterIP");
+
+
+        if (toOutsideOfTheCluster) {
+            LOGGER.info("Exposing service {} outside of the cluster.", serviceName);
+            serviceSpec.setType("NodePort");
+        } else {
+            LOGGER.info("Creating a ClusterIP service {}.", serviceName);
+            serviceSpec.setType("ClusterIP");
+        }
+
+        // Define the metadata
+        V1ObjectMeta metadata = new V1ObjectMeta()
+            .name(serviceName)
+            .namespace("default") // Adjust as needed
+            .labels(Collections.singletonMap("app", containerIdentifier));
+
+        // Build the service object
+        V1Service service = new V1Service()
+            .metadata(metadata)
+            .spec(serviceSpec);
+
+        LOGGER.info("Constructed service object for {}.", serviceName);
+
+        // Deploy the service
+        try {
+            GenericKubernetesApi<V1Service, V1ServiceList> serviceClient =
+                new GenericKubernetesApi<>(V1Service.class, V1ServiceList.class, "", "v1", "services", client);
+
+            LOGGER.info("Sending request to create service: {}", serviceName);
+
+            V1Service createdService = serviceClient.create(service).throwsApiException().getObject();
+            LOGGER.info("Successfully created service: {}", createdService.getMetadata().getName());
+            return createdService.getMetadata().getName();
+        } catch (ApiException e) {
+            LOGGER.error("Failed to create service for pod: {}. Returning null.", containerIdentifier, e);
+            return null;
+        }
+    }
+
     /**
      * Creates environment variables from the provided list of key-value pairs.
      */
@@ -259,10 +375,44 @@ public class ContainerManagerImpl implements ContainerManager {
         }
     }
 
+    public static String getPodName() {
+        String podName = System.getenv("HOSTNAME");
+        if (podName == null || podName.isEmpty()) {
+            try {
+                podName = InetAddress.getLocalHost().getHostName(); // Fallback methoD
+            } catch (UnknownHostException e) {
+                podName = "Unknown-Pod";
+            }
+        }
+        return podName;
+    }
+
+
     private String createContainerKub(String imageName, String podName, String containerType, String parentPodName,
                                       String[] env, String[] command, Map<String, Object> constraints) {
         LOGGER.info("Creating container: Image = {}, Pod Name = {}, Container Type = {}, Parent ID = {}",
             imageName, podName, containerType, parentPodName);
+
+
+
+        LOGGER.info("add environment variable HIBBIT DOCKER NAME");
+        String thisPodName = Constants.CONTAINER_NAME_KEY + "=" +getPodName();
+
+        LOGGER.info("pod name is {}", thisPodName);
+
+        if (env == null || env.length == 0) {
+            env= new String[]{thisPodName};
+        }else {
+            String[] updatedEnv = Arrays.copyOf(env, env.length + 1);
+            updatedEnv[env.length] = thisPodName;
+            env = updatedEnv;
+        }
+        LOGGER.info("add environment variable HIBBIT ENV now it has {} environment variables.", env.length);
+
+        for (String item : env) {
+            LOGGER.info(item);
+        }
+
 
         // Prepare environment variable
         List<V1EnvVar> environmentVariables = new ArrayList<>();
@@ -283,6 +433,23 @@ public class ContainerManagerImpl implements ContainerManager {
         } else {
             LOGGER.warn("No environment variables provided.");
         }
+
+        LOGGER.info("Adding secret-based environment variable: GITLAB_TOKEN from gitlab-secret");
+//        V1EnvVar gitlabTokenEnvVar = new V1EnvVar()
+//            .name("GITLAB_TOKEN")
+//            .valueFrom(new V1EnvVarSource()
+//                .secretKeyRef(new V1SecretKeySelector()
+//                    .name("gitlab-secret")
+//                    .key("GITLAB_TOKEN")));
+
+        //environmentVariables.add(gitlabTokenEnvVar);
+        environmentVariables.add(new V1EnvVar().name("GITLAB_USER").value("gitadmin"));
+        environmentVariables.add(new V1EnvVar().name("GITLAB_EMAIL").value("gitadmin@project-hobbit.eu"));
+
+        for(V1EnvVar envVar : environmentVariables) {
+            LOGGER.info("Adding environment variable: {} = {}", envVar.getName(), envVar.getValue());
+        }
+
 
         LOGGER.info("Determining container type for parent pod: {}", parentPodName);
         String parentType = null;
@@ -328,11 +495,17 @@ public class ContainerManagerImpl implements ContainerManager {
 
 //        container.setVolumeMounts(Collections.singletonList(volumeMount));
 
+
         // Create the pod specification
         LOGGER.info("Creating pod specification for container: {}", podName);
         V1PodSpec podSpec = new V1PodSpec()
             .restartPolicy("Never")
-            .containers(Collections.singletonList(container));
+            .addContainersItem(container)
+            .addImagePullSecretsItem(
+                new V1LocalObjectReference()
+                    .name("gitlab-registry-secret")
+                //todo make this const
+            );
             //.volumes(Collections.singletonList(volume));
 
         LOGGER.info("Determining node selector based on container type: {} and parent type: {}", containerType, parentType);
@@ -373,6 +546,7 @@ public class ContainerManagerImpl implements ContainerManager {
         Map<String, String> labels = new HashMap<>();
         labels.put(LABEL_TYPE, containerType);
         labels.put(LABEL_PARENT, parentPodName);
+        labels.put("app",podName);
 
         LOGGER.info("Labels set - Type: {}, Parent: {}", containerType, parentPodName);
 
@@ -397,6 +571,8 @@ public class ContainerManagerImpl implements ContainerManager {
             GenericKubernetesApi<V1Pod, V1PodList> podClient =
                 new GenericKubernetesApi<>(V1Pod.class, V1PodList.class, "", "v1", "pods", client);
 
+
+
             LOGGER.info("Sending request to create pod with name: {}", podName);
 
             V1Pod createdPod = podClient.create(pod).throwsApiException().getObject();
@@ -411,7 +587,56 @@ public class ContainerManagerImpl implements ContainerManager {
                 }
             }
 
-            return createdPodName;
+
+            if (createdPodName != null) {
+                LOGGER.info("Successfully created pod with name: {}", createdPodName);
+
+                // Wait for the IP address to become available
+                long startTime = System.currentTimeMillis();
+                V1PodList podList = podClient.list(nameSpace).getObject();
+                while (System.currentTimeMillis() - startTime < TimeUnit.SECONDS.toMillis(TIMEOUT_SECONDS)) {
+                    try {
+                        LOGGER.info("Waiting for pod {} to start", createdPodName);
+                        V1Pod targetPod = podList.getItems().stream()
+                            .filter(podTocheck -> createdPodName.equals(pod.getMetadata().getName()))
+                            .findFirst()
+                            .orElse(null);
+                        //todo remove this
+                        if (targetPod == null) {
+                            LOGGER.error("No pod found with name: {}", createdPod);
+                        }
+
+                        LOGGER.info("Target pod found: {}", targetPod.getMetadata().getName());
+
+                        String podPhase = targetPod.getStatus().getPhase();
+                        if ("Running".equals(podPhase)) {
+                            String podIP = targetPod.getStatus().getPodIP();
+                            LOGGER.info("Pod IP: {}", podIP);
+                            if (podIP != null && !podIP.isEmpty()) {
+                                LOGGER.info("Obtained Pod IP: {}", podIP);
+                                String convertedIP = podIP.replace(".", "-") + ".default.pod.cluster.local";
+                                LOGGER.info("Converted IP: {}", convertedIP);
+                                return convertedIP;
+                            }
+                        }
+                        LOGGER.info("pod phase is {}", podPhase);
+                        podList = podClient.list(nameSpace).getObject();
+                    }catch (Exception ex){
+                        LOGGER.error(ex.getMessage());
+                    }
+                    try {
+                        Thread.sleep(2000); // Wait for 1 second before checking again
+                    } catch (InterruptedException e) {
+                        LOGGER.error("Thread interrupted while waiting for pod IP: " + e.getMessage());
+                    }
+                }
+
+                LOGGER.warn("Timeout reached. Pod {} IP is still not available.", createdPodName);
+            } else {
+                LOGGER.error("Failed to create the pod.");
+            }
+
+            return null; // Return null if the IP address is not available within the timeout
         } catch (ApiException e) {
             LOGGER.error("Failed to create pod for image: {}. Returning null.", imageName, e);
             return null;
@@ -419,8 +644,27 @@ public class ContainerManagerImpl implements ContainerManager {
 
     }
 
+    private String mapIp2Name(String ip) {
+        String podIp = ip.replace("-",".").replace(".default.pod.cluster.local", "");
+        LOGGER.info("Mapped IP: {}", podIp);
 
-    private V1Pod getPod(String podName) {
+        GenericKubernetesApi<V1Pod, V1PodList> podClient =
+            new GenericKubernetesApi<>(V1Pod.class, V1PodList.class, "", "v1", "pods", client);
+
+        V1PodList podList = podClient.list(nameSpace).getObject();
+        V1Pod targetPod = podList.getItems().stream()
+            .filter(podTocheck -> podIp.equals(podTocheck.getStatus().getPodIP()))
+            .findFirst()
+            .orElse(null);
+        return targetPod.getMetadata().getName();
+        }
+
+
+    private V1Pod getPod(String podIP) {
+        LOGGER.info("getPod");
+
+        String podName = mapIp2Name(podIP);
+
         LOGGER.info("Attempting to retrieve pod: {} in namespace: {}", podName, this.nameSpace);
 
         CoreV1Api coreV1Api = new CoreV1Api(client);
@@ -431,7 +675,7 @@ public class ContainerManagerImpl implements ContainerManager {
             LOGGER.info("Successfully retrieved pod: {} in namespace: {}", podName, this.nameSpace);
             return pod;
         } catch (ApiException exc) {
-            LOGGER.error("Failed to get pod: {} in namespace: {}. Error: {}", podName, this.nameSpace, exc.getMessage(), exc);
+            LOGGER.error("Failed to get pod: {} in namespace: {}", podName, this.nameSpace);
             return null;
         }
     }
@@ -488,6 +732,7 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public void removeContainer(String podName) {
+        //String podName = mapIp2Name(podIp);
         try {
             Long exitCode = getContainerPodExitCode(podName);
 
@@ -614,6 +859,8 @@ public class ContainerManagerImpl implements ContainerManager {
 
     @Override
     public String getContainerPodId(String podName) {
+        LOGGER.info("getContainerPodId({})", podName);
+//        String podName = mapIp2Name(podIp);
         try {
             // Fetch the pod information using its name and namespace
             CoreV1Api api = new CoreV1Api(client);
@@ -644,6 +891,16 @@ public class ContainerManagerImpl implements ContainerManager {
 
             // If no matching pod is found, return null
             LOGGER.warn("No Pod found with ID: {} in namespace: {}", podId, nameSpace);
+            LOGGER.warn("check if the input was the name of the pod");
+            // todo this code should remove search for this to find the source of the error which head to this patch #klhadKA5468WDJnlawd
+            for (V1Pod pod : podList.getItems()) {
+                if (pod.getMetadata().getName().equals(podId)) {
+                    // Return the Pod's name
+                    LOGGER.warn("it is a pod name {}", pod.getMetadata().getName());
+                    return pod.getMetadata().getName();
+                }
+            }
+            LOGGER.warn("nothing found return NULL !");
             return null;
         } catch (Exception e) {
             LOGGER.error("Failed to fetch Pod name for Pod ID: {} in namespace: {}. Error: {}", podId, nameSpace, e);

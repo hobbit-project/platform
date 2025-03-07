@@ -27,6 +27,8 @@ import org.hobbit.controller.gitlab.GitlabControllerImpl;
 import org.hobbit.controller.gitlab.Project;
 import org.hobbit.core.data.BenchmarkMetaData;
 import org.hobbit.core.data.SystemMetaData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * An {@link ImageManager} implementation relying on the usage of a
@@ -37,6 +39,7 @@ import org.hobbit.core.data.SystemMetaData;
  */
 public class GitlabBasedImageManager extends AbstactImageManager implements ImageManager {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitlabBasedImageManager.class);
     // gitlab access controller
     private GitlabControllerImpl gitlab;
 
@@ -51,16 +54,28 @@ public class GitlabBasedImageManager extends AbstactImageManager implements Imag
 
     @Override
     protected List<BenchmarkMetaData> getUncheckedBenchmarks() {
-        return gitlab.getAllProjects().parallelStream().filter(p -> p.benchmarkModel != null)
-                .flatMap(p -> MetaDataFactory.modelToBenchmarkMetaData(p.benchmarkModel, p.name, p.createdAt).stream())
-                .collect(Collectors.toList());
+        LOGGER.info("Getting unchecked systems for benchmarks");
+        List<BenchmarkMetaData> benchmarks = gitlab.getAllProjects().parallelStream().filter(p -> p.benchmarkModel != null)
+            .flatMap(p -> MetaDataFactory.modelToBenchmarkMetaData(p.benchmarkModel, p.name, p.createdAt).stream())
+            .collect(Collectors.toList());
+        LOGGER.info("Unchecked systems for benchmarks fetched size :{}", benchmarks.size());
+//        for(BenchmarkMetaData benchmark : benchmarks) {
+//            LOGGER.info("Fetching benchmark {}:{}", benchmark.name,benchmark.uri);
+//        }
+        return benchmarks;
     }
 
     @Override
     protected List<SystemMetaData> getUncheckedSystems() {
-        return gitlab.getAllProjects().parallelStream().filter(p -> p.systemModel != null)
+        LOGGER.info("Getting systems for benchmarks");
+        List<SystemMetaData> systems =  gitlab.getAllProjects().parallelStream().filter(p -> p.systemModel != null)
                 .flatMap(p -> MetaDataFactory.modelToSystemMetaData(p.systemModel, p.name, p.createdAt).stream())
                 .collect(Collectors.toList());
+        LOGGER.info("Unchecked systems for benchmarks fetched size :{}", systems.size());
+//        for(SystemMetaData system : systems) {
+//            LOGGER.info("Fetching system {} : {}", system.name,system.uri);
+//        }
+        return systems;
     }
 
     @Override

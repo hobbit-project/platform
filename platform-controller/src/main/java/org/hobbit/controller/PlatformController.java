@@ -309,6 +309,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         if (System.getenv().containsKey(USE_GITLAB_KEY)) {
             try {
                 useGitlab = Boolean.parseBoolean(System.getenv().get(USE_GITLAB_KEY));
+                LOGGER.info("Using git lab enabled");
             } catch (Exception e) {
                 LOGGER.error("Couldn't parse value of " + USE_GITLAB_KEY + ". It will be ignored.");
             }
@@ -408,6 +409,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // Determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
+            LOGGER.info("Starting container with name: {}", sessionId);
             StartCommandData startParams = null;
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
@@ -415,6 +417,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class, false);
                 // trigger creation
                 containerName = createContainer(startParams);
+                LOGGER.info("Starting container with name: {}", containerName);
             } else {
                 LOGGER.error(
                         "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.",
@@ -443,6 +446,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.DOCKER_CONTAINER_STOP: {
+            LOGGER.info("Stopping container with name: {}", sessionId);
             // get containerId from params
             StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
@@ -450,14 +454,17 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
+            LOGGER.info("Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
         case Commands.SYSTEM_READY_SIGNAL: {
+            LOGGER.info("System Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(true, sessionId);
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
+            LOGGER.info("Task generator finish: {}", sessionId);
             expManager.taskGenFinished(sessionId);
             break;
         }
@@ -536,6 +543,10 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             pullImage = true;
         }
 
+
+        //TODO here it is not container ID , it is container name
+        // search for this tag to find tha patch #klhadKA5468WDJnlawd
+        // in corerct version if possible every method should return pod name and convert
         String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
                 data.networkAliases, null, pullImage, null);
         if (containerId == null) {
@@ -551,6 +562,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @param containerName name of the container that should be stopped
      */
     public void stopContainer(String containerName) {
+        LOGGER.info("Stopping container with name: {}", containerName);
         String containerId = containerManager.getContainerPodId(containerName);
         if (containerId != null) {
             containerManager.removeContainer(containerId);

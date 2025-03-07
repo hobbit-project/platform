@@ -196,6 +196,17 @@ public class ExperimentManager implements Closeable {
                     createRabbitMQ(config);
 
                     BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
+
+                    if(benchmark==null){
+                        LOGGER.info("There is no benchmark found for {}",config.benchmarkUri);
+                    }else{
+                        LOGGER.info("Benchmark found for {}",config.benchmarkUri);
+                        LOGGER.info("Benchmark name is {}",benchmark.getName());
+                        LOGGER.info("Benchmark description is {}",benchmark.getDescription());
+                        LOGGER.info("Benchmark main image is {}",benchmark.getMainImage());
+                        LOGGER.info("Benchmark uri is {}",benchmark.getUri());
+                    }
+
                     if ((benchmark == null) || (benchmark.mainImage == null)) {
                         // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
@@ -205,6 +216,11 @@ public class ExperimentManager implements Closeable {
                     }
 
                     SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
+                    if(system==null){
+                        LOGGER.info("There is no system found for system " + config.systemUri);
+                    }else{
+                        LOGGER.info("System found for benchmark " + config.systemUri);
+                    }
                     if ((system == null) || (system.mainImage == null)) {
                         // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
@@ -328,9 +344,15 @@ public class ExperimentManager implements Closeable {
         LOGGER.info("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         if (rabbitMQAddress == null) {
             LOGGER.info("Starting new RabbitMQ for the experiment...");
-            rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
+            String rabbitMQPOD = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
                     Constants.CONTAINER_TYPE_BENCHMARK, null, new String[] {}, null, null, config.id,
                     Collections.emptyMap());
+            //LOGGER.info("Starting service for RabbitMQ for the pod: {}", rabbitMQPOD);
+            //Map<Integer,Integer> ports = new HashMap<>();
+            //ports.put(5672,5672);
+            //rabbitMQAddress = controller.containerManager.startService(rabbitMQPOD,false,ports );
+            rabbitMQAddress = rabbitMQPOD;
+            LOGGER.info("Service initialized for RabbitMQ with this name: {}", rabbitMQAddress);
             if (rabbitMQAddress == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError); // FIXME
                 throw new Exception("Couldn't start new RabbitMQ for the experiment");

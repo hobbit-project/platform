@@ -180,6 +180,14 @@ public interface ContainerManager {
             String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints);
 
 
+    /**
+     *
+     * @param containerIdentifier podname or container id
+     * @param toOutsideOfTheCluster if yes means outside the cluster should reachable
+     * @param ports map of all ports
+     * @return service name
+     */
+    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer,Integer> ports);
 
     /**
      * Stops the container with the given container Id.

@@ -32,6 +32,8 @@ import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.utils.rdf.TripleHashCalculator;
 import org.hobbit.vocab.HobbitHardware;
 import org.hobbit.vocab.MEXCORE;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is used to store information about hardware the experiment runs
@@ -41,6 +43,9 @@ import org.hobbit.vocab.MEXCORE;
  *
  */
 public class NodeHardwareInformation {
+
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NodeHardwareInformation.class);
 
     /**
      * Formatted hardware information.
@@ -137,11 +142,34 @@ public class NodeHardwareInformation {
     }
 
     private StmtIterator distinguishingProperties(Model model, Resource self) {
+
+        // Check for nulls and provide default values
+        String instanceValue = (instance == null) ? "default-instance" : instance;
+        if (instance == null) {
+            LOGGER.warn("instance is null, using default value: {}", instanceValue);
+        }
+
+        String cpuValue = (cpu == null) ? "default-cpu" : cpu;
+        if (cpu == null) {
+            LOGGER.warn("cpu is null, using default value: {}", cpuValue);
+        }
+
+        String memoryValue = (memory == null) ? "default-memory" : memory;
+        if (memory == null) {
+            LOGGER.warn("memory is null, using default value: {}", memoryValue);
+        }
+
+        String osValue = (os == null) ? "default-os" : os;
+        if (os == null) {
+            LOGGER.warn("os is null, using default value: {}", osValue);
+        }
+
+
         return new StmtIteratorImpl(
-                Stream.of((Statement) new StatementImpl(self, RDFS.label, model.createLiteral(instance)),
-                        (Statement) new StatementImpl(self, MEXCORE.cpu, model.createLiteral(cpu)),
-                        (Statement) new StatementImpl(self, MEXCORE.memory, model.createLiteral(memory)),
-                        (Statement) new StatementImpl(self, DOAP.os, model.createLiteral(os))).iterator());
+                Stream.of((Statement) new StatementImpl(self, RDFS.label, model.createLiteral(instanceValue)),
+                        (Statement) new StatementImpl(self, MEXCORE.cpu, model.createLiteral(cpuValue)),
+                        (Statement) new StatementImpl(self, MEXCORE.memory, model.createLiteral(memoryValue)),
+                        (Statement) new StatementImpl(self, DOAP.os, model.createLiteral(osValue))).iterator());
     }
 
     @Override

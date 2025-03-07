@@ -622,6 +622,11 @@ public class ContainerManagerImpl implements ContainerManager {
     }
 
     @Override
+    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer, Integer> ports) {
+        return containerIdentifier;
+    }
+
+    @Override
     public void removeContainer(String serviceName) {
         try {
             Long exitCode = getContainerPodExitCode(serviceName);
