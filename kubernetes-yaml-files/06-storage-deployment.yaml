@@ -15,41 +15,44 @@ spec:
                 app: hobbit-storage-service
         spec:
             securityContext:
-                fsGroup: 1000
+                  fsGroup: 1000
             containers:
                 - name: storage-service
-                  image: hub.cs.upb.de/dice-research/images/hobbit-storage_service:dev0.0.1
+                  #image: hub.cs.upb.de/dice-research/images/hobbit-storage_service:dev0.0.5
+                  image: hobbitproject/hobbit-storage-service:latest
                   imagePullPolicy: IfNotPresent
-                  ports:
-                      - containerPort: 8080
+#                  ports:
+#                      - containerPort: 8080
                   env:
                       - name: JAVA_OPTS
                         value: "-Xmx256m -Xms128m"
                       - name: HOBBIT_RABBIT_HOST
                         value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
                       - name:  SPARQL_ENDPOINT_URL
-                        value: virtuoso-service
+                        value: "http://virtuoso-service:8890/sparql"
                       - name: SPARQL_ENDPOINT_USERNAME
-                        value: "dba"
+                        value: "HobbitPlatform"
                       - name: SPARQL_ENDPOINT_PASSWORD
-                        value: "dba"
-                      - name: SPARQL_ENDPOINT_DATABASE
-                        value: "virtuoso"
+                        value: "Password"
+                      #- name: SPARQL_ENDPOINT_DATABASE
+                        #value: "http://virtuoso-service:8890/sparql"
+                      - name: hobbit.storage
+                        value: rabbitmq
                   volumeMounts:
                       - mountPath: /path/to/mount
                         name: storage-volume
-                  livenessProbe:
-                      httpGet:
-                          path: /actuator/health
-                          port: 8080
-                      initialDelaySeconds: 30
-                      periodSeconds: 10
-                  readinessProbe:
-                      httpGet:
-                          path: /actuator/health
-                          port: 8080
-                      initialDelaySeconds: 30
-                      periodSeconds: 10
+ #                 livenessProbe:
+ #                     httpGet:
+ #                         path: /actuator/health
+ #                         port: 8080
+ #                     initialDelaySeconds: 30
+ #                     periodSeconds: 10
+ #                 readinessProbe:
+ #                     httpGet:
+ #                         path: /actuator/health
+ #                         port: 8080
+ #                     initialDelaySeconds: 30
+ #                     periodSeconds: 10
             volumes:
                 - name: storage-volume
                   persistentVolumeClaim:

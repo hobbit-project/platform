@@ -16,7 +16,7 @@ spec:
         spec:
             securityContext:
                 fsGroup: 1000
-                runAsUser: 79184 #because it need to run chown if user is different
+                runAsUser: 79184
             containers:
                 - name: redis
                   image: redis:6.2.6

@@ -5,7 +5,7 @@ metadata:
 rules:
     - apiGroups: [""]
       resources: ["nodes" , "pods", "services", "namespaces"]
-      verbs: ["create", "get", "update", "delete", "list", "watch"]
+      verbs: ["create", "get", "update", "delete", "list", "watch"] 
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -20,3 +20,4 @@ roleRef:
     kind: ClusterRole
     name: node-reader
     apiGroup: rbac.authorization.k8s.io
+

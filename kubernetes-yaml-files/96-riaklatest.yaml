@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: riak-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: riak
+  template:
+    metadata:
+      labels:
+        app: riak
+    spec:
+      initContainers:
+      - name: riak-init
+        image: bash:latest
+        command: ["/bin/bash", "-c", "/scripts/00-autoconfig.sh"]
+        volumeMounts:
+        - name: script-volume
+          mountPath: /scripts
+        - name: riak-config
+          mountPath: /etc/riak/riak.conf
+          subPath: riak.conf
+      containers:
+      - name: riak
+        image: stojan/riak-kv
+        ports:
+        - containerPort: 8087
+        env:
+        - name: RICK_START_ARGS
+          value: "--enable-search --enable-crypto"
+        volumeMounts:
+        - name: riak-data
+          mountPath: /var/lib/riak
+        - name: riak-config
+          mountPath: /etc/riak/riak.conf
+          subPath: riak.conf
+      volumes:
+      - name: riak-data
+        persistentVolumeClaim:
+          claimName: riak-pvc
+      - name: script-volume
+        configMap:
+          name: riak-config
+          defaultMode: 0755
+      - name: riak-config
+        emptyDir: {}

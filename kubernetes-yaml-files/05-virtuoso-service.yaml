@@ -12,8 +12,9 @@ spec:
           port: 8890
           targetPort: 8890
           name: sparql
+          nodePort: 31001
         - protocol: TCP
           port: 1111
           targetPort: 1111
           name: isql
-    type: LoadBalancer
+    type: NodePort

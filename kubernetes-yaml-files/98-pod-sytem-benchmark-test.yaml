@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hobbit-pod-system-benchmark-test
+spec:
+  imagePullSecrets:
+  - name: gitlab-registry
+  containers:
+  - name: hobbit-container-test
+    image: git.project-hobbit.eu:4567/gitadmin/platform-benchmark
+    env:
+    - name: HOBBIT_RABBIT_HOST
+      value: "service-1740670758851-sep-benchmark-328399376"
+    - name: HOBBIT_SESSION_ID
+      value: "1740670758851"
+    - name: HOBBIT_EXPERIMENT_URI
+      value: "http://w3id.org/hobbit/experiments#1740670758851"
+    - name: BENCHMARK_PARAMETERS_MODEL
+      value: |
+        {
+            "@id" : "http://w3id.org/hobbit/experiments#New",
+            "@type" : "hobbit:Experiment",
+            "hasExperimentType" : "gerbil:A2KB",
+            "hasNumberOfDocuments" : "200",
+            "involvesBenchmark" : "gerbil2:GerbilBenchmark",
+            "involvesSystem" : "ex:DummySystemInstance1",
+            "@context" : {
+                "involvesSystem" : {
+                    "@id" : "http://w3id.org/hobbit/vocab#involvesSystem",
+                    "@type" : "@id"
+                },
+                "involvesBenchmark" : {
+                    "@id" : "http://w3id.org/hobbit/vocab#involvesBenchmark",
+                    "@type" : "@id"
+                },
+                "hasExperimentType" : {
+                    "@id" : "http://w3id.org/gerbil/hobbit/vocab#hasExperimentType",
+                    "@type" : "@id"
+                },
+                "hasNumberOfDocuments" : {
+                    "@id" : "http://w3id.org/gerbil/hobbit/vocab#hasNumberOfDocuments",
+                    "@type" : "http://www.w3.org/2001/XMLSchema#unsignedInt"
+                },
+                "hobbit" : "http://w3id.org/hobbit/vocab#",
+                "ex" : "http://example.org/",
+                "rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+                "owl" : "http://www.w3.org/2002/07/owl#",
+                "gerbil" : "http://w3id.org/gerbil/vocab#",
+                "xsd" : "http://www.w3.org/2001/XMLSchema#",
+                "rdfs" : "http://www.w3.org/2000/01/rdf-schema#",
+                "gerbil2" : "http://w3id.org/gerbil/hobbit/vocab#"
+            }
+        }
+    - name: HOBBIT_SYSTEM_URI
+      value: "http://w3id.org/hobbit/platform-benchmark/vocab#PlatformBenchSystem_1"
+    - name: HOBBIT_CONTAINER_NAME
+      value: "controller-754749f957-lh4kq"
+    - name: GITLAB_USER
+      value: "gitadmin"
+    - name: GITLAB_EMAIL
+      value: "gitadmin@project-hobbit.eu"
+    - name: GITLAB_TOKEN
+      valueFrom:
+          secretKeyRef:
+             name: gitlab-secret
+             key: GITLAB_TOKEN

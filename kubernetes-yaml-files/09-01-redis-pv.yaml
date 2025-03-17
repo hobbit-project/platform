@@ -7,7 +7,7 @@ spec:
         storage: 1Gi
     accessModes:
         - ReadWriteOnce
-    persistentVolumeReclaimPolicy: Retain # Or Delete, as needed
+    persistentVolumeReclaimPolicy: Delete
     storageClassName: "" # Important: Leave empty if not using Storage Classes
     nfs:
         server: 131.234.29.64

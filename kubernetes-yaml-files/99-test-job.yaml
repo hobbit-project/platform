@@ -1,37 +1,33 @@
-apiVersion: batch/v1
-kind: Job
+apiVersion: v1
+kind: Pod
 metadata:
-    name: hobbit-benchmark
+  name: test-hobbit-pod
+  labels:
+    app: hobbit-app
 spec:
-    template:
-        spec:
-            securityContext:
-                fsGroup: 1000
-            containers:
-                - name: hobbit-benchmark
-                  image: maven
-                  command: ["/bin/bash", "-c"]
-                  args:
-                      - |
-                          java -cp target/platform-controller.jar org.hobbit.core.run.ComponentStarter org.hobbit.controller.test.StartBenchmarkRequest
-                  env:
-                      - name: HOBBIT_RABBIT_HOST
-                        value: "rabbitmq"
-                      - name: BENCHMARK
-                        value: "http://example.org/GerbilBenchmark"
-                      - name: SYSTEM
-                        value: "http://example.org/DummySystemInstance1"
-                      - name: BENCHMARK_PARAM_FILE
-                        value: "src/test/resources/exampleExperiment.ttl"
-                      - name: USERNAME
-                        value: "testuser"
-                  volumeMounts:
-                      - name: app-volume
-                        mountPath: /usr/src/app
-            restartPolicy: Never
-            volumes:
-                -   name: app-volume
-                    nfs:
-                        server: 131.234.29.64
-                        path: /data/nfs/kubedata/test
-                        readOnly: false
+  restartPolicy: Never
+  containers:
+  - name: hobbit-container
+    image: maven
+    command: ["sh", "-c"]
+    args: ["tail -f /dev/null"]  # Keeps the container running indefinitely
+    env:
+      - name: HOBBIT_RABBIT_HOST
+        value: rabbitmq
+      - name: BENCHMARK
+        value: http://w3id.org/hobbit/platform-benchmark/vocab#PlatformBenchmark
+      - name: SYSTEM
+        value: http://w3id.org/hobbit/platform-benchmark/vocab#PlatformBenchSystem_1
+      - name: BENCHMARK_PARAM_FILE
+        value: /usr/src/app/src/test/resources/org/hobbit/controller/exampleExperiment.ttl
+      - name: USERNAME
+        value: testuser
+    volumeMounts:
+      - mountPath: /usr/src/app
+        name: app-volume
+  volumes:
+  - name: app-volume
+    nfs:
+      server: 131.234.29.64
+      path: /data/nfs/kubedata/test
+      readOnly: false

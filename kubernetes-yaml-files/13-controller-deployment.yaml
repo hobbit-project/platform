@@ -19,8 +19,11 @@ spec:
                 fsGroup: 1000
             containers:
                 - name: controller
-                  image: hub.cs.upb.de/dice-research/images/hobbit-platform_controller:dev0.0.9
+                  image: hub.cs.upb.de/dice-research/images/hobbit-platform_controller:dev0.0.83
                   imagePullPolicy: IfNotPresent
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    runAsUser: 0
                   ports:
                       - containerPort: 8080
                   env:
@@ -28,12 +31,14 @@ spec:
                           value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
                       -   name: SPARQL_ENDPOINT_URL
                           value: virtuoso
+                      -   name: HOBBIT_RABBIT_IMAGE
+                          value: "rabbitmq:management"
                       -   name: SPARQL_ENDPOINT_USERNAME
                           value: "dba"
                       -   name: SPARQL_ENDPOINT_PASSWORD
                           value: "dba"
                       -   name: SPARQL_ENDPOINT_DATABASE
-                          value: "virtuoso"
+                          value: "virtuoso:8890"
                       -   name: HOBBIT_REDIS_HOST
                           value: "redis-service"
                       -   name: GITLAB_TOKEN
@@ -49,6 +54,8 @@ spec:
                           value: "develop"
                       -   name: MAX_EXECUTION_TIME
                           value: "1200000"
+                      -   name: CONTAINER_PARENT_CHECK
+                          value: "0"
                   volumeMounts:
                       - mountPath: /data
                         name: controller-storage  # Only if you are using a PVC
