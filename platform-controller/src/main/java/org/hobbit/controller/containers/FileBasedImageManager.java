@@ -131,13 +131,13 @@ public class FileBasedImageManager extends AbstactImageManager {
 
     @Override
     protected List<BenchmarkMetaData> getUncheckedBenchmarks() {
-        LOGGER.info("getUncheckedBenchmarks from File size {}", benchmarks.size());
+        //LOGGER.info("getUncheckedBenchmarks from File size {}", benchmarks.size());
         return new ArrayList<>(benchmarks);
     }
 
     @Override
     protected List<SystemMetaData> getUncheckedSystems() {
-        LOGGER.info("getUncheckedSystems from File size {}", systems.size());
+        //LOGGER.info("getUncheckedSystems from File size {}", systems.size());
         return new ArrayList<>(systems);
     }
 

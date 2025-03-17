@@ -53,22 +53,14 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
+import org.hobbit.controller.containers.*;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.containers.ClusterManager;
 //import org.hobbit.controller.containers.docker.ClusterManagerImpl;
 import org.hobbit.controller.containers.kubernetes.ClusterManagerImpl;
-import org.hobbit.controller.containers.ContainerManager;
 //import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.hobbit.controller.containers.kubernetes.ContainerManagerImpl;
-import org.hobbit.controller.containers.ContainerStateObserver;
 //import org.hobbit.controller.containers.docker.ContainerStateObserverImpl;
 import org.hobbit.controller.containers.kubernetes.ContainerStateObserverImpl;
-import org.hobbit.controller.containers.ContainerTerminationCallback;
-import org.hobbit.controller.containers.FileBasedImageManager;
-import org.hobbit.controller.containers.GitlabBasedImageManager;
-import org.hobbit.controller.containers.ImageManager;
-import org.hobbit.controller.containers.ImageManagerFacade;
-import org.hobbit.controller.containers.ResourceInformationCollector;
 //import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.containers.kubernetes.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
@@ -179,7 +171,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     /**
      * A manager for Docker containers.
      */
-    protected ContainerManager containerManager;
+    protected KubExtendedContainerManager containerManager;
     /**
      * The observer of docker containers.
      */
@@ -287,7 +279,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         containerManager = new ContainerManagerImpl(client);
         LOGGER.info("Container manager initialized.");
         // Create container observer (polls status every 5s)
-        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000, client);
+        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
@@ -400,7 +392,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             replyTo = props.getReplyTo();
         }
 
-        if (LOGGER.isDebugEnabled()) {
+        //if (LOGGER.isDebugEnabled()) {
+        if (true) {
             LOGGER.info("received command: session={}, command={}, data={}", sessionId, Commands.toString(command),
                     data != null ? RabbitMQUtils.readString(data) : "null");
         } else {
@@ -531,6 +524,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
+        LOGGER.info("create Container in platform controller {}",data.toString());
         String parentId = containerManager.getContainerPodId(data.parent);
         if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
@@ -844,6 +838,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             LOGGER.error("Got an error report without container ID. It will be ignored.");
             return;
         }
+        LOGGER.info("handle error report for session \"{}\" and container Id {}", sessionId,errorData.getContainerId());
         String containerType = containerManager.getContainerType(errorData.getContainerId());
         boolean isBenchmarkContainer = Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType);
         if (!isBenchmarkContainer && (!Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))) {

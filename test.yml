@@ -1,0 +1,13 @@
+version: '3.3'
+services:
+  redis:
+    image: redis:4.0.7
+    volumes:
+      - ./config/redis-db:/data
+    command: ["redis-server", "/data/redis.conf"]
+    networks:
+      - test
+networks:
+  test:
+    external: true
+

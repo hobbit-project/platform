@@ -216,33 +216,67 @@ public class StorageService extends AbstractComponent implements CredentialsProv
 
     @Override
     public void init() throws Exception {
+        LOGGER.info("Initializing storage service...");
+
+        // Call parent initialization
+        LOGGER.debug("Calling super.init()");
         super.init();
 
-        sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true) + "-auth";
-        String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
-        String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
-        credentials = new UsernamePasswordCredentials(username, password);
+        try {
+            LOGGER.debug("Fetching SPARQL endpoint URL from environment variables...");
+            sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true) ;//+ "-auth";
+            LOGGER.info("SPARQL Endpoint URL: {}", sparqlEndpointUrl);
 
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-        clientBuilder.setDefaultCredentialsProvider(this);
-        client = clientBuilder.build();
+            LOGGER.debug("Fetching SPARQL endpoint username...");
+            String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
+            LOGGER.info("SPARQL Endpoint Username: {}", username);
 
-        queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
-        queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
+            LOGGER.debug("Fetching SPARQL endpoint password...");
+            String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
+            LOGGER.info("SPARQL Endpoint Password: {}", password); // ⚠️ Consider removing in production
 
-        queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
-        queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
+            LOGGER.debug("Creating credentials object...");
+            credentials = new UsernamePasswordCredentials(username, password);
 
-        consumer = new QueueingConsumer(queue.channel);
-        queue.channel.basicConsume(QUEUE_NAME, false, consumer);
+            LOGGER.debug("Building HTTP client with credentials...");
+            HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+            clientBuilder.setDefaultCredentialsProvider(this);
+            client = clientBuilder.build();
+            LOGGER.info("HTTP client successfully built.");
+
+            LOGGER.debug("Initializing QueryExecutionFactory...");
+            queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
+            queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
+            LOGGER.info("QueryExecutionFactory initialized with pagination and max result size: {}", MAX_RESULT_SIZE);
+
+            LOGGER.debug("Creating default RabbitMQ queue with name: {}", QUEUE_NAME);
+            queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
+
+            LOGGER.debug("Setting channel QoS with max parallel requests: {}", MAX_NUMBER_PARALLEL_REQUESTS);
+            queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
+
+            LOGGER.debug("Initializing QueueingConsumer for queue: {}", QUEUE_NAME);
+            consumer = new QueueingConsumer(queue.channel);
+
+            LOGGER.info("Starting to consume messages from queue: {}", QUEUE_NAME);
+            queue.channel.basicConsume(QUEUE_NAME, false, consumer);
+
+            LOGGER.info("Storage service initialization completed successfully.");
+
+        } catch (Exception e) {
+            LOGGER.error("Error during initialization: ", e);
+            throw e; // Re-throw after logging
+        }
     }
 
     @Override
     public void run() throws Exception {
-        LOGGER.info("[Storage Service] Awaiting Storage Service requests");
+        LOGGER.info("[Storage Service] Awaiting Storage Service requests "+MAX_NUMBER_PARALLEL_REQUESTS);
         ExecutorService executor = Executors.newFixedThreadPool(MAX_NUMBER_PARALLEL_REQUESTS);
+        LOGGER.info("executor is ready"+ MAX_NUMBER_PARALLEL_REQUESTS);
         Delivery delivery;
         while (true) {
+            LOGGER.info("Let's wait for a delivery for 60 seconds");
             delivery = null;
             // Let's wait for a delivery for 60 seconds
             try {
@@ -251,8 +285,10 @@ public class StorageService extends AbstractComponent implements CredentialsProv
                 // interrupted; just continue
             }
             if (delivery != null) {
+                LOGGER.info("delivery is not null");
                 executor.execute(new DeliveryProcessing(this, delivery, queue));
             } else {
+                LOGGER.info("delivery is null");
                 // This would be the place at which we could react to signals, e.g., terminate
                 // the service if needed.
             }
@@ -341,7 +377,7 @@ public class StorageService extends AbstractComponent implements CredentialsProv
 
     /**
      * Main method for debugging purposes.
-     * 
+     *
      * @param args
      */
     public static void main(String[] args) {

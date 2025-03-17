@@ -621,10 +621,10 @@ public class ContainerManagerImpl implements ContainerManager {
         return startContainer(imageName, containerType, parentId, env, netAliases, command, true, constraints);
     }
 
-    @Override
-    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer, Integer> ports) {
-        return containerIdentifier;
-    }
+//    @Override
+//    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer, Integer> ports) {
+//        return containerIdentifier;
+//    }
 
     @Override
     public void removeContainer(String serviceName) {

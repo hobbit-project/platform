@@ -168,7 +168,7 @@ public class ExperimentManager implements Closeable {
      * experiment waiting in the queue.
      */
     public void createNextExperiment() {
-        LOGGER.info("create experiment");
+        //LOGGER.info("create next experiment");
         synchronized (experimentMutex) {
             try {
                 // if there is no benchmark running, the queue has been
@@ -277,6 +277,7 @@ public class ExperimentManager implements Closeable {
                                     Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
                                     Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
                             null, null, config.id, Collections.emptyMap());
+                    LOGGER.info("^^> containerID is {}" , containerId);
                     if (containerId == null) {
                         experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
                         throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
@@ -296,6 +297,7 @@ public class ExperimentManager implements Closeable {
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
                             null, null, config.id, getHardwareConstraints(config.serializedBenchParams));
+                    LOGGER.info("^^^> containerID is {}" , containerId);
                     if (containerId == null) {
                         LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                         forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
@@ -340,6 +342,7 @@ public class ExperimentManager implements Closeable {
     }
 
     protected void createRabbitMQ(ExperimentConfiguration config) throws Exception {
+        LOGGER.info("create RabbitMQ");
         String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
         LOGGER.info("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         if (rabbitMQAddress == null) {

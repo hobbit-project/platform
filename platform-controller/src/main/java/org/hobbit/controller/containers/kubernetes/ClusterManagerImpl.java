@@ -54,11 +54,11 @@ public class ClusterManagerImpl implements ClusterManager {
 
     @Override
     public boolean isClusterHealthy() throws InterruptedException {
-        LOGGER.info("Checking cluster health");
+        //LOGGER.info("Checking cluster health");
         try {
             V1NodeList nodeList = coreV1Api.listNode(null, null, null, null, null, null, null, null, null, false);
             List<V1Node> nodes = nodeList.getItems();
-            LOGGER.info(nodes.size() + " nodes found");
+            //LOGGER.info(nodes.size() + " nodes found");
             for (V1Node node : nodes) {
                 String status = node.getStatus().getConditions()
                     .stream()
