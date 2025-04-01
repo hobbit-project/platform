@@ -543,9 +543,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // in corerct version if possible every method should return pod name and convert
         String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
                 data.networkAliases, null, pullImage, null);
+        LOGGER.info("-->>--- container ID is {}", containerId);
         if (containerId == null) {
             return null;
         } else {
+            LOGGER.info("convert ID to PODNAME");
             return containerManager.getContainerPodName(containerId);
         }
     }

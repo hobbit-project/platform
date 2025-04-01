@@ -430,6 +430,11 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
 
     private String createContainerKub(String imageName, String podName, String containerType, String parentPodName,
                                       String[] env, String[] command, Map<String, Object> constraints) {
+        //todo complete the image name
+        if(imageName.equals("dicegroup/ckan-hobbit-db")){
+            imageName = "docker.io/dicegroup/ckan-hobbit-db:latest";
+        }
+
         LOGGER.info("Creating container: Image = {}, Pod Name = {}, Container Type = {}, Parent ID = {}",
             imageName, podName, containerType, parentPodName);
 
@@ -492,6 +497,7 @@ LOGGER.info("######@@@@######");
         //environmentVariables.add(gitlabTokenEnvVar);
         environmentVariables.add(new V1EnvVar().name("GITLAB_USER").value("gitadmin"));
         environmentVariables.add(new V1EnvVar().name("GITLAB_EMAIL").value("gitadmin@project-hobbit.eu"));
+        environmentVariables.add((new V1EnvVar().name("RUN_ON").value("kubernetes")));
 
 //        for(V1EnvVar envVar : environmentVariables) {
 //            LOGGER.info("Adding environment variable: {} = {}", envVar.getName(), envVar.getValue());
@@ -534,13 +540,18 @@ LOGGER.info("######@@@@######");
         // Add security context with NET_RAW capability
 
         V1SecurityContext securityContext = new V1SecurityContext();
-        securityContext.setCapabilities(new V1Capabilities()
-            .addAddItem("NET_RAW").addAddItem("SYS_ADMIN"));
 
-        //todo make them variable also for pod
-        securityContext.setRunAsUser(0L);  // Replace with your actual user ID
-        securityContext.setRunAsGroup(0L);  // Replace with your actual group ID
-        securityContext.allowPrivilegeEscalation(true);
+        // todo it is temporary
+        if(!imageName.contains("earthquakesan/ckan-solr:2.8.0")) {
+            securityContext.setCapabilities(new V1Capabilities()
+                .addAddItem("NET_RAW").addAddItem("SYS_ADMIN").addAddItem("AUDIT_WRITE"));
+            //todo make them variable also for pod
+            securityContext.setRunAsUser(0L);  // Replace with your actual user ID
+            securityContext.setRunAsGroup(0L);  // Replace with your actual group ID
+            securityContext.allowPrivilegeEscalation(true);
+        }else {
+            LOGGER.info("do not use as admin");
+        }
 
 
 
@@ -568,16 +579,22 @@ LOGGER.info("######@@@@######");
                 new V1LocalObjectReference()
                     .name("gitlab-registry-secret")
                 //todo make this const
-            );
+            ).addImagePullSecretsItem(
+                new V1LocalObjectReference()
+                    .name("my-dockerhub-secret")
+                //todo make this const
+            );;
             //.volumes(Collections.singletonList(volume));
 
         //todo make them variable also for container
 
 
             V1PodSecurityContext podSecurityContext = new V1PodSecurityContext();
+        // todo it is temporary
+        if(!imageName.contains("earthquakesan/ckan-solr:2.8.0")) {
             podSecurityContext.setRunAsUser(0L);
             podSecurityContext.setFsGroup(0L);
-
+        }
             podSpec.setSecurityContext(podSecurityContext);
 
 //        LOGGER.info("Determining node selector based on container type: {} and parent type: {}", containerType, parentType);
@@ -714,11 +731,16 @@ LOGGER.info("######@@@@######");
 
     private String changeIfItIsContainerName(String s) {
         String[] parts = s.split("=");
-        if(isItContainerName(parts[1])){
-            String newName = mapName2IP(parts[1]);
-            return parts[0]+"="+newName;
+        if(parts.length !=2 ){
+         LOGGER.error("Invalid container name. {}",s);
+         return s;
+        }else {
+            if (isItContainerName(parts[1])) {
+                String newName = mapName2IP(parts[1]);
+                return parts[0] + "=" + newName;
+            }
+            return s;
         }
-        return s;
     }
 
     private String convertIP2dnsId(String podIP) {
@@ -997,7 +1019,12 @@ LOGGER.info("######@@@@######");
 
             LOGGER.warn("(^^) check if it is the converted IP of the pod : {}",podId);
 
-            return mapIp2Name(podId);
+            if(mapIp2Name(podId)!=null){
+                LOGGER.info("it is the dns FriendlyPod IP ");
+                return podId;
+            }
+            LOGGER.error("can't get the name of the pod {}",podId);
+            return null;
         } catch (Exception e) {
             LOGGER.error("Failed to fetch Pod name for Pod ID: {} in namespace: {}. Error: {}", podId, nameSpace, e);
             return null;
