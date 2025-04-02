@@ -439,7 +439,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.DOCKER_CONTAINER_STOP: {
-            LOGGER.info("Stopping container with name: {}", sessionId);
+            LOGGER.info("cmd-Stopping container, sessionId : {}", sessionId);
             // get containerId from params
             StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
@@ -525,8 +525,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     private String createContainer(StartCommandData data) {
         LOGGER.info("create Container in platform controller {}",data.toString());
-        String parentId = containerManager.getContainerPodId(data.parent);
-        if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
+        //String parentId = containerManager.getContainerPodId(data.parent);
+        if ((data.parent == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }
@@ -541,7 +541,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         //TODO here it is not container ID , it is container name
         // search for this tag to find tha patch #klhadKA5468WDJnlawd
         // in corerct version if possible every method should return pod name and convert
-        String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
+        String containerId = containerManager.startContainer(data.image, data.type, data.parent, data.environmentVariables,
                 data.networkAliases, null, pullImage, null);
         LOGGER.info("-->>--- container ID is {}", containerId);
         if (containerId == null) {
@@ -559,10 +559,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     public void stopContainer(String containerName) {
         LOGGER.info("Stopping container with name: {}", containerName);
-        String containerId = containerManager.getContainerPodId(containerName);
-        if (containerId != null) {
-            containerManager.removeContainer(containerId);
-        }
+        //String containerId = containerManager.getContainerPodId(containerName);
+        containerManager.removeContainer(containerName);
     }
 
     @Override
