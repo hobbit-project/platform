@@ -119,17 +119,12 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
             for (V1Node node : nodes) {
                 V1NodeSystemInfo systemInfo = node.getStatus().getNodeInfo();
 
-                LOGGER.info("Kernel Version: " + systemInfo.getKernelVersion());
-                LOGGER.info("Machine ID: " + systemInfo.getMachineID());
-                LOGGER.info("Container Runtime Version: " + systemInfo.getContainerRuntimeVersion());
-                LOGGER.info("Kubelet Version: " + systemInfo.getKubeletVersion());
-                LOGGER.info("KubeProxy Version: " + systemInfo.getKubeProxyVersion());
+                LOGGER.debug("Kernel Version: " + systemInfo.getKernelVersion());
+                LOGGER.debug("Machine ID: " + systemInfo.getMachineID());
+                LOGGER.debug("Container Runtime Version: " + systemInfo.getContainerRuntimeVersion());
+                LOGGER.debug("Kubelet Version: " + systemInfo.getKubeletVersion());
+                LOGGER.debug("KubeProxy Version: " + systemInfo.getKubeProxyVersion());
 
-
-                //TODO test
-
-                String nodeName = node.getMetadata().getName();
-                LOGGER.info("nodeName: " + nodeName);
                 Map<String, Quantity> capacity = node.getStatus().getCapacity();
 //                Map<String, Quantity> allocatable = node.getStatus().getAllocatable();
 

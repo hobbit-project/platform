@@ -230,7 +230,7 @@ public interface ContainerManager {
     public Long getContainerPodExitCode(String serviceName) throws ContainerPodException ,InterruptedException;
 
 
-    //TODO maybe remove this method from interface just keeo the usage in implementation for dokcer
+    //TODO maybe remove this method from interface just keep the usage in implementation for dokcer
 //    /**
 //     * Returns container info
 //     *

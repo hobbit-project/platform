@@ -30,7 +30,7 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
     private static final String DEFAULT_GIT_EMAIL = "gitadmin@project-hobbit.eu";
     private static final String RUN_ON_KUBERNETES_FLAG = "kubernetes";
     private ApiClient client;
-    //TODO make configable
+    //TODO do we need to make config able ?
     private String nameSpace = "default";
     private static final long KUBERNETES_POLL_INTERVAL = 5000; // Poll interval in ms
 
@@ -197,7 +197,7 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         if (parentId != null) {
             if (!parentId.contains(".pod.cluster.")) {
             LOGGER.debug("wrong parent ID {}",parentId);
-                parentId = getContainerPodName(parentId);
+                //parentId = getContainerPodName(parentId);
             LOGGER.debug("new parent ID is {}",parentId);
             }
         }
@@ -886,65 +886,23 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         return null;
     }
 
+
     @Override
     public String getContainerPodId(String podIp) {
-        LOGGER.info("getContainerPodId({})", podIp);
-        String podName = mapIp2Name(podIp);
-        LOGGER.info(" Converted PodId to name ({})", podName);
-//        String podName = mapIp2Name(podIp);
-        try {
-            // Fetch the pod information using its name and namespace
-            CoreV1Api api = new CoreV1Api(client);
-            V1Pod pod = api.readNamespacedPod(podName, nameSpace, null);
-
-            // Return the Pod's UID (unique identifier)
-            return pod.getMetadata().getUid();
-        } catch (Exception e) {
-            LOGGER.error("Failed to fetch Pod ID for Pod name: {} in namespace: {}. Error: {}", podName, nameSpace, e);
-            return null;
-        }
+        return  podIp;
     }
 
+    // this is the container name which is the dns friendly IP of a  pod
     @Override
     public String getContainerPodName(String podId) {
-        try {
-            // Fetch the list of all pods in the namespace
-            CoreV1Api api = new CoreV1Api(client);
-            V1PodList podList = api.listNamespacedPod(nameSpace, null, null, null, null, null, null, null, null, null, false);
-
-            // Search for the pod with the given UID
-            for (V1Pod pod : podList.getItems()) {
-                if (pod.getMetadata().getUid().equals(podId)) {
-                    // Return the Pod's name
-                    return mapName2IP(pod.getMetadata().getName());
-                }
-            }
-
-            // If no matching pod is found, return null
-            LOGGER.warn("No Pod found with ID: {} in namespace: {}", podId, nameSpace);
-            LOGGER.warn("check if the input was the name of the pod");
-            // todo this code should remove search for this to find the source of the error which head to this patch #klhadKA5468WDJnlawd
-            for (V1Pod pod : podList.getItems()) {
-                if (pod.getMetadata().getName().equals(podId)) {
-                    // Return the Pod's name
-                    LOGGER.warn("it is a pod name {}", pod.getMetadata().getName());
-                    return mapName2IP(pod.getMetadata().getName());
-                }
-            }
-
-            LOGGER.warn("(^^) check if it is the converted IP of the pod : {}",podId);
-
-            if(mapIp2Name(podId)!=null){
-                LOGGER.info("it is the dns FriendlyPod IP ");
-                return podId;
-            }
-            LOGGER.error("can't get the name of the pod {}",podId);
-            return null;
-        } catch (Exception e) {
-            LOGGER.error("Failed to fetch Pod name for Pod ID: {} in namespace: {}. Error: {}", podId, nameSpace, e);
-            return null;
-        }
+        return podId;
     }
+    /**
+     * Checks if a given name corresponds to an existing pod in the specified namespace.
+     *
+     * @param name The name of the pod to check.
+     * @return {@code true} if the pod exists, otherwise {@code false}.
+     */
 
     private Boolean isItContainerName(String name) {
         try {
@@ -954,7 +912,7 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
                 .filter(podTocheck -> name.equals(podTocheck.getMetadata().getName()))
                 .findFirst()
                 .orElse(null);
-            //todo remove this
+
             if (targetPod == null) {
                 return false;
             }
@@ -965,6 +923,12 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         }
     }
 
+    /**
+     * Maps a pod name to its corresponding IP address and converts it to a DNS-compatible format.
+     *
+     * @param name The name of the pod.
+     * @return The converted DNS-compatible IP address of the pod, or null if the pod is not found or in an unexpected state.
+     */
     private String mapName2IP(String name) {
         try {
             CoreV1Api api = new CoreV1Api(client);
@@ -973,21 +937,17 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
                 .filter(podTocheck -> name.equals(podTocheck.getMetadata().getName()))
                 .findFirst()
                 .orElse(null);
-            //todo remove this
-            if (targetPod == null) {
-                LOGGER.error("!No pod found with name: {}", name);
-            }
 
-            LOGGER.info("Target pod found: {}", targetPod.getMetadata().getName());
+            LOGGER.debug("Target pod found: {}", targetPod.getMetadata().getName());
 
             String podPhase = targetPod.getStatus().getPhase();
             if ("Running".equals(podPhase)) {
                 String podIP = targetPod.getStatus().getPodIP();
-                LOGGER.info("Pod IP: {}", podIP);
+                LOGGER.debug("Pod IP: {}", podIP);
                 if (podIP != null && !podIP.isEmpty()) {
-                    LOGGER.info("Obtained Pod IP: {}", podIP);
+                    LOGGER.debug("Obtained Pod IP: {}", podIP);
                     String convertedIP = convertIP2dnsId(podIP);
-                    LOGGER.info("Converted IP: {}", convertedIP);
+                    LOGGER.debug("Converted IP: {}", convertedIP);
                     return convertedIP;
                 }
             }
@@ -1016,9 +976,15 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
 //    }
 
 
+    /**
+     * Retrieves the type of a container within a Kubernetes pod based on its labels.
+     *
+     * @param podIP The IP address of the pod.
+     * @return The type of the container, or null if the pod or its type label is not found.
+     */
     @Override
     public String getContainerType(String podIP) {
-        LOGGER.info("getContainerType({})", podIP);
+        LOGGER.debug("getContainerType({})", podIP);
         // Logic to retrieve the parent pod based on the podName
         V1Pod parent = getPod(podIP);
 
@@ -1032,7 +998,7 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         if (containerType == null) {
             LOGGER.warn("Container type not found in labels for pod: {}", podIP);
         } else {
-            LOGGER.info("Resolved container type for pod {}: {}", podIP, containerType);
+            LOGGER.debug("Resolved container type for pod {}: {}", podIP, containerType);
         }
 
         return containerType;
