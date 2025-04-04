@@ -38,7 +38,6 @@ import java.util.concurrent.Semaphore;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.Config;
 import org.apache.commons.configuration2.EnvironmentConfiguration;
 import org.apache.commons.io.IOUtils;
@@ -169,7 +168,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     protected DataSender sender2Analysis;
     /**
-     * A manager for Docker containers.
+     * A manager for Kubernetes/Docker containers.
+     * TODO : is it good way ?
      */
     protected KubExtendedContainerManager containerManager;
     /**
@@ -244,7 +244,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     public void init() throws Exception {
         // First initialize the super class
         super.init();
-        LOGGER.info("Platform controller initialization started.");
+        LOGGER.debug("Platform controller initialization started.");
 
         hobbitConfig = new HobbitConfiguration();
         hobbitConfig.addConfiguration(new EnvironmentConfiguration());
@@ -253,7 +253,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         // containers)
         // Only for prod mode
 
-        LOGGER.info("configuration initialized.");
+        LOGGER.debug("configuration initialized.");
 
        // Config.fromConfig("/var/run/secrets/kubernetes.io/serviceaccount/token");
         //ApiClient client = Configuration.get();
@@ -263,7 +263,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         client.setWriteTimeout(TIMEOUT_MILLISECONDS);
         Configuration.setDefaultApiClient(client);
 
-        LOGGER.info("kub client initialized.");
+        LOGGER.debug("kub client initialized.");
 
 
         clusterManager = new ClusterManagerImpl(client);
@@ -277,7 +277,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
 
         // create container manager
         containerManager = new ContainerManagerImpl(client);
-        LOGGER.info("Container manager initialized.");
+        LOGGER.debug("Container manager initialized.");
         // Create container observer (polls status every 5s)
         containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
         containerObserver.addTerminationCallback(this);
@@ -291,17 +291,17 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         List<ImageManager> managers = new ArrayList<ImageManager>();
         if (System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
             String metadataDirectory = System.getenv().get(LOCAL_METADATA_DIR_KEY);
-            LOGGER.info("Local metadata directory: {}", metadataDirectory);
+            LOGGER.debug("Local metadata directory: {}", metadataDirectory);
             managers.add(new FileBasedImageManager(metadataDirectory));
         } else {
-            LOGGER.info("Using default directory for local metadata.");
+            LOGGER.debug("Using default directory for local metadata.");
             managers.add(new FileBasedImageManager());
         }
         boolean useGitlab = true;
         if (System.getenv().containsKey(USE_GITLAB_KEY)) {
             try {
                 useGitlab = Boolean.parseBoolean(System.getenv().get(USE_GITLAB_KEY));
-                LOGGER.info("Using git lab enabled");
+                LOGGER.debug("Using git lab enabled");
             } catch (Exception e) {
                 LOGGER.error("Couldn't parse value of " + USE_GITLAB_KEY + ". It will be ignored.");
             }
@@ -340,14 +340,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
-        LOGGER.info("Platform controller initialized.");
+        LOGGER.debug("Platform controller initialized.");
     }
 
     /**
      * This method sets the RabbitMQ connector for the command queue.
      */
     public void setExpRabbitMQConnector(RabbitMQConnector rabbitMQConnector) {
-        LOGGER.info("Setting experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        LOGGER.debug("Setting experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
         assert this.rabbitMQConnector == null : "RabbitMQ connector should be null";
         this.rabbitMQConnector = rabbitMQConnector;
     }
@@ -358,7 +358,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @throws Exception
      */
     public void closeExpRabbitMQConnector() {
-        LOGGER.info("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        LOGGER.debug("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
         if(rabbitMQConnector != null) {
             IOUtils.closeQuietly(rabbitMQConnector);
             rabbitMQConnector = null;
@@ -392,17 +392,16 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             replyTo = props.getReplyTo();
         }
 
-        //if (LOGGER.isDebugEnabled()) {
-        if (true) {
+        if (LOGGER.isDebugEnabled()) {
             LOGGER.info("received command: session={}, command={}, data={}", sessionId, Commands.toString(command),
                     data != null ? RabbitMQUtils.readString(data) : "null");
         } else {
-            LOGGER.info("received command: session={}, command={}", sessionId, Commands.toString(command));
+            LOGGER.debug("received command: session={}, command={}", sessionId, Commands.toString(command));
         }
         // Determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
-            LOGGER.info("Starting container with name: {}", sessionId);
+            LOGGER.debug("Starting container with name: {}", sessionId);
             StartCommandData startParams = null;
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
@@ -410,7 +409,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class, false);
                 // trigger creation
                 containerName = createContainer(startParams);
-                LOGGER.info("Starting container with name: {}", containerName);
+                LOGGER.debug("Starting container with name: {}", containerName);
             } else {
                 LOGGER.error(
                         "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.",
@@ -439,7 +438,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.DOCKER_CONTAINER_STOP: {
-            LOGGER.info("cmd-Stopping container, sessionId : {}", sessionId);
+            LOGGER.debug("cmd-Stopping container, sessionId : {}", sessionId);
             // get containerId from params
             StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
@@ -447,17 +446,17 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
-            LOGGER.info("Ready signal: {}", sessionId);
+            LOGGER.debug("Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
         case Commands.SYSTEM_READY_SIGNAL: {
-            LOGGER.info("System Ready signal: {}", sessionId);
+            LOGGER.debug("System Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(true, sessionId);
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
-            LOGGER.info("Task generator finish: {}", sessionId);
+            LOGGER.debug("Task generator finish: {}", sessionId);
             expManager.taskGenFinished(sessionId);
             break;
         }
@@ -473,7 +472,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             // FIXME use the session id to make sure that only containers of this session
             // are observed
             ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
-            LOGGER.info("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
+            LOGGER.debug("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
             if (replyTo != null) {
                 byte[] response;
                 if (resUsage != null) {
@@ -524,7 +523,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
-        LOGGER.info("create Container in platform controller {}",data.toString());
+        LOGGER.debug("create Container in platform controller {}",data.toString());
         //String parentId = containerManager.getContainerPodId(data.parent);
         if ((data.parent == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
@@ -539,11 +538,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
 
         String containerDNSFriendlyIP_OR_containerIDForDocker = containerManager.startContainer(data.image, data.type, data.parent, data.environmentVariables,
                 data.networkAliases, null, pullImage, null);
-        LOGGER.info("-->>--- container Identifier is {}", containerDNSFriendlyIP_OR_containerIDForDocker);
+        LOGGER.debug("container Identifier is {}", containerDNSFriendlyIP_OR_containerIDForDocker);
         if (containerDNSFriendlyIP_OR_containerIDForDocker == null) {
             return null;
         } else {
-            LOGGER.info("convert ID to PODNAME");
+            LOGGER.debug("convert ID to PODNAME");
             return containerDNSFriendlyIP_OR_containerIDForDocker;
         }
     }
@@ -554,7 +553,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @param containerName name of the container that should be stopped
      */
     public void stopContainer(String containerName) {
-        LOGGER.info("Stopping container with name: {}", containerName);
+        LOGGER.debug("Stopping container with name: {}", containerName);
         //String containerId = containerManager.getContainerPodId(containerName);
         containerManager.removeContainer(containerName);
     }
@@ -567,7 +566,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
 
     @Override
     public void notifyTermination(String containerId, long exitCode) {
-        LOGGER.info("Container " + containerId + " stopped with exitCode=" + exitCode);
+        LOGGER.debug("Container " + containerId + " stopped with exitCode=" + exitCode);
         // Check whether this container was part of an experiment
         expManager.notifyTermination(containerId, exitCode);
         // Remove the container from the observer
@@ -767,7 +766,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             case FrontEndApiCommands.GET_SYSTEMS_OF_USER: {
                 // get the user name
                 String email = RabbitMQUtils.readString(buffer);
-                LOGGER.info("Loading systems of user \"{}\"", email);
+                LOGGER.debug("Loading systems of user \"{}\"", email);
                 response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsOfUser(email)));
                 break;
             }
@@ -834,7 +833,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             LOGGER.error("Got an error report without container ID. It will be ignored.");
             return;
         }
-        LOGGER.info("handle error report for session \"{}\" and container Id {}", sessionId,errorData.getContainerId());
+        LOGGER.debug("handle error report for session \"{}\" and container Id {}", sessionId,errorData.getContainerId());
         String containerType = containerManager.getContainerType(errorData.getContainerId());
         boolean isBenchmarkContainer = Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType);
         if (!isBenchmarkContainer && (!Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))) {
@@ -919,7 +918,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
         // add to queue
         for (ExperimentConfiguration ex : experiments) {
-            LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
+            LOGGER.debug("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
                     + ex.systemUri + " to the queue.");
             queue.add(ex);
         }
@@ -935,7 +934,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri,
             Calendar now) {
-        LOGGER.info("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
+        LOGGER.debug("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri,
                 Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
