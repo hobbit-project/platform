@@ -12,11 +12,16 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * A concrete implementation of {@link ContainerStateObserver} that monitors Kubernetes pods and
+ * notifies registered callbacks when a pod terminates.
+ */
+
 public class ContainerStateObserverImpl implements ContainerStateObserver {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerStateObserverImpl.class);
 
-    KubExtendedContainerManager manager;
+    private KubExtendedContainerManager manager;
     private final List<String> monitoredContainers;
     private final List<ContainerTerminationCallback> terminationCallbacks;
     private final Timer timer;

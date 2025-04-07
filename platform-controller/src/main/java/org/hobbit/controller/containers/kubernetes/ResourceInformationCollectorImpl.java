@@ -31,6 +31,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * This class implements the {@link ResourceInformationCollector} interface to gather resource usage information and hardware details from a Kubernetes cluster. It uses the Kubernetes Java client to interact with the Kubernetes API.
+ *
+ * The implementation provides methods to:
+ *     Get system-wide resource usage information.
+ *     Get resource usage information for specific containers based on criteria.
+ *     Fetch hardware information of the nodes in the Kubernetes cluster.
+ *
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
+ */
+
 public class ResourceInformationCollectorImpl implements ResourceInformationCollector {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ResourceInformationCollectorImpl.class);
@@ -38,8 +49,6 @@ public class ResourceInformationCollectorImpl implements ResourceInformationColl
     //TODO make configable
     private int TIMEOUT_MILLISECONDS = 60000;
     private final String namespace = "default";
-    private static final long KUBERNETES_POLL_INTERVAL = 5000; // Poll interval in ms
-    private static final long KUBERNETES_EXITCODE_SIGKILL = 137L; // Equivalent to SIGKILL exit code
 
     private ApiClient apiClient;
     private CoreV1Api coreV1Api;

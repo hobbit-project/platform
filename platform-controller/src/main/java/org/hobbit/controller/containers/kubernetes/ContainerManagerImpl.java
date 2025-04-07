@@ -23,6 +23,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * KubernetesContainerManager is a class that implements the ContainerManager interface to manage
+ * containers in a Kubernetes environment. It provides methods for creating, removing, starting,
+ * stopping, and retrieving information about pods.
+ *
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
+ */
 public class ContainerManagerImpl implements ContainerManager, KubExtendedContainerManager {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContainerManagerImpl.class);

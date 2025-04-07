@@ -346,10 +346,9 @@ public class ExperimentManager implements Closeable {
         LOGGER.trace("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         if (rabbitMQAddress == null) {
             LOGGER.debug("Starting new RabbitMQ for the experiment...");
-            String rabbitMQPOD = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
+            rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
                     Constants.CONTAINER_TYPE_BENCHMARK, null, new String[] {}, null, null, config.id,
                     Collections.emptyMap());
-            rabbitMQAddress = rabbitMQPOD;
             LOGGER.debug("Service initialized for RabbitMQ with this name: {}", rabbitMQAddress);
             if (rabbitMQAddress == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError); // FIXME

@@ -580,8 +580,20 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     public void stopContainer(String containerName) {
         LOGGER.debug("Stopping container with name: {}", containerName);
-        //String containerId = containerManager.getContainerPodId(containerName);
-        containerManager.removeContainer(containerName);
+        switch (System.getenv("RUN_ON").toLowerCase()){
+            case "kubernetes":
+                containerManager.removeContainer(containerName);
+                break;
+            case "docker":
+                String containerId = containerManager.getContainerPodId(containerName);
+                containerManager.removeContainer(containerId);
+                break;
+            default:
+                containerManager.removeContainer(containerName);
+                break;
+        }
+
+
     }
 
     @Override

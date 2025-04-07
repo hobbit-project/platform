@@ -11,11 +11,22 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
+/**
+ * Implementation of the {@link ClusterManager} interface using Kubernetes API.
+ * This class provides methods to manage and monitor a Kubernetes cluster, including listing nodes,
+ * checking cluster health, and managing task history limits.
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
+ */
 public class ClusterManagerImpl implements ClusterManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClusterManagerImpl.class);
     private final CoreV1Api coreV1Api;
     private Integer taskHistoryLimit = 0; // Default task history limit
 
+    /**
+     * Constructs a new {@code ClusterManagerImpl} with the given Kubernetes API client.
+     *
+     * @param apiClient The Kubernetes API client used to interact with the cluster.
+     */
     public ClusterManagerImpl(ApiClient apiClient) {
         LOGGER.info("Creating a new cluster manager ");
         this.coreV1Api = new CoreV1Api(apiClient);
@@ -30,7 +41,12 @@ public class ClusterManagerImpl implements ClusterManager {
         }
     }
 
-
+    /**
+     * Returns the total number of nodes in the Kubernetes cluster.
+     *
+     * @return The total number of nodes.
+     * @throws InterruptedException If the operation is interrupted.
+     */
     @Override
     public long getNumberOfNodes() throws InterruptedException {
         try {
@@ -41,6 +57,13 @@ public class ClusterManagerImpl implements ClusterManager {
         }
     }
 
+    /**
+     * Returns the number of nodes in the Kubernetes cluster that match a specific label.
+     *
+     * @param label The label selector used to filter nodes.
+     * @return The number of nodes matching the label.
+     * @throws InterruptedException If the operation is interrupted.
+     */
     @Override
     public long getNumberOfNodes(String label) throws InterruptedException {
         try {
@@ -52,6 +75,12 @@ public class ClusterManagerImpl implements ClusterManager {
         }
     }
 
+    /**
+     * Checks if the Kubernetes cluster is healthy by verifying that all nodes are in a 'Ready' state.
+     *
+     * @return {@code true} if the cluster is healthy, otherwise {@code false}.
+     * @throws InterruptedException If the operation is interrupted.
+     */
     @Override
     public boolean isClusterHealthy() throws InterruptedException {
         //LOGGER.info("Checking cluster health");
