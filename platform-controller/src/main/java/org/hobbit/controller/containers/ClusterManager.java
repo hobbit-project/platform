@@ -1,7 +1,6 @@
 package org.hobbit.controller.containers;
 
 import com.spotify.docker.client.exceptions.DockerException;
-import com.spotify.docker.client.messages.Info;
 
 /**
  * This interface is implemented by classes that can be used to manage and
