@@ -146,7 +146,7 @@ public class DummyContainerManager implements ContainerManager, KubExtendedConta
         System.out.println("...");
     }
 
-    @Override
+    //@Override
     public ContainerStats getStats(String containerId) {
         return null;
     }
