@@ -20,6 +20,7 @@ services:
       USE_GITLAB: "false"
       LOCAL_METADATA_DIRECTORY: "/metadata"
       DOCKER_AUTOPULL: "0"
+      RUN_ON: "docker"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./metadata:/metadata
@@ -145,9 +146,9 @@ services:
 networks:
   hobbit:
     name: hobbit
-    external: true
+    #external: true
     driver: overlay
   hobbit-core:
     name: hobbit-core
-    external: true
+    #external: true
     driver: overlay
