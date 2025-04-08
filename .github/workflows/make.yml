@@ -16,3 +16,5 @@ jobs:
         docker swarm init
     - run: docker compose -f docker-compose-dev.yml pull cadvisor node-exporter prometheus rabbit redis
     - run: make test
+      env:
+        RUN_ON: "docker"
