@@ -1,18 +1,54 @@
+#name: make
+#on: push
+#jobs:
+#  make:
+#    # https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
+#    runs-on: ubuntu-22.04
+#    steps:
+#    - uses: actions/checkout@v2
+#    - uses: actions/setup-java@v1
+#      with:
+#        java-version: 11
+#    - uses: actions/setup-node@v2
+#      with:
+#        node-version: 8
+#    - run: |
+#        docker swarm init
+#    - run: docker compose -f docker-compose-dev.yml pull cadvisor node-exporter prometheus rabbit redis
+#    - run: make test
 name: make
 on: push
+
 jobs:
   make:
-    # https://docs.github.com/en/actions/using-jobs/choosing-the-runner-for-a-job
     runs-on: ubuntu-22.04
+    services:
+      docker:
+        image: docker:24.0.7-dind
+        options: --privileged
+        ports:
+          - 2375:2375
+        env:
+          DOCKER_TLS_CERTDIR: ""
+    env:
+      DOCKER_HOST: tcp://localhost:2375
+      DOCKER_DRIVER: overlay2
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-java@v1
-      with:
-        java-version: 11
-    - uses: actions/setup-node@v2
-      with:
-        node-version: 8
-    - run: |
-        docker swarm init
-    - run: docker compose -f docker-compose-dev.yml pull cadvisor node-exporter prometheus rabbit redis
-    - run: make test
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 11
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 8
+
+      - name: Wait for Docker to be ready
+        run: |
+          echo "Waiting for Docker to start..."
+          sleep 10
+          docker version
+
+      - name: Run make test
+        run: make test
