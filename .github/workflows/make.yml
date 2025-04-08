@@ -50,5 +50,8 @@ jobs:
           sleep 10
           docker version
 
+      - name: Initialize Docker Swarm
+        run: docker swarm init
+
       - name: Run make test
         run: make test
