@@ -22,17 +22,20 @@ on: push
 jobs:
   make:
     runs-on: ubuntu-22.04
+
     services:
       docker:
         image: docker:24.0.7-dind
         options: --privileged
-        ports:
-          - 2375:2375
         env:
           DOCKER_TLS_CERTDIR: ""
+        ports:
+          - 2375:2375
+
     env:
       DOCKER_HOST: tcp://localhost:2375
       DOCKER_DRIVER: overlay2
+
     steps:
       - uses: actions/checkout@v2
 
@@ -44,14 +47,16 @@ jobs:
         with:
           node-version: 8
 
-      - name: Wait for Docker to be ready
+      - name: Wait for Docker to start
         run: |
-          echo "Waiting for Docker to start..."
           sleep 10
           docker version
 
       - name: Initialize Docker Swarm
         run: docker swarm init
+
+      - name: Pull required images
+        run: docker compose -f docker-compose-dev.yml pull cadvisor node-exporter prometheus rabbit redis
 
       - name: Run make test
         run: make test
