@@ -146,9 +146,9 @@ services:
 networks:
   hobbit:
     name: hobbit
-    #external: true
+    external: true
     driver: overlay
   hobbit-core:
     name: hobbit-core
-    #external: true
+    external: true
     driver: overlay

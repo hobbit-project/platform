@@ -14,7 +14,8 @@ jobs:
         node-version: 8
     - run: |
         docker swarm init
+    - run: make create-networks
     - run: docker compose -f docker-compose-dev.yml pull cadvisor node-exporter prometheus rabbit redis
+    - run: docker compose -f docker-compose-dev.yml up -d platform-controller rabbit redis # Start only necessary services
     - run: make test
-      env:
-        RUN_ON: "docker"
+    - run: docker compose -f docker-compose-dev.yml down # Clean up containers and networks
