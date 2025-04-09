@@ -61,7 +61,7 @@ run-platform-elk:
 	docker stack deploy --compose-file docker-compose-elk.yml elk
 	docker stack deploy --compose-file docker-compose.yml platform
 
-test: create-networks install-parent-pom
+test: create-networks install-parent-pom start-rabbitmq-cluster
 	make --directory=platform-controller test
 	cd platform-storage/storage-service && mvn --quiet --update-snapshots clean test
 	cd analysis-component && mvn --quiet --update-snapshots clean test
