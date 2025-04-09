@@ -21,6 +21,19 @@ start-rabbitmq-cluster:
 	cd rabbitmq-cluster && make start
 	@echo "✅ RabbitMQ cluster started."
 
+start-rabbitmq:
+	@echo "📡 Starting standalone RabbitMQ container on 'hobbit' network..."
+	@docker network inspect hobbit >/dev/null || (echo "❌ Network 'hobbit' not found. Run 'make create-networks' first." && exit 1)
+	@docker rm -f hobbit-rabbitmq >/dev/null 2>&1 || true
+	@docker run -d \
+		--name hobbit-rabbitmq \
+		--network hobbit \
+		-p 5672:5672 \
+		-p 15672:15672 \
+		rabbitmq:3-management
+	@echo "✅ RabbitMQ is running at:"
+	@echo "   AMQP:       amqp://localhost:5672"
+	@echo "   Management: http://localhost:15672 (user: guest, pass: guest)"
 start-dev-platform:
 	docker-compose -f docker-compose-dev.yml up -d
 
@@ -80,7 +93,7 @@ run-platform-elk:
 # 	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm --quiet ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm --quiet install; true' && npm --quiet run lint && npm --quiet run build-prod
 # 	cd hobbit-gui/gui-serverbackend && mvn --quiet --update-snapshots clean test
 
-test: create-networks install-parent-pom start-rabbitmq-cluster
+test: create-networks install-parent-pom start-rabbitmq
 	@echo "🔧 Running tests in platform-controller..."
 	make --directory=platform-controller test
 
