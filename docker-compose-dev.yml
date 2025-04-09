@@ -9,6 +9,7 @@ services:
       HOBBIT_RABBIT_IMAGE: "rabbitmq:management"
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
+      HOBBIT_RABBIT_EXPERIMENTS_HOST: "redis"
       DEPLOY_ENV: "develop"
       GITLAB_USER: "${GITLAB_USER}"
       GITLAB_EMAIL: "${GITLAB_EMAIL}"
