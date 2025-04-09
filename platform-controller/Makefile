@@ -16,14 +16,22 @@ run:
 		org.hobbit.controller.PlatformController
 
 test:
+	@echo "🔧 Starting required services with Docker Compose..."
 	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we won't be able to connect to RabbitMQ
-	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis
+	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
+	@echo "✅ Services started: cadvisor, node-exporter, prometheus, redis , rabbit."
+
+	@echo "🐇 Running RabbitMQ and Redis environment variables setup..."
 	HOBBIT_RABBIT_IMAGE=rabbitmq:management \
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
 	PROMETHEUS_HOST=localhost \
+	@echo "✅ Environment variables set for RabbitMQ and Redis."
+
+	@echo "🧪 Running tests with Maven..."
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
+	@echo "✅ Tests completed successfully."
 
 test-single:
 	docker rmi busybox
