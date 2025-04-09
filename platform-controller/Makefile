@@ -19,13 +19,11 @@ test:
 	@echo "🔧 Starting required services with Docker Compose..."
 	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we won't be able to connect to RabbitMQ
 	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
-	@echo "✅ Services started: cadvisor, node-exporter, prometheus, redis , rabbit."
-
-	@echo "🐇 Running RabbitMQ and Redis environment variables setup..."
 	HOBBIT_RABBIT_IMAGE=rabbitmq:management \
 	HOBBIT_RABBIT_HOST=localhost \
 	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
+	MAX_EXECUTION_TIME=1200000 \
 	PROMETHEUS_HOST=localhost \
 
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
