@@ -27,7 +27,6 @@ test:
 	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
 	HOBBIT_REDIS_HOST=localhost \
 	PROMETHEUS_HOST=localhost \
-	@echo "✅ Environment variables set for RabbitMQ and Redis."
 
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
 	@echo "✅ Tests completed successfully."
