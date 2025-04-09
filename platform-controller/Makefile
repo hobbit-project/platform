@@ -29,7 +29,6 @@ test:
 	PROMETHEUS_HOST=localhost \
 	@echo "✅ Environment variables set for RabbitMQ and Redis."
 
-	@echo "🧪 Running tests with Maven..."
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
 	@echo "✅ Tests completed successfully."
 
