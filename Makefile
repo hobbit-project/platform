@@ -17,7 +17,9 @@ start-dev: start-rabbitmq-cluster start-dev-platform
 start-dev-elk: start-rabbitmq-cluster start-dev-platform start-dev-elk
 
 start-rabbitmq-cluster:
+	@echo "📡 Starting RabbitMQ cluster..."
 	cd rabbitmq-cluster && make start
+	@echo "✅ RabbitMQ cluster started."
 
 start-dev-platform:
 	docker-compose -f docker-compose-dev.yml up -d
@@ -40,9 +42,19 @@ build-dev-storage-image:
 	docker build -t hobbitproject/hobbit-storage-service:dev --file ./platform-storage/storage-service/Dockerfile .
 
 create-networks:
-	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
-	@docker network inspect hobbit-core >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.101.0/24 hobbit-core && echo "Created network: hobbit-core")
-	@docker network inspect hobbit-services >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.102.0/24 hobbit-services && echo "Created network: hobbit-services")
+# 	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "Created network: hobbit")
+# 	@docker network inspect hobbit-core >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.101.0/24 hobbit-core && echo "Created network: hobbit-core")
+# 	@docker network inspect hobbit-services >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.102.0/24 hobbit-services && echo "Created network: hobbit-services")
+	@echo "🔌 Checking or creating Docker network: hobbit"
+	@docker network inspect hobbit >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.100.0/24 hobbit && echo "✅ Created network: hobbit")
+
+	@echo "🔌 Checking or creating Docker network: hobbit-core"
+	@docker network inspect hobbit-core >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.101.0/24 hobbit-core && echo "✅ Created network: hobbit-core")
+
+	@echo "🔌 Checking or creating Docker network: hobbit-services"
+	@docker network inspect hobbit-services >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.102.0/24 hobbit-services && echo "✅ Created network: hobbit-services")
+
+	@echo "🌐 Docker networks ready."
 
 set-keycloak-permissions:
 	@chmod --changes 777 config/keycloak
@@ -61,15 +73,39 @@ run-platform-elk:
 	docker stack deploy --compose-file docker-compose-elk.yml elk
 	docker stack deploy --compose-file docker-compose.yml platform
 
+# test: create-networks install-parent-pom start-rabbitmq-cluster
+# 	make --directory=platform-controller test
+# 	cd platform-storage/storage-service && mvn --quiet --update-snapshots clean test
+# 	cd analysis-component && mvn --quiet --update-snapshots clean test
+# 	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm --quiet ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm --quiet install; true' && npm --quiet run lint && npm --quiet run build-prod
+# 	cd hobbit-gui/gui-serverbackend && mvn --quiet --update-snapshots clean test
+
 test: create-networks install-parent-pom start-rabbitmq-cluster
+	@echo "🔧 Running tests in platform-controller..."
 	make --directory=platform-controller test
+
+	@echo "💾 Running tests in platform-storage/storage-service..."
 	cd platform-storage/storage-service && mvn --quiet --update-snapshots clean test
+
+	@echo "📊 Running tests in analysis-component..."
 	cd analysis-component && mvn --quiet --update-snapshots clean test
-	cd hobbit-gui/gui-client && sh -c 'test "$$TRAVIS" = "true" && npm --quiet ci; true' && sh -c 'test "$$TRAVIS" = "true" || npm --quiet install; true' && npm --quiet run lint && npm --quiet run build-prod
+
+	@echo "🖥️ Running lint and build in hobbit-gui/gui-client..."
+	cd hobbit-gui/gui-client && \
+		sh -c 'test "$$TRAVIS" = "true" && npm --quiet ci; true' && \
+		sh -c 'test "$$TRAVIS" = "true" || npm --quiet install; true' && \
+		npm --quiet run lint && \
+		npm --quiet run build-prod
+
+	@echo "🔙 Running tests in hobbit-gui/gui-serverbackend..."
 	cd hobbit-gui/gui-serverbackend && mvn --quiet --update-snapshots clean test
 
+	@echo "✅ All tests completed successfully!"
+
 install-parent-pom:
+	@echo "📦 Installing parent POM..."
 	cd parent-pom && mvn --quiet install
+	@echo "✅ Parent POM installed."
 
 local-controller: lc-build lc-run
 
