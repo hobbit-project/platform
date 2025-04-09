@@ -31,6 +31,7 @@ start-rabbitmq:
 		-p 5672:5672 \
 		-p 15672:15672 \
 		rabbitmq:3-management
+	@docker network connect hobbit-core
 	@echo "✅ RabbitMQ is running at:"
 	@echo "   AMQP:       amqp://localhost:5672"
 	@echo "   Management: http://localhost:15672 (user: guest, pass: guest)"
