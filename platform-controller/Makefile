@@ -18,13 +18,12 @@ run:
 test:
 	@echo "🔧 Starting required services with Docker Compose..."
 	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
-	@echo "🧪 Running tests with environment variables..."
-	@HOBBIT_RABBIT_IMAGE=rabbitmq:management \
-	HOBBIT_RABBIT_HOST=localhost \
-	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
-	HOBBIT_REDIS_HOST=localhost \
-	MAX_EXECUTION_TIME=1200000 \
-	PROMETHEUS_HOST=localhost \
+	@export HOBBIT_RABBIT_IMAGE=rabbitmq:management && \
+	export HOBBIT_RABBIT_HOST=localhost && \
+	export HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost && \
+	export HOBBIT_REDIS_HOST=localhost && \
+	export MAX_EXECUTION_TIME=1200000 && \
+	export PROMETHEUS_HOST=localhost && \
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
 	@echo "✅ Tests completed successfully."
 
