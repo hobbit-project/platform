@@ -68,6 +68,7 @@ create-networks:
 	@echo "🔌 Checking or creating Docker network: hobbit-services"
 	@docker network inspect hobbit-services >/dev/null || (docker network create -d overlay --attachable --subnet 172.16.102.0/24 hobbit-services && echo "✅ Created network: hobbit-services")
 
+	docker network ls --no-trunc
 	@echo "🌐 Docker networks ready."
 
 set-keycloak-permissions:
