@@ -23,27 +23,15 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 
-import com.spotify.docker.client.exceptions.DockerCertificateException;
-import com.spotify.docker.client.exceptions.DockerException;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import org.apache.commons.configuration2.EnvironmentConfiguration;
 import org.apache.commons.io.IOUtils;
-import org.apache.jena.base.Sys;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.query.QueryExecution;
@@ -216,6 +204,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     protected Timer challengeCheckTimer;
     protected HobbitConfiguration hobbitConfig;
 
+    /**
+     * keep the variable which framework used Docker swarm or Kubernetes
+     */
+    protected ContainerEngine engine;
+
     //@Value("${container.manager.timeoutMilliSeconds:60000}")
     private int TIMEOUT_MILLISECONDS = 60000;
 
@@ -224,6 +217,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     public PlatformController() {
         super();
+        this.engine = whereAmIRunning();
     }
 
     /**
@@ -233,8 +227,26 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         this();
         this.expManager = expManager;
         expManager.setController(this);
+        this.engine = whereAmIRunning();
     }
 
+    private ContainerEngine whereAmIRunning() {
+        String runOn = Optional.ofNullable(System.getenv("RUN_ON"))
+            .orElse("kubernetes")
+            .toLowerCase();
+
+        switch (runOn) {
+            case "docker":
+                LOGGER.info("Platform running on Docker Swarm ");
+                return ContainerEngine.DOCKER_SWARM;
+            case "kubernetes":
+                LOGGER.info("Platform running on Kubernetes");
+                return ContainerEngine.KUBERNETES;
+            default:
+                LOGGER.warn("Unknown RUN_ON value '{}', defaulting to KUBERNETES.", runOn);
+                return ContainerEngine.KUBERNETES;
+        }
+    }
 
     private void kubernetsInit() throws IOException {
         LOGGER.info("Initializing Kubernetes version");
@@ -264,7 +276,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         LOGGER.debug("Container observer initialized.");
     }
 
-    private void dokcerswarmInit() throws Exception {
+    private void dockerSwarmInit() throws Exception {
         LOGGER.info("Initializing Docker swarm version");
         hobbitConfig = new HobbitConfiguration();
         hobbitConfig.addConfiguration(new EnvironmentConfiguration());
@@ -302,11 +314,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         super.init();
         LOGGER.debug("Platform controller initialization started.");
 
-        switch (System.getenv("RUN_ON").toLowerCase()){
-            case "docker":
-                dokcerswarmInit();
+        switch (engine){
+            case DOCKER_SWARM:
+                dockerSwarmInit();
                 break;
-            case "kubernetes":
+            case KUBERNETES:
                 kubernetsInit();
                 break;
             default:
@@ -580,11 +592,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     public void stopContainer(String containerName) {
         LOGGER.debug("Stopping container with name: {}", containerName);
-        switch (System.getenv("RUN_ON").toLowerCase()){
-            case "kubernetes":
+        switch (engine){
+            case KUBERNETES:
                 containerManager.removeContainer(containerName);
                 break;
-            case "docker":
+            case DOCKER_SWARM:
                 String containerId = containerManager.getContainerPodId(containerName);
                 containerManager.removeContainer(containerId);
                 break;
@@ -1412,6 +1424,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             IOUtils.closeQuietly(is);
         }
         LOGGER.info("Platform has version {}", version);
+        LOGGER.info("RABITMQ HOST: {}", System.getenv("HOBBIT_RABBIT_HOST"));
         return version;
     }
 }

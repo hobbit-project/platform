@@ -1,0 +1,61 @@
+version: '3.3'
+services:
+  # message bus
+  rabbit:
+    image: rabbitmq:management
+    networks:
+      - hobbit
+      - hobbit-core
+    ports:
+      - "8081:15672"
+      # Forwarding the port for testing
+      - "5672:5672"
+
+  # DB for controller
+  redis:
+    image: redis:4.0.7
+    volumes:
+      - ./config/redis-db:/data
+    command: ["redis-server", "/data/redis.conf"]
+    networks:
+      - hobbit-core
+    ports:
+      # Forwarding the port for tests
+      - "6379:6379"
+
+  node-exporter:
+    image: prom/node-exporter
+    networks:
+      - hobbit-core
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor
+    networks:
+      - hobbit-core
+    volumes:
+      - /:/rootfs:ro
+      - /dev/disk:/dev/disk:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /var/run:/var/run:rw
+
+  prometheus:
+    image: prom/prometheus
+    networks:
+      - hobbit-core
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus:/config:ro
+    command: --config.file=/config/prometheus.conf
+    depends_on:
+      - node-exporter
+      - cadvisor
+
+networks:
+  hobbit:
+    external: true
+    driver: overlay
+  hobbit-core:
+    external: true
+    driver: overlay

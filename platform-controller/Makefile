@@ -17,7 +17,7 @@ run:
 
 test:
 	@echo "🔧 Starting required services with Docker Compose..."
-	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
+ 	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
 	@export HOBBIT_RABBIT_IMAGE=rabbitmq:management && \
 	export HOBBIT_RABBIT_HOST=localhost && \
 	export HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost && \
@@ -26,6 +26,7 @@ test:
 	export PROMETHEUS_HOST=localhost && \
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
 	@echo "✅ Tests completed successfully."
+#	docker compose --file=../docker-compose-dev.yml down
 
 
 test-single:
