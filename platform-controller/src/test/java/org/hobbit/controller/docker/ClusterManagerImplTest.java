@@ -3,6 +3,7 @@ package org.hobbit.controller.docker;
 import com.spotify.docker.client.messages.Info;
 import org.hobbit.controller.containers.docker.ClusterManagerImpl;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -16,11 +17,11 @@ public class ClusterManagerImplTest {
         clusterManager = new ClusterManagerImpl();
     }
 
-//    @Test
-//    public void getClusterInfo() throws Exception {
-//        final Info info = clusterManager.getClusterInfo();
-//        assertNotNull(info);
-//    }
+    @Ignore
+    public void getClusterInfo() throws Exception {
+        final Info info = clusterManager.getClusterInfo();
+        assertNotNull(info);
+    }
 
     @Test
     public void getNumberOfNodes() throws Exception {
