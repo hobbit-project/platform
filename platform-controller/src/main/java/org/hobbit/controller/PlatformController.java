@@ -316,9 +316,11 @@ public class PlatformController extends AbstractComponent implements ContainerTe
 
         switch (engine){
             case DOCKER_SWARM:
+                LOGGER.info("Platform running on Docker Swarm");
                 dockerSwarmInit();
                 break;
             case KUBERNETES:
+                LOGGER.info("Platform running on Kubernetes");
                 kubernetsInit();
                 break;
             default:
@@ -484,7 +486,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
-            LOGGER.debug("Ready signal: {}", sessionId);
+            LOGGER.debug("Benchmark Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
@@ -494,7 +496,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
-            LOGGER.debug("Task generator finish: {}", sessionId);
+            LOGGER.debug("Task generator finished: {}", sessionId);
             expManager.taskGenFinished(sessionId);
             break;
         }

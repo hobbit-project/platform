@@ -113,17 +113,23 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         return startContainer(imageName, containerType, parentId, env, null,  command, "", constraints);
     }
 
+    /**
+     * Generates a unique pod name based on the given module IRI and container type.
+     *
+     * If the {@code containerType} is {@code null}, the method defaults to using "notype"
+     * as the prefix. The generated name combines the hash code of the {@code moduleIri},
+     * multiplied by 31, with the current system time in milliseconds, cast to an integer.
+     * This ensures a high probability of uniqueness.
+     *
+     * @param moduleIri     the IRI (Internationalized Resource Identifier) of the module
+     * @param containerType the type of container (e.g., "docker", "kubernetes"); may be {@code null}
+     * @return a generated pod name string that includes the container type (or "notype") and a unique numeric suffix
+     */
     public String generatePodName(String moduleIri,String containerType) {
-        /*
-         * MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-         * messageDigest.update(moduleIri.getBytes()); String stringHash = new
-         * String(messageDigest.digest());
-         */
         if(containerType==null){
             return "notype" + (moduleIri.hashCode() * 31 + (int) (System.currentTimeMillis()));
         }
         return containerType + (moduleIri.hashCode() * 31 + (int) (System.currentTimeMillis()));
-
     }
 
     /**
