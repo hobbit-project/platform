@@ -74,7 +74,7 @@ import com.spotify.docker.client.exceptions.DockerException;
  * running experiment.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
- *
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);

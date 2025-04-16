@@ -86,6 +86,7 @@ import com.rabbitmq.client.MessageProperties;
  * This class implements the functionality of the central platform controller.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  *
  */
 public class PlatformController extends AbstractComponent implements ContainerTerminationCallback, ExperimentAnalyzer {

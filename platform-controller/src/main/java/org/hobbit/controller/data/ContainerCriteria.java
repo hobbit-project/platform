@@ -11,6 +11,7 @@ import java.util.HashMap;
  *
  * <p>Instances of this class are immutable and should be created using the
  * {@link ContainerCriteria.Builder}.</p>
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  */
 public class ContainerCriteria {
 

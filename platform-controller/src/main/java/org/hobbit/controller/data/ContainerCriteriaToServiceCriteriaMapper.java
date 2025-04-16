@@ -35,6 +35,7 @@ import java.util.Collections;
  * Service.Criteria serviceCriteria = ContainerCriteriaToServiceCriteriaMapper.map(criteria);
  * List<Service> services = dockerClient.listServices(serviceCriteria);
  * }</pre>
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  */
 
 public class ContainerCriteriaToServiceCriteriaMapper {
