@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hobbit-gui
+  labels:
+    app: hobbit-gui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hobbit-gui
+  template:
+    metadata:
+      labels:
+        app: hobbit-gui
+    spec:
+      containers:
+        - name: hobbit-gui
+          image: hobbitproject/hobbit-gui:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: HOBBIT_RABBIT_HOST
+              value: "rabbitmq"
+            - name: KEYCLOAK_AUTH_URL
+              value: "http://localhost:8181/auth"
+            - name: CHECK_REALM_URL
+              value: "false"
+            - name: KEYCLOAK_DIRECT_URL
+              value: "http://keycloak:8080/auth"
+            - name: ELASTICSEARCH_HOST
+              value: "elasticsearch"
+            - name: ELASTICSEARCH_HTTP_PORT
+              value: "9200"
+            - name: USE_UI_AUTH
+              value: "false"

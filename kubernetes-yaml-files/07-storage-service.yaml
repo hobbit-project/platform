@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: hobbit-storage-service
+    labels:
+        app: hobbit-storage-service
+spec:
+    selector:
+        app: hobbit-storage-service
+    ports:
+        - protocol: TCP
+          port: 8080
+          targetPort: 8080
+    type: NodePort # change for deployment ( for test keep it)

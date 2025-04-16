@@ -9,6 +9,7 @@ services:
       HOBBIT_RABBIT_IMAGE: "rabbitmq:management"
       HOBBIT_RABBIT_HOST: "rabbit"
       HOBBIT_REDIS_HOST: "redis"
+      HOBBIT_RABBIT_EXPERIMENTS_HOST: "redis"
       DEPLOY_ENV: "develop"
       GITLAB_USER: "${GITLAB_USER}"
       GITLAB_EMAIL: "${GITLAB_EMAIL}"
@@ -20,6 +21,7 @@ services:
       USE_GITLAB: "false"
       LOCAL_METADATA_DIRECTORY: "/metadata"
       DOCKER_AUTOPULL: "0"
+      RUN_ON: "docker"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./metadata:/metadata

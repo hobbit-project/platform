@@ -218,28 +218,36 @@ public class StorageService extends AbstractComponent implements CredentialsProv
     public void init() throws Exception {
         super.init();
 
-        sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true) + "-auth";
-        String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
-        String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
-        credentials = new UsernamePasswordCredentials(username, password);
+        try {
+            sparqlEndpointUrl = getEnvValue(SPARQL_ENDPOINT_URL_KEY, true) ;//+ "-auth";
+            String username = getEnvValue(SPARQL_ENDPOINT_USERNAME_KEY, true);
+            String password = getEnvValue(SPARQL_ENDPOINT_PASSWORD_KEY, true);
+            credentials = new UsernamePasswordCredentials(username, password);
 
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create();
-        clientBuilder.setDefaultCredentialsProvider(this);
-        client = clientBuilder.build();
+            HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+            clientBuilder.setDefaultCredentialsProvider(this);
+            client = clientBuilder.build();
 
-        queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
-        queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
+            queryExecFactory = new QueryExecutionFactoryHttp(sparqlEndpointUrl, new DatasetDescription(), client);
+            queryExecFactory = new QueryExecutionFactoryPaginated(queryExecFactory, MAX_RESULT_SIZE);
 
-        queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
-        queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
+            queue = incomingDataQueueFactory.createDefaultRabbitQueue(QUEUE_NAME);
 
-        consumer = new QueueingConsumer(queue.channel);
-        queue.channel.basicConsume(QUEUE_NAME, false, consumer);
+            queue.channel.basicQos(MAX_NUMBER_PARALLEL_REQUESTS);
+
+            consumer = new QueueingConsumer(queue.channel);
+
+            queue.channel.basicConsume(QUEUE_NAME, false, consumer);
+
+        } catch (Exception e) {
+            LOGGER.error("Error during initialization: ", e);
+            throw e; // Re-throw after logging
+        }
     }
 
     @Override
     public void run() throws Exception {
-        LOGGER.info("[Storage Service] Awaiting Storage Service requests");
+        LOGGER.info("[Storage Service] Awaiting Storage Service requests ");
         ExecutorService executor = Executors.newFixedThreadPool(MAX_NUMBER_PARALLEL_REQUESTS);
         Delivery delivery;
         while (true) {
@@ -341,7 +349,7 @@ public class StorageService extends AbstractComponent implements CredentialsProv
 
     /**
      * Main method for debugging purposes.
-     * 
+     *
      * @param args
      */
     public static void main(String[] args) {

@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: controller
+    labels:
+        app: controller
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: controller
+    template:
+        metadata:
+            labels:
+                app: controller
+        spec:
+            serviceAccountName: controller-service-sa
+            securityContext:
+                fsGroup: 1000
+            containers:
+                - name: controller
+                  image: hub.cs.upb.de/dice-research/images/hobbit-platform_controller:dev0.0.83
+                  imagePullPolicy: IfNotPresent
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    runAsUser: 0
+                  ports:
+                      - containerPort: 8080
+                  env:
+                      -   name: HOBBIT_RABBIT_HOST
+                          value: rabbitmq  # The name of the RabbitMQ service (02-rabbitmq-service.yaml)
+                      -   name: SPARQL_ENDPOINT_URL
+                          value: virtuoso
+                      -   name: HOBBIT_RABBIT_IMAGE
+                          value: "rabbitmq:management"
+                      -   name: SPARQL_ENDPOINT_USERNAME
+                          value: "dba"
+                      -   name: SPARQL_ENDPOINT_PASSWORD
+                          value: "dba"
+                      -   name: SPARQL_ENDPOINT_DATABASE
+                          value: "virtuoso:8890"
+                      -   name: HOBBIT_REDIS_HOST
+                          value: "redis-service"
+                      -   name: GITLAB_TOKEN
+                          valueFrom:
+                                  secretKeyRef:
+                                      name: gitlab-secret
+                                      key: GITLAB_TOKEN
+                      -   name: GITLAB_USER
+                          value: "gitadmin"
+                      -   name: GITLAB_EMAIL
+                          value: "gitadmin@project-hobbit.eu"
+                      -   name: DEPLOY_ENV
+                          value: "develop"
+                      -   name: MAX_EXECUTION_TIME
+                          value: "1200000"
+                      -   name: CONTAINER_PARENT_CHECK
+                          value: "0"
+                  volumeMounts:
+                      - mountPath: /data
+                        name: controller-storage  # Only if you are using a PVC
+                      - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+                        name: kube-api-access
+                        readOnly: true
+            volumes:
+                - name: controller-storage
+                  persistentVolumeClaim:
+                      claimName: controller-pvc  # Only if you are using a PVC
+                - name: kube-api-access
+                  projected:
+                    sources:
+                    - serviceAccountToken:
+                        expirationSeconds: 3607
+                        path: token
+                    - configMap:
+                        name: kube-root-ca.crt
+                        items:
+                            - key: ca.crt
+                              path: ca.crt
+                    - downwardAPI:
+                        items:
+                            - path: namespace
+                              fieldRef:
+                                  fieldPath: metadata.namespace

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+    name: keycloak-pv
+spec:
+    capacity:
+        storage: 1Gi
+    accessModes:
+        - ReadWriteOnce
+    persistentVolumeReclaimPolicy: Retain # or Delete, depending on your needs
+    storageClassName: "" # Important: Leave this empty if not using Storage Classes
+    nfs:
+        server: 131.234.29.64
+        path: /data/nfs/kubedata/keycloak

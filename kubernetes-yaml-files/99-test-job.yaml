@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-hobbit-pod
+  labels:
+    app: hobbit-app
+spec:
+  restartPolicy: Never
+  containers:
+  - name: hobbit-container
+    image: maven
+    command: ["sh", "-c"]
+    args: ["tail -f /dev/null"]  # Keeps the container running indefinitely
+    env:
+      - name: HOBBIT_RABBIT_HOST
+        value: rabbitmq
+      - name: BENCHMARK
+        value: http://w3id.org/hobbit/platform-benchmark/vocab#PlatformBenchmark
+      - name: SYSTEM
+        value: http://w3id.org/hobbit/platform-benchmark/vocab#PlatformBenchSystem_1
+      - name: BENCHMARK_PARAM_FILE
+        value: /usr/src/app/src/test/resources/org/hobbit/controller/exampleExperiment.ttl
+      - name: USERNAME
+        value: testuser
+    volumeMounts:
+      - mountPath: /usr/src/app
+        name: app-volume
+  volumes:
+  - name: app-volume
+    nfs:
+      server: 131.234.29.64
+      path: /data/nfs/kubedata/test
+      readOnly: false

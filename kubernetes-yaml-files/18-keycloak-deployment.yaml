@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: hobbit-keycloak
+    labels:
+        app: hobbit-keycloak
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: hobbit-keycloak
+    template:
+        metadata:
+            labels:
+                app: hobbit-keycloak
+        spec:
+            volumes:
+                -   name: nfs-volume
+                    persistentVolumeClaim:
+                        claimName: keycloack-pvc
+                -   name: cfg-volume
+                    emptyDir: { }
+            initContainers:
+                -   name: init-copy-db
+                    image: alpine:latest
+                    command:
+                        - /bin/sh
+                        - -c
+                        - |
+                            mkdir -p /cfg-volume
+                            cp /nfs/keycloak.h2.db /cfg-volume/keycloak.h2.db
+                            chmod 777 /cfg-volume
+                            chmod 666 /cfg-volume/keycloak.h2.db
+                    volumeMounts:
+                        -   name: nfs-volume
+                            mountPath: /nfs
+                        -   name: cfg-volume
+                            mountPath: /cfg-volume
+            containers:
+                - name: hobbit-keycloak
+                  image: hobbitproject/hobbit-keycloak:latest
+                  ports:
+                      - containerPort: 8080
+                  env:
+                      - name: KEYCLOAK_USER
+                        value: admin
+                      - name: KEYCLOAK_PASSWORD
+                        value: admin
+                      - name: DB_VENDOR
+                        value: h2
+                  volumeMounts:
+                      -   name: cfg-volume
+                          mountPath: /cfg-volume
+                  readinessProbe:
+                      httpGet:
+                          path: /auth/realms/master
+                          port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                  livenessProbe:
+                      httpGet:
+                          path: /auth/realms/master
+                          port: 8080
+                      initialDelaySeconds: 30

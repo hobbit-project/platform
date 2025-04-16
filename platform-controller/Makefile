@@ -11,19 +11,23 @@ run:
 	DOCKER_HOST=tcp://localhost:2375 \
 	HOBBIT_RABBIT_HOST=localhost \
 	java -cp \
-		target/platform-controller-0.0.1-SNAPSHOT.jar \
+		target/platform-controller.jar \
 		org.hobbit.core.run.ComponentStarter \
 		org.hobbit.controller.PlatformController
 
 test:
-	# Without HOBBIT_RABBIT_EXPERIMENTS_HOST we won't be able to connect to RabbitMQ
-	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus rabbit redis
-	HOBBIT_RABBIT_IMAGE=rabbitmq:management \
-	HOBBIT_RABBIT_HOST=localhost \
-	HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost \
-	HOBBIT_REDIS_HOST=localhost \
-	PROMETHEUS_HOST=localhost \
+	@echo "🔧 Starting required services with Docker Compose..."
+ 	docker compose --file=../docker-compose-dev.yml up -d cadvisor node-exporter prometheus redis rabbit
+	@export HOBBIT_RABBIT_IMAGE=rabbitmq:management && \
+	export HOBBIT_RABBIT_HOST=localhost && \
+	export HOBBIT_RABBIT_EXPERIMENTS_HOST=localhost && \
+	export HOBBIT_REDIS_HOST=localhost && \
+	export MAX_EXECUTION_TIME=1200000 && \
+	export PROMETHEUS_HOST=localhost && \
 	mvn --quiet --update-snapshots -Dtest=$(test) clean test
+	@echo "✅ Tests completed successfully."
+#	docker compose --file=../docker-compose-dev.yml down
+
 
 test-single:
 	docker rmi busybox

@@ -4,7 +4,7 @@ import com.rabbitmq.client.AMQP.BasicProperties;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
-import org.hobbit.controller.docker.ClusterManagerImpl;
+import org.hobbit.controller.containers.docker.ClusterManagerImpl;
 import org.hobbit.controller.PlatformController;
 import org.hobbit.controller.queue.InMemoryQueue;
 

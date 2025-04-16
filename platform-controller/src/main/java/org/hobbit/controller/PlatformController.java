@@ -23,18 +23,13 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.util.Config;
 import org.apache.commons.configuration2.EnvironmentConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.query.Dataset;
@@ -48,20 +43,8 @@ import org.apache.jena.rdf.model.ResIterator;
 import org.apache.jena.rdf.model.Resource;
 import org.apache.jena.vocabulary.RDF;
 import org.hobbit.controller.analyze.ExperimentAnalyzer;
+import org.hobbit.controller.containers.*;
 import org.hobbit.controller.data.ExperimentConfiguration;
-import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ClusterManagerImpl;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.ContainerManagerImpl;
-import org.hobbit.controller.docker.ContainerStateObserver;
-import org.hobbit.controller.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.docker.ContainerTerminationCallback;
-import org.hobbit.controller.docker.FileBasedImageManager;
-import org.hobbit.controller.docker.GitlabBasedImageManager;
-import org.hobbit.controller.docker.ImageManager;
-import org.hobbit.controller.docker.ImageManagerFacade;
-import org.hobbit.controller.docker.ResourceInformationCollector;
-import org.hobbit.controller.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.front.FrontEndApiHandler;
 import org.hobbit.controller.queue.ExperimentQueue;
 import org.hobbit.controller.queue.ExperimentQueueImpl;
@@ -103,6 +86,7 @@ import com.rabbitmq.client.MessageProperties;
  * This class implements the functionality of the central platform controller.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  *
  */
 public class PlatformController extends AbstractComponent implements ContainerTerminationCallback, ExperimentAnalyzer {
@@ -168,7 +152,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     protected DataSender sender2Analysis;
     /**
-     * A manager for Docker containers.
+     * A manager for Kubernetes/Docker containers.
+     * TODO : is it good way ?
      */
     protected ContainerManager containerManager;
     /**
@@ -221,10 +206,19 @@ public class PlatformController extends AbstractComponent implements ContainerTe
     protected HobbitConfiguration hobbitConfig;
 
     /**
+     * keep the variable which framework used Docker swarm or Kubernetes
+     */
+    protected ContainerEngine engine;
+
+    //@Value("${container.manager.timeoutMilliSeconds:60000}")
+    private int TIMEOUT_MILLISECONDS = 60000;
+
+    /**
      * Default constructor.
      */
     public PlatformController() {
         super();
+        this.engine = whereAmIRunning();
     }
 
     /**
@@ -234,55 +228,121 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         this();
         this.expManager = expManager;
         expManager.setController(this);
+        this.engine = whereAmIRunning();
     }
 
-    @Override
-    public void init() throws Exception {
-        // First initialize the super class
-        super.init();
-        LOGGER.debug("Platform controller initialization started.");
+    private ContainerEngine whereAmIRunning() {
+        String runOn = Optional.ofNullable(System.getenv("RUN_ON"))
+            .orElse("kubernetes")
+            .toLowerCase();
 
+        switch (runOn) {
+            case "docker":
+                LOGGER.info("Platform running on Docker Swarm ");
+                return ContainerEngine.DOCKER_SWARM;
+            case "kubernetes":
+                LOGGER.info("Platform running on Kubernetes");
+                return ContainerEngine.KUBERNETES;
+            default:
+                LOGGER.warn("Unknown RUN_ON value '{}', defaulting to KUBERNETES.", runOn);
+                return ContainerEngine.KUBERNETES;
+        }
+    }
+
+    private void kubernetsInit() throws IOException {
+        LOGGER.info("Initializing Kubernetes version");
+        hobbitConfig = new HobbitConfiguration();
+        hobbitConfig.addConfiguration(new EnvironmentConfiguration());
+        LOGGER.debug("configuration initialized.");
+
+        ApiClient client = Config.defaultClient();
+        client.setConnectTimeout(TIMEOUT_MILLISECONDS);
+        client.setReadTimeout(TIMEOUT_MILLISECONDS);
+        client.setWriteTimeout(TIMEOUT_MILLISECONDS);
+        Configuration.setDefaultApiClient(client);
+
+        LOGGER.debug("kub client initialized.");
+
+        clusterManager = new org.hobbit.controller.containers.kubernetes.ClusterManagerImpl(client);
+        containerManager = new org.hobbit.controller.containers.kubernetes.ContainerManagerImpl(client);
+        LOGGER.debug("Container manager initialized.");
+        // Create container observer (polls status every 5s)
+        containerObserver = new org.hobbit.controller.containers.kubernetes.ContainerStateObserverImpl((KubExtendedContainerManager)containerManager, 5 * 1000);
+        containerObserver.addTerminationCallback(this);
+        // Tell the manager to add container to the observer
+        containerManager.addContainerObserver(containerObserver);
+        resInfoCollector = new org.hobbit.controller.containers.kubernetes.ResourceInformationCollectorImpl(containerManager,client,new CoreV1Api(client));
+
+        containerObserver.startObserving();
+        LOGGER.debug("Container observer initialized.");
+    }
+
+    private void dockerSwarmInit() throws Exception {
+        LOGGER.info("Initializing Docker swarm version");
         hobbitConfig = new HobbitConfiguration();
         hobbitConfig.addConfiguration(new EnvironmentConfiguration());
 
         // Set task history limit for swarm cluster to 0 (will remove all terminated
         // containers)
         // Only for prod mode
-        clusterManager = new ClusterManagerImpl();
+
+        LOGGER.debug("configuration initialized.");
+
+        clusterManager = new org.hobbit.controller.containers.docker.ClusterManagerImpl();
         if (DEPLOY_ENV.equals(DEPLOY_ENV_TESTING) || DEPLOY_ENV.equals(DEPLOY_ENV_DEVELOP)) {
             LOGGER.debug("Ignoring task history limit parameter. Will remain default (run 'docker info' for details).");
         } else {
             LOGGER.debug(
-                    "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
+                "Production mode. Setting task history limit to 0. All terminated containers will be removed.");
             clusterManager.setTaskHistoryLimit(0);
         }
 
-        // create container manager
-        containerManager = new ContainerManagerImpl();
+        containerManager = new org.hobbit.controller.containers.docker.ContainerManagerImpl();
         LOGGER.debug("Container manager initialized.");
         // Create container observer (polls status every 5s)
-        containerObserver = new ContainerStateObserverImpl(containerManager, 5 * 1000);
+        containerObserver = new org.hobbit.controller.containers.docker.ContainerStateObserverImpl(containerManager, 5 * 1000);
         containerObserver.addTerminationCallback(this);
         // Tell the manager to add container to the observer
         containerManager.addContainerObserver(containerObserver);
-        resInfoCollector = new ResourceInformationCollectorImpl(containerManager);
+        resInfoCollector = new org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl(containerManager);
 
         containerObserver.startObserving();
         LOGGER.debug("Container observer initialized.");
+    }
+    @Override
+    public void init() throws Exception {
+        // First initialize the super class
+        super.init();
+        LOGGER.debug("Platform controller initialization started.");
+
+        switch (engine){
+            case DOCKER_SWARM:
+                LOGGER.info("Platform running on Docker Swarm");
+                dockerSwarmInit();
+                break;
+            case KUBERNETES:
+                LOGGER.info("Platform running on Kubernetes");
+                kubernetsInit();
+                break;
+            default:
+                kubernetsInit();
+                break;
+        }
 
         List<ImageManager> managers = new ArrayList<ImageManager>();
         if (System.getenv().containsKey(LOCAL_METADATA_DIR_KEY)) {
             String metadataDirectory = System.getenv().get(LOCAL_METADATA_DIR_KEY);
-            LOGGER.info("Local metadata directory: {}", metadataDirectory);
+            LOGGER.debug("Local metadata directory: {}", metadataDirectory);
             managers.add(new FileBasedImageManager(metadataDirectory));
         } else {
-            LOGGER.info("Using default directory for local metadata.");
+            LOGGER.debug("Using default directory for local metadata.");
             managers.add(new FileBasedImageManager());
         }
         boolean useGitlab = true;
         if (System.getenv().containsKey(USE_GITLAB_KEY)) {
             try {
                 useGitlab = Boolean.parseBoolean(System.getenv().get(USE_GITLAB_KEY));
+                LOGGER.debug("Using git lab enabled");
             } catch (Exception e) {
                 LOGGER.error("Couldn't parse value of " + USE_GITLAB_KEY + ". It will be ignored.");
             }
@@ -321,14 +381,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             }
         }, PUBLISH_CHALLENGES, PUBLISH_CHALLENGES);
 
-        LOGGER.info("Platform controller initialized.");
+        LOGGER.debug("Platform controller initialized.");
     }
 
     /**
      * This method sets the RabbitMQ connector for the command queue.
      */
     public void setExpRabbitMQConnector(RabbitMQConnector rabbitMQConnector) {
-        LOGGER.info("Setting experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        LOGGER.debug("Setting experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
         assert this.rabbitMQConnector == null : "RabbitMQ connector should be null";
         this.rabbitMQConnector = rabbitMQConnector;
     }
@@ -339,7 +399,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @throws Exception
      */
     public void closeExpRabbitMQConnector() {
-        LOGGER.info("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
+        LOGGER.debug("Closing experiment's RabbitMQ connector for the command queue: {}", rabbitMQConnector);
         if(rabbitMQConnector != null) {
             IOUtils.closeQuietly(rabbitMQConnector);
             rabbitMQConnector = null;
@@ -377,11 +437,12 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             LOGGER.info("received command: session={}, command={}, data={}", sessionId, Commands.toString(command),
                     data != null ? RabbitMQUtils.readString(data) : "null");
         } else {
-            LOGGER.info("received command: session={}, command={}", sessionId, Commands.toString(command));
+            LOGGER.debug("received command: session={}, command={}", sessionId, Commands.toString(command));
         }
         // Determine the command
         switch (command) {
         case Commands.DOCKER_CONTAINER_START: {
+            LOGGER.debug("Starting container with name: {}", sessionId);
             StartCommandData startParams = null;
             String containerName = "";
             if (expManager.isExpRunning(sessionId)) {
@@ -389,6 +450,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
                 startParams = GsonUtils.deserializeObjectWithGson(gson, data, StartCommandData.class, false);
                 // trigger creation
                 containerName = createContainer(startParams);
+                LOGGER.debug("Starting container with name: {}", containerName);
             } else {
                 LOGGER.error(
                         "Got a request to start a container for experiment \"{}\" which is either not running or was already stopped. Returning null.",
@@ -417,6 +479,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.DOCKER_CONTAINER_STOP: {
+            LOGGER.debug("cmd-Stopping container, sessionId : {}", sessionId);
             // get containerId from params
             StopCommandData stopParams = GsonUtils.deserializeObjectWithGson(gson, data, StopCommandData.class, false);
             // trigger stop
@@ -424,14 +487,17 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             break;
         }
         case Commands.BENCHMARK_READY_SIGNAL: {
+            LOGGER.debug("Benchmark Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(false, sessionId);
             break;
         }
         case Commands.SYSTEM_READY_SIGNAL: {
+            LOGGER.debug("System Ready signal: {}", sessionId);
             expManager.systemOrBenchmarkReady(true, sessionId);
             break;
         }
         case Commands.TASK_GENERATION_FINISHED: {
+            LOGGER.debug("Task generator finished: {}", sessionId);
             expManager.taskGenFinished(sessionId);
             break;
         }
@@ -447,7 +513,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             // FIXME use the session id to make sure that only containers of this session
             // are observed
             ResourceUsageInformation resUsage = resInfoCollector.getSystemUsageInformation();
-            LOGGER.info("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
+            LOGGER.debug("Returning usage information: {}", resUsage != null ? resUsage.toString() : "null");
             if (replyTo != null) {
                 byte[] response;
                 if (resUsage != null) {
@@ -498,8 +564,9 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @return the name of the created container
      */
     private String createContainer(StartCommandData data) {
-        String parentId = containerManager.getContainerId(data.parent);
-        if ((parentId == null) && (CONTAINER_PARENT_CHECK)) {
+        LOGGER.debug("create Container in platform controller {}",data.toString());
+        //String parentId = containerManager.getContainerPodId(data.parent);
+        if ((data.parent == null) && (CONTAINER_PARENT_CHECK)) {
             LOGGER.error("Couldn't create container because the parent \"{}\" is not known.", data.parent);
             return null;
         }
@@ -510,12 +577,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             pullImage = true;
         }
 
-        String containerId = containerManager.startContainer(data.image, data.type, parentId, data.environmentVariables,
+        String containerDNSFriendlyIP_OR_containerIDForDocker = containerManager.startContainer(data.image, data.type, data.parent, data.environmentVariables,
                 data.networkAliases, null, pullImage, null);
-        if (containerId == null) {
+        LOGGER.debug("container Identifier is {}", containerDNSFriendlyIP_OR_containerIDForDocker);
+        if (containerDNSFriendlyIP_OR_containerIDForDocker == null) {
             return null;
         } else {
-            return containerManager.getContainerName(containerId);
+            LOGGER.debug("convert ID to PODNAME");
+            return containerDNSFriendlyIP_OR_containerIDForDocker;
         }
     }
 
@@ -525,10 +594,21 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * @param containerName name of the container that should be stopped
      */
     public void stopContainer(String containerName) {
-        String containerId = containerManager.getContainerId(containerName);
-        if (containerId != null) {
-            containerManager.removeContainer(containerId);
+        LOGGER.debug("Stopping container with name: {}", containerName);
+        switch (engine){
+            case KUBERNETES:
+                containerManager.removeContainer(containerName);
+                break;
+            case DOCKER_SWARM:
+                String containerId = containerManager.getContainerPodId(containerName);
+                containerManager.removeContainer(containerId);
+                break;
+            default:
+                containerManager.removeContainer(containerName);
+                break;
         }
+
+
     }
 
     @Override
@@ -539,7 +619,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
 
     @Override
     public void notifyTermination(String containerId, long exitCode) {
-        LOGGER.info("Container " + containerId + " stopped with exitCode=" + exitCode);
+        LOGGER.debug("Container " + containerId + " stopped with exitCode=" + exitCode);
         // Check whether this container was part of an experiment
         expManager.notifyTermination(containerId, exitCode);
         // Remove the container from the observer
@@ -739,7 +819,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             case FrontEndApiCommands.GET_SYSTEMS_OF_USER: {
                 // get the user name
                 String email = RabbitMQUtils.readString(buffer);
-                LOGGER.info("Loading systems of user \"{}\"", email);
+                LOGGER.debug("Loading systems of user \"{}\"", email);
                 response = RabbitMQUtils.writeString(gson.toJson(imageManager.getSystemsOfUser(email)));
                 break;
             }
@@ -806,6 +886,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             LOGGER.error("Got an error report without container ID. It will be ignored.");
             return;
         }
+        LOGGER.debug("handle error report for session \"{}\" and container Id {}", sessionId,errorData.getContainerId());
         String containerType = containerManager.getContainerType(errorData.getContainerId());
         boolean isBenchmarkContainer = Constants.CONTAINER_TYPE_BENCHMARK.equals(containerType);
         if (!isBenchmarkContainer && (!Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))) {
@@ -890,7 +971,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
         }
         // add to queue
         for (ExperimentConfiguration ex : experiments) {
-            LOGGER.info("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
+            LOGGER.debug("Adding experiment " + ex.id + " with benchmark " + ex.benchmarkUri + " and system "
                     + ex.systemUri + " to the queue.");
             queue.add(ex);
         }
@@ -906,7 +987,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      */
     protected static synchronized void scheduleDateOfNextExecution(StorageServiceClient storage, String challengeUri,
             Calendar now) {
-        LOGGER.info("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
+        LOGGER.debug("Scheduling dateOfNextExecution for challenge {}...", challengeUri);
         String query = SparqlQueries.getRepeatableChallengeInfoQuery(challengeUri,
                 Constants.CHALLENGE_DEFINITION_GRAPH_URI);
         Model challengeModel = storage.sendConstructQuery(query);
@@ -1346,6 +1427,7 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             IOUtils.closeQuietly(is);
         }
         LOGGER.info("Platform has version {}", version);
+        LOGGER.info("RABITMQ HOST: {}", System.getenv("HOBBIT_RABBIT_HOST"));
         return version;
     }
 }

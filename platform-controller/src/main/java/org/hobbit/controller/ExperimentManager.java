@@ -44,9 +44,9 @@ import org.hobbit.controller.data.ExperimentConfiguration;
 import org.hobbit.controller.data.ExperimentStatus;
 import org.hobbit.controller.data.ExperimentStatus.States;
 import org.hobbit.controller.data.SetupHardwareInformation;
-import org.hobbit.controller.docker.ClusterManager;
-import org.hobbit.controller.docker.ContainerManager;
-import org.hobbit.controller.docker.MetaDataFactory;
+import org.hobbit.controller.containers.ClusterManager;
+import org.hobbit.controller.containers.ContainerManager;
+import org.hobbit.controller.containers.MetaDataFactory;
 import org.hobbit.controller.execute.ExperimentAbortTimerTask;
 import org.hobbit.controller.utils.RabbitMQConnector;
 import org.hobbit.core.Commands;
@@ -74,7 +74,7 @@ import com.spotify.docker.client.exceptions.DockerException;
  * running experiment.
  *
  * @author Michael R&ouml;der (roeder@informatik.uni-leipzig.de)
- *
+ * @author Farshad Afshari farshad.afshari@uni-paderborn.de
  */
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
@@ -188,13 +188,24 @@ public class ExperimentManager implements Closeable {
                         LOGGER.debug("There is no experiment to start.");
                         return;
                     }
-                    LOGGER.info("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
+                    LOGGER.debug("Creating next experiment " + config.id + " with benchmark " + config.benchmarkUri
                             + " and system " + config.systemUri + " to the queue.");
                     experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id));
 
                     createRabbitMQ(config);
 
                     BenchmarkMetaData benchmark = controller.imageManager().getBenchmark(config.benchmarkUri);
+
+                    if(benchmark==null){
+                        LOGGER.debug("There is no benchmark found for {}",config.benchmarkUri);
+                    }else{
+                        LOGGER.trace("Benchmark found for {}",config.benchmarkUri);
+                        LOGGER.trace("Benchmark name is {}",benchmark.getName());
+                        LOGGER.trace("Benchmark description is {}",benchmark.getDescription());
+                        LOGGER.trace("Benchmark main image is {}",benchmark.getMainImage());
+                        LOGGER.trace("Benchmark uri is {}",benchmark.getUri());
+                    }
+
                     if ((benchmark == null) || (benchmark.mainImage == null)) {
                         // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
@@ -204,6 +215,11 @@ public class ExperimentManager implements Closeable {
                     }
 
                     SystemMetaData system = controller.imageManager().getSystem(config.systemUri);
+                    if(system==null){
+                        LOGGER.debug("There is no system found for system " + config.systemUri);
+                    }else{
+                        LOGGER.debug("System found for benchmark " + config.systemUri);
+                    }
                     if ((system == null) || (system.mainImage == null)) {
                         // Think about reusing the existing object created above
                         experimentStatus = new ExperimentStatus(config, HobbitExperiments.getExperimentURI(config.id),
@@ -260,6 +276,7 @@ public class ExperimentManager implements Closeable {
                                     Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
                                     Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
                             null, null, config.id, Collections.emptyMap());
+                    LOGGER.trace(" containerID is {}" , containerId);
                     if (containerId == null) {
                         experimentStatus.addError(HobbitErrors.BenchmarkCreationError);
                         throw new Exception("Couldn't create benchmark controller " + config.benchmarkUri);
@@ -279,6 +296,7 @@ public class ExperimentManager implements Closeable {
                                     Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
                                     Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
                             null, null, config.id, getHardwareConstraints(config.serializedBenchParams));
+                    LOGGER.debug(" containerID is {}" , containerId);
                     if (containerId == null) {
                         LOGGER.error("Couldn't start the system. Trying to cancel the benchmark.");
                         forceBenchmarkTerminate_unsecured(HobbitErrors.SystemCreationError);
@@ -323,21 +341,24 @@ public class ExperimentManager implements Closeable {
     }
 
     protected void createRabbitMQ(ExperimentConfiguration config) throws Exception {
+        LOGGER.debug("create RabbitMQ");
         String rabbitMQAddress = hobbitConfig.getString(RABBIT_MQ_EXPERIMENTS_HOST_NAME_KEY, (String) null);
+        LOGGER.trace("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         if (rabbitMQAddress == null) {
-            LOGGER.info("Starting new RabbitMQ for the experiment...");
+            LOGGER.debug("Starting new RabbitMQ for the experiment...");
             rabbitMQAddress = controller.containerManager.startContainer(hobbitConfig.getString(RABBIT_IMAGE_ENV_KEY),
                     Constants.CONTAINER_TYPE_BENCHMARK, null, new String[] {}, null, null, config.id,
                     Collections.emptyMap());
+            LOGGER.debug("Service initialized for RabbitMQ with this name: {}", rabbitMQAddress);
             if (rabbitMQAddress == null) {
                 experimentStatus.addError(HobbitErrors.UnexpectedError); // FIXME
                 throw new Exception("Couldn't start new RabbitMQ for the experiment");
             }
 
             experimentStatus.setRootContainer(rabbitMQAddress);
-            LOGGER.info("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
+            LOGGER.debug("Using the newly started RabbitMQ for the experiment: {}", rabbitMQAddress);
         } else {
-            LOGGER.info("Using the configured RabbitMQ for the experiment: {}", rabbitMQAddress);
+            LOGGER.debug(   "Using the configured RabbitMQ for the experiment: {}", rabbitMQAddress);
         }
         experimentStatus.setRabbitMQContainer(rabbitMQAddress);
 
@@ -599,7 +620,7 @@ public class ExperimentManager implements Closeable {
             // send a message using sendToCmdQueue(command,
             // data) comprising a command that indicates that a
             // container terminated and the container name
-            String containerName = controller.containerManager.getContainerName(containerId);
+            String containerName = controller.containerManager.getContainerPodName(containerId);
             if (containerName != null) {
                 try {
                     controller.sendToCmdQueue(Constants.HOBBIT_SESSION_ID_FOR_BROADCASTS,
@@ -663,7 +684,7 @@ public class ExperimentManager implements Closeable {
      *                     daemon
      */
     private void startBenchmark_unsecured() throws IOException {
-        String containerName = controller.containerManager.getContainerName(experimentStatus.getSystemContainer());
+        String containerName = controller.containerManager.getContainerPodName(experimentStatus.getSystemContainer());
         if (containerName == null) {
             throw new IOException(
                     "Couldn't derive container name of the system container for sending start message to the benchmark.");
@@ -799,7 +820,7 @@ public class ExperimentManager implements Closeable {
     /**
      * Add reported error to the experiment result model if the experiment with the
      * given session is still running.
-     * 
+     *
      * @param sessionId            the session ID of the container that reported the
      *                             error
      * @param errorData            the data of the reported error
