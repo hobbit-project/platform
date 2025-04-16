@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import org.hobbit.controller.containers.FileBasedImageManager;
 import org.hobbit.core.data.BenchmarkMetaData;

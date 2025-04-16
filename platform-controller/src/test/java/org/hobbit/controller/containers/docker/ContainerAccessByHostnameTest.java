@@ -14,13 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import com.spotify.docker.client.messages.ContainerConfig;
-import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.hobbit.core.Constants;
 import org.junit.Test;
 

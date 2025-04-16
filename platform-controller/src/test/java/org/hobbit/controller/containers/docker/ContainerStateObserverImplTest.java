@@ -14,10 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
-import org.hobbit.controller.containers.docker.ContainerStateObserverImpl;
-import org.hobbit.controller.containers.docker.ContainerTerminationCallbackImpl;
 import org.hobbit.controller.containers.ContainerManager;
 import org.junit.Assert;
 import org.junit.Before;

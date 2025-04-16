@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import static org.junit.Assert.assertNotNull;
 
@@ -8,7 +8,6 @@ import org.apache.jena.sparql.vocabulary.DOAP;
 import org.apache.jena.vocabulary.RDF;
 import org.apache.jena.vocabulary.RDFS;
 import org.hobbit.controller.containers.ResourceInformationCollector;
-import org.hobbit.controller.containers.docker.ResourceInformationCollectorImpl;
 import org.hobbit.controller.data.SetupHardwareInformation;
 import org.hobbit.core.Constants;
 import org.hobbit.core.data.usage.ResourceUsageInformation;

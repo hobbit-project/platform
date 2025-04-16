@@ -1,4 +1,4 @@
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import com.spotify.docker.client.messages.Info;
 import org.hobbit.controller.containers.docker.ClusterManagerImpl;

@@ -14,14 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with platform-controller.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.hobbit.controller.docker;
+package org.hobbit.controller.containers.docker;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.hobbit.controller.containers.docker.ContainerManagerImpl;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,10 +28,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 
-/**
- *
- * TODO: maybe have a single class implementing the containsVersionTag method independently of Docker swarm or Kubernetes
- */
 @RunWith(Parameterized.class)
 public class VersionTagIdentificationTest {
 
