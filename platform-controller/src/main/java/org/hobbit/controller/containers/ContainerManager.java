@@ -180,6 +180,23 @@ public interface ContainerManager {
     public String startContainer(String imageName, String containerType, String parentId, String[] env,
             String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints);
 
+    /**
+     * Starts the container with the given image name.
+     *
+     * @param imageName     name of the image to be started
+     * @param containerType type to be assigned to container
+     * @param parentId      id of the parent container
+     * @param env           environment variables of the schema "key=value"
+     * @param command       commands that should be executed
+     * @param experimentId  experimentId to add to GELF tag
+     * @param constraints   Additional constraints for the container
+     * @param pullImage     whether the image needs to be prefetched
+     * @param hostSharedDirectory for ENEXA modules is a shared directory path
+     * @param appName used for enexa and it is the application name usually is enexa !
+     *
+     * @return container Id or null if an error occurred.
+     */
+    public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints,boolean pullImage, String hostSharedDirectory, String appName);
 
 //    /**
 //     *

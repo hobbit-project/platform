@@ -37,6 +37,8 @@ spec:
                           value: "dba"
                       -   name: SPARQL_ENDPOINT_PASSWORD
                           value: "dba"
+                      -   name: ENEXA_META_DATA_ENDPOINT
+                          value: "enexa-metadata-service:8890"
                       -   name: SPARQL_ENDPOINT_DATABASE
                           value: "virtuoso:8890"
                       -   name: HOBBIT_REDIS_HOST

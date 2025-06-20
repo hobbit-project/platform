@@ -17,6 +17,7 @@ import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.*;
 
+import java.io.File;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -187,6 +188,11 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
     // we do not use netAliases
     @Override
     public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints) {
+        return startContainer(imageName, containerType, parentId, env, netAliases,  command,  experimentId, constraints, false, "", "");
+    }
+
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints,boolean pullImage, String hostSharedDirectory, String appName) {
         String podName = generatePodName(imageName,containerType);
         if (experimentId != null) {
             podName =  experimentId + LOGGING_SEPARATOR + generatePodName(imageName,containerType);
@@ -209,9 +215,9 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         }
         if (parentId != null) {
             if (!parentId.contains(".pod.cluster.")) {
-            LOGGER.debug("wrong parent ID {}",parentId);
+                LOGGER.debug("wrong parent ID {}",parentId);
                 //parentId = getContainerPodName(parentId);
-            LOGGER.debug("new parent ID is {}",parentId);
+                LOGGER.debug("new parent ID is {}",parentId);
             }
         }
 
@@ -240,7 +246,19 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
             LOGGER.debug("experimentID is null");
         }
 
-        return createContainerKub(imageName, podName, containerType, parentId, env, command, constraints);
+        if(hostSharedDirectory != null) {
+            LOGGER.debug("hostSharedDirectory is {}", hostSharedDirectory);
+        } else {
+            LOGGER.debug("hostSharedDirectory is null");
+        }
+
+        if(appName != null) {
+            LOGGER.debug("appName is {}", appName);
+        } else {
+            LOGGER.debug("appName is null");
+        }
+
+        return createContainerKub(imageName, podName, containerType, parentId, env, command, constraints, experimentId, hostSharedDirectory, appName);
     }
 
     /**
@@ -300,11 +318,15 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
      */
     private String[] prepareEnvironmentVariables(String[] env) {
         String thisPodName = Constants.CONTAINER_NAME_KEY + "=" + convertIP2dnsId(getPodIP());
+        return addEnvironmentVariables(env, thisPodName);
+    }
+
+    String[] addEnvironmentVariables(String[] env,String value) {
         if (env == null || env.length == 0) {
-            return new String[]{thisPodName};
+            return new String[]{value};
         }
         String[] updatedEnv = Arrays.copyOf(env, env.length + 1);
-        updatedEnv[env.length] = thisPodName;
+        updatedEnv[env.length] = value;
         return updatedEnv;
     }
 
@@ -458,12 +480,13 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
      * @param parentType The type of the parent container or pod. If {@code null}, it is assumed there is no parent.
      * @return A {@code V1PodSpec} object configured with the provided specifications and settings.
      */
-    private V1PodSpec createPodSpec(V1Container container, String imageName, String containerType, String parentType) {
+    private V1PodSpec createPodSpec(V1Container container, String imageName, String containerType, String parentType, V1Volume volume) {
         V1PodSpec podSpec = new V1PodSpec()
             .restartPolicy("Never")
             .addContainersItem(container)
             .addImagePullSecretsItem(new V1LocalObjectReference().name("gitlab-registry-secret"))
-            .addImagePullSecretsItem(new V1LocalObjectReference().name("my-dockerhub-secret"));
+            .addImagePullSecretsItem(new V1LocalObjectReference().name("my-dockerhub-secret"))
+            .addVolumesItem(volume);
 
         if (!imageName.contains("earthquakesan/ckan-solr:2.8.0")) {
             V1PodSecurityContext podSecurityContext = new V1PodSecurityContext();
@@ -539,7 +562,9 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
                         LOGGER.debug("Target pod found: {}", targetPod.getMetadata().getName());
 
                     String podPhase = targetPod.getStatus().getPhase();
-                    if ("Running".equals(podPhase)) {
+                    LOGGER.info("podPhase : "+podPhase);
+                    if ("Running".equals(podPhase) || "Completed".equals(podPhase) || "Succeeded".equals(podPhase)) {
+                        LOGGER.debug("Found running/Completed/Succeeded pod check for IP ");
                         String podIP = targetPod.getStatus().getPodIP();
                         if (podIP != null && !podIP.isEmpty()) {
                             String convertedIP = convertIP2dnsId(podIP);
@@ -583,13 +608,48 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
      * @return POD name which is a DNS friendly pod IP , or {@code null} if it fails.
      */
     private String createContainerKub(String imageName, String podName, String containerType, String parentPodName,
-                                          String[] env, String[] command, Map<String, Object> constraints) {
+                                          String[] env, String[] command, Map<String, Object> constraints, String exprimentID, String hostSharedDirectory, String appName) {
         imageName = completeImageName(imageName);
+
+        // todo this is correct to dedicate experiment IRI here
+        // should client say it
+        // experiment ID is something else and should we define new experiment IRI which used by ENEXA modules
+
+        if(exprimentID == null && hostSharedDirectory!= null && appName != null) {
+            // enexa module
+            exprimentID = UUID.randomUUID().toString();
+        }
+
+        if(exprimentID == null){
+            LOGGER.error("exprimentID is null for imageName: {}", imageName);
+        }
         LOGGER.debug("Creating container: Image = {}, Pod Name = {}, Container Type = {}, Parent ID = {}",
             imageName, podName, containerType, parentPodName);
 
+//        // Process experiment IRI variable for Tentris modules
+//        String expIRI=extractExperimentIRI(env);
+//        LOGGER.info("ENEXA_EXPERIMENT_IRI: {}", expIRI);
+
+
+        // Set up paths for shared directories
+        String containerBasePath = "/enexa";
+        String hostBasePath = buildHostPath(hostSharedDirectory, appName);
+        String containerWritablePath = "";
+        if (hostBasePath != null && !hostBasePath.isEmpty() &&
+            exprimentID != null && !exprimentID.isEmpty()) {
+
+            containerWritablePath = buildWritableContainerPath(exprimentID, hostBasePath);
+        }
+        String containerModuleInstancePath = combinePaths(containerWritablePath, UUID.randomUUID().toString());
+
+        // Add environment variables related to shared directories
+        env = addSharedDirectoryEnvVars(env, containerBasePath, containerModuleInstancePath, containerWritablePath);
+
         env = prepareEnvironmentVariables(env);
         env = convertAllNamesInENV(env);
+
+        // Set up the persistent volume claim for shared directory
+        V1Volume volume = createVolume();
 
         List<V1EnvVar> environmentVariables = parseEnvironmentVariables(env);
         addDefaultEnvironmentVariables(environmentVariables);
@@ -599,20 +659,118 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
 
         V1Container container = createContainerSpec(podName, imageName, environmentVariables, command, constraints);
 
+        V1VolumeMount volumeMount = new V1VolumeMount();
+        volumeMount.setName("enexa-shared-dir");
+        volumeMount.setMountPath("/enexa");
+
+        LOGGER.info("mouth path is /enexa");
+
+        container.setVolumeMounts(Arrays.asList(volumeMount));
+
         String parentType = getParentType(parentPodName);
 
-        V1PodSpec podSpec = createPodSpec(container, imageName, containerType, parentType);
+        V1PodSpec podSpec = createPodSpec(container, imageName, containerType, parentType, volume);
         // this is a patch for some situation which container type is null
         if ((((parentType == null) || Constants.CONTAINER_TYPE_BENCHMARK.equals(parentType))
             && Constants.CONTAINER_TYPE_SYSTEM.equals(containerType))
             || Constants.CONTAINER_TYPE_SYSTEM.equals(parentType)) {
             containerType  = Constants.CONTAINER_TYPE_SYSTEM;
-            LOGGER.info("TTHHIISS IISS HHAAPPEENNEEDD");
         }
         V1ObjectMeta metadata = createPodMetadata(podName, containerType, parentPodName);
         V1Pod pod = new V1Pod().metadata(metadata).spec(podSpec);
 
         return deployPod(pod, podName);
+    }
+
+    /**
+     * Creates a volume for the shared directory.
+     */
+    private V1Volume createVolume() {
+        V1PersistentVolumeClaimVolumeSource persistentVolumeClaim = new V1PersistentVolumeClaimVolumeSource();
+        persistentVolumeClaim.setClaimName("enexa-shared-dir-claim");
+
+        V1Volume volume = new V1Volume();
+        volume.setName("enexa-shared-dir");
+        volume.setPersistentVolumeClaim(persistentVolumeClaim);
+
+        return volume;
+    }
+
+    /**
+     * Adds environment variables related to shared directories to the list of env variables.
+     */
+    private String[] addSharedDirectoryEnvVars(String[] env, String containerBasePath, String containerModuleInstancePath,
+                                           String containerWritablePath) {
+
+        env =  addEnvironmentVariables(env, "ENEXA_SHARED_DIRECTORY"+ "=" + containerBasePath);
+        env =  addEnvironmentVariables(env, "ENEXA_MODULE_INSTANCE_DIRECTORY"+"=" + containerModuleInstancePath);
+        env =  addEnvironmentVariables(env, "ENEXA_WRITEABLE_DIRECTORY"+ "=" + containerWritablePath);
+
+        return env;
+    }
+
+    /**
+     * Creates a writable path for the container based on the experiment IRI.
+     */
+    private String buildWritableContainerPath(String expIRI, String hostBasePath) {
+        String writeableDirectory = expIRI.split("/")[expIRI.split("/").length - 1];
+        LOGGER.info("build writeable path at {}", writeableDirectory);
+        return makeTheDirectoryInThisPath(hostBasePath, writeableDirectory);
+    }
+
+    /**
+     * Combines two path components to create a valid path, taking into account trailing separators.
+     *
+     * @param partOne   The first part of the path.
+     * @param partTwo   The second part of the path.
+     * @return          The combined path.
+     */
+    private String combinePaths(String partOne, String partTwo) {
+        String path = partOne + File.separator + partTwo;
+        if (partOne.endsWith(File.separator)) {
+            path = partOne + partTwo;
+        }
+        return path;
+    }
+
+    /**
+     * Combines two path components to create a valid path.
+     * the directory will create if not exist
+     *
+     * @param partOneOfPath   The first part of the path.
+     * @param partTwoOfPath   The second part of the path.
+     * @return                The combined path.
+     */
+    private String makeTheDirectoryInThisPath(String partOneOfPath, String partTwoOfPath) {
+        if(partOneOfPath ==null && partTwoOfPath == null) return "";
+        assert partOneOfPath != null;
+        String path = combinePaths(partOneOfPath, partTwoOfPath);
+        File appPathDirectory = new File(path);
+        if(!appPathDirectory.exists()){
+            appPathDirectory.mkdirs();
+        }
+        return path;
+    }
+
+    /**
+     * Builds the host path using the shared directory path and app name.
+     */
+    private String buildHostPath(String hostSharedDirectory, String appName) {
+        LOGGER.info("build host path");
+        return makeTheDirectoryInThisPath(hostSharedDirectory, appName);
+    }
+
+    /**
+     * Extracts the experiment IRI from the environment variables list.
+     */
+    private String extractExperimentIRI(String[] variables) {
+        for (String v : variables) {
+            String[] parts = v.split("=");
+            if ("ENEXA_EXPERIMENT_IRI".equals(parts[0])) {
+                return parts[1];
+            }
+        }
+        return "";
     }
 
     /**

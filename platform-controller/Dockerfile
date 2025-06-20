@@ -3,6 +3,8 @@ WORKDIR /usr/src/hobbit-platform
 COPY parent-pom/pom.xml parent-pom/
 RUN mvn --file parent-pom -Dmaven.test.skip=true install
 ARG project=platform-controller
+#this line is hot patch remove it
+COPY docker-artifacts/org/hobbit/core /root/.m2/repository/org/hobbit/core
 COPY ${project}/pom.xml ${project}/
 RUN mvn --file ${project} dependency:go-offline
 COPY ${project}/src ${project}/src

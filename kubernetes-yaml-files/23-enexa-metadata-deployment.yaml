@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: enexa-metadata-deployment
+    labels:
+        app: enexa-metadata
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: enexa-metadata
+    template:
+        metadata:
+            labels:
+                app: enexa-metadata
+        spec:
+            securityContext: # This is the correct place for fsGroup
+                fsGroup: 1000
+            containers:
+                - name: enexa-metadata
+                  image: hobbitproject/virtuoso_opensource:v07.20.3217
+                  securityContext:
+                      runAsUser: 79184 # Replace with the actual numeric user ID
+                      runAsGroup: 10000
+                  ports:
+                      - containerPort: 8890
+                      - containerPort: 1111  # ISQL (command-line interface)
+                  env:
+                    -   name: VIRTUOSO_DBNAME
+                        value: "enexa"
+                  volumeMounts:
+                      - name: enexa-metadata-storage
+                        mountPath: /opt/virtuoso-opensource/database
+            volumes:
+                - name: enexa-metadata-storage
+                  persistentVolumeClaim:
+                      claimName: enexa-metadata-pvc

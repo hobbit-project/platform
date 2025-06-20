@@ -125,6 +125,8 @@ public class PlatformController extends AbstractComponent implements ContainerTe
      * Environmental variable key for the local metadata directory.
      */
     private static final String LOCAL_METADATA_DIR_KEY = "LOCAL_METADATA_DIRECTORY";
+
+
     /**
      * Environmental variable key for the Gitlab usage flag.
      */
@@ -577,8 +579,14 @@ public class PlatformController extends AbstractComponent implements ContainerTe
             pullImage = true;
         }
 
-        String containerDNSFriendlyIP_OR_containerIDForDocker = containerManager.startContainer(data.image, data.type, data.parent, data.environmentVariables,
-                data.networkAliases, null, pullImage, null);
+        // TODO experiment ID is null
+        String containerDNSFriendlyIP_OR_containerIDForDocker = containerManager.startContainer(
+            data.image,
+            data.type,
+            data.parent,
+            data.environmentVariables,
+            data.networkAliases,
+            null,null, null, pullImage, data.getHostSharedDirectory(), data.getAppName() );
         LOGGER.debug("container Identifier is {}", containerDNSFriendlyIP_OR_containerIDForDocker);
         if (containerDNSFriendlyIP_OR_containerIDForDocker == null) {
             return null;

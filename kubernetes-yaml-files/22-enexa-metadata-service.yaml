@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: enexa-metadata-service
+    labels:
+        app: enexa-metadata
+spec:
+    selector:
+        app: enexa-metadata
+    ports:
+        -   protocol: TCP
+            port: 8890
+            targetPort: 8890
+            name: sparql
+            nodePort: 31002
+        -   protocol: TCP
+            port: 1111
+            targetPort: 1111
+            name: isql
+    type: NodePort

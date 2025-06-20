@@ -621,6 +621,11 @@ public class ContainerManagerImpl implements ContainerManager {
         return startContainer(imageName, containerType, parentId, env, netAliases, command, true, constraints);
     }
 
+    @Override
+    public String startContainer(String imageName, String containerType, String parentId, String[] env, String[] netAliases, String[] command, String experimentId, Map<String, Object> constraints, boolean pullImage, String hostSharedDirectory, String appName) {
+        return startContainer(imageName, containerType, parentId, env, netAliases, command, true, constraints);
+    }
+
 //    @Override
 //    public String startService(String containerIdentifier, boolean toOutsideOfTheCluster, Map<Integer, Integer> ports) {
 //        return containerIdentifier;

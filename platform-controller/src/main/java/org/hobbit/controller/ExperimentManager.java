@@ -19,14 +19,7 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.function.Function;
 
 import org.apache.commons.io.IOUtils;
@@ -79,6 +72,14 @@ import com.spotify.docker.client.exceptions.DockerException;
 public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
     private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
+
+
+    /**
+     * Environmental variable key for ENEXA modules.
+     */
+    private static final String IS_ENEXA_MODULE = "IS_ENEXA_MODULE";
+
+    private String ENEXA_META_DATA_ENDPOINT;
 
     /**
      * Key of the environmental variable used to define which docker image to use as
@@ -137,6 +138,7 @@ public class ExperimentManager implements Closeable {
             long checkForFirstExperiment, long checkForNewExperiment) {
         this.controller = controller;
         this.hobbitConfig = hobbitConfig;
+        this.ENEXA_META_DATA_ENDPOINT = getENEXAMetadataFromEnv();
 
         try {
             defaultMaxExecutionTime = hobbitConfig.getLong("MAX_EXECUTION_TIME", 1200000L, LOGGER);
@@ -162,6 +164,16 @@ public class ExperimentManager implements Closeable {
             }
         }, checkForFirstExperiment, checkForNewExperiment);
     }
+
+    private String getENEXAMetadataFromEnv() {
+        Optional<String> enexaMetadata = Optional.ofNullable(System.getenv("ENEXA_METADATA"));
+        if(enexaMetadata.isPresent()){
+            return enexaMetadata.get();
+        }else{
+            LOGGER.error("Environment variable ENEXA_METADATA is not set. ");
+         return null;
+        }
+    };
 
     /**
      * Creates the next experiment if there is no experiment running and there is an
@@ -267,14 +279,28 @@ public class ExperimentManager implements Closeable {
                     experimentStatus.setState(States.INIT);
 
                     LOGGER.info("Creating benchmark controller " + benchmark.mainImage);
+
+                    Map<String, String> environmentVariables = new HashMap<>();
+                    environmentVariables.put(Constants.RABBIT_MQ_HOST_NAME_KEY, experimentStatus.getRabbitMQContainer());
+                    environmentVariables.put(Constants.HOBBIT_SESSION_ID_KEY, config.id);
+                    environmentVariables.put(Constants.HOBBIT_EXPERIMENT_URI_KEY, experimentStatus.experimentUri);
+                    environmentVariables.put(Constants.BENCHMARK_PARAMETERS_MODEL_KEY, config.serializedBenchParams);
+                    environmentVariables.put(Constants.SYSTEM_URI_KEY, config.systemUri);
+                    // todo now add these to all then decide a way to show it is enexa module
+                    //if(isENEXAModule()){
+                        //ENEXA triple store
+                        environmentVariables.put("FarshadTest2","true");
+                        environmentVariables.put("IT_IS_ENEXA","true");
+                        environmentVariables.put("ENEXA_MODULE_INSTANCE_IRI", benchmark.mainImage);
+                        environmentVariables.put("ENEXA_META_DATA_ENDPOINT",this.ENEXA_META_DATA_ENDPOINT);
+                        // ENEXA gra    ph name
+                        // TODO check
+                        environmentVariables.put("ENEXA_META_DATA_GRAPH","enexa");
+                    //}
+
                     String containerId = controller.containerManager.startContainer(benchmark.mainImage,
                             Constants.CONTAINER_TYPE_BENCHMARK, experimentStatus.getRootContainer(),
-                            new String[] {
-                                    Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
-                                    Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                    Constants.HOBBIT_EXPERIMENT_URI_KEY + "=" + experimentStatus.experimentUri,
-                                    Constants.BENCHMARK_PARAMETERS_MODEL_KEY + "=" + config.serializedBenchParams,
-                                    Constants.SYSTEM_URI_KEY + "=" + config.systemUri },
+                            toEnvironmentArray(environmentVariables),
                             null, null, config.id, Collections.emptyMap());
                     LOGGER.trace(" containerID is {}" , containerId);
                     if (containerId == null) {
@@ -289,12 +315,23 @@ public class ExperimentManager implements Closeable {
 
                     LOGGER.info("Creating system " + system.mainImage);
                     String serializedSystemParams = getSerializedSystemParams(config, benchmark, system);
+
+                    Map<String, String> systemEnvironmentVariables = new HashMap<>();
+                    systemEnvironmentVariables.put(Constants.RABBIT_MQ_HOST_NAME_KEY, experimentStatus.getRabbitMQContainer());
+                    systemEnvironmentVariables.put(Constants.HOBBIT_SESSION_ID_KEY, config.id);
+                    systemEnvironmentVariables.put(Constants.SYSTEM_PARAMETERS_MODEL_KEY, serializedSystemParams);
+                    systemEnvironmentVariables.put("IT_IS_ENEXA","true");
+                    systemEnvironmentVariables.put("ENEXA_META_DATA_ENDPOINT",this.ENEXA_META_DATA_ENDPOINT);
+                    systemEnvironmentVariables.put("FarshadTest1","true");
+                    systemEnvironmentVariables.put("ENEXA_MODULE_INSTANCE_IRI", system.mainImage);
+
+                    // ENEXA graph name
+                    // TODO check
+                    systemEnvironmentVariables.put("ENEXA_META_DATA_GRAPH","enexa");
+
                     containerId = controller.containerManager.startContainer(system.mainImage,
-                            Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getRootContainer(),
-                            new String[] {
-                                    Constants.RABBIT_MQ_HOST_NAME_KEY + "=" + experimentStatus.getRabbitMQContainer(),
-                                    Constants.HOBBIT_SESSION_ID_KEY + "=" + config.id,
-                                    Constants.SYSTEM_PARAMETERS_MODEL_KEY + "=" + serializedSystemParams },
+                            Constants.CONTAINER_TYPE_SYSTEM, experimentStatus.getRootContainer(),toEnvironmentArray(systemEnvironmentVariables)
+                            ,
                             null, null, config.id, getHardwareConstraints(config.serializedBenchParams));
                     LOGGER.debug(" containerID is {}" , containerId);
                     if (containerId == null) {
@@ -315,6 +352,12 @@ public class ExperimentManager implements Closeable {
                 handleExperimentTermination_unsecured();
             }
         }
+    }
+
+    private String[] toEnvironmentArray(Map<String, String> environmentVariables) {
+        return environmentVariables.entrySet().stream()
+            .map(entry -> entry.getKey() + "=" + entry.getValue())
+            .toArray(String[]::new);
     }
 
     protected static Map<String, Object> getHardwareConstraints(String serializedBenchParams) {
@@ -734,6 +777,25 @@ public class ExperimentManager implements Closeable {
             status.experiment = experiment;
         }
     }
+
+    /**
+     * check if in ENV variable exist which show it is an ENEXA module
+     * @return
+     */
+    private boolean isENEXAModule(){
+        Optional<String> envValue = Optional.ofNullable(System.getenv(IS_ENEXA_MODULE));
+
+        if(envValue.isPresent()){
+            if(envValue.get().equalsIgnoreCase("true")){
+                return true;
+            }else {
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+
 
     /**
      * Changes the state of the internal experiment to
