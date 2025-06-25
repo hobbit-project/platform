@@ -563,6 +563,7 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
 
                     String podPhase = targetPod.getStatus().getPhase();
                     LOGGER.info("podPhase : "+podPhase);
+                    // the pod phase could be any of these when we want to get the IP
                     if ("Running".equals(podPhase) || "Completed".equals(podPhase) || "Succeeded".equals(podPhase)) {
                         LOGGER.debug("Found running/Completed/Succeeded pod check for IP ");
                         String podIP = targetPod.getStatus().getPodIP();
@@ -625,11 +626,6 @@ public class ContainerManagerImpl implements ContainerManager, KubExtendedContai
         }
         LOGGER.debug("Creating container: Image = {}, Pod Name = {}, Container Type = {}, Parent ID = {}",
             imageName, podName, containerType, parentPodName);
-
-//        // Process experiment IRI variable for Tentris modules
-//        String expIRI=extractExperimentIRI(env);
-//        LOGGER.info("ENEXA_EXPERIMENT_IRI: {}", expIRI);
-
 
         // Set up paths for shared directories
         String containerBasePath = "/enexa";

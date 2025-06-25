@@ -73,12 +73,6 @@ public class ExperimentManager implements Closeable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ExperimentManager.class);
     private static final int DEFAULT_MAX_EXECUTION_TIME = 20 * 60 * 1000;
 
-
-    /**
-     * Environmental variable key for ENEXA modules.
-     */
-    private static final String IS_ENEXA_MODULE = "IS_ENEXA_MODULE";
-
     private String ENEXA_META_DATA_ENDPOINT;
 
     /**
@@ -286,17 +280,14 @@ public class ExperimentManager implements Closeable {
                     environmentVariables.put(Constants.HOBBIT_EXPERIMENT_URI_KEY, experimentStatus.experimentUri);
                     environmentVariables.put(Constants.BENCHMARK_PARAMETERS_MODEL_KEY, config.serializedBenchParams);
                     environmentVariables.put(Constants.SYSTEM_URI_KEY, config.systemUri);
-                    // todo now add these to all then decide a way to show it is enexa module
-                    //if(isENEXAModule()){
-                        //ENEXA triple store
-                        environmentVariables.put("FarshadTest2","true");
-                        environmentVariables.put("IT_IS_ENEXA","true");
-                        environmentVariables.put("ENEXA_MODULE_INSTANCE_IRI", benchmark.mainImage);
-                        environmentVariables.put("ENEXA_META_DATA_ENDPOINT",this.ENEXA_META_DATA_ENDPOINT);
-                        // ENEXA gra    ph name
-                        // TODO check
-                        environmentVariables.put("ENEXA_META_DATA_GRAPH","enexa");
-                    //}
+                    //environmentVariables.put("IT_IS_ENEXA","true");
+                    // todo add the Constants to core
+                    environmentVariables.put("ENEXA_MODULE_INSTANCE_IRI", benchmark.mainImage);
+                    environmentVariables.put("ENEXA_META_DATA_ENDPOINT",this.ENEXA_META_DATA_ENDPOINT);
+                    // ENEXA gra    ph name
+                    // TODO check
+                    environmentVariables.put("ENEXA_META_DATA_GRAPH","enexa");
+                    // todo check if ENEXA triplestore is not empty remove it before start new experiment
 
                     String containerId = controller.containerManager.startContainer(benchmark.mainImage,
                             Constants.CONTAINER_TYPE_BENCHMARK, experimentStatus.getRootContainer(),
@@ -320,9 +311,9 @@ public class ExperimentManager implements Closeable {
                     systemEnvironmentVariables.put(Constants.RABBIT_MQ_HOST_NAME_KEY, experimentStatus.getRabbitMQContainer());
                     systemEnvironmentVariables.put(Constants.HOBBIT_SESSION_ID_KEY, config.id);
                     systemEnvironmentVariables.put(Constants.SYSTEM_PARAMETERS_MODEL_KEY, serializedSystemParams);
-                    systemEnvironmentVariables.put("IT_IS_ENEXA","true");
+                    //systemEnvironmentVariables.put("IT_IS_ENEXA","true");
+                    // todo add the Constants to core
                     systemEnvironmentVariables.put("ENEXA_META_DATA_ENDPOINT",this.ENEXA_META_DATA_ENDPOINT);
-                    systemEnvironmentVariables.put("FarshadTest1","true");
                     systemEnvironmentVariables.put("ENEXA_MODULE_INSTANCE_IRI", system.mainImage);
 
                     // ENEXA graph name
@@ -777,25 +768,6 @@ public class ExperimentManager implements Closeable {
             status.experiment = experiment;
         }
     }
-
-    /**
-     * check if in ENV variable exist which show it is an ENEXA module
-     * @return
-     */
-    private boolean isENEXAModule(){
-        Optional<String> envValue = Optional.ofNullable(System.getenv(IS_ENEXA_MODULE));
-
-        if(envValue.isPresent()){
-            if(envValue.get().equalsIgnoreCase("true")){
-                return true;
-            }else {
-                return false;
-            }
-        }else{
-            return false;
-        }
-    }
-
 
     /**
      * Changes the state of the internal experiment to
