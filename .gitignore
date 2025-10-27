@@ -13,3 +13,4 @@ docker-compose.override.yml
 *.iml
 .idea
 set-env.sh
+docker-artifacts/

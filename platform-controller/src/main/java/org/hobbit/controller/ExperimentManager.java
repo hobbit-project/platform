@@ -19,6 +19,9 @@ package org.hobbit.controller;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.Function;
 
@@ -59,6 +62,8 @@ import org.hobbit.vocab.HobbitExperiments;
 import org.hobbit.vocab.PROV;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.OutputStream;
+
 
 import com.spotify.docker.client.exceptions.DockerException;
 
@@ -585,10 +590,88 @@ public class ExperimentManager implements Closeable {
             }
             controller.containerManager.removeContainer(experimentStatus.getRootContainer());
 
+            makeTheEnexaMetadataTripleStoreEmpty();
+
             // publish experiment results (if needed)
             // controller.publishChallengeForExperiment(experimentStatus.config);
             // Remove the experiment status object
             experimentStatus = null;
+        }
+    }
+
+    /**
+     * This class contains methods to interact with a SPARQL endpoint for managing triples in an Enexa metadata triple store.
+     */
+    private void makeTheEnexaMetadataTripleStoreEmpty() {
+        LOGGER.info("enexa triple store ",ENEXA_META_DATA_ENDPOINT);
+        try {
+            // Check if there are any triples
+            String checkQuery = "ASK { ?s ?p ?o }";
+            boolean hasTriples = executeAskQuery(checkQuery, ENEXA_META_DATA_ENDPOINT);
+
+            if (hasTriples) {
+                LOGGER.info("Triples exist in Enexa triple store. Deleting all triples.");
+
+                // Delete all triples
+                String deleteQuery = "DELETE { ?s ?p ?o } WHERE { ?s ?p ?o }";
+                executeUpdateQuery(deleteQuery, ENEXA_META_DATA_ENDPOINT);
+
+                LOGGER.info("All triples have been deleted from Enexa triple store.");
+            } else {
+                LOGGER.info("No triples found in Enexa triple store. No action needed.");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Error while interacting with Enexa triple store", e);
+        }
+    }
+
+    /**
+     * Executes an ASK query on the SPARQL endpoint to check if any triples exist.
+     *
+     * @param query The SPARQL ASK query string
+     * @param endpoint The SPARQL endpoint URL
+     * @return true if there are triples, false otherwise
+     * @throws Exception If an error occurs during the HTTP request or response parsing
+     */
+    private boolean executeAskQuery(String query, String endpoint) throws Exception {
+        URL url = new URL(endpoint + "?query=" + java.net.URLEncoder.encode(query, StandardCharsets.UTF_8.toString()));
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Accept", "application/sparql-results+json");
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode == 200) {
+            // Parse the result to determine whether triples exist
+            // Assuming a simple JSON parser for this example
+            String jsonResponse = new java.util.Scanner(conn.getInputStream(), StandardCharsets.UTF_8.name()).useDelimiter("\\A").next();
+            return Boolean.parseBoolean(new org.json.JSONObject(jsonResponse).getString("boolean"));
+        } else {
+            throw new RuntimeException("Failed to execute ASK query. HTTP response code: " + responseCode);
+        }
+    }
+
+    /**
+     * Executes an update query on the SPARQL endpoint to delete all triples.
+     *
+     * @param query The SPARQL UPDATE query string
+     * @param endpoint The SPARQL endpoint URL
+     * @throws Exception If an error occurs during the HTTP request
+     */
+    private void executeUpdateQuery(String query, String endpoint) throws Exception {
+        URL url = new URL(endpoint);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/sparql-update");
+
+        try (OutputStream os = conn.getOutputStream()) {
+            byte[] input = query.getBytes(StandardCharsets.UTF_8);
+            os.write(input, 0, input.length);
+        }
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode != 200) {
+            throw new RuntimeException("Failed to execute update query. HTTP response code: " + responseCode);
         }
     }
 
